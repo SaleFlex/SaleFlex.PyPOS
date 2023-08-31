@@ -59,7 +59,7 @@ It has modules for easily integrate it to different payment systems, loyalty sys
   * Then run `python app.py`
 * For MacOS or Linux:
   * First run `source  venv\Scripts\activate` for activating your virtual environment. This will install proper packages.
-  * Then run `python3 app.py`
+  * Then run `python3 saleflex.py`
 * With the execution of these commands, the sellastic.app application will start.
 
 ### Project Roadmap
