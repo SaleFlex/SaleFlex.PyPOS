@@ -24,11 +24,10 @@ class Application(CurrentStatus, CurrentData, EventHandler):
 
         init_db()
         self.app = QApplication([])
-        self.app.setApplicationName("Sellastic")
+        self.app.setApplicationName("SaleFlex")
         self.app.setWindowIcon(QIcon('logo.png'))
         self.interface = Interface(self)
 
     def run(self):
         self.interface.draw(self.current_display_type)
         sys.exit(self.app.exec())
-        
