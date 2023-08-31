@@ -26,7 +26,7 @@ class Interpreter:
         settings_data = self.__design_file_data.get("settings")
         if settings_data:
             return settings_data
-        return {'name': 'Sellastic',
+        return {'name': 'SaleFlex',
                 'functionality': 'NONE',
                 'login_required': False,
                 'toolbar': False,
