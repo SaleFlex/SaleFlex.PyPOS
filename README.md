@@ -1,10 +1,10 @@
 ![Python 3.11](https://img.shields.io/badge/python-%3E=_3.13-success.svg)
 
-# saleflex.app
+# SaleFlex.PyPOS
 
 ### SaleFlexTouch Screen Point-of-Sale Application
 
-SaleFlex.APP (point of sale app) system is a computerized system used to process sales transactions in a retail or other business setting. The regular POS system typically includes a computer or other device, a display screen, a keyboard or touch screen, a printer for receipts, and a scanner for reading barcodes. SaleFlex.APP could be run on any device that have proper components.
+SaleFlex.PyPOS (point of sale app) system is a computerized system used to process sales transactions in a retail or other business setting. The regular POS system typically includes a computer or other device, a display screen, a keyboard or touch screen, a printer for receipts, and a scanner for reading barcodes. SaleFlex.APP could be run on any device that have proper components.
 
 SaleFlex.APP POS system is designed to streamline the sales process and improve efficiency. They can handle tasks such as:
 
@@ -17,7 +17,7 @@ SaleFlex.APP POS system is designed to streamline the sales process and improve 
 
 SaleFlex.APP POS system can be used in a variety of businesses, including retail stores, restaurants, and other service-oriented businesses. SaleFlex.APP POS system also offer additional features and capabilities, such as the ability to process returns and exchanges, track employee time and attendance, and manage customer loyalty programs.
 
-Sellastic.APP POS is indented to respond to the needs of retail stores, fast-food restaurants as well as of a chain of restaurants. It includes the features to manage daily sales operations as well as a customized view for managers and authorized staff to track statistics, update prices and products. It has a user-friendly interface, mainly oriented to using screen and minimum keyboard input, very easy to use and It provides a lot of flexibility and maintainability. It is designed as that expansion might happen. 
+Sellastic.PyPOS POS is indented to respond to the needs of retail stores, fast-food restaurants as well as of a chain of restaurants. It includes the features to manage daily sales operations as well as a customized view for managers and authorized staff to track statistics, update prices and products. It has a user-friendly interface, mainly oriented to using screen and minimum keyboard input, very easy to use and It provides a lot of flexibility and maintainability. It is designed as that expansion might happen. 
 
 It has modules for easily integrate it to different payment systems, loyalty systems, printers and backend systems.
 
