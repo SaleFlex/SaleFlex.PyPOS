@@ -32,10 +32,10 @@ It has modules for easily integrate it to different payment systems, loyalty sys
 >
 > ##### Software Requirements
 >
-> - Python 3.11
-> - PySide6 6.4.1
-> - SQLAlchemy 2.0.0b3
-> - requests 2.28.1
+> - Python 3.13
+> - PySide6 6.9.0
+> - SQLAlchemy 2.0.40
+> - requests 2.32.3
 >
 > #### Supported Database Engines
 >
@@ -78,8 +78,5 @@ It has modules for easily integrate it to different payment systems, loyalty sys
 - [ ] Reports Module
 - [ ] Screen Designer App
 
-### Sample Configuration Design
-#### Login Form
-![Login Form](https://raw.githubusercontent.com/Sellastic/.github/main/profile/login.png)
 
 
