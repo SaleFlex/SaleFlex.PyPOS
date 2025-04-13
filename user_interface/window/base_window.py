@@ -108,11 +108,17 @@ class BaseWindow(QMainWindow):
         if height < 300:
             height = 350
         
+        # Get background and foreground colors from design data
+        background_color = design_data.get("background_color", 0x778D45)
+        foreground_color = design_data.get("foreground_color", 0xFFFFFF)
+        
         numpad = NumPad(self,
                         width=width,
                         height=height,
                         location_x=design_data["location_x"],
-                        location_y=design_data["location_y"])
+                        location_y=design_data["location_y"],
+                        background_color=background_color,
+                        foreground_color=foreground_color)
 
         numpad.setToolTip(design_data["caption"])
         numpad.set_event(self.app.event_distributor(design_data["function"]))

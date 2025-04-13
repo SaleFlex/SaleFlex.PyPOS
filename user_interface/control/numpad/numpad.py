@@ -18,7 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 from PySide6 import QtGui, QtCore, QtWidgets
-from PySide6.QtGui import QPainter, Qt
+from PySide6.QtGui import QPainter, Qt, QColor
 from PySide6.QtWidgets import QWidget, QGridLayout, QSizePolicy, QVBoxLayout, QLineEdit
 from user_interface.control.numpad.numpad_button import NumPadButton
 
@@ -27,7 +27,8 @@ class NumPad(QWidget):
     # Signal to emit when a numpad button is clicked
     numpad_signal = QtCore.Signal(str)
     
-    def __init__(self, parent=None, width=320, height=315, location_x=0, location_y=0, *args, **kwargs):
+    def __init__(self, parent=None, width=320, height=315, location_x=0, location_y=0, 
+                 background_color=0x778D45, foreground_color=0xFFFFFF, *args, **kwargs):
         super(NumPad, self).__init__(parent)
 
         self.parent = parent
@@ -38,7 +39,12 @@ class NumPad(QWidget):
         self.callback_function = None
         self.current_text = ""
         
+        # Store colors
+        self.background_color = QColor(background_color)
+        self.foreground_color = QColor(foreground_color)
+        
         print("NumPad", self.numpad_width, self.numpad_height, self.location_x, self.location_y)
+        print(f"NumPad colors: bg={background_color:x}, fg={foreground_color:x}")
         
         # Set position and size
         self.setGeometry(location_x, location_y, width, height)
@@ -53,15 +59,21 @@ class NumPad(QWidget):
         self.text_display.setAlignment(Qt.AlignRight)
         self.text_display.setReadOnly(True)
         self.text_display.setMinimumHeight(50)
-        self.text_display.setStyleSheet("""
-            QLineEdit {
+        
+        # Set text display colors
+        text_bg_color = self.background_color.lighter(150).name()
+        text_fg_color = self.foreground_color.name()
+        
+        self.text_display.setStyleSheet(f"""
+            QLineEdit {{
                 font-size: 24px;
                 font-weight: bold;
-                border: 2px solid #8f8f91;
+                border: 2px solid {self.background_color.darker(120).name()};
                 border-radius: 5px;
-                background-color: white;
+                background-color: {text_bg_color};
+                color: {text_fg_color};
                 padding: 5px;
-            }
+            }}
         """)
         self.main_layout.addWidget(self.text_display)
         
@@ -82,6 +94,15 @@ class NumPad(QWidget):
         # Create the buttons
         self._create_buttons()
         
+        # Apply a stylesheet to the entire widget
+        self.setStyleSheet(f"""
+            NumPad {{
+                background-color: {self.background_color.name()};
+                border: 2px solid {self.background_color.darker(150).name()};
+                border-radius: 10px;
+            }}
+        """)
+        
         # Make the widget visible
         self.show()
 
@@ -91,6 +112,9 @@ class NumPad(QWidget):
             for col_idx, key in enumerate(row):
                 button = NumPadButton(key, self)
                 
+                # Apply color scheme
+                self._apply_button_style(button, key)
+                
                 # Connect the button's signal to our internal handler
                 button.key_button_clicked_signal.connect(self._on_button_clicked)
                 
@@ -99,6 +123,114 @@ class NumPad(QWidget):
                     self.button_layout.addWidget(button, row_idx, 0, 1, 3)
                 else:
                     self.button_layout.addWidget(button, row_idx, col_idx)
+
+    def _apply_button_style(self, button, key):
+        # Base colors from the numpad settings
+        base_bg = self.background_color
+        base_fg = self.foreground_color
+        
+        # Different styling based on button type
+        if key.isdigit():
+            # Number buttons - make them large and prominent
+            button.setStyleSheet(f"""
+                QPushButton {{
+                    min-width: 60px;
+                    max-width: 100px;
+                    min-height: 60px;
+                    max-height: 100px;
+                    font-size: 24px;
+                    font-weight: bold;
+                    font-family: Noto Sans CJK JP;
+                    border: 3px solid {base_bg.darker(130).name()};
+                    border-radius: 8px;
+                    background-color: {base_bg.lighter(130).name()};
+                    color: {base_fg.name()};
+                }}
+                QPushButton:pressed {{
+                    background-color: {base_bg.name()};
+                    color: {base_fg.name()};
+                }}
+            """)
+        elif key == "Backspace":
+            # Backspace button - distinctive styling
+            button.setStyleSheet(f"""
+                QPushButton {{
+                    min-width: 60px;
+                    max-width: 100px;
+                    min-height: 60px;
+                    max-height: 100px;
+                    font-size: 16px;
+                    font-family: Noto Sans CJK JP;
+                    border: 3px solid {base_bg.darker(120).name()};
+                    border-radius: 8px;
+                    background-color: {QColor(255, 204, 203).name()};
+                    color: black;
+                }}
+                QPushButton:pressed {{
+                    background-color: {QColor(255, 153, 153).name()};
+                    color: white;
+                }}
+            """)
+        elif key == "Clear":
+            # Clear button - distinctive styling
+            button.setStyleSheet(f"""
+                QPushButton {{
+                    min-width: 60px;
+                    max-width: 100px;
+                    min-height: 60px;
+                    max-height: 100px;
+                    font-size: 16px;
+                    font-family: Noto Sans CJK JP;
+                    border: 3px solid {base_bg.darker(120).name()};
+                    border-radius: 8px;
+                    background-color: {QColor(255, 230, 204).name()};
+                    color: black;
+                }}
+                QPushButton:pressed {{
+                    background-color: {QColor(255, 204, 153).name()};
+                    color: white;
+                }}
+            """)
+        elif key == "Enter":
+            # Enter button - make it wide and stand out
+            button.setStyleSheet(f"""
+                QPushButton {{
+                    min-width: 100%;
+                    min-height: 60px;
+                    max-height: 100px;
+                    font-size: 18px;
+                    font-weight: bold;
+                    font-family: Noto Sans CJK JP;
+                    border: 3px solid {base_bg.darker(120).name()};
+                    border-radius: 8px;
+                    background-color: {base_bg.lighter(150).name()};
+                    color: {base_fg.name()};
+                }}
+                QPushButton:pressed {{
+                    background-color: {base_bg.name()};
+                    color: {base_fg.name()};
+                }}
+            """)
+        else:
+            # Default styling for other buttons
+            button.setStyleSheet(f"""
+                QPushButton {{
+                    min-width: 60px;
+                    max-width: 100px;
+                    min-height: 60px;
+                    max-height: 100px;
+                    font-size: 16px;
+                    font-family: Noto Sans CJK JP;
+                    border: 3px solid {base_bg.darker(120).name()};
+                    border-radius: 8px;
+                    background-color: {base_bg.lighter(120).name()};
+                    color: {base_fg.name()};
+                }}
+                QPushButton:pressed {{
+                    background-color: {base_bg.name()};
+                    color: {base_fg.name()};
+                }}
+            """)
 
     def _on_button_clicked(self, key):
         # Handle button click internally
@@ -181,4 +313,4 @@ class NumPad(QWidget):
         """
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
-        painter.fillRect(self.rect(), QtGui.QColor(240, 240, 240))
+        painter.fillRect(self.rect(), self.background_color)
