@@ -19,7 +19,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from PySide6 import QtGui, QtCore, QtWidgets
 from PySide6.QtGui import QPainter, Qt
-from PySide6.QtWidgets import QWidget, QGridLayout, QSizePolicy, QVBoxLayout
+from PySide6.QtWidgets import QWidget, QGridLayout, QSizePolicy, QVBoxLayout, QLineEdit
 from user_interface.control.numpad.numpad_button import NumPadButton
 
 
@@ -36,15 +36,39 @@ class NumPad(QWidget):
         self.location_x = location_x
         self.location_y = location_y
         self.callback_function = None
+        self.current_text = ""
         
         print("NumPad", self.numpad_width, self.numpad_height, self.location_x, self.location_y)
         
         # Set position and size
         self.setGeometry(location_x, location_y, width, height)
         
-        # Create layout
-        self.layout = QGridLayout(self)
-        self.layout.setSpacing(5)
+        # Create main layout
+        self.main_layout = QVBoxLayout(self)
+        self.main_layout.setSpacing(10)
+        self.main_layout.setContentsMargins(5, 5, 5, 5)
+        
+        # Create text display
+        self.text_display = QLineEdit(self)
+        self.text_display.setAlignment(Qt.AlignRight)
+        self.text_display.setReadOnly(True)
+        self.text_display.setMinimumHeight(50)
+        self.text_display.setStyleSheet("""
+            QLineEdit {
+                font-size: 24px;
+                font-weight: bold;
+                border: 2px solid #8f8f91;
+                border-radius: 5px;
+                background-color: white;
+                padding: 5px;
+            }
+        """)
+        self.main_layout.addWidget(self.text_display)
+        
+        # Create grid layout for buttons
+        self.button_layout = QGridLayout()
+        self.button_layout.setSpacing(5)
+        self.main_layout.addLayout(self.button_layout)
         
         # Define numpad buttons in a grid layout
         self.numpad_keys = [
@@ -72,20 +96,38 @@ class NumPad(QWidget):
                 
                 # Special case for Enter button - make it span across multiple columns
                 if key == 'Enter':
-                    self.layout.addWidget(button, row_idx, 0, 1, 3)
+                    self.button_layout.addWidget(button, row_idx, 0, 1, 3)
                 else:
-                    self.layout.addWidget(button, row_idx, col_idx)
+                    self.button_layout.addWidget(button, row_idx, col_idx)
 
     def _on_button_clicked(self, key):
         # Handle button click internally
         print(f"NumPad button clicked: {key}")
         
-        # If a callback function is set, call it with the key
-        if self.callback_function:
+        if key == 'Clear':
+            self.current_text = ""
+            self.text_display.setText("")
+        elif key == 'Backspace':
+            self.current_text = self.current_text[:-1]
+            self.text_display.setText(self.current_text)
+        elif key == 'Enter':
+            # If a callback function is set, call it with the current text
+            if self.callback_function:
+                self.callback_function(self.current_text)
+            # Emit the signal with the current text
+            self.numpad_signal.emit(self.current_text)
+        else:
+            # For digits and other keys, add to current text
+            self.current_text += key
+            self.text_display.setText(self.current_text)
+        
+        # If a callback function is set, also call it with the key
+        if self.callback_function and key != 'Enter':
             self.callback_function(key)
         
         # Emit the signal with the key
-        self.numpad_signal.emit(key)
+        if key != 'Enter':
+            self.numpad_signal.emit(key)
 
     def set_event(self, function):
         """Set the callback function for button clicks
@@ -96,6 +138,27 @@ class NumPad(QWidget):
             The function to call when a button is clicked
         """
         self.callback_function = function
+        
+    def get_text(self):
+        """Get the current text in display
+        
+        Returns
+        -------
+        str
+            Current text value
+        """
+        return self.current_text
+        
+    def set_text(self, text):
+        """Set the text in display
+        
+        Parameters
+        ----------
+        text : str
+            Text to display
+        """
+        self.current_text = text
+        self.text_display.setText(text)
 
     def resizeEvent(self, event):
         """Override resize event to ensure proper size
