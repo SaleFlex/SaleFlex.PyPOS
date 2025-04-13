@@ -17,9 +17,21 @@ class Interpreter:
     def __init__(self, display_type: DisplayType):
         self.__display_type = display_type
         self.__toml_file_name = self.__set_toml_file_name()
-
-        with open(self.__toml_file_name, "rb") as file_object:
-            self.__design_file_data = tomllib.load(file_object)
+        self.__design_file_data = {}
+        
+        try:
+            with open(self.__toml_file_name, "rb") as file_object:
+                self.__design_file_data = tomllib.load(file_object)
+        except FileNotFoundError:
+            print(f"Design file not found: {self.__toml_file_name}")
+            try:
+                # Fallback to default.toml if available
+                with open("design_files/default.toml", "rb") as file_object:
+                    self.__design_file_data = tomllib.load(file_object)
+            except FileNotFoundError:
+                print("Default design file not found. Using built-in defaults.")
+        except tomllib.TOMLDecodeError as e:
+            print(f"Error parsing design file {self.__toml_file_name}: {e}")
 
     @property
     def settings(self):
@@ -48,31 +60,48 @@ class Interpreter:
 
     def __set_toml_file_name(self):
         toml_file_name = "design_files/default.toml"
-        match self.__display_type:
-            case DisplayType.LOGIN:
-                toml_file_name = f"design_files/{env_data.main_display_data['login']}"
-            case DisplayType.MENU:
-                toml_file_name = f"design_files/{env_data.main_display_data['menu']}"
-            case DisplayType.SALE:
-                toml_file_name = f"design_files/{env_data.main_display_data['sale']}"
-            case DisplayType.SERVICE:
-                toml_file_name = f"design_files/{env_data.main_display_data['service']}"
-            case DisplayType.CONFIG:
-                toml_file_name = f"design_files/{env_data.main_display_data['config']}"
-            case DisplayType.PARAMETER:
-                toml_file_name = f"design_files/{env_data.main_display_data['parameter']}"
-            case DisplayType.REPORT:
-                toml_file_name = f"design_files/{env_data.main_display_data['report']}"
-            case DisplayType.FUNCTION:
-                toml_file_name = f"design_files/{env_data.main_display_data['function']}"
-            case DisplayType.CUSTOMER:
-                toml_file_name = f"design_files/{env_data.main_display_data['customer']}"
-            case DisplayType.VOID:
-                toml_file_name = f"design_files/{env_data.main_display_data['void']}"
-            case DisplayType.REFUND:
-                toml_file_name = f"design_files/{env_data.main_display_data['refund']}"
-            case DisplayType.STOCK:
-                toml_file_name = f"design_files/{env_data.main_display_data['stock']}"
-            case DisplayType.CLOSURE:
-                toml_file_name = f"design_files/{env_data.main_display_data['closure']}"
+        try:
+            match self.__display_type:
+                case DisplayType.LOGIN:
+                    if 'login' in env_data.main_display_data:
+                        toml_file_name = f"design_files/{env_data.main_display_data['login']}"
+                case DisplayType.MENU:
+                    if 'menu' in env_data.main_display_data:
+                        toml_file_name = f"design_files/{env_data.main_display_data['menu']}"
+                case DisplayType.SALE:
+                    if 'sale' in env_data.main_display_data:
+                        toml_file_name = f"design_files/{env_data.main_display_data['sale']}"
+                case DisplayType.SERVICE:
+                    if 'service' in env_data.main_display_data:
+                        toml_file_name = f"design_files/{env_data.main_display_data['service']}"
+                case DisplayType.CONFIG:
+                    if 'config' in env_data.main_display_data:
+                        toml_file_name = f"design_files/{env_data.main_display_data['config']}"
+                case DisplayType.PARAMETER:
+                    if 'parameter' in env_data.main_display_data:
+                        toml_file_name = f"design_files/{env_data.main_display_data['parameter']}"
+                case DisplayType.REPORT:
+                    if 'report' in env_data.main_display_data:
+                        toml_file_name = f"design_files/{env_data.main_display_data['report']}"
+                case DisplayType.FUNCTION:
+                    if 'function' in env_data.main_display_data:
+                        toml_file_name = f"design_files/{env_data.main_display_data['function']}"
+                case DisplayType.CUSTOMER:
+                    if 'customer' in env_data.main_display_data:
+                        toml_file_name = f"design_files/{env_data.main_display_data['customer']}"
+                case DisplayType.VOID:
+                    if 'void' in env_data.main_display_data:
+                        toml_file_name = f"design_files/{env_data.main_display_data['void']}"
+                case DisplayType.REFUND:
+                    if 'refund' in env_data.main_display_data:
+                        toml_file_name = f"design_files/{env_data.main_display_data['refund']}"
+                case DisplayType.STOCK:
+                    if 'stock' in env_data.main_display_data:
+                        toml_file_name = f"design_files/{env_data.main_display_data['stock']}"
+                case DisplayType.CLOSURE:
+                    if 'closure' in env_data.main_display_data:
+                        toml_file_name = f"design_files/{env_data.main_display_data['closure']}"
+        except (AttributeError, TypeError, KeyError) as e:
+            print(f"Error loading design file: {e}")
+            
         return toml_file_name

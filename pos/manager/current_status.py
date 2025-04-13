@@ -55,7 +55,7 @@ class CurrentStatus:
     @document_type.setter
     def document_type(self, value):
         if type(value) is DocumentType:
-            self.__document_state = value
+            self.__document_type = value
 
     @property
     def document_result(self):

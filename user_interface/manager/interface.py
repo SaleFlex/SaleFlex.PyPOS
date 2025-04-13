@@ -10,8 +10,6 @@ class Interface:
 
     def draw(self, display_type: DisplayType):
         interpreter = Interpreter(display_type)
-        print(interpreter.settings)
-        print(interpreter.design)
         self.window.draw_window(interpreter.settings, interpreter.toolbar_settings, interpreter.design)
         self.window.show()
         self.window.focus_text_box()
