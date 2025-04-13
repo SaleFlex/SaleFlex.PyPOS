@@ -1,3 +1,5 @@
+> **Under development. The project is not working properly yet.**
+
 ![Python 3.11](https://img.shields.io/badge/python-%3E=_3.13-success.svg)
 
 # SaleFlex.PyPOS
