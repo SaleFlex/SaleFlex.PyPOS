@@ -69,7 +69,7 @@ For more details, visit the [SaleFlex.GATE](https://github.com/SaleFlex/SaleFlex
 * Run `python3 -m venv venv` on SaleFlex.PyPOS project folder. This will create the venv directory on your project folder, and also create directories inside it containing a copy of the Python interpreter and various supporting files.
 * For Windows:
   * First run `venv\Scripts\activate.bat` for activating your virtual environment. This will install proper packages.
-  * Then run `python app.py`
+  * Then run `python saleflex.py`
 * For MacOS or Linux:
   * First run `source  venv\Scripts\activate` for activating your virtual environment. This will install proper packages.
   * Then run `python3 saleflex.py`
