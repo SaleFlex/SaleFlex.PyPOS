@@ -23,6 +23,19 @@ SaleFlex.PyPOS POS is indented to respond to the needs of retail stores, fast-fo
 
 It has modules for easily integrate it to different payment systems, loyalty systems, printers and backend systems.
 
+### SaleFlex.GATE Integration
+
+SaleFlex.PyPOS is designed to work seamlessly with **SaleFlex.GATE** - a centralized management system for businesses operating across multiple locations. SaleFlex.GATE serves as a control hub that provides:
+
+- **Centralized Management:** Manage and monitor multiple SaleFlex.PyPOS systems from one location with real-time insights
+- **Cloud-Based Access:** Remote control of operations for business owners and managers
+- **ERP Integration:** Seamless connection with existing ERP systems to ensure data synchronization
+- **Scalable Architecture:** Support for growing businesses with increasing numbers of stores and POS systems
+
+SaleFlex.GATE uses Django and Django REST Framework to deliver robust backend services, allowing for efficient data flow between your POS terminals and enterprise software.
+
+For more details, visit the [SaleFlex.GATE](https://github.com/SaleFlex/SaleFlex.GATE) project repository.
+
 > ### Project Requirements
 >
 > ##### Hardware Requirements
@@ -75,10 +88,39 @@ It has modules for easily integrate it to different payment systems, loyalty sys
 - [ ] Printer Module
 - [ ] Payment Module
 - [ ] Loyalty Module
-- [ ] SaleFlex.GATE Integration Module
+- [ ] SaleFlex.GATE Integration Module:
+  - [ ] Data Synchronization Service
+  - [ ] ERP Connection Layer
+  - [ ] Multi-Store Management
+  - [ ] Cloud-Based Remote Access
 - [ ] Campaign Module
 - [ ] Reports Module
 - [ ] Screen Designer App
+
+### Contributors
+
+<table>
+<tr>
+    <td align="center">
+        <a href="https://github.com/ferhat-mousavi">
+            <img src="https://avatars.githubusercontent.com/u/5930760?v=4" width="100;" alt="Ferhat Mousavi"/>
+            <br />
+            <sub><b>Ferhat Mousavi</b></sub>
+        </a>
+    </td>
+</tr>
+</table>
+
+### Donation and Support
+If you like the project and want to support it or if you want to contribute to the development of new modules, you can donate to the following crypto addresses.
+
+- USDT: 0xa5a87a939bfcd492f056c26e4febe102ea599b5b
+- BUSD: 0xa5a87a939bfcd492f056c26e4febe102ea599b5b
+- BTC: 184FDZ1qV2KFzEaNqMefw8UssG8Z57FA6F
+- ETH: 0xa5a87a939bfcd492f056c26e4febe102ea599b5b
+- SOL: HS9dUvRSqYGxkDiwTpCvKTVBBWqqtVoXdRK2AanLHMZn
+- MATIC: 0xa5a87a939bfcd492f056c26e4febe102ea599b5b
+- XTZ: tz1RvnJk5xVtDy2g6ijkcyGSzKA4qFg5Nuy3
 
 
 
