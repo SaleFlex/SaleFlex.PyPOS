@@ -73,7 +73,7 @@ It has modules for easily integrate it to different payment systems, loyalty sys
 - [ ] Printer Module
 - [ ] Payment Module
 - [ ] Loyalty Module
-- [ ] Backend Integration Module
+- [ ] SaleFlex.GATE Integration Module
 - [ ] Campaign Module
 - [ ] Reports Module
 - [ ] Screen Designer App
