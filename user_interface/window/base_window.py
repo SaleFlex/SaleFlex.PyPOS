@@ -21,7 +21,7 @@ from PySide6.QtWidgets import QMainWindow
 from PySide6.QtCore import Qt
 
 from user_interface.control import TextBox, Button, ToolBar, StatusBar, NumPad
-from user_interface.control import AlphaNumericVirtualKeyboard
+from user_interface.control import VirtualKeyboard
 
 
 class BaseWindow(QMainWindow):
@@ -30,7 +30,7 @@ class BaseWindow(QMainWindow):
         self.setWindowFlags(Qt.FramelessWindowHint)
         self.app = app
 
-        self.keyboard = AlphaNumericVirtualKeyboard(source=None, parent=self)
+        self.keyboard = VirtualKeyboard(source=None, parent=self)
 
     def draw_window(self, settings: dict, toolbar_settings: dict, design: list):
         self.setUpdatesEnabled(False)

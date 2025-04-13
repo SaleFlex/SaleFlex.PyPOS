@@ -20,8 +20,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from user_interface.control.button import Button
 from user_interface.control.label import Label
 from user_interface.control.textbox import TextBox
-from user_interface.control.toolbar import Toolbar
-from user_interface.control.statusbar import Statusbar
+from user_interface.control.toolbar import ToolBar
+from user_interface.control.statusbar import StatusBar
 from user_interface.control.transaction_status import TransactionStatus
 from user_interface.control.payment_list import PaymentList
 from user_interface.control.sale_list import SaleList
