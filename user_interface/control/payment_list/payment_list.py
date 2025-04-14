@@ -22,14 +22,26 @@ from PySide6.QtCore import Qt
 
 
 class PaymentList(QWidget):
-    def __init__(self, source=None, width=970, height=315, x_pos=0, y_pos=0, parent=None):
+    def __init__(self, parent=None, width=970, height=315, location_x=0, location_y=0,
+                 background_color=0x778D45, foreground_color=0xFFFFFF, *args, **kwargs):
         super(PaymentList, self).__init__(parent)
         
         # Set widget properties
-        self.setGeometry(x_pos, y_pos, width, height)
+        self.setGeometry(location_x, location_y, width, height)
         self.setMinimumSize(width, height)
-        self.source = source
+        self.parent = parent
         self.event_func = None
+        
+        # Apply background and foreground colors
+        self.background_color = background_color
+        self.foreground_color = foreground_color
+        
+        # Set palette for the widget
+        palette = self.palette()
+        palette.setColor(self.backgroundRole(), background_color)
+        palette.setColor(self.foregroundRole(), foreground_color)
+        self.setPalette(palette)
+        self.setAutoFillBackground(True)
         
         # Create layout
         self.layout = QVBoxLayout(self)
@@ -45,6 +57,42 @@ class PaymentList(QWidget):
         self.table_widget.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.table_widget.setSelectionBehavior(QTableWidget.SelectRows)
         self.table_widget.setEditTriggers(QTableWidget.NoEditTriggers)
+        
+        # Apply colors to table widget
+        table_palette = self.table_widget.palette()
+        table_palette.setColor(self.table_widget.backgroundRole(), background_color)
+        table_palette.setColor(self.table_widget.foregroundRole(), foreground_color)
+        self.table_widget.setPalette(table_palette)
+        
+        # Style the header
+        header = self.table_widget.horizontalHeader()
+        header_palette = header.palette()
+        header_palette.setColor(header.backgroundRole(), background_color)
+        header_palette.setColor(header.foregroundRole(), foreground_color)
+        header.setPalette(header_palette)
+        
+        # Style for alternating rows
+        self.table_widget.setAlternatingRowColors(True)
+        self.table_widget.setStyleSheet(f"""
+            QTableWidget {{
+                background-color: #{background_color:06x};
+                color: #{foreground_color:06x};
+                gridline-color: #{foreground_color:06x};
+                border: 1px solid #{foreground_color:06x};
+            }}
+            QTableWidget::item {{
+                color: #{foreground_color:06x};
+            }}
+            QHeaderView::section {{
+                background-color: #{background_color:06x};
+                color: #{foreground_color:06x};
+                border: 1px solid #{foreground_color:06x};
+                padding: 4px;
+            }}
+            QTableWidget::item:selected {{
+                background-color: #{(background_color + 0x222222) & 0xFFFFFF:06x};
+            }}
+        """)
         
         # Connect signals
         self.table_widget.itemClicked.connect(self.on_item_clicked)
@@ -65,15 +113,30 @@ class PaymentList(QWidget):
         row_position = self.table_widget.rowCount()
         self.table_widget.insertRow(row_position)
         
-        # Add payment details to table
-        self.table_widget.setItem(row_position, 0, QTableWidgetItem(payment_type))
-        self.table_widget.setItem(row_position, 1, QTableWidgetItem(str(amount)))
-        self.table_widget.setItem(row_position, 2, QTableWidgetItem(currency))
-        self.table_widget.setItem(row_position, 3, QTableWidgetItem(str(rate)))
+        # Convert amount and rate to float to ensure proper calculation
+        try:
+            amount_float = float(amount)
+            rate_float = float(rate)
+        except ValueError:
+            amount_float = 0.0
+            rate_float = 1.0
+        
+        # Create items with styling
+        payment_type_item = QTableWidgetItem(payment_type)
+        amount_item = QTableWidgetItem(str(amount_float))
+        currency_item = QTableWidgetItem(currency)
+        rate_item = QTableWidgetItem(str(rate_float))
+        total_item = QTableWidgetItem(str(amount_float * rate_float))
         
         # Calculate total
-        total = amount * rate
-        self.table_widget.setItem(row_position, 4, QTableWidgetItem(str(total)))
+        total = amount_float * rate_float
+        
+        # Set items with consistent styling
+        self.table_widget.setItem(row_position, 0, payment_type_item)
+        self.table_widget.setItem(row_position, 1, amount_item)
+        self.table_widget.setItem(row_position, 2, currency_item)
+        self.table_widget.setItem(row_position, 3, rate_item)
+        self.table_widget.setItem(row_position, 4, total_item)
         
         return total
         
@@ -85,5 +148,9 @@ class PaymentList(QWidget):
         """Calculate the total amount of all payments"""
         total = 0.0
         for row in range(self.table_widget.rowCount()):
-            total += float(self.table_widget.item(row, 4).text())
+            try:
+                total += float(self.table_widget.item(row, 4).text())
+            except (ValueError, TypeError):
+                # Skip adding this value if it can't be converted to float
+                continue
         return total

@@ -20,7 +20,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from PySide6.QtWidgets import QMainWindow
 from PySide6.QtCore import Qt
 
-from user_interface.control import TextBox, Button, ToolBar, StatusBar, NumPad
+from user_interface.control import TextBox, Button, ToolBar, StatusBar, NumPad, PaymentList
 from user_interface.control import VirtualKeyboard
 
 
@@ -58,6 +58,9 @@ class BaseWindow(QMainWindow):
             if control_design_data["type"] == "numpad":
                 self._create_numpad(control_design_data)
 
+            if control_design_data["type"] == "payment_list":
+                self._create_payment_list(control_design_data)
+
         self.setUpdatesEnabled(True)
 
         self.keyboard.resize_from_parent()
@@ -79,7 +82,7 @@ class BaseWindow(QMainWindow):
     def clear(self):
         for item in self.children():
             print(item)
-            if type(item) in [TextBox, Button, ToolBar, StatusBar, NumPad]:
+            if type(item) in [TextBox, Button, ToolBar, StatusBar, NumPad, PaymentList]:
                 print(type(item), item)
                 item.deleteLater()
                 item.setParent(None)
@@ -122,6 +125,31 @@ class BaseWindow(QMainWindow):
 
         numpad.setToolTip(design_data["caption"])
         numpad.set_event(self.app.event_distributor(design_data["function"]))
+
+    def _create_payment_list(self, design_data):
+        # Ensure payment list has appropriate dimensions
+        width = design_data.get("width", 970)
+        height = design_data.get("height", 315)
+
+        # Get background and foreground colors from design data
+        background_color = design_data.get("background_color", 0x778D45)
+        foreground_color = design_data.get("foreground_color", 0xFFFFFF)
+
+        location_x = design_data.get("location_x", 10)
+        location_y = design_data.get("location_y", 100)
+
+        # Create the payment list widget
+        self.payment_list = PaymentList(self,
+                        width=width,
+                        height=height,
+                        location_x=location_x,
+                        location_y=location_y,
+                        background_color=background_color,
+                        foreground_color=foreground_color)
+        
+        # Set the event handler if specified
+        if "function" in design_data:
+            self.payment_list.set_event(self.app.event_distributor(design_data["function"]))
 
     def _create_textbox(self, design_data):
         print(design_data)
