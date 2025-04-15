@@ -44,3 +44,14 @@ width = 400
 height = 400
 location_x = 315
 location_y = 340
+
+[[design]]
+type = "sale_list"
+caption = "SaleList"
+function = "PLU"
+background_color = 0x778D45
+foreground_color = 0xFFFFFF
+width = 400
+height = 290
+location_x = 620
+location_y = 45
