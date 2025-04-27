@@ -19,7 +19,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from PySide6 import QtGui, QtCore, QtWidgets
 from PySide6.QtGui import QPainter, Qt, QColor
-from PySide6.QtWidgets import QWidget, QGridLayout, QSizePolicy, QVBoxLayout, QLineEdit
+from PySide6.QtWidgets import QWidget, QGridLayout, QSizePolicy, QVBoxLayout, QLineEdit, QApplication
 from user_interface.control.numpad.numpad_button import NumPadButton
 
 
@@ -38,6 +38,18 @@ class NumPad(QWidget):
         self.location_y = location_y
         self.callback_function = None
         self.current_text = ""
+        
+        # Set a flag to track if we're in the process of regaining focus
+        # This helps prevent focus loops
+        self.is_regaining_focus = False
+        
+        # Flag to track if we should attempt to regain focus
+        self.auto_focus_enabled = True
+        
+        # Timer for focus regain
+        self.focus_timer = QtCore.QTimer(self)
+        self.focus_timer.setSingleShot(True)
+        self.focus_timer.timeout.connect(self._regain_focus)
         
         # Store colors
         self.background_color = QColor(background_color)
@@ -103,8 +115,233 @@ class NumPad(QWidget):
             }}
         """)
         
-        # Make the widget visible
+        # Set focus policy to ensure the numpad gets focus
+        self.setFocusPolicy(Qt.StrongFocus)
+        
+        # Show the widget
         self.show()
+        
+        # Install event filter on the parent to capture keyboard events
+        if self.parent:
+            self.parent.installEventFilter(self)
+        
+        # Get application instance
+        self.app = QApplication.instance()
+        
+        # Connect to application's focus changed signal
+        if self.app:
+            self.app.focusChanged.connect(self.on_focus_changed)
+        
+        # Set up a timer to focus on this widget when the form is shown
+        QtCore.QTimer.singleShot(100, self.initialize_focus)
+
+    def set_auto_focus(self, enabled):
+        """Enable or disable automatic focus regaining
+        
+        Parameters
+        ----------
+        enabled : bool
+            Whether to automatically regain focus when it's lost
+        """
+        self.auto_focus_enabled = enabled
+
+    def initialize_focus(self):
+        """Set initial focus to this widget"""
+        if self.isVisible() and self.auto_focus_enabled:
+            self.activateWindow()
+            self.setFocus()
+            self.raise_()
+            print("NumPad initial focus set")
+        
+    def on_focus_changed(self, old, new):
+        """Handle focus change events in the application
+        
+        Parameters
+        ----------
+        old : QWidget
+            Widget that lost focus
+        new : QWidget
+            Widget that gained focus
+        """
+        # If auto-focus is disabled, do nothing
+        if not self.auto_focus_enabled:
+            return
+            
+        # If we're in the process of regaining focus, don't interfere
+        if self.is_regaining_focus:
+            return
+            
+        # If we lost focus to another widget
+        if old is self and new is not None and new is not self:
+            # Cancel any pending focus regain
+            self.focus_timer.stop()
+            # Start the timer to regain focus
+            self.focus_timer.start(150)
+            
+    def _regain_focus(self):
+        """Internal method to regain focus after it's been lost to another widget"""
+        # If we shouldn't try to regain focus or we're not visible, do nothing
+        if not self.auto_focus_enabled or not self.isVisible():
+            return
+            
+        # Set flag to prevent focus loop
+        self.is_regaining_focus = True
+        
+        # Make sure this widget is visible and active before trying to regain focus
+        self.activateWindow()
+        self.setFocus()
+        self.raise_()
+        print("NumPad regained focus")
+        
+        # Reset flag after a short delay to allow focus events to settle
+        QtCore.QTimer.singleShot(200, self._reset_regain_flag)
+        
+    def _reset_regain_flag(self):
+        """Reset the regaining focus flag after focus events have settled"""
+        self.is_regaining_focus = False
+
+    def eventFilter(self, obj, event):
+        """Filter events to capture keyboard events on the parent
+        
+        Parameters
+        ----------
+        obj : QObject
+            Object that sent the event
+        event : QEvent
+            Event that was sent
+            
+        Returns
+        -------
+        bool
+            True if the event was handled, False otherwise
+        """
+        # If auto-focus is disabled, only filter keyboard events
+        if not self.auto_focus_enabled and event.type() != QtCore.QEvent.KeyPress:
+            return False
+            
+        # If the event is a focus event and we should regain focus
+        if event.type() == QtCore.QEvent.FocusIn:
+            # If another widget gained focus and we're not in the process of regaining focus
+            if obj is not self and self.auto_focus_enabled and not self.is_regaining_focus:
+                # Cancel any pending focus regain
+                self.focus_timer.stop()
+                # Start the timer to regain focus
+                self.focus_timer.start(150)
+                
+        # If the event is a key press and it's one of our numpad keys, handle it
+        elif event.type() == QtCore.QEvent.KeyPress:
+            key = event.text()
+            key_code = event.key()
+            
+            # Number keys
+            if key.isdigit():
+                self._on_button_clicked(key)
+                return True
+                
+            # Enter key
+            elif key_code in (Qt.Key_Return, Qt.Key_Enter):
+                self._on_button_clicked('Enter')
+                return True
+                
+            # Backspace key
+            elif key_code == Qt.Key_Backspace:
+                self._on_button_clicked('Backspace')
+                return True
+                
+            # Clear - Escape key
+            elif key_code == Qt.Key_Escape:
+                self._on_button_clicked('Clear')
+                return True
+                
+        # Let other events pass through
+        return super(NumPad, self).eventFilter(obj, event)
+        
+    def keyPressEvent(self, event):
+        """Handle key press events directly on this widget
+        
+        Parameters
+        ----------
+        event : QKeyEvent
+            Key event
+        """
+        # Number keys
+        key = event.text()
+        key_code = event.key()
+        
+        if key.isdigit():
+            self._on_button_clicked(key)
+            event.accept()
+            return
+            
+        # Enter key
+        if key_code in (Qt.Key_Return, Qt.Key_Enter):
+            self._on_button_clicked('Enter')
+            event.accept()
+            return
+            
+        # Backspace key
+        if key_code == Qt.Key_Backspace:
+            self._on_button_clicked('Backspace')
+            event.accept()
+            return
+            
+        # Clear - Escape key
+        if key_code == Qt.Key_Escape:
+            self._on_button_clicked('Clear')
+            event.accept()
+            return
+            
+        # Pass unhandled events to parent class
+        super(NumPad, self).keyPressEvent(event)
+        
+    def hideEvent(self, event):
+        """Handle hide events to disable focus regaining while hidden
+        
+        Parameters
+        ----------
+        event : QHideEvent
+            Hide event
+        """
+        # Temporarily disable auto-focus when hidden
+        self.auto_focus_enabled = False
+        super(NumPad, self).hideEvent(event)
+        
+    def showEvent(self, event):
+        """Handle show events to re-enable focus regaining
+        
+        Parameters
+        ----------
+        event : QShowEvent
+            Show event
+        """
+        # Re-enable auto-focus when shown
+        self.auto_focus_enabled = True
+        super(NumPad, self).showEvent(event)
+        # Schedule focus acquisition
+        QtCore.QTimer.singleShot(100, self.initialize_focus)
+        
+    def closeEvent(self, event):
+        """Handle close events to clean up event filters and connections
+        
+        Parameters
+        ----------
+        event : QCloseEvent
+            Close event
+        """
+        # Disconnect from focus changed signal to avoid issues after closing
+        try:
+            self.app.focusChanged.disconnect(self.on_focus_changed)
+        except:
+            pass
+            
+        # Remove event filter from parent if we have one
+        if self.parent:
+            self.parent.removeEventFilter(self)
+            
+        # Stop any pending timers
+        self.focus_timer.stop()
+        
+        super(NumPad, self).closeEvent(event)
 
     def _create_buttons(self):
         # Create all buttons and add to layout
