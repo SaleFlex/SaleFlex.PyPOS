@@ -17,7 +17,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from pos.data.display_type import DisplayType
+from pos.data.form_type import FormType
 from pos.data.document_state import DocumentState
 from pos.data.document_type import DocumentType
 from pos.data.document_result import DocumentResult

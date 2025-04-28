@@ -18,7 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 from user_interface.window import BaseWindow
-from pos.data import DisplayType
+from pos.data import FormType
 from user_interface.design_file import Interpreter
 
 
@@ -27,12 +27,12 @@ class Interface:
         self.app = app
         self.window = BaseWindow(app=self.app)
 
-    def draw(self, display_type: DisplayType):
-        interpreter = Interpreter(display_type)
+    def draw(self, form_type: FormType):
+        interpreter = Interpreter(form_type)
         self.window.draw_window(interpreter.settings, interpreter.toolbar_settings, interpreter.design)
         self.window.show()
         self.window.focus_text_box()
 
-    def redraw(self, display_type: DisplayType):
+    def redraw(self, form_type: FormType):
         self.window.clear()
-        self.draw(display_type)
+        self.draw(form_type)

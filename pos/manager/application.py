@@ -56,5 +56,5 @@ class Application(CurrentStatus, CurrentData, EventHandler):
         self.interface = Interface(self)
 
     def run(self):
-        self.interface.draw(self.current_display_type)
+        self.interface.draw(self.current_form_type)
         sys.exit(self.app.exec())

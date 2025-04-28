@@ -19,22 +19,22 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import tomllib
 
-from pos.data import DisplayType
+from pos.data import FormType
 from settings import env_data
 
 
 class Interpreter:
     __instance = None
-    __display_type = None
+    __form_type = None
 
-    def __new__(cls, display_type: DisplayType, *args, **kwargs):
-        if cls.__instance is None or cls.__display_type is not display_type:
-            cls.__instance = super().__new__(cls)
-            cls.__display_type = display_type
+    def __new__(cls, form_type: FormType, *args, **kwargs):
+        if cls.__instance is None:
+            cls.__instance = super(Interpreter, cls).__new__(cls)
+            cls.__form_type = form_type
         return cls.__instance
 
-    def __init__(self, display_type: DisplayType):
-        self.__display_type = display_type
+    def __init__(self, form_type: FormType):
+        self.__form_type = form_type
         self.__toml_file_name = self.__set_toml_file_name()
         self.__design_file_data = {}
         
@@ -80,44 +80,44 @@ class Interpreter:
     def __set_toml_file_name(self):
         toml_file_name = "design_files/default.toml"
         try:
-            match self.__display_type:
-                case DisplayType.LOGIN:
+            match self.__form_type:
+                case FormType.LOGIN:
                     if 'login' in env_data.main_display_data:
                         toml_file_name = f"design_files/{env_data.main_display_data['login']}"
-                case DisplayType.MENU:
+                case FormType.MENU:
                     if 'menu' in env_data.main_display_data:
                         toml_file_name = f"design_files/{env_data.main_display_data['menu']}"
-                case DisplayType.SALE:
+                case FormType.SALE:
                     if 'sale' in env_data.main_display_data:
                         toml_file_name = f"design_files/{env_data.main_display_data['sale']}"
-                case DisplayType.SERVICE:
+                case FormType.SERVICE:
                     if 'service' in env_data.main_display_data:
                         toml_file_name = f"design_files/{env_data.main_display_data['service']}"
-                case DisplayType.CONFIG:
+                case FormType.CONFIG:
                     if 'config' in env_data.main_display_data:
                         toml_file_name = f"design_files/{env_data.main_display_data['config']}"
-                case DisplayType.PARAMETER:
+                case FormType.PARAMETER:
                     if 'parameter' in env_data.main_display_data:
                         toml_file_name = f"design_files/{env_data.main_display_data['parameter']}"
-                case DisplayType.REPORT:
+                case FormType.REPORT:
                     if 'report' in env_data.main_display_data:
                         toml_file_name = f"design_files/{env_data.main_display_data['report']}"
-                case DisplayType.FUNCTION:
+                case FormType.FUNCTION:
                     if 'function' in env_data.main_display_data:
                         toml_file_name = f"design_files/{env_data.main_display_data['function']}"
-                case DisplayType.CUSTOMER:
+                case FormType.CUSTOMER:
                     if 'customer' in env_data.main_display_data:
                         toml_file_name = f"design_files/{env_data.main_display_data['customer']}"
-                case DisplayType.VOID:
+                case FormType.VOID:
                     if 'void' in env_data.main_display_data:
                         toml_file_name = f"design_files/{env_data.main_display_data['void']}"
-                case DisplayType.REFUND:
+                case FormType.REFUND:
                     if 'refund' in env_data.main_display_data:
                         toml_file_name = f"design_files/{env_data.main_display_data['refund']}"
-                case DisplayType.STOCK:
+                case FormType.STOCK:
                     if 'stock' in env_data.main_display_data:
                         toml_file_name = f"design_files/{env_data.main_display_data['stock']}"
-                case DisplayType.CLOSURE:
+                case FormType.CLOSURE:
                     if 'closure' in env_data.main_display_data:
                         toml_file_name = f"design_files/{env_data.main_display_data['closure']}"
         except (AttributeError, TypeError, KeyError) as e:
