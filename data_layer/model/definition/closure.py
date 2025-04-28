@@ -17,7 +17,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from sqlalchemy import Column, Integer, BigInteger, Boolean, String, DateTime, Float, ForeignKey, Date
+from sqlalchemy import Column, Integer, BigInteger, Boolean, String, DateTime, Float, ForeignKey, Date, UUID
 from sqlalchemy.sql import func
 
 from data_layer.model.crud_model import Model
@@ -33,7 +33,7 @@ class Closure(Model, CRUD):
 
     __tablename__ = "closure"
 
-    id = Column(BigInteger, primary_key=True, autoincrement=True, default=1)
+    id = Column(UUID, primary_key=True, default=uuid4)
     closure_unique_id = Column(String(50), nullable=False, default=uuid4())
     closure_number = Column(Integer, nullable=False)
     pos_id = Column(Integer, nullable=False)

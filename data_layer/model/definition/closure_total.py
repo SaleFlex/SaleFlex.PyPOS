@@ -19,6 +19,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from sqlalchemy import Column, Integer, BigInteger, Boolean, String, DateTime, Float, ForeignKey, UUID
 from sqlalchemy.sql import func
+from uuid import uuid4
 
 from data_layer.model.crud_model import Model
 from data_layer.model.crud_model import CRUD
@@ -31,7 +32,7 @@ class ClosureTotal(Model, CRUD):
 
     __tablename__ = "closure_total"
 
-    id = Column(BigInteger, primary_key=True, autoincrement=True, default=1)
+    id = Column(UUID, primary_key=True, default=uuid4)
     fk_closure_id = Column(BigInteger, ForeignKey("closure.id"))
     fk_department_main_group_id = Column(BigInteger, ForeignKey("department_main_group.id"), nullable=False)
     department_count = Column(Integer, nullable=False)

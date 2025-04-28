@@ -17,8 +17,9 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Boolean, DateTime, Float, ForeignKey
+from sqlalchemy import Column, Integer, BigInteger, String, Boolean, DateTime, Float, ForeignKey, UUID
 from sqlalchemy.sql import func
+from uuid import uuid4
 
 from data_layer.model.crud_model import Model
 from data_layer.model.crud_model import CRUD
@@ -31,7 +32,7 @@ class ProductBarcode(Model, CRUD):
 
     __tablename__ = "product_barcode"
 
-    id = Column(BigInteger, primary_key=True, autoincrement=True, default=1)
+    id = Column(UUID, primary_key=True, default=uuid4)
     fk_product_id = Column(BigInteger, ForeignKey("product.id"))
     barcode = Column(String(50), nullable=False)
     is_allowed_negative_stock = Column(Boolean, nullable=False)

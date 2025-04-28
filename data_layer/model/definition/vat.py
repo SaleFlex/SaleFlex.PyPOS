@@ -17,8 +17,9 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from sqlalchemy import Column, Integer, BigInteger, Boolean, String, DateTime, Float, ForeignKey
+from sqlalchemy import Column, Integer, BigInteger, Boolean, String, DateTime, Float, ForeignKey, UUID
 from sqlalchemy.sql import func
+from uuid import uuid4
 
 from data_layer.model.crud_model import Model
 from data_layer.model.crud_model import CRUD
@@ -36,7 +37,7 @@ class Vat(Model, CRUD):
 
     __tablename__ = "vat"
 
-    id = Column(BigInteger, primary_key=True, autoincrement=True, default=1)
+    id = Column(UUID, primary_key=True, default=uuid4)
     name = Column(String(50), nullable=False)
     no = Column(Integer, nullable=False)
     rate = Column(Integer, nullable=False)

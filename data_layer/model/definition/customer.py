@@ -17,8 +17,9 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from sqlalchemy import Column, BigInteger, String, Boolean, DateTime, Integer
+from sqlalchemy import Column, BigInteger, String, Boolean, DateTime, Integer, UUID
 from sqlalchemy.sql import func
+from uuid import uuid4
 
 from data_layer.model.crud_model import Model
 from data_layer.model.crud_model import CRUD
@@ -42,7 +43,7 @@ class Customer(Model, CRUD):
 
     __tablename__ = "customer"
 
-    id = Column(BigInteger, primary_key=True, autoincrement=True, default=1)
+    id = Column(UUID, primary_key=True, default=uuid4)
     name = Column(String(50), nullable=False)
     last_name = Column(String(50), nullable=False)
     address_line_1 = Column(String(100), nullable=True)

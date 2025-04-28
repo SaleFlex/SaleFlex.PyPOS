@@ -18,6 +18,7 @@
 
 from sqlalchemy import Column, Integer, BigInteger, Boolean, String, DateTime, Float, ForeignKey, UUID
 from sqlalchemy.sql import func
+from uuid import uuid4
 
 from data_layer.model.crud_model import Model
 from data_layer.model.crud_model import CRUD
@@ -30,7 +31,7 @@ class ClosureCurrency(Model, CRUD):
 
     __tablename__ = "closure_currency"
 
-    id = Column(BigInteger, primary_key=True, autoincrement=True, default=1)
+    id = Column(UUID, primary_key=True, default=uuid4)
     fk_closure_id = Column(BigInteger, ForeignKey("closure.id"))
     currency_code = Column(Integer, nullable=False)
     currency_total = Column(Float, nullable=False)

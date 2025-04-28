@@ -33,7 +33,7 @@ class TransactionHeadTemp(Model, CRUD):
 
     __tablename__ = "transaction_head_temp"
 
-    id = Column(BigInteger, primary_key=True, autoincrement=True, default=1)
+    id = Column(UUID, primary_key=True, default=uuid4)
     transaction_unique_id = Column(String(50), nullable=False, default=uuid4())
     pos_id = Column(Integer, nullable=False)
     transaction_date_time = Column(DateTime, server_default=func.now(), nullable=False)
