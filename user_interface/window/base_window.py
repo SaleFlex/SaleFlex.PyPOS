@@ -197,10 +197,7 @@ class BaseWindow(QMainWindow):
         textbox.filed_name = design_data.get('caption')
         if design_data.get('place_holder'):
             textbox.setPlaceholderText(design_data.get('place_holder'))
-        p = textbox.palette()
-        p.setColor(textbox.backgroundRole(), design_data['background_color'])
-        p.setColor(textbox.foregroundRole(), design_data['foreground_color'])
-        textbox.setPalette(p)
+        textbox.set_color(design_data['background_color'], design_data['foreground_color'])
         if design_data['use_keyboard']:
             textbox.keyboard = self.keyboard
 

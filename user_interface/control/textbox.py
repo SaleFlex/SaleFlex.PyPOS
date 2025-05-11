@@ -39,6 +39,10 @@ class TextBox(QLineEdit):
     def set_password_type(self):
         self.setEchoMode(QLineEdit.EchoMode.Password)
 
+    def set_color(self, background_color, foreground_color):
+        self.setStyleSheet(f"QLineEdit {{background-color: #{background_color:06X};" +
+                           f"color: #{foreground_color:06X};border-radius: 4px;}}")
+
     def focusInEvent(self, event):
         if self.__keyboard and self.__keyboard.is_hidden:
             self.__keyboard.display(source=self)
