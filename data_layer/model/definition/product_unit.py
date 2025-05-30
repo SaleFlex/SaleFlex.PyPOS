@@ -26,33 +26,29 @@ from data_layer.model.crud_model import CRUD
 
 
 class ProductUnit(Model, CRUD):
-    def __init__(self, name=None, no: int = None, description: str = None,
-                 base_id: int = None, base_amount: float = None, symbol: str = None):
+    def __init__(self, code=None, name=None, description=None):
         Model.__init__(self)
         CRUD.__init__(self)
 
+        self.code = code
         self.name = name
-        self.no = no
         self.description = description
-        self.base_id = base_id
-        self.base_amount = base_amount
-        self.symbol = symbol
 
     __tablename__ = "product_unit"
 
     id = Column(UUID, primary_key=True, default=uuid4)
+    code = Column(String(10), nullable=False)
     name = Column(String(50), nullable=False)
-    no = Column(Integer, nullable=False)
-    description = Column(String(100), nullable=False)
-    base_id = Column(Integer, nullable=False)
-    base_amount = Column(Float, nullable=False)
-    symbol = Column(String(10), nullable=False)
+    description = Column(String(100), nullable=True)
+    base_id = Column(Integer, nullable=True)
+    base_amount = Column(Float, nullable=True)
+    symbol = Column(String(10), nullable=True)
     is_deleted = Column(Boolean, nullable=False, default=False)
     delete_description = Column(String(1000), nullable=True)
-    fk_cashier_create_id = Column(BigInteger, ForeignKey("cashier.id"))
-    fk_cashier_update_id = Column(BigInteger, ForeignKey("cashier.id"))
+    fk_cashier_create_id = Column(UUID, nullable=True)
+    fk_cashier_update_id = Column(UUID, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now())
 
     def __repr__(self):
-        return f"<ProductUnit(name='{self.name}', no='{self.no}', description='{self.description}')>"
+        return f"<ProductUnit(name='{self.name}', code='{self.code}', description='{self.description}')>"

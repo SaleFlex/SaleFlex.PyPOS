@@ -34,11 +34,12 @@ class GeneralEvent:
                 user_name = value
             if key == "password":
                 password = value
-        cashiers = Cashier().filter_by(user_name=user_name.lower(), password=password)
+        
+        cashiers = Cashier.filter_by(user_name=user_name.lower(), password=password)
 
-        if cashiers.count() == 0 and not (user_name.lower() == "admin" and password == "admin"):
+        if len(cashiers) == 0 and not (user_name.lower() == "admin" and password == "admin"):
             return
-        if cashiers.count() == 0 and (user_name.lower() == "admin" and password == "admin"):
+        if len(cashiers) == 0 and (user_name.lower() == "admin" and password == "admin"):
             cashier = Cashier(user_name=user_name.lower(), password=password,
                               name="", last_name="", identity_number="", description="",
                               is_active=True, is_administrator=True)

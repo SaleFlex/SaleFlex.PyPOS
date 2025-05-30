@@ -18,20 +18,58 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 from sqlalchemy import create_engine, URL
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, Session
 from settings import env_data
+from contextlib import contextmanager
 
 
 class Engine:
-    __instance = None
+    _instance = None
+    _initialized = False
 
     def __new__(cls, *args, **kwargs):
-        if cls.__instance is None:
-            cls.__instance = super().__new__(cls)
-        return cls.__instance
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
 
     def __init__(self):
-        self.engine = create_engine(f"{env_data.db_engine}:///{env_data.database.get('database_name')}")
-        print(self.engine)
+        if not Engine._initialized:
+            # More secure connection with pool settings
+            self.engine = create_engine(
+                f"{env_data.db_engine}:///{env_data.database.get('database_name')}",
+                pool_size=5,
+                pool_pre_ping=True,
+                pool_recycle=3600,
+                echo=False  # False for production, True for development
+            )
+            
+            # Create session factory
+            self.SessionFactory = sessionmaker(bind=self.engine, expire_on_commit=False)
+            
+            Engine._initialized = True
 
-        self.session = sessionmaker(bind=self.engine)()
+    @contextmanager
+    def get_session(self):
+        """Context manager for safe session management"""
+        session = self.SessionFactory()
+        try:
+            yield session
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+    
+    @property 
+    def session(self):
+        """For backward compatibility - however get_session() is recommended"""
+        if not hasattr(self, '_session') or self._session is None:
+            self._session = self.SessionFactory()
+        return self._session
+    
+    def close_session(self):
+        """Safely close current session"""
+        if hasattr(self, '_session') and self._session:
+            self._session.close()
+            self._session = None
