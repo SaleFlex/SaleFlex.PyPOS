@@ -85,22 +85,22 @@ class Form(Model, CRUD):
         CRUD.__init__(self)
 
         self.name = name
-        this.form_no = form_no
-        this.function = function
-        this.need_login = need_login
-        this.need_auth = need_auth
-        this.width = width
-        this.height = height
-        this.start_position = start_position
-        this.form_border_style = form_border_style
-        this.caption = caption
-        this.icon = icon
-        this.image = image
-        this.back_color = back_color
-        this.show_status_bar = show_status_bar
-        this.show_in_taskbar = show_in_taskbar
-        this.use_virtual_keyboard = use_virtual_keyboard
-        this.is_visible = is_visible
+        self.form_no = form_no
+        self.function = function
+        self.need_login = need_login
+        self.need_auth = need_auth
+        self.width = width
+        self.height = height
+        self.start_position = start_position
+        self.form_border_style = form_border_style
+        self.caption = caption
+        self.icon = icon
+        self.image = image
+        self.back_color = back_color
+        self.show_status_bar = show_status_bar
+        self.show_in_taskbar = show_in_taskbar
+        self.use_virtual_keyboard = use_virtual_keyboard
+        self.is_visible = is_visible
 
     __tablename__ = "form"
 
@@ -124,8 +124,8 @@ class Form(Model, CRUD):
     is_visible = Column(Boolean, nullable=False, default=True)
     is_deleted = Column(Boolean, nullable=False, default=False)
     delete_description = Column(String(1000), nullable=True)
-    fk_cashier_create_id = Column(BigInteger, ForeignKey("cashier.id"))
-    fk_cashier_update_id = Column(BigInteger, ForeignKey("cashier.id"))
+    fk_cashier_create_id = Column(UUID, ForeignKey("cashier.id"))
+    fk_cashier_update_id = Column(UUID, ForeignKey("cashier.id"))
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now())
 
@@ -143,9 +143,9 @@ class FormFunction(Model, CRUD):
         CRUD.__init__(self)
 
         self.name = name
-        this.no = no
-        this.need_login = need_login
-        this.need_auth = need_auth
+        self.no = no
+        self.need_login = need_login
+        self.need_auth = need_auth
 
     __tablename__ = "form_function"
 
@@ -156,8 +156,8 @@ class FormFunction(Model, CRUD):
     need_auth = Column(Boolean, nullable=False, default=False)
     is_deleted = Column(Boolean, nullable=False, default=False)
     delete_description = Column(String(1000), nullable=True)
-    fk_cashier_create_id = Column(BigInteger, ForeignKey("cashier.id"))
-    fk_cashier_update_id = Column(BigInteger, ForeignKey("cashier.id"))
+    fk_cashier_create_id = Column(UUID, ForeignKey("cashier.id"))
+    fk_cashier_update_id = Column(UUID, ForeignKey("cashier.id"))
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now())
 
@@ -172,8 +172,8 @@ class FormControlFunction(Model, CRUD):
         CRUD.__init__(self)
 
         self.name = name
-        this.no = no
-        this.description = description
+        self.no = no
+        self.description = description
 
     __tablename__ = "form_control_function"
 
@@ -183,8 +183,8 @@ class FormControlFunction(Model, CRUD):
     description = Column(String(255), nullable=True)
     is_deleted = Column(Boolean, nullable=False, default=False)
     delete_description = Column(String(1000), nullable=True)
-    fk_cashier_create_id = Column(BigInteger, ForeignKey("cashier.id"))
-    fk_cashier_update_id = Column(BigInteger, ForeignKey("cashier.id"))
+    fk_cashier_create_id = Column(UUID, ForeignKey("cashier.id"))
+    fk_cashier_update_id = Column(UUID, ForeignKey("cashier.id"))
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now())
 
@@ -199,17 +199,17 @@ class FormControl(Model, CRUD):
         CRUD.__init__(self)
 
         self.name = name
-        this.character_casing = character_casing
-        this.text_alignment = text_alignment
-        this.input_type = input_type
-        this.height = 0
-        this.width = 0
-        this.type = "NOTYPE"
-        this.font = ""
-        this.image = ""
-        this.font_auto_height = True
-        this.font_size = 0
-        this.caption1 = ""
+        self.character_casing = character_casing
+        self.text_alignment = text_alignment
+        self.input_type = input_type
+        self.height = 0
+        self.width = 0
+        self.type = "NOTYPE"
+        self.font = ""
+        self.image = ""
+        self.font_auto_height = True
+        self.font_size = 0
+        self.caption1 = ""
 
     __tablename__ = "form_control"
 
@@ -229,6 +229,7 @@ class FormControl(Model, CRUD):
     start_position = Column(String(50), nullable=True)
     caption1 = Column(String(100), nullable=True)
     caption2 = Column(String(100), nullable=True)
+    list_values = Column(String(1000), nullable=True)  # For combo boxes, list boxes etc.
     dock = Column(String(50), nullable=True)
     alignment = Column(String(50), nullable=True)
     text_alignment = Column(String(50), nullable=False, default="LEFT")
@@ -248,8 +249,8 @@ class FormControl(Model, CRUD):
     is_visible = Column(Boolean, nullable=False, default=True)
     is_deleted = Column(Boolean, nullable=False, default=False)
     delete_description = Column(String(1000), nullable=True)
-    fk_cashier_create_id = Column(BigInteger, ForeignKey("cashier.id"))
-    fk_cashier_update_id = Column(BigInteger, ForeignKey("cashier.id"))
+    fk_cashier_create_id = Column(UUID, ForeignKey("cashier.id"))
+    fk_cashier_update_id = Column(UUID, ForeignKey("cashier.id"))
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now())
 
