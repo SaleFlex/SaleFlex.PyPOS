@@ -7,6 +7,7 @@ from data_layer.db_init_data.country import _insert_countries
 from data_layer.db_init_data.currency import _insert_currencies
 from data_layer.db_init_data.department_group import _insert_department_groups
 from data_layer.db_init_data.district import _insert_districts
+from data_layer.db_init_data.form import _insert_default_forms
 from data_layer.db_init_data.product_barcode_mask import _insert_product_barcode_masks
 from data_layer.db_init_data.product_manufacturer import _insert_product_manufacturers
 from data_layer.db_init_data.product_unit import _insert_product_units
@@ -59,6 +60,9 @@ def insert_initial_data(engine: Engine):
 
             # Insert product barcode masks
             _insert_product_barcode_masks(session, admin_cashier.id)
+
+            # Insert default forms
+            _insert_default_forms(session, admin_cashier.id)
 
     except SQLAlchemyError as e:
         print(f"✗ Initial data insertion error: {e}")
