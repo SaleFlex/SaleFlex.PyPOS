@@ -28,11 +28,11 @@ def insert_initial_data(engine: Engine):
             # Insert admin cashier
             admin_cashier = _insert_admin_cashier(session)
 
+            # Insert countries (must be before store because of foreign key)
+            _insert_countries(session)
+
             # Insert default store
             _insert_default_store(session)
-
-            # Insert countries
-            _insert_countries(session)
 
             # Insert cities
             _insert_cities(session)
