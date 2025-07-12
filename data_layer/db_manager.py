@@ -25,6 +25,7 @@ from data_layer.model import Customer
 from data_layer.model import Store
 from data_layer.model import Vat
 from data_layer.model import ProductUnit
+from data_layer.model import ProductManufacturer
 from data_layer.model import DepartmentMainGroup
 from data_layer.model import DepartmentSubGroup
 from data_layer.model import TransactionDocumentType
@@ -148,6 +149,16 @@ def _insert_initial_data(engine: Engine):
                     unit.fk_cashier_update_id = admin_cashier_id
                     session.add(unit)
                 print("✓ Default product units added")
+            
+            # Add default product manufacturers (if not exists)
+            manufacturer_exists = session.query(ProductManufacturer).first()
+            if not manufacturer_exists:
+                default_manufacturer = ProductManufacturer(
+                    name="General Manufacturer",
+                    description="Default manufacturer for products without specific manufacturer"
+                )
+                session.add(default_manufacturer)
+                print("✓ Default product manufacturer added")
             
             # Add default main groups (if not exists)
             main_group_exists = session.query(DepartmentMainGroup).first()
