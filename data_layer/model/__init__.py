@@ -42,6 +42,7 @@ from data_layer.model.definition.transaction_discount_temp import TransactionDis
 from data_layer.model.definition.closure import Closure
 from data_layer.model.definition.closure_total import ClosureTotal
 from data_layer.model.definition.closure_currency import ClosureCurrency
+from data_layer.model.definition.closure_payment_type_summary import ClosurePaymentTypeSummary
 from data_layer.model.definition.country import Country
 from data_layer.model.definition.currency import Currency
 from data_layer.model.definition.payment_type import PaymentType
