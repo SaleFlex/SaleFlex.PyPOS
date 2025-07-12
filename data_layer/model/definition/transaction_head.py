@@ -22,6 +22,7 @@ from sqlalchemy.sql import func
 
 from data_layer.model.crud_model import Model
 from data_layer.model.crud_model import CRUD
+from data_layer.model.definition.transaction_status import TransactionStatus, TransactionType, DeliveryStatus
 
 from uuid import uuid4
 
@@ -38,7 +39,10 @@ class TransactionHead(Model, CRUD):
     pos_id = Column(Integer, nullable=False)
     transaction_date_time = Column(DateTime, server_default=func.now(), nullable=False)
     document_type = Column(String(50), nullable=False)
+    transaction_type = Column(String(50), nullable=False, default=TransactionType.SALE.value)
+    transaction_status = Column(String(50), nullable=False, default=TransactionStatus.ACTIVE.value)
     fk_customer_id = Column(BigInteger, ForeignKey("customer.id"))
+    fk_table_id = Column(BigInteger, ForeignKey("table.id"), nullable=True)
     closure_number = Column(Integer, nullable=False)
     receipt_number = Column(Integer, nullable=False)
     total_amount = Column(Integer, nullable=False)
@@ -47,6 +51,9 @@ class TransactionHead(Model, CRUD):
     total_surcharge_amount = Column(Integer, nullable=False)
     total_payment_amount = Column(Integer, nullable=False)
     total_change_amount = Column(Integer, nullable=False)
+    delivery_status = Column(String(50), nullable=True)
+    estimated_delivery_time = Column(DateTime, nullable=True)
+    actual_delivery_time = Column(DateTime, nullable=True)
     description = Column(String(100))
     is_closed = Column(Boolean, nullable=False, default=False)
     is_pending = Column(Boolean, nullable=False, default=False)

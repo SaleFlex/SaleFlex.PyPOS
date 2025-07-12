@@ -25,11 +25,16 @@ from .product_unit import ProductUnit
 from .receipt_footer import ReceiptFooter
 from .receipt_header import ReceiptHeader
 from .store import Store
+from .table import Table
+from .transaction_delivery import TransactionDelivery
+from .transaction_delivery_temp import TransactionDeliveryTemp
 from .transaction_discount import TransactionDiscount
 from .transaction_discount_temp import TransactionDiscountTemp
 from .transaction_document_type import TransactionDocumentType
 from .transaction_head import TransactionHead
 from .transaction_head_temp import TransactionHeadTemp
+from .transaction_kitchen_order import TransactionKitchenOrder
+from .transaction_kitchen_order_temp import TransactionKitchenOrderTemp
 from .transaction_payment import TransactionPayment
 from .transaction_payment_temp import TransactionPaymentTemp
 from .transaction_product import TransactionProduct
@@ -67,11 +72,16 @@ __all__ = [
     'ReceiptFooter',
     'ReceiptHeader',
     'Store',
+    'Table',
+    'TransactionDelivery',
+    'TransactionDeliveryTemp',
     'TransactionDiscount',
     'TransactionDiscountTemp',
     'TransactionDocumentType',
     'TransactionHead',
     'TransactionHeadTemp',
+    'TransactionKitchenOrder',
+    'TransactionKitchenOrderTemp',
     'TransactionPayment',
     'TransactionPaymentTemp',
     'TransactionProduct',

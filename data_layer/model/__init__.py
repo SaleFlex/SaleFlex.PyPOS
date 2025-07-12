@@ -57,4 +57,9 @@ from data_layer.model.definition.form import Form
 from data_layer.model.definition.form_control import FormControl
 from data_layer.model.definition.receipt_header import ReceiptHeader
 from data_layer.model.definition.receipt_footer import ReceiptFooter
+from data_layer.model.definition.table import Table
+from data_layer.model.definition.transaction_delivery import TransactionDelivery
+from data_layer.model.definition.transaction_delivery_temp import TransactionDeliveryTemp
+from data_layer.model.definition.transaction_kitchen_order import TransactionKitchenOrder
+from data_layer.model.definition.transaction_kitchen_order_temp import TransactionKitchenOrderTemp
 
