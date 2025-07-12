@@ -20,7 +20,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from data_layer.model import (
     Cashier, Customer, Store, Vat, ProductUnit, ProductManufacturer,
     DepartmentMainGroup, DepartmentSubGroup, TransactionDocumentType,
-    TransactionSequence, ProductBarcodeMask, Country
+    TransactionSequence, ProductBarcodeMask, Country, City
 )
 from data_layer.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
@@ -40,6 +40,9 @@ def insert_initial_data(engine: Engine):
             
             # Insert countries
             _insert_countries(session)
+            
+            # Insert cities
+            _insert_cities(session)
             
             # Insert VAT rates
             _insert_vat_rates(session, admin_cashier.id)
@@ -318,6 +321,109 @@ def _insert_countries(session):
             session.add(country)
         
         print("✓ Countries added (195 countries)")
+
+
+def _insert_cities(session):
+    """Insert UK cities if not exists"""
+    city_exists = session.query(City).first()
+    if not city_exists:
+        # First, get the UK country ID
+        uk_country = session.query(Country).filter_by(code="GB").first()
+        if not uk_country:
+            print("⚠ UK country not found, skipping city insertion")
+            return
+        
+        cities = [
+            {"name": "Bath", "code": "GB-C001", "short_name": "B", "numeric_code": 1},
+            {"name": "Birmingham", "code": "GB-C002", "short_name": "B", "numeric_code": 2},
+            {"name": "Bradford", "code": "GB-C003", "short_name": "B", "numeric_code": 3},
+            {"name": "Brighton & Hove", "code": "GB-C004", "short_name": "BH", "numeric_code": 4},
+            {"name": "Bristol", "code": "GB-C005", "short_name": "B", "numeric_code": 5},
+            {"name": "Cambridge", "code": "GB-C006", "short_name": "C", "numeric_code": 6},
+            {"name": "Canterbury", "code": "GB-C007", "short_name": "C", "numeric_code": 7},
+            {"name": "Carlisle", "code": "GB-C008", "short_name": "C", "numeric_code": 8},
+            {"name": "Chelmsford", "code": "GB-C009", "short_name": "C", "numeric_code": 9},
+            {"name": "Chester", "code": "GB-C010", "short_name": "C", "numeric_code": 10},
+            {"name": "Chichester", "code": "GB-C011", "short_name": "C", "numeric_code": 11},
+            {"name": "Colchester", "code": "GB-C012", "short_name": "C", "numeric_code": 12},
+            {"name": "Coventry", "code": "GB-C013", "short_name": "C", "numeric_code": 13},
+            {"name": "Derby", "code": "GB-C014", "short_name": "D", "numeric_code": 14},
+            {"name": "Doncaster", "code": "GB-C015", "short_name": "D", "numeric_code": 15},
+            {"name": "Durham", "code": "GB-C016", "short_name": "D", "numeric_code": 16},
+            {"name": "Ely", "code": "GB-C017", "short_name": "E", "numeric_code": 17},
+            {"name": "Exeter", "code": "GB-C018", "short_name": "E", "numeric_code": 18},
+            {"name": "Gloucester", "code": "GB-C019", "short_name": "G", "numeric_code": 19},
+            {"name": "Hereford", "code": "GB-C020", "short_name": "H", "numeric_code": 20},
+            {"name": "Kingston upon Hull", "code": "GB-C021", "short_name": "KUH", "numeric_code": 21},
+            {"name": "Lancaster", "code": "GB-C022", "short_name": "L", "numeric_code": 22},
+            {"name": "Leeds", "code": "GB-C023", "short_name": "L", "numeric_code": 23},
+            {"name": "Leicester", "code": "GB-C024", "short_name": "L", "numeric_code": 24},
+            {"name": "Lichfield", "code": "GB-C025", "short_name": "L", "numeric_code": 25},
+            {"name": "Lincoln", "code": "GB-C026", "short_name": "L", "numeric_code": 26},
+            {"name": "Liverpool", "code": "GB-C027", "short_name": "L", "numeric_code": 27},
+            {"name": "London", "code": "GB-C028", "short_name": "L", "numeric_code": 28},
+            {"name": "Manchester", "code": "GB-C029", "short_name": "M", "numeric_code": 29},
+            {"name": "Milton Keynes", "code": "GB-C030", "short_name": "MK", "numeric_code": 30},
+            {"name": "Newcastle upon Tyne", "code": "GB-C031", "short_name": "NUT", "numeric_code": 31},
+            {"name": "Norwich", "code": "GB-C032", "short_name": "N", "numeric_code": 32},
+            {"name": "Nottingham", "code": "GB-C033", "short_name": "N", "numeric_code": 33},
+            {"name": "Oxford", "code": "GB-C034", "short_name": "O", "numeric_code": 34},
+            {"name": "Peterborough", "code": "GB-C035", "short_name": "P", "numeric_code": 35},
+            {"name": "Plymouth", "code": "GB-C036", "short_name": "P", "numeric_code": 36},
+            {"name": "Portsmouth", "code": "GB-C037", "short_name": "P", "numeric_code": 37},
+            {"name": "Preston", "code": "GB-C038", "short_name": "P", "numeric_code": 38},
+            {"name": "Ripon", "code": "GB-C039", "short_name": "R", "numeric_code": 39},
+            {"name": "Salford", "code": "GB-C040", "short_name": "S", "numeric_code": 40},
+            {"name": "Salisbury", "code": "GB-C041", "short_name": "S", "numeric_code": 41},
+            {"name": "Sheffield", "code": "GB-C042", "short_name": "S", "numeric_code": 42},
+            {"name": "Southampton", "code": "GB-C043", "short_name": "S", "numeric_code": 43},
+            {"name": "Stoke-on-Trent", "code": "GB-C044", "short_name": "SOT", "numeric_code": 44},
+            {"name": "Sunderland", "code": "GB-C045", "short_name": "S", "numeric_code": 45},
+            {"name": "Truro", "code": "GB-C046", "short_name": "T", "numeric_code": 46},
+            {"name": "Wakefield", "code": "GB-C047", "short_name": "W", "numeric_code": 47},
+            {"name": "Wells", "code": "GB-C048", "short_name": "W", "numeric_code": 48},
+            {"name": "Westminster", "code": "GB-C049", "short_name": "W", "numeric_code": 49},
+            {"name": "Winchester", "code": "GB-C050", "short_name": "W", "numeric_code": 50},
+            {"name": "Wolverhampton", "code": "GB-C051", "short_name": "W", "numeric_code": 51},
+            {"name": "Worcester", "code": "GB-C052", "short_name": "W", "numeric_code": 52},
+            {"name": "York", "code": "GB-C053", "short_name": "Y", "numeric_code": 53},
+            # Scotland
+            {"name": "Aberdeen", "code": "GB-C054", "short_name": "A", "numeric_code": 54},
+            {"name": "Dundee", "code": "GB-C055", "short_name": "D", "numeric_code": 55},
+            {"name": "Dunfermline", "code": "GB-C056", "short_name": "D", "numeric_code": 56},
+            {"name": "Edinburgh", "code": "GB-C057", "short_name": "E", "numeric_code": 57},
+            {"name": "Glasgow", "code": "GB-C058", "short_name": "G", "numeric_code": 58},
+            {"name": "Inverness", "code": "GB-C059", "short_name": "I", "numeric_code": 59},
+            {"name": "Perth", "code": "GB-C060", "short_name": "P", "numeric_code": 60},
+            {"name": "Stirling", "code": "GB-C061", "short_name": "S", "numeric_code": 61},
+            # Wales
+            {"name": "Bangor (Wales)", "code": "GB-C062", "short_name": "BW", "numeric_code": 62},
+            {"name": "Cardiff", "code": "GB-C063", "short_name": "C", "numeric_code": 63},
+            {"name": "Newport", "code": "GB-C064", "short_name": "N", "numeric_code": 64},
+            {"name": "St Asaph", "code": "GB-C065", "short_name": "SA", "numeric_code": 65},
+            {"name": "St Davids", "code": "GB-C066", "short_name": "SD", "numeric_code": 66},
+            {"name": "Swansea", "code": "GB-C067", "short_name": "S", "numeric_code": 67},
+            {"name": "Wrexham", "code": "GB-C068", "short_name": "W", "numeric_code": 68},
+            # Northern Ireland
+            {"name": "Armagh", "code": "GB-C069", "short_name": "A", "numeric_code": 69},
+            {"name": "Bangor (Northern Ireland)", "code": "GB-C070", "short_name": "BN", "numeric_code": 70},
+            {"name": "Belfast", "code": "GB-C071", "short_name": "B", "numeric_code": 71},
+            {"name": "Lisburn", "code": "GB-C072", "short_name": "L", "numeric_code": 72},
+            {"name": "Londonderry", "code": "GB-C073", "short_name": "L", "numeric_code": 73},
+            {"name": "Newry", "code": "GB-C074", "short_name": "N", "numeric_code": 74}
+        ]
+        
+        for city_data in cities:
+            city = City(
+                name=city_data["name"],
+                code=city_data["code"],
+                short_name=city_data["short_name"],
+                numeric_code=city_data["numeric_code"],
+                fk_country_id=uk_country.id
+            )
+            session.add(city)
+        
+        print("✓ UK cities added (74 cities)")
 
 
 def _insert_vat_rates(session, admin_cashier_id: int):
