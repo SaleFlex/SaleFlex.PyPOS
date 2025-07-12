@@ -44,7 +44,7 @@ class ProductBarcode(Model, CRUD):
     fk_product_id = Column(UUID, ForeignKey("product.id"), nullable=False)
     barcode = Column(String(50), nullable=False, unique=True)
     old_barcode = Column(String(50), nullable=True)
-    fk_barcode_definition_id = Column(UUID, ForeignKey("product_barcode_mask.id"), nullable=True)
+    fk_barcode_mask_id = Column(UUID, ForeignKey("product_barcode_mask.id"), nullable=True)
     purchase_price = Column(Integer, nullable=True, default=0)  # In cents
     sale_price = Column(Integer, nullable=True, default=0)  # In cents
     is_deleted = Column(Boolean, nullable=False, default=False)
