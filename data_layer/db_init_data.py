@@ -20,7 +20,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from data_layer.model import (
     Cashier, Customer, Store, Vat, ProductUnit, ProductManufacturer,
     DepartmentMainGroup, DepartmentSubGroup, TransactionDocumentType,
-    TransactionSequence
+    TransactionSequence, ProductBarcodeMask
 )
 from data_layer.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
@@ -55,6 +55,9 @@ def insert_initial_data(engine: Engine):
             
             # Insert transaction sequences
             _insert_transaction_sequences(session, admin_cashier.id)
+            
+            # Insert product barcode masks
+            _insert_product_barcode_masks(session, admin_cashier.id)
     
     except SQLAlchemyError as e:
         print(f"✗ Initial data insertion error: {e}")
@@ -299,4 +302,23 @@ def _insert_transaction_sequences(session, admin_cashier_id: int):
             sequence.fk_cashier_create_id = admin_cashier_id
             sequence.fk_cashier_update_id = admin_cashier_id
             session.add(sequence)
-        print("✓ Default transaction sequences added") 
+        print("✓ Default transaction sequences added")
+
+
+def _insert_product_barcode_masks(session, admin_cashier_id: int):
+    """Insert default product barcode masks if not exists"""
+    barcode_mask_exists = session.query(ProductBarcodeMask).first()
+    if not barcode_mask_exists:
+        weighed_goods_mask = ProductBarcodeMask()
+        weighed_goods_mask.barcode_length = 13
+        weighed_goods_mask.starting_digits = '1'
+        weighed_goods_mask.code_started_at = 1  # 0-based index
+        weighed_goods_mask.code_length = 6
+        weighed_goods_mask.quantity_started_at = 7
+        weighed_goods_mask.quantity_length = 6
+        weighed_goods_mask.description = 'WEIGHED GOODS'
+        weighed_goods_mask.fk_cashier_create_id = admin_cashier_id
+        weighed_goods_mask.fk_cashier_update_id = admin_cashier_id
+        
+        session.add(weighed_goods_mask)
+        print("✓ Default product barcode mask added: WEIGHED GOODS") 

@@ -33,7 +33,8 @@ class ProductBarcodeMask(Model, CRUD):
     __tablename__ = "product_barcode_mask"
 
     id = Column(UUID, primary_key=True, default=uuid4)
-    fk_product_id = Column(BigInteger, ForeignKey("product.id"))
+    barcode_length = Column(Integer, nullable=True)
+    starting_digits = Column(String(10), nullable=True)
     code_started_at = Column(Integer, nullable=True)
     code_length = Column(Integer, nullable=True)
     quantity_started_at = Column(Integer, nullable=True)
