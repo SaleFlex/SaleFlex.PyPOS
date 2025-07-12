@@ -26,7 +26,7 @@ def _insert_transaction_sequences(session, admin_cashier_id: int):
     if not sequence_exists:
         sequences = [
             {"name": "ReceiptNumber", "value": 1, "description": "Receipt sequence number"},
-            {"name": "ZNumber", "value": 1, "description": "Z report sequence number"}
+            {"name": "ClosureNumber", "value": 1, "description": "Closure sequence number"}
         ]
 
         for seq_data in sequences:
