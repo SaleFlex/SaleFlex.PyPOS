@@ -66,22 +66,30 @@ def _insert_initial_data(engine: Engine):
     """
     try:
         with engine.get_session() as session:
+            admin_cashier = None
             
             # Add admin user (if not exists)
             admin_exists = session.query(Cashier).filter_by(user_name="admin").first()
             if not admin_exists:
                 admin_cashier = Cashier(
+                    no=1,
                     user_name="admin",
-                    name="System",
-                    last_name="Administrator", 
-                    password="admin",  # Should be hashed in real application
-                    identity_number="00000000000",
+                    name="Ferhat", 
+                    last_name="Mousavi",
+                    password="admin",  # TODO: Should be hashed in real application
+                    identity_number="A00001",
                     description="System administrator",
                     is_administrator=True,
                     is_active=True
                 )
                 session.add(admin_cashier)
+                session.flush()  # To get the ID
                 print("✓ Admin user added")
+            else:
+                admin_cashier = admin_exists
+            
+            # Store admin cashier ID for use in other models
+            admin_cashier_id = admin_cashier.id
             
             # Add default store (if not exists)
             store_exists = session.query(Store).first()
@@ -114,6 +122,8 @@ def _insert_initial_data(engine: Engine):
                         rate=vat_data["rate"],
                         description=vat_data["description"]
                     )
+                    vat.fk_cashier_create_id = admin_cashier_id
+                    vat.fk_cashier_update_id = admin_cashier_id
                     session.add(vat)
                 print("✓ Default VAT rates added")
             
@@ -136,6 +146,8 @@ def _insert_initial_data(engine: Engine):
                         name=unit_data["name"],
                         description=unit_data["description"]
                     )
+                    unit.fk_cashier_create_id = admin_cashier_id
+                    unit.fk_cashier_update_id = admin_cashier_id
                     session.add(unit)
                 print("✓ Default product units added")
             
@@ -147,6 +159,8 @@ def _insert_initial_data(engine: Engine):
                     name="General",
                     description="General product group"
                 )
+                main_group.fk_cashier_create_id = admin_cashier_id
+                main_group.fk_cashier_update_id = admin_cashier_id
                 session.add(main_group)
                 session.flush()  # To get the ID
                 print("✓ Default main group added")
@@ -158,6 +172,8 @@ def _insert_initial_data(engine: Engine):
                     name="General",
                     description="General product sub group"
                 )
+                sub_group.fk_cashier_create_id = admin_cashier_id
+                sub_group.fk_cashier_update_id = admin_cashier_id
                 session.add(sub_group)
                 print("✓ Default sub group added")
             
@@ -203,6 +219,8 @@ def _insert_initial_data(engine: Engine):
                         value=seq_data["value"],
                         description=seq_data["description"]
                     )
+                    sequence.fk_cashier_create_id = admin_cashier_id
+                    sequence.fk_cashier_update_id = admin_cashier_id
                     session.add(sequence)
                 print("✓ Default transaction sequences added")
     
