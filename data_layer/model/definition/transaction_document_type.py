@@ -26,12 +26,13 @@ from data_layer.model.crud_model import CRUD
 
 
 class TransactionDocumentType(Model, CRUD):
-    def __init__(self, no=None, name=None, description=None):
+    def __init__(self, no=None, name=None, display_name=None, description=None):
         Model.__init__(self)
         CRUD.__init__(self)
 
         self.no = no
         self.name = name
+        self.display_name = display_name
         self.description = description
 
     __tablename__ = "transaction_document_type"
@@ -39,6 +40,7 @@ class TransactionDocumentType(Model, CRUD):
     id = Column(UUID, primary_key=True, default=uuid4)
     no = Column(Integer, nullable=False, unique=True)
     name = Column(String(50), nullable=False)
+    display_name = Column(String(50), nullable=True)
     description = Column(String(150), nullable=True)
     is_deleted = Column(Boolean, nullable=False, default=False)
     delete_description = Column(String(1000), nullable=True)
@@ -46,4 +48,4 @@ class TransactionDocumentType(Model, CRUD):
     updated_at = Column(DateTime, server_default=func.now())
 
     def __repr__(self):
-        return f"<TransactionDocumentType(name='{self.name}', no='{self.no}')>" 
+        return f"<TransactionDocumentType(name='{self.name}', display_name='{self.display_name}', no='{self.no}')>" 
