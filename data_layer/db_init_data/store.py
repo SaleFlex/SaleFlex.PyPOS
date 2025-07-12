@@ -45,15 +45,15 @@ def _get_system_info():
 
 
 def _insert_default_store(session):
-    """Insert default store if not exists"""
+    """Insert default store if not exists and update system information"""
+    system_info = _get_system_info()
+    mac_address = _get_mac_address()
+    
+    # Generate a serial number based on system info (similar to C# GetDriveSerialNumber())
+    serial_number = f"SF-{str(uuid.uuid4())[:8].upper()}"
+    
     store_exists = session.query(Store).first()
     if not store_exists:
-        system_info = _get_system_info()
-        mac_address = _get_mac_address()
-        
-        # Generate a serial number based on system info (similar to C# GetDriveSerialNumber())
-        serial_number = f"SF-{str(uuid.uuid4())[:8].upper()}"
-        
         # Get United Kingdom country ID (numeric code 826 corresponds to United Kingdom)
         United_Kingdom_country = session.query(Country).filter(Country.code == 'GB').first()
         default_country_id = United_Kingdom_country.id if United_Kingdom_country else None
@@ -116,3 +116,14 @@ def _insert_default_store(session):
         print(f"  - OS Version: {system_info['os_version']}")
         print(f"  - Hostname: {system_info['hostname']}")
         print(f"  - Default Country: {'United Kingdom' if default_country_id else 'None'}")
+    else:
+        # Update existing store with current system information
+        store_exists.serial_number = serial_number
+        store_exists.mac_address = mac_address
+        store_exists.operating_system_version = system_info['os_version']
+        
+        print("✓ Store system information updated")
+        print(f"  - Serial Number: {serial_number}")
+        print(f"  - MAC Address: {mac_address}")
+        print(f"  - OS Version: {system_info['os_version']}")
+        print(f"  - Hostname: {system_info['hostname']}")
