@@ -314,8 +314,8 @@ def _insert_product_barcode_masks(session, admin_cashier_id: int):
         weighed_goods_mask.starting_digits = '1'
         weighed_goods_mask.code_started_at = 1  # 0-based index
         weighed_goods_mask.code_length = 6
-        weighed_goods_mask.quantity_started_at = 7
-        weighed_goods_mask.quantity_length = 6
+        weighed_goods_mask.weight_started_at = 7
+        weighed_goods_mask.weight_length = 6
         weighed_goods_mask.price_started_at = 13
         weighed_goods_mask.price_length = 6
         weighed_goods_mask.description = 'WEIGHED GOODS'
