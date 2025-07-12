@@ -45,6 +45,7 @@ from data_layer.model.definition.closure_currency import ClosureCurrency
 from data_layer.model.definition.closure_payment_type_summary import ClosurePaymentTypeSummary
 from data_layer.model.definition.country import Country
 from data_layer.model.definition.city import City
+from data_layer.model.definition.district import District
 from data_layer.model.definition.currency import Currency
 from data_layer.model.definition.payment_type import PaymentType
 from data_layer.model.definition.label_value import LabelValue
