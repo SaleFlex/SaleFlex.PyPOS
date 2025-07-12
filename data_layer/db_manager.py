@@ -28,6 +28,7 @@ from data_layer.model import ProductUnit
 from data_layer.model import DepartmentMainGroup
 from data_layer.model import DepartmentSubGroup
 from data_layer.model import TransactionDocumentType
+from data_layer.model import TransactionSequence
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -187,6 +188,23 @@ def _insert_initial_data(engine: Engine):
                     )
                     session.add(doc_type)
                 print("✓ Default transaction document types added")
+            
+            # Add default transaction sequences (if not exists)
+            sequence_exists = session.query(TransactionSequence).first()
+            if not sequence_exists:
+                sequences = [
+                    {"name": "ReceiptNumber", "value": 1, "description": "Receipt sequence number"},
+                    {"name": "ZNumber", "value": 1, "description": "Z report sequence number"}
+                ]
+                
+                for seq_data in sequences:
+                    sequence = TransactionSequence(
+                        name=seq_data["name"],
+                        value=seq_data["value"],
+                        description=seq_data["description"]
+                    )
+                    session.add(sequence)
+                print("✓ Default transaction sequences added")
     
     except SQLAlchemyError as e:
         print(f"✗ Initial data insertion error: {e}")
