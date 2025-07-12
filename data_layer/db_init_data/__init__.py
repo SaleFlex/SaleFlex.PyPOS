@@ -11,6 +11,8 @@ from data_layer.db_init_data.form import _insert_default_forms
 from data_layer.db_init_data.form_control import _insert_form_controls
 from data_layer.db_init_data.label_value import _insert_label_values
 from data_layer.db_init_data.payment_type import _insert_payment_types
+from data_layer.db_init_data.product import _insert_products
+from data_layer.db_init_data.product_barcode import _insert_product_barcodes
 from data_layer.db_init_data.product_barcode_mask import _insert_product_barcode_masks
 from data_layer.db_init_data.product_manufacturer import _insert_product_manufacturers
 from data_layer.db_init_data.product_unit import _insert_product_units
@@ -57,6 +59,12 @@ def insert_initial_data(engine: Engine):
 
             # Insert department groups
             _insert_department_groups(session, admin_cashier.id)
+
+            # Insert sample products
+            _insert_products(session, admin_cashier.id)
+
+            # Insert sample product barcodes
+            _insert_product_barcodes(session, admin_cashier.id)
 
             # Insert transaction document types
             _insert_transaction_document_types(session)
