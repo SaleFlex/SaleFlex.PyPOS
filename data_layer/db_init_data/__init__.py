@@ -20,6 +20,8 @@ from data_layer.db_init_data.store import _insert_default_store
 from data_layer.db_init_data.transaction_document_type import _insert_transaction_document_types
 from data_layer.db_init_data.transaction_sequence import _insert_transaction_sequences
 from data_layer.db_init_data.vat import _insert_vat_rates
+from data_layer.db_init_data.product_variant import _insert_product_variants
+from data_layer.db_init_data.product_attribute import _insert_product_attributes
 
 def insert_initial_data(engine: Engine):
     """
@@ -62,6 +64,12 @@ def insert_initial_data(engine: Engine):
 
             # Insert sample products
             _insert_products(session, admin_cashier.id)
+
+            # Insert product variants
+            _insert_product_variants(session, admin_cashier.id)
+
+            # Insert product attributes
+            _insert_product_attributes(session, admin_cashier.id)
 
             # Insert sample product barcodes
             _insert_product_barcodes(session, admin_cashier.id)
