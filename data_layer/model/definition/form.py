@@ -80,7 +80,7 @@ class Form(Model, CRUD):
     def __init__(self, name=None, form_no=None, function=None, need_login=False, need_auth=False,
                  width=None, height=None, start_position=None, form_border_style=None, caption=None,
                  icon=None, image=None, back_color=None, show_status_bar=False, show_in_taskbar=False,
-                 use_virtual_keyboard=False, is_visible=True):
+                 use_virtual_keyboard=False, is_visible=True, fk_cashier_create_id=None, fk_cashier_update_id=None):
         Model.__init__(self)
         CRUD.__init__(self)
 
@@ -101,6 +101,8 @@ class Form(Model, CRUD):
         self.show_in_taskbar = show_in_taskbar
         self.use_virtual_keyboard = use_virtual_keyboard
         self.is_visible = is_visible
+        self.fk_cashier_create_id = fk_cashier_create_id
+        self.fk_cashier_update_id = fk_cashier_update_id
 
     __tablename__ = "form"
 
@@ -136,129 +138,3 @@ class Form(Model, CRUD):
         return f"<Form(name='{self.name}', form_no='{self.form_no}')>"
 
 
-class FormFunction(Model, CRUD):
-    """Model representing a function that can be associated with a form."""
-    def __init__(self, name=None, no=None, need_login=False, need_auth=False):
-        Model.__init__(self)
-        CRUD.__init__(self)
-
-        self.name = name
-        self.no = no
-        self.need_login = need_login
-        self.need_auth = need_auth
-
-    __tablename__ = "form_function"
-
-    id = Column(UUID, primary_key=True, default=uuid4)
-    name = Column(String(100), nullable=False)
-    no = Column(Integer, nullable=False)
-    need_login = Column(Boolean, nullable=False, default=False)
-    need_auth = Column(Boolean, nullable=False, default=False)
-    is_deleted = Column(Boolean, nullable=False, default=False)
-    delete_description = Column(String(1000), nullable=True)
-    fk_cashier_create_id = Column(UUID, ForeignKey("cashier.id"))
-    fk_cashier_update_id = Column(UUID, ForeignKey("cashier.id"))
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now())
-
-    def __repr__(self):
-        return f"<FormFunction(name='{self.name}', no='{self.no}')>"
-
-
-class FormControlFunction(Model, CRUD):
-    """Model representing a function that can be associated with a form control."""
-    def __init__(self, name=None, no=None, description=None):
-        Model.__init__(self)
-        CRUD.__init__(self)
-
-        self.name = name
-        self.no = no
-        self.description = description
-
-    __tablename__ = "form_control_function"
-
-    id = Column(UUID, primary_key=True, default=uuid4)
-    name = Column(String(100), nullable=False)
-    no = Column(Integer, nullable=False)
-    description = Column(String(255), nullable=True)
-    is_deleted = Column(Boolean, nullable=False, default=False)
-    delete_description = Column(String(1000), nullable=True)
-    fk_cashier_create_id = Column(UUID, ForeignKey("cashier.id"))
-    fk_cashier_update_id = Column(UUID, ForeignKey("cashier.id"))
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now())
-
-    def __repr__(self):
-        return f"<FormControlFunction(name='{self.name}', no='{self.no}')>"
-
-
-class FormControl(Model, CRUD):
-    """Model representing a control element within a form."""
-    def __init__(self, name="TMP_CONTROL_NAME", character_casing="NORMAL", text_alignment="LEFT", input_type="NUMERIC"):
-        Model.__init__(self)
-        CRUD.__init__(self)
-
-        self.name = name
-        self.character_casing = character_casing
-        self.text_alignment = text_alignment
-        self.input_type = input_type
-        self.height = 0
-        self.width = 0
-        self.type = "NOTYPE"
-        self.font = ""
-        self.image = ""
-        self.font_auto_height = True
-        self.font_size = 0
-        self.caption1 = ""
-
-    __tablename__ = "form_control"
-
-    id = Column(UUID, primary_key=True, default=uuid4)
-    name = Column(String(100), nullable=False)
-    fk_form_id = Column(UUID, ForeignKey("form.id"), nullable=False)
-    fk_parent_id = Column(UUID, ForeignKey("form_control.id"), nullable=True)
-    parent_name = Column(String(100), nullable=True)
-    type_no = Column(Integer, nullable=False)
-    type = Column(String(50), nullable=False)
-    fk_control_function1_id = Column(UUID, ForeignKey("form_control_function.id"), nullable=True)
-    fk_control_function2_id = Column(UUID, ForeignKey("form_control_function.id"), nullable=True)
-    width = Column(Integer, nullable=False, default=0)
-    height = Column(Integer, nullable=False, default=0)
-    location_x = Column(Integer, nullable=False, default=0)
-    location_y = Column(Integer, nullable=False, default=0)
-    start_position = Column(String(50), nullable=True)
-    caption1 = Column(String(100), nullable=True)
-    caption2 = Column(String(100), nullable=True)
-    list_values = Column(String(1000), nullable=True)  # For combo boxes, list boxes etc.
-    dock = Column(String(50), nullable=True)
-    alignment = Column(String(50), nullable=True)
-    text_alignment = Column(String(50), nullable=False, default="LEFT")
-    character_casing = Column(String(50), nullable=False, default="NORMAL")
-    font = Column(String(100), nullable=True)
-    icon = Column(String(255), nullable=True)
-    tool_tip = Column(String(255), nullable=True)
-    image = Column(String(255), nullable=True)
-    image_selected = Column(String(255), nullable=True)
-    font_auto_height = Column(Boolean, nullable=False, default=True)
-    font_size = Column(Float, nullable=False, default=0)
-    input_type = Column(String(50), nullable=False, default="NUMERIC")
-    text_image_relation = Column(String(50), nullable=True)
-    back_color = Column(String(50), nullable=True)
-    fore_color = Column(String(50), nullable=True)
-    keyboard_value = Column(String(50), nullable=True)
-    is_visible = Column(Boolean, nullable=False, default=True)
-    is_deleted = Column(Boolean, nullable=False, default=False)
-    delete_description = Column(String(1000), nullable=True)
-    fk_cashier_create_id = Column(UUID, ForeignKey("cashier.id"))
-    fk_cashier_update_id = Column(UUID, ForeignKey("cashier.id"))
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now())
-
-    # Relationships
-    form = relationship("Form", back_populates="controls")
-    parent = relationship("FormControl", remote_side=[id], backref="children")
-    control_function1 = relationship("FormControlFunction", foreign_keys=[fk_control_function1_id])
-    control_function2 = relationship("FormControlFunction", foreign_keys=[fk_control_function2_id])
-
-    def __repr__(self):
-        return f"<FormControl(name='{self.name}', type='{self.type}')>" 
