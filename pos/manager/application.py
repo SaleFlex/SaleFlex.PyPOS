@@ -26,7 +26,7 @@ from pos.manager.current_status import CurrentStatus
 from pos.manager.current_data import CurrentData
 from pos.manager.event_handler import EventHandler
 from user_interface.manager import Interface
-from data_layer import init_db
+from data_layer.db_manager import init_db
 from settings import env_data
 
 
