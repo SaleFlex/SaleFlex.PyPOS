@@ -149,7 +149,8 @@ SaleFlex.PyPOS integrates seamlessly with **[SaleFlex.GATE](https://github.com/S
 ### Core Infrastructure
 - [x] **Project Structure** - Basic application framework
 - [x] **Database Layer** - SQLAlchemy ORM integration
-- [x] **UI Foundation** - PySide6 interface framework
+- [ ] **Database Structure** - POS data layer structure
+- [ ] **UI Foundation** - PySide6 interface framework
 - [ ] **Configuration Management** - Advanced settings system
 
 ### POS Core Modules
