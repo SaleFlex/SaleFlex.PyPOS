@@ -48,7 +48,7 @@ from data_layer.model.definition.currency import Currency
 from data_layer.model.definition.payment_type import PaymentType
 from data_layer.model.definition.label_value import LabelValue
 from data_layer.model.definition.pos_settings import PosSettings
-from data_layer.model.definition.manufacturer import Manufacturer
+from data_layer.model.definition.product_manufacturer import ProductManufacturer
 from data_layer.model.definition.transaction_document_type import TransactionDocumentType
 from data_layer.model.definition.transaction_sequence import TransactionSequence
 from data_layer.model.definition.form import Form, FormControl, FormFunction, FormControlFunction

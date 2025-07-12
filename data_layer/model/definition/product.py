@@ -67,7 +67,7 @@ class Product(Model, CRUD):
     fk_product_unit_id = Column(UUID, ForeignKey("product_unit.id"))
     fk_department_main_group_id = Column(UUID, ForeignKey("department_main_group.id"))
     fk_department_sub_group_id = Column(UUID, ForeignKey("department_sub_group.id"))
-    fk_manufacturer_id = Column(UUID, ForeignKey("manufacturer.id"))
+    fk_manufacturer_id = Column(UUID, ForeignKey("product_manufacturer.id"))
     fk_store_id = Column(UUID, ForeignKey("store.id"))
     is_deleted = Column(Boolean, nullable=False, default=False)
     delete_description = Column(String(1000), nullable=True)

@@ -25,7 +25,7 @@ from data_layer.model.crud_model import Model
 from data_layer.model.crud_model import CRUD
 
 
-class Manufacturer(Model, CRUD):
+class ProductManufacturer(Model, CRUD):
     def __init__(self, name=None, description=None):
         Model.__init__(self)
         CRUD.__init__(self)
@@ -33,7 +33,7 @@ class Manufacturer(Model, CRUD):
         self.name = name
         self.description = description
 
-    __tablename__ = "manufacturer"
+    __tablename__ = "product_manufacturer"
 
     id = Column(UUID, primary_key=True, default=uuid4)
     name = Column(String(100), nullable=False)
@@ -44,4 +44,4 @@ class Manufacturer(Model, CRUD):
     updated_at = Column(DateTime, server_default=func.now())
 
     def __repr__(self):
-        return f"<Manufacturer(name='{self.name}')>" 
+        return f"<ProductManufacturer(name='{self.name}')>" 
