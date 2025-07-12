@@ -36,7 +36,7 @@ class Engine:
         if not Engine._initialized:
             # More secure connection with pool settings
             self.engine = create_engine(
-                f"{env_data.db_engine}:///{env_data.database.get('database_name')}",
+                f"{env_data.db_engine}:///{env_data.db_name}",
                 pool_size=5,
                 pool_pre_ping=True,
                 pool_recycle=3600,

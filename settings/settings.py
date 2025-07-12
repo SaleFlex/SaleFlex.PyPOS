@@ -45,6 +45,12 @@ class Settings:
         return None
 
     @property
+    def db_name(self):
+        if self.database:
+            return self.database.get("database_name")
+        return None
+
+    @property
     def md_width(self):
         if self.main_display:
             return self.main_display.get("width")
