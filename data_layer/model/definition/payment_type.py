@@ -26,13 +26,17 @@ from data_layer.model.crud_model import CRUD
 
 
 class PaymentType(Model, CRUD):
-    def __init__(self, type_no=None, type_name=None, type_description=None):
+    def __init__(self, type_no=None, type_name=None, type_description=None, culture_info=None):
         Model.__init__(self)
         CRUD.__init__(self)
 
         self.type_no = type_no
         self.type_name = type_name
         self.type_description = type_description
+        self.culture_info = culture_info
+
+        if culture_info is None:
+            self.culture_info = 'en-GB'
 
     __tablename__ = "payment_type"
 
@@ -40,6 +44,7 @@ class PaymentType(Model, CRUD):
     type_no = Column(Integer, nullable=False, unique=True)
     type_name = Column(String(50), nullable=False)
     type_description = Column(String(150), nullable=True)
+    culture_info = Column(String(10), nullable=False, default='en-GB')
     is_deleted = Column(Boolean, nullable=False, default=False)
     delete_description = Column(String(1000), nullable=True)
     created_at = Column(DateTime, server_default=func.now())

@@ -39,7 +39,7 @@ class LabelValue(Model, CRUD):
     id = Column(UUID, primary_key=True, default=uuid4)
     key = Column(String(100), nullable=False)
     value = Column(String(500), nullable=False)
-    culture_info = Column(String(10), nullable=False, default='tr-TR')
+    culture_info = Column(String(10), nullable=False, default='en-GB')
     is_deleted = Column(Boolean, nullable=False, default=False)
     delete_description = Column(String(1000), nullable=True)
     created_at = Column(DateTime, server_default=func.now())

@@ -10,6 +10,7 @@ from data_layer.db_init_data.district import _insert_districts
 from data_layer.db_init_data.form import _insert_default_forms
 from data_layer.db_init_data.form_control import _insert_form_controls
 from data_layer.db_init_data.label_value import _insert_label_values
+from data_layer.db_init_data.payment_type import _insert_payment_types
 from data_layer.db_init_data.product_barcode_mask import _insert_product_barcode_masks
 from data_layer.db_init_data.product_manufacturer import _insert_product_manufacturers
 from data_layer.db_init_data.product_unit import _insert_product_units
@@ -41,6 +42,9 @@ def insert_initial_data(engine: Engine):
 
             # Insert currencies
             _insert_currencies(session)
+
+            # Insert payment types
+            _insert_payment_types(session)
 
             # Insert VAT rates
             _insert_vat_rates(session, admin_cashier.id)
