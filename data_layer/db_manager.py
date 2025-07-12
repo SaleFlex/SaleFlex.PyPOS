@@ -108,11 +108,9 @@ def _insert_initial_data(engine: Engine):
             vat_exists = session.query(Vat).first()
             if not vat_exists:
                 vat_rates = [
-                    {"name": "VAT Free", "no": 0, "rate": 0, "description": "VAT Free"},
-                    {"name": "VAT 1%", "no": 1, "rate": 1, "description": "1% VAT"},
-                    {"name": "VAT 8%", "no": 2, "rate": 8, "description": "8% VAT"},
-                    {"name": "VAT 18%", "no": 3, "rate": 18, "description": "18% VAT"},
-                    {"name": "VAT 20%", "no": 4, "rate": 20, "description": "20% VAT"}
+                    {"name": "%0", "no": 1, "rate": 0, "description": "Zero VAT Rate (0%)"},
+                    {"name": "%5", "no": 2, "rate": 5, "description": "Reduced VAT Rate (5%)"},
+                    {"name": "%20", "no": 3, "rate": 20, "description": "Standard VAT Rate (20%)"}
                 ]
                 
                 for vat_data in vat_rates:
