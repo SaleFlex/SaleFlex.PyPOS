@@ -48,8 +48,8 @@ class ProductBarcodeMask(Model, CRUD):
     size_started_at = Column(Integer, nullable=True)
     size_length = Column(Integer, nullable=True)
     description = Column(String(150), nullable=True)
-    fk_cashier_create_id = Column(BigInteger, ForeignKey("cashier.id"))
-    fk_cashier_update_id = Column(BigInteger, ForeignKey("cashier.id"))
+    fk_cashier_create_id = Column(UUID, ForeignKey("cashier.id"))
+    fk_cashier_update_id = Column(UUID, ForeignKey("cashier.id"))
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now())
 
