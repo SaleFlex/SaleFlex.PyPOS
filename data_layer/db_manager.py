@@ -149,31 +149,86 @@ def _insert_initial_data(engine: Engine):
                     session.add(unit)
                 print("✓ Default product units added")
             
-            # Add default main group (if not exists)
+            # Add default main groups (if not exists)
             main_group_exists = session.query(DepartmentMainGroup).first()
             if not main_group_exists:
-                main_group = DepartmentMainGroup(
-                    code="001",
-                    name="General",
-                    description="General product group"
-                )
-                main_group.fk_cashier_create_id = admin_cashier_id
-                main_group.fk_cashier_update_id = admin_cashier_id
-                session.add(main_group)
-                session.flush()  # To get the ID
-                print("✓ Default main group added")
+                # First get VAT IDs by their no values
+                vat_0_percent = session.query(Vat).filter_by(no=1).first()  # %0 VAT
+                vat_20_percent = session.query(Vat).filter_by(no=3).first()  # %20 VAT
                 
-                # Add default sub group
-                sub_group = DepartmentSubGroup(
-                    main_group_id=main_group.id,
-                    code="001",
-                    name="General",
-                    description="General product sub group"
-                )
-                sub_group.fk_cashier_create_id = admin_cashier_id
-                sub_group.fk_cashier_update_id = admin_cashier_id
-                session.add(sub_group)
-                print("✓ Default sub group added")
+                main_groups = [
+                    {
+                        "code": "1",
+                        "name": "FOOD",
+                        "description": "Food products department",
+                        "max_price": 100.0,
+                        "vat_id": vat_0_percent.id if vat_0_percent else None
+                    },
+                    {
+                        "code": "2", 
+                        "name": "TOBACCO",
+                        "description": "Tobacco products department",
+                        "max_price": 200.0,
+                        "vat_id": vat_20_percent.id if vat_20_percent else None
+                    },
+                    {
+                        "code": "3",
+                        "name": "INDIVIDUAL",
+                        "description": "Individual products department", 
+                        "max_price": 300.0,
+                        "vat_id": vat_20_percent.id if vat_20_percent else None
+                    }
+                ]
+                
+                # Create main groups and store them for sub group creation
+                created_main_groups = []
+                for group_data in main_groups:
+                    main_group = DepartmentMainGroup(
+                        code=group_data["code"],
+                        name=group_data["name"],
+                        description=group_data["description"]
+                    )
+                    main_group.max_price = group_data["max_price"]
+                    main_group.fk_vat_id = group_data["vat_id"]
+                    main_group.fk_cashier_create_id = admin_cashier_id
+                    main_group.fk_cashier_update_id = admin_cashier_id
+                    session.add(main_group)
+                    session.flush()  # To get the ID
+                    created_main_groups.append(main_group)
+                
+                # Create sub groups for each main group with meaningful names
+                sub_groups_data = [
+                    # FOOD sub groups
+                    {"main_group_code": "1", "code": "101", "name": "FRESH FOOD", "description": "Fresh food products"},
+                    {"main_group_code": "1", "code": "102", "name": "CANNED FOOD", "description": "Canned and preserved food"},
+                    {"main_group_code": "1", "code": "103", "name": "BEVERAGES", "description": "Drinks and beverages"},
+                    
+                    # TOBACCO sub groups
+                    {"main_group_code": "2", "code": "201", "name": "CIGARETTES", "description": "Cigarette products"},
+                    {"main_group_code": "2", "code": "202", "name": "TOBACCO PRODUCTS", "description": "Other tobacco products"},
+                    
+                    # INDIVIDUAL sub groups
+                    {"main_group_code": "3", "code": "301", "name": "PERSONAL CARE", "description": "Personal care items"},
+                    {"main_group_code": "3", "code": "302", "name": "HOUSEHOLD ITEMS", "description": "Household products"},
+                    {"main_group_code": "3", "code": "303", "name": "ACCESSORIES", "description": "General accessories"}
+                ]
+                
+                for sub_group_data in sub_groups_data:
+                    # Find the corresponding main group
+                    main_group = next((mg for mg in created_main_groups if mg.code == sub_group_data["main_group_code"]), None)
+                    if main_group:
+                        sub_group = DepartmentSubGroup(
+                            main_group_id=main_group.id,
+                            code=sub_group_data["code"],
+                            name=sub_group_data["name"],
+                            description=sub_group_data["description"]
+                        )
+                        sub_group.fk_cashier_create_id = admin_cashier_id
+                        sub_group.fk_cashier_update_id = admin_cashier_id
+                        session.add(sub_group)
+                
+                print("✓ Default main groups added: FOOD, TOBACCO, INDIVIDUAL")
+                print("✓ Default sub groups added")
             
             # Add default transaction document types (if not exists)
             doc_type_exists = session.query(TransactionDocumentType).first()
