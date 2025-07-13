@@ -22,6 +22,7 @@ from data_layer.db_init_data.transaction_sequence import _insert_transaction_seq
 from data_layer.db_init_data.vat import _insert_vat_rates
 from data_layer.db_init_data.product_variant import _insert_product_variants
 from data_layer.db_init_data.product_attribute import _insert_product_attributes
+from data_layer.db_init_data.cashier_performance_target import _insert_cashier_performance_targets
 
 def insert_initial_data(engine: Engine):
     """
@@ -91,6 +92,9 @@ def insert_initial_data(engine: Engine):
 
             # Insert label values
             _insert_label_values(session)
+
+            # Insert cashier performance targets
+            _insert_cashier_performance_targets(session, admin_cashier.id)
 
     except SQLAlchemyError as e:
         print(f"✗ Initial data insertion error: {e}")

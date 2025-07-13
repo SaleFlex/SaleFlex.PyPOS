@@ -49,6 +49,12 @@ from .warehouse_location import WarehouseLocation
 from .warehouse_product_stock import WarehouseProductStock
 from .warehouse_stock_movement import WarehouseStockMovement
 from .warehouse_stock_adjustment import WarehouseStockAdjustment
+# Cashier Performance and Work Metrics Models
+from .cashier_work_session import CashierWorkSession
+from .cashier_performance_metrics import CashierPerformanceMetrics
+from .cashier_work_break import CashierWorkBreak
+from .cashier_performance_target import CashierPerformanceTarget
+from .cashier_transaction_metrics import CashierTransactionMetrics
 
 __all__ = [
     'Product',
@@ -102,4 +108,10 @@ __all__ = [
     'WarehouseProductStock',
     'WarehouseStockMovement',
     'WarehouseStockAdjustment',
+    # Cashier Performance and Work Metrics Models
+    'CashierWorkSession',
+    'CashierPerformanceMetrics',
+    'CashierWorkBreak',
+    'CashierPerformanceTarget',
+    'CashierTransactionMetrics',
 ]
