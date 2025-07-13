@@ -23,6 +23,7 @@ from data_layer.db_init_data.vat import _insert_vat_rates
 from data_layer.db_init_data.product_variant import _insert_product_variants
 from data_layer.db_init_data.product_attribute import _insert_product_attributes
 from data_layer.db_init_data.cashier_performance_target import _insert_cashier_performance_targets
+from data_layer.db_init_data.warehouse import _insert_warehouses
 
 def insert_initial_data(engine: Engine):
     """
@@ -44,6 +45,9 @@ def insert_initial_data(engine: Engine):
 
             # Insert districts
             _insert_districts(session)
+
+            # Insert warehouses
+            _insert_warehouses(session, admin_cashier.id)
 
             # Insert currencies
             _insert_currencies(session)
