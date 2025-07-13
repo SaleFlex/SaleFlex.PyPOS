@@ -16,15 +16,15 @@ SaleFlex.PyPOS is a modern, Python-based point-of-sale (POS) system designed for
 
 SaleFlex.PyPOS POS system is designed to streamline the sales process and improve efficiency with these capabilities:
 
-- ** Multi-Payment Processing**: Accept cash, credit cards, debit cards, and mobile payments
-- ** Receipt & Invoice Generation**: Automated transaction documentation with ESC/P printer support
-- ** Inventory Management**: Real-time stock tracking with low-stock alerts
-- ** Customer Management**: Store customer information, preferences, and purchase history
-- ** Analytics & Reporting**: Comprehensive sales, inventory, and customer behavior analytics
-- ** System Integration**: Connect with accounting software, warehouse management, and ERP systems
-- **️ Returns & Exchanges**: Handle product returns and exchanges efficiently
-- ** Employee Management**: Track employee time, attendance, and performance
-- ** Loyalty Programs**: Built-in customer loyalty and rewards management
+- **Multi-Payment Processing**: Accept cash, credit cards, debit cards, and mobile payments
+- **Receipt & Invoice Generation**: Automated transaction documentation with ESC/P printer support
+- **Inventory Management**: Real-time stock tracking with low-stock alerts
+- **Customer Management**: Store customer information, preferences, and purchase history
+- **Analytics & Reporting**: Comprehensive sales, inventory, and customer behavior analytics
+- **System Integration**: Connect with accounting software, warehouse management, and ERP systems
+- **️Returns & Exchanges**: Handle product returns and exchanges efficiently
+- **Employee Management**: Track employee time, attendance, and performance
+- **Loyalty Programs**: Built-in customer loyalty and rewards management
 
 ## Project Structure
 
@@ -60,20 +60,20 @@ SaleFlex.PyPOS/
 
 SaleFlex.PyPOS is designed to meet the diverse needs of various business types:
 
-- ** Retail Stores**: Complete retail management with inventory, customer tracking, and sales analytics
-- ** Fast Food Restaurants**: Quick service restaurant operations with order management
-- ** Chain Restaurants**: Multi-location restaurant management with centralized control
-- ** Service Businesses**: Various service-oriented establishments with customizable workflows
+- **Retail Stores**: Complete retail management with inventory, customer tracking, and sales analytics
+- **Fast Food Restaurants**: Quick service restaurant operations with order management
+- **Chain Restaurants**: Multi-location restaurant management with centralized control
+- **Service Businesses**: Various service-oriented establishments with customizable workflows
 
 ## SaleFlex.GATE Integration
 
 SaleFlex.PyPOS integrates seamlessly with **[SaleFlex.GATE](https://github.com/SaleFlex/SaleFlex.GATE)** - a Django-based centralized management system:
 
-- ** Centralized Management**: Monitor and manage multiple POS systems from one dashboard
-- ** Cloud-Based Access**: Remote control and monitoring for business owners and managers
-- ** ERP Integration**: Seamless data synchronization with existing ERP systems
-- ** Scalable Architecture**: Support growing businesses with multiple locations
-- ** Secure Data Flow**: Robust API-based communication between POS terminals and backend
+- **Centralized Management**: Monitor and manage multiple POS systems from one dashboard
+- **Cloud-Based Access**: Remote control and monitoring for business owners and managers
+- **ERP Integration**: Seamless data synchronization with existing ERP systems
+- **Scalable Architecture**: Support growing businesses with multiple locations
+- **Secure Data Flow**: Robust API-based communication between POS terminals and backend
 
 ## System Requirements
 
