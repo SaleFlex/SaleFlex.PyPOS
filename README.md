@@ -2,8 +2,8 @@
 > **Current Version: 1.0.0b1 (Beta)**
 
 ![Python 3.13](https://img.shields.io/badge/python-%3E=_3.13-success.svg)
-![PySide6](https://img.shields.io/badge/PySide6-6.9.0-blue.svg)
-![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0.40-green.svg)
+![PySide6](https://img.shields.io/badge/PySide6-6.9.1-blue.svg)
+![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0.41-green.svg)
 ![License](https://img.shields.io/badge/license-GPL%20v3-blue.svg)
 
 # SaleFlex.PyPOS
