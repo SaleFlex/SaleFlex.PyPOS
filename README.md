@@ -86,9 +86,9 @@ SaleFlex.PyPOS integrates seamlessly with **[SaleFlex.GATE](https://github.com/S
 
 ### Software Requirements
 - **Python**: 3.13 or higher
-- **PySide6**: 6.9.0 (Qt-based GUI framework)
-- **SQLAlchemy**: 2.0.40 (ORM for database operations)
-- **Requests**: 2.32.3 (HTTP client for API communications)
+- **PySide6**: 6.9.1 (Qt-based GUI framework)
+- **SQLAlchemy**: 2.0.41 (ORM for database operations)
+- **Requests**: 2.32.4 (HTTP client for API communications)
 
 ### Supported Database Engines
 - **SQLite** (default, included)
