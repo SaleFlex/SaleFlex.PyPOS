@@ -16,7 +16,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-from pos.data import FormType
+from data_layer.data import FormName
 from data_layer import Cashier
 
 
@@ -47,31 +47,31 @@ class GeneralEvent:
         else:
             pass
         self.login_succeed = True
-        self.current_form_type = FormType.MENU
+        self.current_form_type = FormName.MENU
         self.interface.redraw(self.current_form_type)
 
     def _logout(self):
         self.login_succeed = False
-        self.current_form_type = FormType.LOGIN
+        self.current_form_type = FormName.LOGIN
         self.interface.redraw(self.current_form_type)
 
     def _sale(self):
         if self.login_succeed:
-            self.current_form_type = FormType.SALE
+            self.current_form_type = FormName.SALE
             self.interface.redraw(self.current_form_type)
         else:
             self._logout()
 
     def _configuration(self):
         if self.login_succeed:
-            self.current_form_type = FormType.CONFIG
+            self.current_form_type = FormName.CONFIG
             self.interface.redraw(self.current_form_type)
         else:
             self._logout()
 
     def _closure(self):
         if self.login_succeed:
-            self.current_form_type = FormType.CLOSURE
+            self.current_form_type = FormName.CLOSURE
             self.interface.redraw(self.current_form_type)
         else:
             self._logout()

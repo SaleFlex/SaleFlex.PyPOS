@@ -62,4 +62,5 @@ from data_layer.model.definition.transaction_delivery import TransactionDelivery
 from data_layer.model.definition.transaction_delivery_temp import TransactionDeliveryTemp
 from data_layer.model.definition.transaction_kitchen_order import TransactionKitchenOrder
 from data_layer.model.definition.transaction_kitchen_order_temp import TransactionKitchenOrderTemp
+from data_layer.model.definition.warehouse import Warehouse
 

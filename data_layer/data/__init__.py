@@ -17,22 +17,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from user_interface.window import BaseWindow
-from data_layer.data import FormName
-from user_interface.design_file import Interpreter
+from .form_name import FormName
+from .control_type import ControlType
 
-
-class Interface:
-    def __init__(self, app):
-        self.app = app
-        self.window = BaseWindow(app=self.app)
-
-    def draw(self, form_type: FormName):
-        interpreter = Interpreter(form_type)
-        self.window.draw_window(interpreter.settings, interpreter.toolbar_settings, interpreter.design)
-        self.window.show()
-        self.window.focus_text_box()
-
-    def redraw(self, form_type: FormName):
-        self.window.clear()
-        self.draw(form_type)
+__all__ = ["FormName", "ControlType"] 

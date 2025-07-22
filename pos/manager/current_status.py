@@ -17,14 +17,15 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from pos.data import FormType, DocumentState, DocumentType, DocumentResult
+from data_layer.data import FormName
+from pos.data import DocumentState, DocumentType, DocumentResult
 
 
 class CurrentStatus:
     def __init__(self):
         self.__login_succeed = False
-        self.__previous_form_type = FormType.NONE
-        self.__current_form_type = FormType.LOGIN     # initial form
+        self.__previous_form_type = FormName.NONE
+        self.__current_form_type = FormName.LOGIN     # initial form
         self.__document_state = DocumentState.NONE
         self.__document_type = DocumentType.NONE
         self.__document_result = DocumentResult.NONE

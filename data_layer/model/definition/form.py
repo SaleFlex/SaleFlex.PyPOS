@@ -21,58 +21,10 @@ from sqlalchemy import Column, Integer, BigInteger, Boolean, String, DateTime, F
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from uuid import uuid4
-import enum
 
 from data_layer.model.crud_model import Model
 from data_layer.model.crud_model import CRUD
-
-
-class FormType(enum.Enum):
-    """Enum representing different types of forms used in the system."""
-    NONE = 0           # No form selected.
-    SALE = 1           # Sale transaction form.
-    LOGIN = 2          # Login form.
-    LOGIN_EXT = 3      # Extended login form.
-    LOGIN_SERVICE = 4  # Service login form.
-    SERVICE = 5        # Service-related form.
-    SETTING = 6        # Settings configuration form.
-    PARAMETER = 7      # Parameter configuration form.
-    REPORT = 8         # Report form.
-    FUNCTION = 9       # Function selection form.
-    CUSTOMER = 10      # Customer-related form.
-    VOID = 11          # Form for voiding a transaction.
-    REFUND = 12        # Refund transaction form.
-    STOCK = 13         # Stock management form.
-    END_OF_DAY = 14    # End-of-day process form.
-    TABLE = 15         # Table management form (e.g., for restaurants).
-    ORDER = 16         # Order management form.
-    CHECK = 17         # Check payment form.
-    EMPLOYEE = 18      # Employee management form.
-    RESERVATION = 19   # Reservation form.
-    WAREHOUSE = 20     # Warehouse form.
-
-
-class ControlType(enum.Enum):
-    """Enum representing different types of form controls."""
-    NONE = 0
-    BUTTON = 1
-    PICTURE = 2
-    LABEL = 3
-    TEXT_BOX = 4
-    COMBO_BOX = 5
-    TOOL_BAR = 6
-    MENU = 7
-    MENU_ITEM = 8
-    MENU_SUB_ITEM = 9
-    TAB_PAGE = 10
-    TAB_PAGE_ITEM = 11
-    PANEL = 12
-    WEB_BROWSER = 13
-    GROUP = 14
-    DATA_VIEW = 15
-    POP_UP = 16
-    LIST_BOX = 17
-    CHECK_BOX = 18
+from data_layer.data import FormName, ControlType
 
 
 class Form(Model, CRUD):

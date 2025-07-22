@@ -19,7 +19,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import tomllib
 
-from pos.data import FormType
+from data_layer.data import FormName
 from settings import env_data
 
 
@@ -27,13 +27,13 @@ class Interpreter:
     __instance = None
     __form_type = None
 
-    def __new__(cls, form_type: FormType, *args, **kwargs):
+    def __new__(cls, form_type: FormName, *args, **kwargs):
         if cls.__instance is None:
             cls.__instance = super(Interpreter, cls).__new__(cls)
             cls.__form_type = form_type
         return cls.__instance
 
-    def __init__(self, form_type: FormType):
+    def __init__(self, form_type: FormName):
         self.__form_type = form_type
         self.__toml_file_name = self.__set_toml_file_name()
         self.__design_file_data = {}
@@ -81,43 +81,43 @@ class Interpreter:
         toml_file_name = "design_files/default.toml"
         try:
             match self.__form_type:
-                case FormType.LOGIN:
+                case FormName.LOGIN:
                     if 'login' in env_data.main_display_data:
                         toml_file_name = f"design_files/{env_data.main_display_data['login']}"
-                case FormType.MENU:
+                case FormName.MENU:
                     if 'menu' in env_data.main_display_data:
                         toml_file_name = f"design_files/{env_data.main_display_data['menu']}"
-                case FormType.SALE:
+                case FormName.SALE:
                     if 'sale' in env_data.main_display_data:
                         toml_file_name = f"design_files/{env_data.main_display_data['sale']}"
-                case FormType.SERVICE:
+                case FormName.SERVICE:
                     if 'service' in env_data.main_display_data:
                         toml_file_name = f"design_files/{env_data.main_display_data['service']}"
-                case FormType.CONFIG:
+                case FormName.CONFIG:
                     if 'config' in env_data.main_display_data:
                         toml_file_name = f"design_files/{env_data.main_display_data['config']}"
-                case FormType.PARAMETER:
+                case FormName.PARAMETER:
                     if 'parameter' in env_data.main_display_data:
                         toml_file_name = f"design_files/{env_data.main_display_data['parameter']}"
-                case FormType.REPORT:
+                case FormName.REPORT:
                     if 'report' in env_data.main_display_data:
                         toml_file_name = f"design_files/{env_data.main_display_data['report']}"
-                case FormType.FUNCTION:
+                case FormName.FUNCTION:
                     if 'function' in env_data.main_display_data:
                         toml_file_name = f"design_files/{env_data.main_display_data['function']}"
-                case FormType.CUSTOMER:
+                case FormName.CUSTOMER:
                     if 'customer' in env_data.main_display_data:
                         toml_file_name = f"design_files/{env_data.main_display_data['customer']}"
-                case FormType.VOID:
+                case FormName.VOID:
                     if 'void' in env_data.main_display_data:
                         toml_file_name = f"design_files/{env_data.main_display_data['void']}"
-                case FormType.REFUND:
+                case FormName.REFUND:
                     if 'refund' in env_data.main_display_data:
                         toml_file_name = f"design_files/{env_data.main_display_data['refund']}"
-                case FormType.STOCK:
+                case FormName.STOCK:
                     if 'stock' in env_data.main_display_data:
                         toml_file_name = f"design_files/{env_data.main_display_data['stock']}"
-                case FormType.CLOSURE:
+                case FormName.CLOSURE:
                     if 'closure' in env_data.main_display_data:
                         toml_file_name = f"design_files/{env_data.main_display_data['closure']}"
         except (AttributeError, TypeError, KeyError) as e:
