@@ -43,7 +43,6 @@ class FormName(enum.Enum):
     EMPLOYEE = 18      # Employee management form.
     RESERVATION = 19   # Reservation form.
     WAREHOUSE = 20     # Warehouse form.
-    # Compatibility aliases for FormType migration
-    MENU = 21          # Menu form (same as FUNCTION).
+    MENU = 21          # Menu form.
     CONFIG = 6         # Configuration form (same as SETTING).
     CLOSURE = 14       # End of day closure form (same as END_OF_DAY). 
