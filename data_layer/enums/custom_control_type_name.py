@@ -17,10 +17,19 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from .form_name import FormName
-from .control_type import ControlType
-from .event_name import EventName
-from .custom_control_type_name import ControlTypeName
+import enum
 
 
-__all__ = ["FormName", "ControlType", "EventName", "ControlTypeName"] 
+class ControlTypeName(enum.Enum):
+    """Enum representing different control type names used in the system."""
+    BUTTON = "BUTTON"
+    COMBOBOX = "COMBOBOX"
+    TEXTBOX = "TEXTBOX"
+    LABEL = "LABEL"
+    PICTURE = "PICTURE"
+    NUMPAD = "NUMPAD"
+    SALESLIST = "SALESLIST"
+    PAYMENTLIST = "PAYMENTLIST"
+    AMOUNTSTABLE = "AMOUNTSTABLE"
+    MENU = "MENU"
+    WEBBROWSER = "WEBBROWSER" 
