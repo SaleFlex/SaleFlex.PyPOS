@@ -22,4 +22,3 @@ from pos.data.document_type import DocumentType
 from pos.data.document_result import DocumentResult
 from pos.data.payment_type import PaymentType
 from pos.data.discount_type import DiscountType
-from data_layer.data.event_name import EventName

@@ -19,7 +19,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import tomllib
 
-from data_layer.data import FormName
+from data_layer.enums import FormName
 from settings import env_data
 
 

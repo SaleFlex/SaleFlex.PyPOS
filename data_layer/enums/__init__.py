@@ -19,5 +19,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from .form_name import FormName
 from .control_type import ControlType
+from .event_name import EventName
 
-__all__ = ["FormName", "ControlType"] 
+__all__ = ["FormName", "ControlType", "EventName"]

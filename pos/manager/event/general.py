@@ -16,7 +16,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-from data_layer.data import FormName
+from data_layer.enums import FormName
 from data_layer import Cashier
 
 

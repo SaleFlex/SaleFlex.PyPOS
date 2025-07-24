@@ -18,7 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 from user_interface.window import BaseWindow
-from data_layer.data import FormName
+from data_layer.enums import FormName
 from user_interface.design_file import Interpreter
 
 

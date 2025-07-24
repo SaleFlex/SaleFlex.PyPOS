@@ -24,8 +24,6 @@ from uuid import uuid4
 
 from data_layer.model.crud_model import Model
 from data_layer.model.crud_model import CRUD
-from data_layer.data import FormName, ControlType
-
 
 class Form(Model, CRUD):
     """Model representing a form in the application."""
