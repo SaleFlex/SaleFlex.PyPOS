@@ -17,7 +17,10 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from pos.manager.event.general import GeneralEvent
-from pos.manager.event.report import ReportEvent
-from pos.manager.event.sale import SaleEvent
-from pos.manager.event.configuration import ConfigurationEvent
+from .general import GeneralEvent
+from .sale import SaleEvent
+from .payment import PaymentEvent
+from .configuration import ConfigurationEvent
+from .service import ServiceEvent
+from .report import ReportEvent
+from .hardware import HardwareEvent
