@@ -21,6 +21,7 @@ from .form_name import FormName
 from .control_type import ControlType
 from .event_name import EventName
 from .custom_control_type_name import ControlTypeName
+from .control_name import ControlName
 
 
-__all__ = ["FormName", "ControlType", "EventName", "ControlTypeName"] 
+__all__ = ["FormName", "ControlType", "EventName", "ControlTypeName", "ControlName"] 
