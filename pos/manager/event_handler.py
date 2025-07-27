@@ -25,12 +25,13 @@ from pos.manager.event import (
     ConfigurationEvent, 
     ServiceEvent, 
     ReportEvent, 
-    HardwareEvent
+    HardwareEvent,
+    WarehouseEvent
 )
 
 
 class EventHandler(GeneralEvent, SaleEvent, PaymentEvent, ConfigurationEvent, 
-                   ServiceEvent, ReportEvent, HardwareEvent):
+                   ServiceEvent, ReportEvent, HardwareEvent, WarehouseEvent):
     """
     Central Event Processing Manager for SaleFlex Point of Sale System.
     
@@ -38,7 +39,7 @@ class EventHandler(GeneralEvent, SaleEvent, PaymentEvent, ConfigurationEvent,
     implementing multiple inheritance to combine specialized event handling
     capabilities from different domain-specific event handler classes.
     
-    The class inherits from seven specialized event handler classes:
+    The class inherits from eight specialized event handler classes:
     - GeneralEvent: Handles basic application events (login, logout, exit, navigation)
     - SaleEvent: Processes sales transaction and product-related events
     - PaymentEvent: Manages all payment processing and payment methods
@@ -46,6 +47,7 @@ class EventHandler(GeneralEvent, SaleEvent, PaymentEvent, ConfigurationEvent,
     - ServiceEvent: Manages service and maintenance operations
     - ReportEvent: Processes reporting and analytics events
     - HardwareEvent: Controls hardware operations and device communications
+    - WarehouseEvent: Manages stock and warehouse inventory operations
     
     The event distribution mechanism uses a dictionary-based approach to map
     event names to their corresponding handler functions, providing a
@@ -97,6 +99,10 @@ class EventHandler(GeneralEvent, SaleEvent, PaymentEvent, ConfigurationEvent,
             - Service Functions: SERVICE_COMPANY_INFO, SERVICE_RESET_PASSWORD, etc.
             - Reports: SALE_DETAIL_REPORT, PLU_SALE_REPORT, etc.
             - Hardware Control: OPEN_CASH_DRAWER, etc.
+            - Restaurant Operations: TABLE_OPEN, ORDER_ADD, CHECK_PRINT, etc.
+            - Sale Suspension: SUSPEND_SALE, RESUME_SALE, SUSPEND_LIST, etc.
+            - Stock Operations: STOCK_IN, STOCK_OUT, STOCK_TRANSFER, etc.
+            - Warehouse Operations: WAREHOUSE_RECEIPT, WAREHOUSE_ISSUE, etc.
             
         Example:
             handler = self.event_distributor("LOGIN")
@@ -225,6 +231,54 @@ class EventHandler(GeneralEvent, SaleEvent, PaymentEvent, ConfigurationEvent,
                 EventName.SERVICE_POS_ACTIVE.name: self._service_pos_active,
                 EventName.SERVICE_SOFTWARE_DOWNLOAD.name: self._service_software_download,
                 EventName.SERVICE_GET_PLU_LIST.name: self._service_get_plu_list,
+                
+                # Restaurant Table Events - From SaleEvent
+                EventName.TABLE_OPEN.name: self._table_open,
+                EventName.TABLE_CLOSE.name: self._table_close,
+                EventName.TABLE_SELECT.name: self._table_select,
+                EventName.TABLE_TRANSFER.name: self._table_transfer,
+                EventName.TABLE_MERGE.name: self._table_merge,
+                EventName.TABLE_SPLIT.name: self._table_split,
+                EventName.TABLE_STATUS.name: self._table_status,
+                EventName.TABLE_LIST.name: self._table_list,
+                
+                # Restaurant Order Events - From SaleEvent
+                EventName.ORDER_ADD.name: self._order_add,
+                EventName.ORDER_CANCEL.name: self._order_cancel,
+                EventName.ORDER_MODIFY.name: self._order_modify,
+                EventName.ORDER_SEND_TO_KITCHEN.name: self._order_send_to_kitchen,
+                EventName.ORDER_READY.name: self._order_ready,
+                
+                # Restaurant Check Events - From SaleEvent
+                EventName.CHECK_OPEN.name: self._check_open,
+                EventName.CHECK_CLOSE.name: self._check_close,
+                EventName.CHECK_PRINT.name: self._check_print,
+                EventName.CHECK_SPLIT.name: self._check_split,
+                EventName.CHECK_MERGE.name: self._check_merge,
+                
+                # Market Sale Suspension Events - From SaleEvent
+                EventName.SUSPEND_SALE.name: self._suspend_sale,
+                EventName.RESUME_SALE.name: self._resume_sale,
+                EventName.SUSPEND_LIST.name: self._suspend_list,
+                EventName.DELETE_SUSPENDED_SALE.name: self._delete_suspended_sale,
+                EventName.SUSPEND_DETAIL.name: self._suspend_detail,
+                
+                # Stock Events - From WarehouseEvent
+                EventName.STOCK_IN.name: self._stock_in,
+                EventName.STOCK_OUT.name: self._stock_out,
+                EventName.STOCK_TRANSFER.name: self._stock_transfer,
+                EventName.STOCK_ADJUSTMENT.name: self._stock_adjustment,
+                EventName.STOCK_COUNT.name: self._stock_count,
+                EventName.STOCK_MOVEMENT.name: self._stock_movement,
+                EventName.STOCK_INQUIRY.name: self._stock_inquiry,
+                
+                # Warehouse Events - From WarehouseEvent
+                EventName.WAREHOUSE_RECEIPT.name: self._warehouse_receipt,
+                EventName.WAREHOUSE_ISSUE.name: self._warehouse_issue,
+                EventName.WAREHOUSE_TRANSFER.name: self._warehouse_transfer,
+                EventName.WAREHOUSE_ADJUSTMENT.name: self._warehouse_adjustment,
+                EventName.WAREHOUSE_COUNT.name: self._warehouse_count,
+                EventName.WAREHOUSE_LOCATION.name: self._warehouse_location,
             }
             
             # Try to find the event handler in the dictionary

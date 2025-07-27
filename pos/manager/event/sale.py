@@ -539,16 +539,326 @@ class SaleEvent:
         """
         Handle sale shortcut operations.
         
-        Provides quick access to frequently used sale functions
-        or predefined sale combinations.
+        Processes quick sale shortcuts configured for frequently used items.
+        Shortcut can trigger PLU sales, department sales, or function calls.
+        
+        Process:
+        1. Verify authentication and transaction state
+        2. Get shortcut configuration from button/control
+        3. Execute shortcut action (PLU, department, or function)
+        4. Update transaction state and refresh display
         
         Returns:
-            bool: True if shortcut operation successful, False otherwise
+            bool: True if shortcut executed successfully, False otherwise
         """
-        if not self.login_succeed:
-            self._logout()
-            return False
-            
-        # TODO: Implement sale shortcuts
-        print("Sale shortcut - functionality to be implemented")
+        print("Sale shortcut event - method not implemented yet")
+        return False
+
+    # ==================== RESTAURANT TABLE OPERATIONS ====================
+    
+    def _table_open(self):
+        """
+        Handle opening a new restaurant table.
+        
+        Opens a new dining table for order taking in restaurant mode.
+        Associates subsequent orders with the opened table.
+        
+        Returns:
+            bool: True if table opened successfully, False otherwise
+        """
+        print("Table open event - method not implemented yet")
+        return False
+    
+    def _table_close(self):
+        """
+        Handle closing a restaurant table.
+        
+        Closes an active table after payment completion.
+        Finalizes all orders and clears table status.
+        
+        Returns:
+            bool: True if table closed successfully, False otherwise
+        """
+        print("Table close event - method not implemented yet")
+        return False
+    
+    def _table_select(self):
+        """
+        Handle selecting an existing restaurant table.
+        
+        Selects an active table to view or modify orders.
+        Loads table's current order status and items.
+        
+        Returns:
+            bool: True if table selected successfully, False otherwise
+        """
+        print("Table select event - method not implemented yet")
+        return False
+    
+    def _table_transfer(self):
+        """
+        Handle transferring orders between restaurant tables.
+        
+        Moves orders from one table to another table.
+        Updates table statuses and order associations.
+        
+        Returns:
+            bool: True if table transferred successfully, False otherwise
+        """
+        print("Table transfer event - method not implemented yet")
+        return False
+    
+    def _table_merge(self):
+        """
+        Handle merging multiple restaurant tables.
+        
+        Combines orders from multiple tables into a single table.
+        Useful for large parties that need multiple tables.
+        
+        Returns:
+            bool: True if tables merged successfully, False otherwise
+        """
+        print("Table merge event - method not implemented yet")
+        return False
+    
+    def _table_split(self):
+        """
+        Handle splitting restaurant table orders.
+        
+        Divides orders from one table into multiple separate tables.
+        Allows splitting checks for different payment methods.
+        
+        Returns:
+            bool: True if table split successfully, False otherwise
+        """
+        print("Table split event - method not implemented yet")
+        return False
+    
+    def _table_status(self):
+        """
+        Handle viewing restaurant table status.
+        
+        Displays current status of all tables including:
+        - Active/occupied tables  
+        - Order totals and item counts
+        - Service time information
+        
+        Returns:
+            bool: True if status displayed successfully, False otherwise
+        """
+        print("Table status event - method not implemented yet")
+        return False
+    
+    def _table_list(self):
+        """
+        Handle displaying restaurant table list.
+        
+        Shows list of all available tables with their current status.
+        Allows selection of tables for various operations.
+        
+        Returns:
+            bool: True if table list displayed successfully, False otherwise
+        """
+        print("Table list event - method not implemented yet")
+        return False
+    
+    # ==================== RESTAURANT ORDER OPERATIONS ====================
+    
+    def _order_add(self):
+        """
+        Handle adding items to restaurant order.
+        
+        Adds selected items to the current table's order.
+        Updates order totals and sends to kitchen if configured.
+        
+        Returns:
+            bool: True if order added successfully, False otherwise
+        """
+        print("Order add event - method not implemented yet")
+        return False
+    
+    def _order_cancel(self):
+        """
+        Handle canceling restaurant order items.
+        
+        Cancels specific items from the current table's order.
+        Updates totals and notifies kitchen of cancellation.
+        
+        Returns:
+            bool: True if order canceled successfully, False otherwise
+        """
+        print("Order cancel event - method not implemented yet")
+        return False
+    
+    def _order_modify(self):
+        """
+        Handle modifying restaurant order items.
+        
+        Allows modification of quantities, prices, or special instructions
+        for items in the current table's order.
+        
+        Returns:
+            bool: True if order modified successfully, False otherwise
+        """
+        print("Order modify event - method not implemented yet")
+        return False
+    
+    def _order_send_to_kitchen(self):
+        """
+        Handle sending orders to kitchen.
+        
+        Sends current table's orders to kitchen for preparation.
+        Updates order status and prints kitchen tickets if configured.
+        
+        Returns:
+            bool: True if order sent successfully, False otherwise
+        """
+        print("Order send to kitchen event - method not implemented yet")
+        return False
+    
+    def _order_ready(self):
+        """
+        Handle marking orders as ready.
+        
+        Marks kitchen orders as ready for serving.
+        Updates order status and notifies wait staff.
+        
+        Returns:
+            bool: True if order marked ready successfully, False otherwise
+        """
+        print("Order ready event - method not implemented yet")
+        return False
+    
+    # ==================== RESTAURANT CHECK OPERATIONS ====================
+    
+    def _check_open(self):
+        """
+        Handle opening a new check for restaurant table.
+        
+        Creates a new check/bill for the current table.
+        Initializes check with current order items.
+        
+        Returns:
+            bool: True if check opened successfully, False otherwise
+        """
+        print("Check open event - method not implemented yet")
+        return False
+    
+    def _check_close(self):
+        """
+        Handle closing restaurant check.
+        
+        Finalizes and closes the current check after payment.
+        Updates table status and archives check data.
+        
+        Returns:
+            bool: True if check closed successfully, False otherwise
+        """
+        print("Check close event - method not implemented yet")
+        return False
+    
+    def _check_print(self):
+        """
+        Handle printing restaurant check.
+        
+        Prints the current check/bill for customer review.
+        Shows itemized orders, taxes, and total amounts.
+        
+        Returns:
+            bool: True if check printed successfully, False otherwise
+        """
+        print("Check print event - method not implemented yet")
+        return False
+    
+    def _check_split(self):
+        """
+        Handle splitting restaurant check.
+        
+        Divides a single check into multiple separate checks.
+        Allows different payment methods for different portions.
+        
+        Returns:
+            bool: True if check split successfully, False otherwise
+        """
+        print("Check split event - method not implemented yet")
+        return False
+    
+    def _check_merge(self):
+        """
+        Handle merging restaurant checks.
+        
+        Combines multiple checks into a single check.
+        Useful for combining separate orders into one payment.
+        
+        Returns:
+            bool: True if checks merged successfully, False otherwise
+        """
+        print("Check merge event - method not implemented yet")
+        return False
+    
+    # ==================== MARKET SALE SUSPENSION OPERATIONS ====================
+    
+    def _suspend_sale(self):
+        """
+        Handle suspending current sale transaction.
+        
+        Temporarily saves the current transaction for later completion.
+        Allows starting new transactions while preserving suspended one.
+        
+        Returns:
+            bool: True if sale suspended successfully, False otherwise
+        """
+        print("Suspend sale event - method not implemented yet")
+        return False
+    
+    def _resume_sale(self):
+        """
+        Handle resuming suspended sale transaction.
+        
+        Restores a previously suspended transaction for completion.
+        Loads all items, totals, and transaction state.
+        
+        Returns:
+            bool: True if sale resumed successfully, False otherwise
+        """
+        print("Resume sale event - method not implemented yet")
+        return False
+    
+    def _suspend_list(self):
+        """
+        Handle displaying list of suspended sales.
+        
+        Shows all currently suspended transactions with details.
+        Allows selection of suspended sale to resume or delete.
+        
+        Returns:
+            bool: True if suspend list displayed successfully, False otherwise
+        """
+        print("Suspend list event - method not implemented yet")
+        return False
+    
+    def _delete_suspended_sale(self):
+        """
+        Handle deleting suspended sale transaction.
+        
+        Permanently removes a suspended transaction from storage.
+        Cannot be recovered after deletion.
+        
+        Returns:
+            bool: True if suspended sale deleted successfully, False otherwise
+        """
+        print("Delete suspended sale event - method not implemented yet")
+        return False
+    
+    def _suspend_detail(self):
+        """
+        Handle displaying suspended sale details.
+        
+        Shows detailed information about a selected suspended sale.
+        Includes items, quantities, prices, and transaction metadata.
+        
+        Returns:
+            bool: True if suspend detail displayed successfully, False otherwise
+        """
+        print("Suspend detail event - method not implemented yet")
         return False
