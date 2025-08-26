@@ -1,4 +1,4 @@
-PySide6==6.9.1
-SQLAlchemy==2.0.41
-requests==2.32.4
+PySide6==6.9.2
+SQLAlchemy==2.0.43
+requests==2.32.5
 
