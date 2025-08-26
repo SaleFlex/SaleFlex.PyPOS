@@ -33,6 +33,7 @@ class Settings:
     def __init__(self):
         with open("settings.toml", "rb") as file_object:
             self.setting_data = tomllib.load(file_object)
+            self.app = self.setting_data.get("app")
             self.database = self.setting_data.get("database")
             self.main_display = self.setting_data.get("main_display")
             self.customer_display = self.setting_data.get("customer_display")
@@ -91,3 +92,35 @@ class Settings:
         project_path = os.path.dirname(os.path.abspath(sys.modules['__main__'].__file__))
         image_path = os.path.join(project_path, 'design_files', 'images')
         return image_path
+
+    @property
+    def app_version(self):
+        """Return application version from settings.toml, or empty string if missing.
+
+        Looks for these keys in order:
+        - app.version
+        - application.version
+        - version (top-level)
+        - app_version (top-level)
+        """
+        try:
+            if isinstance(self.app, dict):
+                version_value = self.app.get("version")
+                if version_value:
+                    return str(version_value)
+
+            application_section = self.setting_data.get("application")
+            if isinstance(application_section, dict):
+                version_value = application_section.get("version")
+                if version_value:
+                    return str(version_value)
+
+            top_level_version = (
+                self.setting_data.get("version")
+                or self.setting_data.get("app_version")
+            )
+            if top_level_version:
+                return str(top_level_version)
+        except Exception:
+            return ""
+        return ""

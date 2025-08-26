@@ -18,8 +18,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 from pos.manager import Application
+from settings.settings import Settings
 
-__version__ = "1.0.0b1"
+__version__ = Settings().app_version
 
 app = Application()
 app.run()

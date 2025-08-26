@@ -8,6 +8,7 @@ information centered on the primary screen.
 from PySide6.QtCore import Qt, QRect
 from PySide6.QtGui import QGuiApplication, QFont, QColor, QPalette
 from PySide6.QtWidgets import QWidget, QLabel, QVBoxLayout, QSpacerItem, QSizePolicy
+from settings.settings import Settings
 
 
 class AboutForm(QWidget):
@@ -36,7 +37,7 @@ class AboutForm(QWidget):
         self._title_label.setFont(QFont("Segoe UI", 22, QFont.Bold))
         self._title_label.setStyleSheet("color: white;")
 
-        self._version_label = QLabel("version 1.0.0b1", self)
+        self._version_label = QLabel(f"version {Settings().app_version}", self)
         self._version_label.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
         self._version_label.setFont(QFont("Segoe UI", 12))
         self._version_label.setStyleSheet("color: #e5e7eb;")  # light gray for contrast

@@ -1,3 +1,6 @@
+[app]
+version = "1.0.0b2"
+
 [pos]
 id = 1
 name = "Store 1. POS"
