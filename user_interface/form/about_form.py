@@ -5,6 +5,7 @@ This module defines the AboutForm widget which displays application
 information centered on the primary screen.
 """
 
+import time
 from PySide6.QtCore import Qt, QRect
 from PySide6.QtGui import QGuiApplication, QFont, QColor, QPalette
 from PySide6.QtWidgets import QWidget, QLabel, QVBoxLayout, QSpacerItem, QSizePolicy
@@ -47,6 +48,7 @@ class AboutForm(QWidget):
         self._message_label.setFont(QFont("Segoe UI", 11))
         self._message_label.setStyleSheet("color: white;")
         self._message_label.setWordWrap(True)
+        self._message_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
 
         layout = QVBoxLayout()
         layout.setContentsMargins(24, 24, 24, 24)
@@ -57,7 +59,7 @@ class AboutForm(QWidget):
 
         # Spacer to push message label to bottom
         layout.addItem(QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Expanding))
-        layout.addWidget(self._message_label, alignment=Qt.AlignHCenter | Qt.AlignBottom)
+        layout.addWidget(self._message_label)
 
         self.setLayout(layout)
 
@@ -102,6 +104,10 @@ class AboutForm(QWidget):
             message: Text to display in the message area.
         """
         self._message_label.setText(message or "")
+        # Ensure message is immediately visible and pause very briefly
+        self._message_label.repaint()
+        QGuiApplication.processEvents()
+        time.sleep(0.1)
 
     # Helpers
     def _center_on_primary_screen(self) -> None:

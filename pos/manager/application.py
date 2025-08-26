@@ -19,6 +19,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import sys
 import os
+import time
 from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QIcon
 
@@ -28,6 +29,23 @@ from pos.manager.event_handler import EventHandler
 from user_interface.manager import Interface
 from data_layer.db_manager import init_db
 from settings import env_data
+from user_interface.form.about_form import AboutForm
+from data_layer.model import (
+    Cashier,
+    City,
+    Country,
+    Currency,
+    District,
+    Form,
+    FormControl,
+    LabelValue,
+    PaymentType,
+    PosSettings,
+    Store,
+    Table,
+    Vat,
+    Warehouse,
+)
 
 
 class Application(CurrentStatus, CurrentData, EventHandler):
@@ -80,32 +98,76 @@ class Application(CurrentStatus, CurrentData, EventHandler):
         The initialization follows a specific order to ensure all dependencies
         are properly set up before the interface is created.
         """
+        # Create the main Qt application instance as early as possible
+        # so that we can show the AboutForm during initialization
+        self.app = QApplication([])
+        self.app.setApplicationName("SaleFlex")
+
+        # Show AboutForm to provide live initialization feedback
+        about = AboutForm()
+        about.update_message("Starting application...")
+        about.show()
+        self.app.processEvents()
+
         # Initialize parent classes to inherit their functionality
+        about.update_message("Initializing application state...")
+        self.app.processEvents()
         CurrentStatus.__init__(self)    # Application state management
-        CurrentData.__init__(self)      # Session data management  
+        CurrentData.__init__(self)      # Session data management
         EventHandler.__init__(self)     # Event processing capabilities
 
         # Initialize database connection and create tables if needed
+        about.update_message("Initializing database...")
+        self.app.processEvents()
         init_db()
-        
-        # Create the main Qt application instance
-        # Empty list means no command line arguments are passed
-        self.app = QApplication([])
-        
-        # Set the application name (appears in window titles and system menus)
-        self.app.setApplicationName("SaleFlex")
-        
+
+        # Load reference data into memory to reduce disk I/O during runtime
+        about.update_message("Loading reference data into memory...")
+        self.app.processEvents()
+        self.pos_data = {}
+        model_classes = [
+            Cashier,
+            City,
+            Country,
+            Currency,
+            District,
+            Form,
+            FormControl,
+            LabelValue,
+            PaymentType,
+            PosSettings,
+            Store,
+            Table,
+            Vat,
+            Warehouse,
+        ]
+        for model_cls in model_classes:
+            model_name = model_cls.__name__
+            about.update_message(f"Loading {model_name}...")
+            self.app.processEvents()
+            try:
+                self.pos_data[model_name] = model_cls.get_all()
+            except Exception:
+                # On any unexpected read error, keep an empty list
+                self.pos_data[model_name] = []
+
         # Set application icon if logo file exists
         # Logo path is constructed from the images folder in design_files
+        about.update_message("Configuring application UI...")
+        self.app.processEvents()
         logo_path = os.path.join(env_data.image_absolute_folder, "logo.png")
-        
-        # Only set the icon if the logo file actually exists to avoid errors
         if os.path.exists(logo_path):
             self.app.setWindowIcon(QIcon(logo_path))
-            
+
         # Initialize the user interface manager
         # Pass self reference so the interface can access application methods
         self.interface = Interface(self)
+
+        # Finalize and dispose the AboutForm
+        about.update_message("Initialization complete.")
+        self.app.processEvents()
+        time.sleep(1)
+        about.dispose()
 
     def run(self):
         """

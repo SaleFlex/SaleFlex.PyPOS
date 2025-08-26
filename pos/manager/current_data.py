@@ -49,6 +49,8 @@ class CurrentData:
         These attributes will be populated when:
         - cashier_data: Set during successful login process
         - document_data: Set when starting a new transaction/document
+        - pos_data: Populated after database initialization with rarely-changing
+          reference data to reduce disk I/O during runtime
         """
         # Information about the currently logged-in cashier
         # Contains user details, permissions, and authentication status
@@ -57,3 +59,7 @@ class CurrentData:
         # Current transaction or document being processed
         # Holds the active sale, return, or other document data
         self.document_data = None
+
+        # Cached reference data loaded at startup (after DB init)
+        # Example keys: "Cashier", "City", "Country", ...
+        self.pos_data = {}
