@@ -28,3 +28,4 @@ from user_interface.control.sale_list import SaleList
 from user_interface.control.numpad import NumPad
 from user_interface.control.virtual_keyboard import VirtualKeyboard
 from user_interface.control.amount_table import AmountTable
+from user_interface.control.combobox import ComboBox

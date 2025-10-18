@@ -20,7 +20,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from PySide6.QtWidgets import QMainWindow
 from PySide6.QtCore import Qt
 
-from user_interface.control import TextBox, Button, ToolBar, StatusBar, NumPad, PaymentList, SaleList
+from user_interface.control import TextBox, Button, ToolBar, StatusBar, NumPad, PaymentList, SaleList, ComboBox
 from user_interface.control import VirtualKeyboard
 
 
@@ -64,6 +64,9 @@ class BaseWindow(QMainWindow):
             if control_design_data["type"] == "sale_list":
                 self._create_sale_list(control_design_data)
 
+            if control_design_data["type"] == "combobox":
+                self._create_combobox(control_design_data)
+
         self.setUpdatesEnabled(True)
 
         self.keyboard.resize_from_parent()
@@ -85,7 +88,7 @@ class BaseWindow(QMainWindow):
     def clear(self):
         for item in self.children():
             print(item)
-            if type(item) in [TextBox, Button, ToolBar, StatusBar, NumPad, PaymentList, SaleList]:
+            if type(item) in [TextBox, Button, ToolBar, StatusBar, NumPad, PaymentList, SaleList, ComboBox]:
                 print(type(item), item)
                 item.deleteLater()
                 item.setParent(None)
@@ -200,6 +203,56 @@ class BaseWindow(QMainWindow):
         textbox.set_color(design_data['background_color'], design_data['foreground_color'])
         if design_data['use_keyboard']:
             textbox.keyboard = self.keyboard
+
+    def _create_combobox(self, design_data):
+        print(design_data)
+        width = design_data.get("width", 240)
+        height = design_data.get("height", 44)
+        background_color = design_data.get("background_color", 0xFFFFFF)
+        foreground_color = design_data.get("foreground_color", 0x000000)
+
+        combo = ComboBox(self,
+                         width=width,
+                         height=height,
+                         location_x=design_data.get("location_x", 0),
+                         location_y=design_data.get("location_y", 0),
+                         background_color=background_color,
+                         foreground_color=foreground_color,
+                         font_size=design_data.get("font_size", 20))
+
+        # Populate items: either static list or by special name
+        items = design_data.get("items")
+        if items and isinstance(items, list):
+            combo.set_items([str(x) for x in items])
+        else:
+            # Auto-populate by known names (e.g., CASHIER_NAME_LIST)
+            name_key = str(design_data.get("name", "")).upper()
+            if name_key == "CASHIER_NAME_LIST":
+                try:
+                    from data_layer.model import Cashier
+                    cashiers = Cashier.get_all(is_deleted=False)
+                    labels = [f"{c.name} {c.last_name}" for c in cashiers]
+                    if str(design_data.get("function1", "")).upper() == "LOGIN":
+                        labels.append("SUPERVISOR")
+                    combo.set_items(labels)
+                except Exception:
+                    combo.set_items([])
+
+        # Optional event hookup
+        if "function" in design_data:
+            combo.set_event(self.app.event_distributor(design_data["function"]))
+
+        # Set tooltip and store metadata
+        if "caption" in design_data:
+            combo.setToolTip(design_data["caption"])
+        if "name" in design_data:
+            combo.name = design_data["name"]
+        if "type_name" in design_data:
+            combo.type = design_data["type_name"]
+        if "function1" in design_data:
+            combo.function1 = design_data["function1"]
+        if "function2" in design_data:
+            combo.function2 = design_data["function2"]
 
     def _create_toolbar(self, design_data):
         print(design_data)
