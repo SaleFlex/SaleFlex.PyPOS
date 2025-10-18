@@ -2,8 +2,8 @@
 > **Current Version: 1.0.0b1 (Beta)**
 
 ![Python 3.13](https://img.shields.io/badge/python-%3E=_3.13-success.svg)
-![PySide6](https://img.shields.io/badge/PySide6-6.9.2-blue.svg)
-![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0.43-green.svg)
+![PySide6](https://img.shields.io/badge/PySide6-6.10.0-blue.svg)
+![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0.44-green.svg)
 ![License](https://img.shields.io/badge/license-GPL%20v3-blue.svg)
 
 # SaleFlex.PyPOS
@@ -86,9 +86,9 @@ SaleFlex.PyPOS integrates seamlessly with **[SaleFlex.GATE](https://github.com/S
 
 ### Software Requirements
 - **Python**: 3.13 or higher
-- **PySide6**: 6.9.1 (Qt-based GUI framework)
-- **SQLAlchemy**: 2.0.41 (ORM for database operations)
-- **Requests**: 2.32.4 (HTTP client for API communications)
+- **PySide6**: 6.10.0 (Qt-based GUI framework)
+- **SQLAlchemy**: 2.0.44 (ORM for database operations)
+- **Requests**: 2.32.5 (HTTP client for API communications)
 
 ### Supported Database Engines
 - **SQLite** (default, included)
