@@ -118,7 +118,7 @@ def _insert_form_controls(session: Session, cashier_id: str):
             fk_form_id=login_form.id,
             fk_parent_id=None,
             name="LOGIN",
-            form_control_function1="LOGIN",
+            form_control_function1="LOGIN:SALE",
             form_control_function2=None,
             type_no=1,
             type="BUTTON",
