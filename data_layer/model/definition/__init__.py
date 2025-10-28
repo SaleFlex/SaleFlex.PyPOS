@@ -18,6 +18,7 @@ from .form_control import FormControl
 from .label_value import LabelValue
 from .payment_type import PaymentType
 from .pos_settings import PosSettings
+from .pos_virtual_keyboard import PosVirtualKeyboard
 from .product_barcode import ProductBarcode
 from .product_barcode_mask import ProductBarcodeMask
 from .product_manufacturer import ProductManufacturer
@@ -77,6 +78,7 @@ __all__ = [
     'LabelValue',
     'PaymentType',
     'PosSettings',
+    'PosVirtualKeyboard',
     'ProductBarcode',
     'ProductBarcodeMask',
     'ProductManufacturer',

@@ -19,6 +19,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 """
 Virtual keyboard classes
-    AlphaNumericVirtualKeyboard class
+    AlphaNumericVirtualKeyboard class (exported as VirtualKeyboard)
+    KeyboardSettingsLoader - for loading keyboard settings from database
 """
 from user_interface.control.virtual_keyboard.alphanumeric_virtual_keyboard import AlphaNumericVirtualKeyboard as VirtualKeyboard
+from user_interface.control.virtual_keyboard.keyboard_settings_loader import KeyboardSettingsLoader
+
+__all__ = ['VirtualKeyboard', 'KeyboardSettingsLoader']

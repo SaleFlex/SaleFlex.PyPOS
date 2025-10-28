@@ -23,6 +23,13 @@ from data_layer.db_init_data import insert_initial_data
 
 from sqlalchemy.exc import SQLAlchemyError
 
+# Import KeyboardSettingsLoader for initialization
+try:
+    from user_interface.control.virtual_keyboard.keyboard_settings_loader import KeyboardSettingsLoader
+    KEYBOARD_LOADER_AVAILABLE = True
+except ImportError:
+    KEYBOARD_LOADER_AVAILABLE = False
+
 
 def init_db():
     """
@@ -40,6 +47,11 @@ def init_db():
         # Insert initial data
         insert_initial_data(temp_engine)
         print("✓ Initial data inserted successfully")
+        
+        # Initialize keyboard settings loader
+        if KEYBOARD_LOADER_AVAILABLE:
+            KeyboardSettingsLoader.initialize(temp_engine)
+            print("✓ Virtual keyboard settings loaded")
         
         return True
         

@@ -24,6 +24,7 @@ from data_layer.db_init_data.product_variant import _insert_product_variants
 from data_layer.db_init_data.product_attribute import _insert_product_attributes
 from data_layer.db_init_data.cashier_performance_target import _insert_cashier_performance_targets
 from data_layer.db_init_data.warehouse import _insert_warehouses
+from data_layer.db_init_data.pos_virtual_keyboard import _insert_virtual_keyboard_settings, _insert_alternative_keyboard_themes
 
 def insert_initial_data(engine: Engine):
     """
@@ -99,6 +100,12 @@ def insert_initial_data(engine: Engine):
 
             # Insert cashier performance targets
             _insert_cashier_performance_targets(session, admin_cashier.id)
+
+            # Insert virtual keyboard settings
+            _insert_virtual_keyboard_settings(session)
+            
+            # Insert alternative keyboard themes
+            _insert_alternative_keyboard_themes(session)
 
     except SQLAlchemyError as e:
         print(f"✗ Initial data insertion error: {e}")
