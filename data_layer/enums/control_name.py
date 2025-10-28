@@ -130,6 +130,9 @@ class ControlName(enum.Enum):
     EXIT = "EXIT"
     BACK = "BACK"
     
+    # End of Day Controls
+    CLOSURE = "CLOSURE"
+    
     # Configuration Controls
     BARCODE_LENGTH = "BARCODE_LENGTH"
     IMAGE_FOLDER = "IMAGE_FOLDER"
