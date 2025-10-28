@@ -80,7 +80,7 @@ class PaymentEvent:
     
     # ==================== CASH PAYMENT EVENTS ====================
     
-    def _cash_payment(self):
+    def _cash_payment(self, key=None):
         """
         Handle cash payment processing.
         
@@ -95,6 +95,9 @@ class PaymentEvent:
         5. Record payment and complete transaction
         6. Print receipt if required
         
+        Parameters:
+            key: Optional parameter from numpad input
+        
         Returns:
             bool: True if cash payment processed successfully, False otherwise
         """
@@ -103,12 +106,15 @@ class PaymentEvent:
             return False
             
         # TODO: Implement cash payment processing
-        print("Cash payment - functionality to be implemented")
+        if key is not None:
+            print(f"Cash payment - key pressed: {key}")
+        else:
+            print("Cash payment - functionality to be implemented")
         return False
     
     # ==================== ELECTRONIC PAYMENT EVENTS ====================
     
-    def _credit_payment(self):
+    def _credit_payment(self, key=None):
         """
         Handle credit card payment processing.
         
@@ -123,6 +129,9 @@ class PaymentEvent:
         5. Complete transaction or handle decline
         6. Print receipt with signature line if required
         
+        Parameters:
+            key: Optional parameter from numpad input
+        
         Returns:
             bool: True if credit payment processed successfully, False otherwise
         """
@@ -131,10 +140,13 @@ class PaymentEvent:
             return False
             
         # TODO: Implement credit card payment processing
-        print("Credit payment - functionality to be implemented")
+        if key is not None:
+            print(f"Credit payment - key pressed: {key}")
+        else:
+            print("Credit payment - functionality to be implemented")
         return False
     
-    def _check_payment(self):
+    def _check_payment(self, key=None):
         """
         Handle check payment processing.
         
@@ -149,6 +161,9 @@ class PaymentEvent:
         5. Complete transaction
         6. Store check information for deposit
         
+        Parameters:
+            key: Optional parameter from numpad input
+        
         Returns:
             bool: True if check payment processed successfully, False otherwise
         """
@@ -157,7 +172,10 @@ class PaymentEvent:
             return False
             
         # TODO: Implement check payment processing
-        print("Check payment - functionality to be implemented")
+        if key is not None:
+            print(f"Check payment - key pressed: {key}")
+        else:
+            print("Check payment - functionality to be implemented")
         return False
     
     # ==================== ALTERNATIVE PAYMENT EVENTS ====================
@@ -180,7 +198,7 @@ class PaymentEvent:
         print("Exchange payment - functionality to be implemented")
         return False
     
-    def _prepaid_payment(self):
+    def _prepaid_payment(self, key=None):
         """
         Handle prepaid card or voucher payment processing.
         
@@ -194,6 +212,9 @@ class PaymentEvent:
         4. Complete transaction or handle insufficient funds
         5. Update card balance and transaction records
         
+        Parameters:
+            key: Optional parameter from numpad input
+        
         Returns:
             bool: True if prepaid payment processed successfully, False otherwise
         """
@@ -202,7 +223,10 @@ class PaymentEvent:
             return False
             
         # TODO: Implement prepaid payment processing
-        print("Prepaid payment - functionality to be implemented")
+        if key is not None:
+            print(f"Prepaid payment - key pressed: {key}")
+        else:
+            print("Prepaid payment - functionality to be implemented")
         return False
     
     def _charge_sale_payment(self):
@@ -223,12 +247,15 @@ class PaymentEvent:
         print("Charge sale payment - functionality to be implemented")
         return False
     
-    def _other_payment(self):
+    def _other_payment(self, key=None):
         """
         Handle other/miscellaneous payment methods.
         
         Processes alternative payment methods not covered by
         standard payment types (mobile payments, digital wallets, etc.).
+        
+        Parameters:
+            key: Optional parameter from numpad input
         
         Returns:
             bool: True if other payment processed successfully, False otherwise
@@ -238,7 +265,10 @@ class PaymentEvent:
             return False
             
         # TODO: Implement other payment method processing
-        print("Other payment - functionality to be implemented")
+        if key is not None:
+            print(f"Other payment - key pressed: {key}")
+        else:
+            print("Other payment - functionality to be implemented")
         return False
     
     # ==================== PAYMENT MANAGEMENT EVENTS ====================

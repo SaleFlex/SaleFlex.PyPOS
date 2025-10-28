@@ -37,7 +37,7 @@ class SaleEvent:
     
     # ==================== DEPARTMENT SALES EVENTS ====================
     
-    def _sale_department(self):
+    def _sale_department(self, key=None):
         """
         Handle department-based sale entry.
         
@@ -51,6 +51,9 @@ class SaleEvent:
         4. Add department sale to current transaction
         5. Update transaction display
         
+        Parameters:
+            key: Optional parameter from numpad input
+        
         Returns:
             bool: True if department sale successful, False otherwise
         """
@@ -59,15 +62,21 @@ class SaleEvent:
             return False
             
         # TODO: Implement department sale logic
-        print("Department sale - functionality to be implemented")
+        if key is not None:
+            print(f"Department sale - key pressed: {key}")
+        else:
+            print("Department sale - functionality to be implemented")
         return False
     
-    def _sale_department_by_no(self):
+    def _sale_department_by_no(self, key=None):
         """
         Handle department sale by department number entry.
         
         Allows user to enter department number directly rather than
         using department buttons, useful for quick entry.
+        
+        Parameters:
+            key: Optional parameter from numpad input
         
         Returns:
             bool: True if department sale successful, False otherwise
@@ -77,12 +86,15 @@ class SaleEvent:
             return False
             
         # TODO: Implement department number entry logic
-        print("Department sale by number - functionality to be implemented")
+        if key is not None:
+            print(f"Department sale by number - key pressed: {key}")
+        else:
+            print("Department sale by number - functionality to be implemented")
         return False
     
     # ==================== PLU SALES EVENTS ====================
     
-    def _sale_plu_code(self):
+    def _sale_plu_code(self, key=None):
         """
         Handle PLU (Price Look-Up) sale by product code.
         
@@ -96,6 +108,9 @@ class SaleEvent:
         4. Add item to current transaction
         5. Update display and totals
         
+        Parameters:
+            key: Optional parameter from numpad input
+        
         Returns:
             bool: True if PLU sale successful, False otherwise
         """
@@ -104,15 +119,21 @@ class SaleEvent:
             return False
             
         # TODO: Implement PLU code sale logic
-        print("PLU code sale - functionality to be implemented")
+        if key is not None:
+            print(f"PLU code sale - key pressed: {key}")
+        else:
+            print("PLU code sale - functionality to be implemented")
         return False
     
-    def _sale_plu_barcode(self):
+    def _sale_plu_barcode(self, key=None):
         """
         Handle PLU sale by barcode scanning/entry.
         
         Processes sales using barcode input from scanner or manual entry.
         Converts barcode to PLU and processes as regular PLU sale.
+        
+        Parameters:
+            key: Optional parameter from numpad input
         
         Returns:
             bool: True if barcode sale successful, False otherwise
@@ -122,7 +143,10 @@ class SaleEvent:
             return False
             
         # TODO: Implement barcode scanning logic
-        print("PLU barcode sale - functionality to be implemented")
+        if key is not None:
+            print(f"PLU barcode sale - key pressed: {key}")
+        else:
+            print("PLU barcode sale - functionality to be implemented")
         return False
     
     def _get_plu_from_maingroup(self):
@@ -313,12 +337,15 @@ class SaleEvent:
     
     # ==================== DISCOUNT AND SURCHARGE EVENTS ====================
     
-    def _discount_by_amount(self):
+    def _discount_by_amount(self, key=None):
         """
         Handle discount application by fixed amount.
         
         Applies a specific monetary discount to selected items
         or entire transaction.
+        
+        Parameters:
+            key: Optional parameter from numpad input
         
         Returns:
             bool: True if discount applied successfully, False otherwise
@@ -328,15 +355,21 @@ class SaleEvent:
             return False
             
         # TODO: Implement fixed amount discount logic
-        print("Discount by amount - functionality to be implemented")
+        if key is not None:
+            print(f"Discount by amount - key pressed: {key}")
+        else:
+            print("Discount by amount - functionality to be implemented")
         return False
     
-    def _surcharge_by_amount(self):
+    def _surcharge_by_amount(self, key=None):
         """
         Handle surcharge application by fixed amount.
         
         Applies a specific monetary surcharge to selected items
         or entire transaction.
+        
+        Parameters:
+            key: Optional parameter from numpad input
         
         Returns:
             bool: True if surcharge applied successfully, False otherwise
@@ -346,15 +379,21 @@ class SaleEvent:
             return False
             
         # TODO: Implement fixed amount surcharge logic
-        print("Surcharge by amount - functionality to be implemented")
+        if key is not None:
+            print(f"Surcharge by amount - key pressed: {key}")
+        else:
+            print("Surcharge by amount - functionality to be implemented")
         return False
     
-    def _discount_by_percent(self):
+    def _discount_by_percent(self, key=None):
         """
         Handle discount application by percentage.
         
         Applies a percentage-based discount to selected items
         or entire transaction.
+        
+        Parameters:
+            key: Optional parameter from numpad input
         
         Returns:
             bool: True if discount applied successfully, False otherwise
@@ -364,15 +403,21 @@ class SaleEvent:
             return False
             
         # TODO: Implement percentage discount logic
-        print("Discount by percent - functionality to be implemented")
+        if key is not None:
+            print(f"Discount by percent - key pressed: {key}")
+        else:
+            print("Discount by percent - functionality to be implemented")
         return False
     
-    def _surcharge_by_percent(self):
+    def _surcharge_by_percent(self, key=None):
         """
         Handle surcharge application by percentage.
         
         Applies a percentage-based surcharge to selected items
         or entire transaction.
+        
+        Parameters:
+            key: Optional parameter from numpad input
         
         Returns:
             bool: True if surcharge applied successfully, False otherwise
@@ -382,17 +427,23 @@ class SaleEvent:
             return False
             
         # TODO: Implement percentage surcharge logic
-        print("Surcharge by percent - functionality to be implemented")
+        if key is not None:
+            print(f"Surcharge by percent - key pressed: {key}")
+        else:
+            print("Surcharge by percent - functionality to be implemented")
         return False
     
     # ==================== INPUT MODIFICATION EVENTS ====================
     
-    def _input_price(self):
+    def _input_price(self, key=None):
         """
         Handle manual price entry or modification.
         
         Allows override of default item prices, typically
         for price adjustments or special pricing.
+        
+        Parameters:
+            key: Optional parameter from numpad input
         
         Returns:
             bool: True if price input successful, False otherwise
@@ -402,15 +453,21 @@ class SaleEvent:
             return False
             
         # TODO: Implement price override logic
-        print("Input price - functionality to be implemented")
+        if key is not None:
+            print(f"Input price - key pressed: {key}")
+        else:
+            print("Input price - functionality to be implemented")
         return False
     
-    def _input_quantity(self):
+    def _input_quantity(self, key=None):
         """
         Handle manual quantity entry or modification.
         
         Allows entry of specific quantities for items,
         useful for bulk sales or fractional quantities.
+        
+        Parameters:
+            key: Optional parameter from numpad input
         
         Returns:
             bool: True if quantity input successful, False otherwise
@@ -420,15 +477,21 @@ class SaleEvent:
             return False
             
         # TODO: Implement quantity entry logic
-        print("Input quantity - functionality to be implemented")
+        if key is not None:
+            print(f"Input quantity - key pressed: {key}")
+        else:
+            print("Input quantity - functionality to be implemented")
         return False
     
-    def _input_amount(self):
+    def _input_amount(self, key=None):
         """
         Handle manual amount entry for calculations.
         
         Allows direct entry of monetary amounts for
         calculations or special transactions.
+        
+        Parameters:
+            key: Optional parameter from numpad input
         
         Returns:
             bool: True if amount input successful, False otherwise
@@ -438,17 +501,23 @@ class SaleEvent:
             return False
             
         # TODO: Implement amount entry logic
-        print("Input amount - functionality to be implemented")
+        if key is not None:
+            print(f"Input amount - key pressed: {key}")
+        else:
+            print("Input amount - functionality to be implemented")
         return False
     
     # ==================== LOOKUP AND CALCULATION EVENTS ====================
     
-    def _price_lookup(self):
+    def _price_lookup(self, key=None):
         """
         Handle price lookup for items without selling.
         
         Displays item information and pricing without
         adding to current transaction.
+        
+        Parameters:
+            key: Optional parameter from numpad input
         
         Returns:
             bool: True if lookup successful, False otherwise
@@ -458,7 +527,10 @@ class SaleEvent:
             return False
             
         # TODO: Implement price lookup logic
-        print("Price lookup - functionality to be implemented")
+        if key is not None:
+            print(f"Price lookup - key pressed: {key}")
+        else:
+            print("Price lookup - functionality to be implemented")
         return False
     
     def _subtotal(self):

@@ -49,7 +49,7 @@ class GeneralEvent:
         """
         self.app.quit()
 
-    def _login(self):
+    def _login(self, key=None):
         """
         Handle user login authentication.
         
@@ -67,6 +67,9 @@ class GeneralEvent:
         4. Query database for matching cashier
         5. Handle admin/supervisor user creation if needed
         6. Set login status and navigate to startup form
+        
+        Parameters:
+            key: Optional parameter from numpad input
         
         Returns:
             bool: True if login successful, False otherwise
@@ -298,32 +301,44 @@ class GeneralEvent:
         
         return True
 
-    def _service_code_request(self):
+    def _service_code_request(self, key=None):
         """
         Handle service code authentication request.
         
         Used for accessing service/maintenance functions that require
         special authorization beyond normal cashier credentials.
         
+        Parameters:
+            key: Optional parameter from numpad input
+        
         Returns:
             bool: True if service code accepted, False otherwise
         """
         # TODO: Implement service code validation logic
-        print("Service code request - functionality to be implemented")
+        if key is not None:
+            print(f"Service code request - key pressed: {key}")
+        else:
+            print("Service code request - functionality to be implemented")
         return False
 
-    def _login_service(self):
+    def _login_service(self, key=None):
         """
         Handle service-level login for maintenance operations.
         
         Provides elevated access for technical personnel to perform
         system maintenance, updates, and configuration changes.
         
+        Parameters:
+            key: Optional parameter from numpad input
+        
         Returns:
             bool: True if service login successful, False otherwise
         """
         # TODO: Implement service login logic
-        print("Service login - functionality to be implemented")
+        if key is not None:
+            print(f"Service login - key pressed: {key}")
+        else:
+            print("Service login - functionality to be implemented")
         return False
 
     # ==================== NAVIGATION AND FORM EVENTS ====================
