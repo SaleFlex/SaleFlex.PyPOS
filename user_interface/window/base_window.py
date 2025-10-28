@@ -91,7 +91,7 @@ class BaseWindow(QMainWindow):
     def clear(self):
         for item in self.children():
             print(item)
-            if type(item) in [TextBox, Button, ToolBar, StatusBar, NumPad, PaymentList, SaleList, ComboBox]:
+            if type(item) in [TextBox, Button, ToolBar, StatusBar, NumPad, PaymentList, SaleList, ComboBox, AmountTable]:
                 print(type(item), item)
                 item.deleteLater()
                 item.setParent(None)

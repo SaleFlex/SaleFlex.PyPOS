@@ -119,7 +119,7 @@ class DynamicDialog(QDialog):
     def clear(self):
         """Clear and cleanup all child widgets."""
         for item in self.children():
-            if type(item) in [TextBox, Button, NumPad, PaymentList, SaleList, ComboBox]:
+            if type(item) in [TextBox, Button, NumPad, PaymentList, SaleList, ComboBox, AmountTable]:
                 item.deleteLater()
                 item.setParent(None)
     
