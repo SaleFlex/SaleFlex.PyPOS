@@ -25,6 +25,9 @@ from data_layer.db_init_data.product_attribute import _insert_product_attributes
 from data_layer.db_init_data.cashier_performance_target import _insert_cashier_performance_targets
 from data_layer.db_init_data.warehouse import _insert_warehouses
 from data_layer.db_init_data.pos_virtual_keyboard import _insert_virtual_keyboard_settings, _insert_alternative_keyboard_themes
+from data_layer.db_init_data.campaign import _insert_campaigns
+from data_layer.db_init_data.loyalty import _insert_loyalty
+from data_layer.db_init_data.customer_segment import _insert_customer_segments
 
 def insert_initial_data(engine: Engine):
     """
@@ -106,6 +109,15 @@ def insert_initial_data(engine: Engine):
             
             # Insert alternative keyboard themes
             _insert_alternative_keyboard_themes(session)
+
+            # Insert campaign types and sample campaigns
+            _insert_campaigns(session, admin_cashier.id)
+
+            # Insert loyalty program and tiers
+            _insert_loyalty(session, admin_cashier.id)
+
+            # Insert customer segments
+            _insert_customer_segments(session)
 
     except SQLAlchemyError as e:
         print(f"✗ Initial data insertion error: {e}")

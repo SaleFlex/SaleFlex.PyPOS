@@ -56,6 +56,22 @@ from .cashier_performance_metrics import CashierPerformanceMetrics
 from .cashier_work_break import CashierWorkBreak
 from .cashier_performance_target import CashierPerformanceTarget
 from .cashier_transaction_metrics import CashierTransactionMetrics
+# Campaign and Promotion Models
+from .campaign_type import CampaignType
+from .campaign import Campaign
+from .campaign_rule import CampaignRule
+from .campaign_product import CampaignProduct
+from .campaign_usage import CampaignUsage
+from .coupon import Coupon
+from .coupon_usage import CouponUsage
+# Loyalty Program Models
+from .loyalty_program import LoyaltyProgram
+from .loyalty_tier import LoyaltyTier
+from .customer_loyalty import CustomerLoyalty
+from .loyalty_point_transaction import LoyaltyPointTransaction
+# Customer Segmentation Models
+from .customer_segment import CustomerSegment
+from .customer_segment_member import CustomerSegmentMember
 
 __all__ = [
     'Product',
@@ -116,4 +132,20 @@ __all__ = [
     'CashierWorkBreak',
     'CashierPerformanceTarget',
     'CashierTransactionMetrics',
+    # Campaign and Promotion Models
+    'CampaignType',
+    'Campaign',
+    'CampaignRule',
+    'CampaignProduct',
+    'CampaignUsage',
+    'Coupon',
+    'CouponUsage',
+    # Loyalty Program Models
+    'LoyaltyProgram',
+    'LoyaltyTier',
+    'CustomerLoyalty',
+    'LoyaltyPointTransaction',
+    # Customer Segmentation Models
+    'CustomerSegment',
+    'CustomerSegmentMember',
 ]
