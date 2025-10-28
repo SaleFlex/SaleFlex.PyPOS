@@ -41,8 +41,9 @@ def _insert_form_controls(session: Session, cashier_id: str):
     config_form = session.query(Form).filter(Form.form_no == 3).first()
     cashier_form = session.query(Form).filter(Form.form_no == 4).first()
     sale_form = session.query(Form).filter(Form.form_no == 5).first()
+    closure_form = session.query(Form).filter(Form.form_no == 6).first()
     
-    if not login_form or not sale_form or not main_menu_form or not config_form or not cashier_form:
+    if not login_form or not sale_form or not main_menu_form or not config_form or not cashier_form or not closure_form:
         print("⚠ Forms not found. Cannot insert form controls.")
         return
     
@@ -329,41 +330,6 @@ def _insert_form_controls(session: Session, cashier_id: str):
             text_image_relation=None,
             back_color=None,
             fore_color=None,
-            keyboard_value=None,
-            fk_cashier_create_id=cashier_id,
-            fk_cashier_update_id=cashier_id
-        ),
-        FormControl(
-            fk_form_id=sale_form.id,
-            fk_parent_id=None,
-            name="CLOSURE",
-            form_control_function1=EventName.CLOSURE.value,
-            form_control_function2=None,
-            type_no=1,
-            type="BUTTON",
-            width=125,
-            height=99,
-            location_x=1,
-            location_y=603,
-            start_position=None,
-            caption1="CLOSURE",
-            caption2=None,
-            list_values=None,
-            dock=None,
-            alignment=None,
-            text_alignment="CENTER",
-            character_casing="UPPER",
-            font="Tahoma",
-            icon=None,
-            tool_tip=None,
-            image=None,
-            image_selected=None,
-            font_auto_height=False,
-            font_size=12,
-            input_type="ALPHANUMERIC",
-            text_image_relation=None,
-            back_color="RED",
-            fore_color="WHITE",
             keyboard_value=None,
             fk_cashier_create_id=cashier_id,
             fk_cashier_update_id=cashier_id
@@ -927,7 +893,7 @@ def _insert_form_controls(session: Session, cashier_id: str):
             font_size=16,
             input_type="ALPHANUMERIC",
             text_image_relation=None,
-            back_color="0x4682B4",
+            back_color="0xDC143C",  # Crimson - distinctive color for closure operation
             fore_color="0xFFFFFF",
             keyboard_value=None,
             fk_cashier_create_id=cashier_id,
@@ -1545,6 +1511,80 @@ def _insert_form_controls(session: Session, cashier_id: str):
         )
     ]
     
+    # Closure form controls
+    closure_form_controls = [
+        FormControl(
+            fk_form_id=closure_form.id,
+            fk_parent_id=None,
+            name="CLOSURE",
+            form_control_function1=EventName.CLOSURE.value,
+            form_control_function2=None,
+            type_no=1,
+            type="BUTTON",
+            width=400,
+            height=80,
+            location_x=312,
+            location_y=300,
+            start_position=None,
+            caption1="CLOSURE",
+            caption2=None,
+            list_values=None,
+            dock=None,
+            alignment=None,
+            text_alignment="CENTER",
+            character_casing="UPPER",
+            font="Tahoma",
+            icon=None,
+            tool_tip="Execute closure operation",
+            image=None,
+            image_selected=None,
+            font_auto_height=False,
+            font_size=16,
+            input_type="ALPHANUMERIC",
+            text_image_relation=None,
+            back_color="0xFF0000",  # Red color for closure
+            fore_color="0xFFFFFF",
+            keyboard_value=None,
+            fk_cashier_create_id=cashier_id,
+            fk_cashier_update_id=cashier_id
+        ),
+        FormControl(
+            fk_form_id=closure_form.id,
+            fk_parent_id=None,
+            name=ControlName.BACK.value,
+            form_control_function1=EventName.BACK.value,
+            form_control_function2=None,
+            type_no=1,
+            type="BUTTON",
+            width=125,
+            height=99,
+            location_x=880,
+            location_y=630,
+            start_position=None,
+            caption1="BACK",
+            caption2=None,
+            list_values=None,
+            dock=None,
+            alignment=None,
+            text_alignment="CENTER",
+            character_casing="UPPER",
+            font="Tahoma",
+            icon=None,
+            tool_tip="Back to Main Menu",
+            image=None,
+            image_selected=None,
+            font_auto_height=False,
+            font_size=14,
+            input_type="ALPHANUMERIC",
+            text_image_relation=None,
+            back_color="0x4682B4",
+            fore_color="0xFFFFFF",
+            keyboard_value=None,
+            fk_cashier_create_id=cashier_id,
+            fk_cashier_update_id=cashier_id
+        )
+    ]
+    
     # Combine all controls
     all_controls = (
         login_form_controls + 
@@ -1555,7 +1595,8 @@ def _insert_form_controls(session: Session, cashier_id: str):
         cash_payment_buttons +
         main_menu_form_controls +
         config_form_controls +
-        cashier_form_controls
+        cashier_form_controls +
+        closure_form_controls
     )
     
     # Add all controls to session

@@ -141,6 +141,27 @@ def _insert_default_forms(session: Session, cashier_id: str):
             'is_startup': False,
             'display_mode': 'MAIN',
             'fk_cashier_create_id': cashier_id
+        },
+        {
+            'form_no': 6,
+            'name': FormName.CLOSURE.name,
+            'function': FormName.CLOSURE.name,
+            'need_login': True,  # Requires login
+            'need_auth': True,  # Requires authorization
+            'width': 1024,
+            'height': 768,
+            'form_border_style': 'SINGLE',
+            'start_position': 'CENTERSCREEN',
+            'caption': 'SaleFlex - Closure',
+            'back_color': '0x2F4F4F',  # DarkSlateGray
+            'fore_color': '0xFFFFFF',  # White
+            'show_status_bar': True,
+            'show_in_taskbar': False,
+            'use_virtual_keyboard': False,
+            'is_visible': True,
+            'is_startup': False,
+            'display_mode': 'MAIN',
+            'fk_cashier_create_id': cashier_id
         }
     ]
 

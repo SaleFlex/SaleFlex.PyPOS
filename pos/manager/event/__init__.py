@@ -25,3 +25,4 @@ from .service import ServiceEvent
 from .report import ReportEvent
 from .hardware import HardwareEvent
 from .warehouse import WarehouseEvent
+from .closure import ClosureEvent

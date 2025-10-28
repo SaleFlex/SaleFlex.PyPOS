@@ -26,12 +26,13 @@ from pos.manager.event import (
     ServiceEvent, 
     ReportEvent, 
     HardwareEvent,
-    WarehouseEvent
+    WarehouseEvent,
+    ClosureEvent
 )
 
 
 class EventHandler(GeneralEvent, SaleEvent, PaymentEvent, ConfigurationEvent, 
-                   ServiceEvent, ReportEvent, HardwareEvent, WarehouseEvent):
+                   ServiceEvent, ReportEvent, HardwareEvent, WarehouseEvent, ClosureEvent):
     """
     Central Event Processing Manager for SaleFlex Point of Sale System.
     
@@ -39,7 +40,7 @@ class EventHandler(GeneralEvent, SaleEvent, PaymentEvent, ConfigurationEvent,
     implementing multiple inheritance to combine specialized event handling
     capabilities from different domain-specific event handler classes.
     
-    The class inherits from eight specialized event handler classes:
+    The class inherits from nine specialized event handler classes:
     - GeneralEvent: Handles basic application events (login, logout, exit, navigation)
     - SaleEvent: Processes sales transaction and product-related events
     - PaymentEvent: Manages all payment processing and payment methods
@@ -48,6 +49,7 @@ class EventHandler(GeneralEvent, SaleEvent, PaymentEvent, ConfigurationEvent,
     - ReportEvent: Processes reporting and analytics events
     - HardwareEvent: Controls hardware operations and device communications
     - WarehouseEvent: Manages stock and warehouse inventory operations
+    - ClosureEvent: Handles end-of-day closure and financial reconciliation operations
     
     The event distribution mechanism uses a dictionary-based approach to map
     event names to their corresponding handler functions, providing a
@@ -135,7 +137,7 @@ class EventHandler(GeneralEvent, SaleEvent, PaymentEvent, ConfigurationEvent,
                 EventName.SALES_FORM.name: self._sales_form,
                 EventName.CONFIG.name: self._settings_form,
                 EventName.SETTING_FORM.name: self._settings_form,
-                EventName.CLOSURE.name: self._closure_form,
+                EventName.CLOSURE.name: self._closure,
                 EventName.CLOSURE_FORM.name: self._closure_form,
                 EventName.MAIN_MENU_FORM.name: self._main_menu_form,
                 EventName.SERVICE_FORM.name: self._service_form,
