@@ -19,17 +19,15 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from PySide6.QtWidgets import QPushButton
 from PySide6.QtGui import QFont
-from PySide6.QtCore import QPropertyAnimation, QEasingCurve, QRect, Property
 
 
 class Button(QPushButton):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setFont(QFont("Verdana", 20))
-        self._scale = 1.0
         
     def set_color(self, background_color, foreground_color):
-        # Üç boyutlu görünüm için gradient ve gölge efekti
+        # 3D appearance with gradient and border effect
         style = f"""
             QPushButton {{
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
@@ -40,7 +38,6 @@ class Button(QPushButton):
                 border: 2px solid #{self._darken_color(background_color, 0.5):06X};
                 border-radius: 6px;
                 padding: 5px;
-                box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3);
             }}
             QPushButton:hover {{
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
@@ -67,72 +64,18 @@ class Button(QPushButton):
         self.setStyleSheet(style)
 
     def _darken_color(self, color, factor):
-        """Rengi koyulaştır"""
+        """Darken the color by factor"""
         r = int(((color >> 16) & 0xFF) * factor)
         g = int(((color >> 8) & 0xFF) * factor)
         b = int((color & 0xFF) * factor)
         return (r << 16) | (g << 8) | b
     
     def _lighten_color(self, color, factor):
-        """Rengi açıklaştır"""
+        """Lighten the color by factor"""
         r = min(255, int(((color >> 16) & 0xFF) * factor))
         g = min(255, int(((color >> 8) & 0xFF) * factor))
         b = min(255, int((color & 0xFF) * factor))
         return (r << 16) | (g << 8) | b
-
-    def mousePressEvent(self, event):
-        """Basıldığında animasyon efekti"""
-        super().mousePressEvent(event)
-        self._animate_press()
-    
-    def mouseReleaseEvent(self, event):
-        """Bırakıldığında animasyon efekti"""
-        super().mouseReleaseEvent(event)
-        self._animate_release()
-    
-    def _animate_press(self):
-        """Basılma animasyonu"""
-        animation = QPropertyAnimation(self, b"geometry")
-        animation.setDuration(100)
-        animation.setEasingCurve(QEasingCurve.Type.OutCubic)
-        
-        current_geometry = self.geometry()
-        start_rect = QRect(current_geometry)
-        end_rect = QRect(
-            current_geometry.x() + 2,
-            current_geometry.y() + 2,
-            current_geometry.width() - 4,
-            current_geometry.height() - 4
-        )
-        
-        animation.setStartValue(start_rect)
-        animation.setEndValue(end_rect)
-        animation.start()
-        
-        # Animasyon nesnesini sakla ki garbage collection olmasın
-        self._press_animation = animation
-    
-    def _animate_release(self):
-        """Bırakılma animasyonu"""
-        animation = QPropertyAnimation(self, b"geometry")
-        animation.setDuration(100)
-        animation.setEasingCurve(QEasingCurve.Type.OutBounce)
-        
-        current_geometry = self.geometry()
-        start_rect = QRect(current_geometry)
-        end_rect = QRect(
-            current_geometry.x() - 2,
-            current_geometry.y() - 2,
-            current_geometry.width() + 4,
-            current_geometry.height() + 4
-        )
-        
-        animation.setStartValue(start_rect)
-        animation.setEndValue(end_rect)
-        animation.start()
-        
-        # Animasyon nesnesini sakla ki garbage collection olmasın
-        self._release_animation = animation
 
     def set_event(self, function):
         self.click()
