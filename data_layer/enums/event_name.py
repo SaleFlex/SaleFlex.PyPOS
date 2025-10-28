@@ -21,7 +21,42 @@ import enum
 
 
 class EventName(enum.Enum):
-    """Enum representing different event names and custom function names used in the system."""
+    """
+    Enum representing different event names and custom function names used in the system.
+    
+    Event names are used to define the behavior of controls (buttons, textboxes, etc.) in forms.
+    These events are typically assigned to controls via the form_control_function1 field in the database.
+    
+    Relationship with ControlName:
+    -----------------------------
+    Event names work together with ControlName enums to create a complete control behavior system.
+    A control's name (ControlName) identifies what it is, and the event (EventName) defines what it does.
+    
+    Common Pairings:
+    ---------------
+    - ControlName.LOGIN + EventName.LOGIN or EventName.LOGIN_EXTENDED
+    - ControlName.LOGOUT + EventName.LOGOUT
+    - ControlName.EXIT + EventName.EXIT_APPLICATION
+    - ControlName.CASHIER_NAME + EventName.LOGIN or EventName.SAVE_CHANGES
+    - ControlName.CASHIER_NAME_LIST + EventName.LOGIN or EventName.SAVE_CHANGES
+    - ControlName.PASSWORD + EventName.LOGIN or EventName.SAVE_CHANGES
+    - ControlName.BARCODE_LENGTH + EventName.SAVE_CHANGES
+    - ControlName.IMAGE_FOLDER + EventName.SAVE_CHANGES
+    - ControlName.LICENSE_OWNER + EventName.NONE (display only)
+    
+    Event Categories:
+    ----------------
+    Application Lifecycle: EXIT_APPLICATION, LOGIN, LOGIN_EXTENDED, LOGOUT
+    Sales Operations: SALE, SALE_DEPARTMENT, SALE_PLU_CODE, SALE_PLU_BARCODE, etc.
+    Payment Operations: PAYMENT, CASH_PAYMENT, CREDIT_PAYMENT, CHECK_PAYMENT, etc.
+    Document Operations: CANCEL_DOCUMENT, CHANGE_DOCUMENT_TYPE, TOTAL, SUBTOTAL
+    Configuration: CONFIG, SAVE_CHANGES, SERVICE_* events
+    Navigation: BACK, CLOSE_FORM, REDRAW_FORM, various *_MENU events
+    Stock/Warehouse: STOCK_IN, STOCK_OUT, WAREHOUSE_RECEIPT, etc.
+    Restaurant: TABLE_OPEN, TABLE_CLOSE, ORDER_ADD, CHECK_PRINT, etc.
+    Market: SUSPEND_SALE, RESUME_SALE, SUSPEND_LIST
+    """
+    
     NONE = "NONE"                                   # No event
     EXIT_APPLICATION = "EXIT_APPLICATION"           # Exit application
     LOGIN = "LOGIN"                                 # User login

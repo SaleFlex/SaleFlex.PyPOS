@@ -19,6 +19,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from sqlalchemy.orm import Session
 from data_layer.model.definition.form import Form
+from data_layer.enums import FormName
 
 
 def _insert_default_forms(session: Session, cashier_id: str):
@@ -33,42 +34,49 @@ def _insert_default_forms(session: Session, cashier_id: str):
         print("✓ Forms already exist, skipping insertion")
         return
 
-    # Default forms data based on C# code
+    # Default forms data with new dynamic rendering fields
+    # Using FormName enum to ensure consistency with the rest of the application
     forms_data = [
         {
             'form_no': 1,
-            'name': 'LOGIN',
-            'function': 'LOGIN',
+            'name': FormName.LOGIN.name,  # Using enum for form name
+            'function': FormName.LOGIN.name,  # Using enum for function name
             'need_login': False,
             'need_auth': False,
             'width': 1024,
             'height': 768,
             'form_border_style': 'SINGLE',
             'start_position': 'CENTERSCREEN',
-            'caption': 'LOGIN',
-            'back_color': 'MidnightBlue',
-            'show_status_bar': True,
+            'caption': 'SaleFlex - Login',
+            'back_color': '0x191970',  # MidnightBlue
+            'fore_color': '0xFFFFFF',  # White
+            'show_status_bar': False,
             'show_in_taskbar': False,
-            'use_virtual_keyboard': False,
+            'use_virtual_keyboard': True,
             'is_visible': True,
+            'is_startup': False,
+            'display_mode': 'MAIN',
             'fk_cashier_create_id': cashier_id
         },
         {
             'form_no': 2,
-            'name': 'SALE',
-            'function': 'SALE',
-            'need_login': True,
+            'name': FormName.SALE.name,  # Using enum for form name
+            'function': FormName.SALE.name,  # Using enum for function name
+            'need_login': True,  # Requires login
             'need_auth': False,
             'width': 1024,
             'height': 768,
             'form_border_style': 'SINGLE',
             'start_position': 'CENTERSCREEN',
-            'caption': 'SALE',
-            'back_color': 'MidnightBlue',
+            'caption': 'SaleFlex - Point of Sale',
+            'back_color': '0x2F4F4F',  # DarkSlateGray
+            'fore_color': '0xFFFFFF',  # White
             'show_status_bar': True,
             'show_in_taskbar': False,
             'use_virtual_keyboard': False,
             'is_visible': True,
+            'is_startup': True,  # SALE is the startup form
+            'display_mode': 'MAIN',
             'fk_cashier_create_id': cashier_id
         }
     ]

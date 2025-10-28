@@ -29,8 +29,9 @@ class Form(Model, CRUD):
     """Model representing a form in the application."""
     def __init__(self, name=None, form_no=None, function=None, need_login=False, need_auth=False,
                  width=None, height=None, start_position=None, form_border_style=None, caption=None,
-                 icon=None, image=None, back_color=None, show_status_bar=False, show_in_taskbar=False,
-                 use_virtual_keyboard=False, is_visible=True, fk_cashier_create_id=None, fk_cashier_update_id=None):
+                 icon=None, image=None, back_color=None, fore_color=None, show_status_bar=False, 
+                 show_in_taskbar=False, use_virtual_keyboard=False, is_visible=True, is_startup=False,
+                 display_mode=None, fk_cashier_create_id=None, fk_cashier_update_id=None):
         Model.__init__(self)
         CRUD.__init__(self)
 
@@ -47,10 +48,13 @@ class Form(Model, CRUD):
         self.icon = icon
         self.image = image
         self.back_color = back_color
+        self.fore_color = fore_color
         self.show_status_bar = show_status_bar
         self.show_in_taskbar = show_in_taskbar
         self.use_virtual_keyboard = use_virtual_keyboard
         self.is_visible = is_visible
+        self.is_startup = is_startup
+        self.display_mode = display_mode
         self.fk_cashier_create_id = fk_cashier_create_id
         self.fk_cashier_update_id = fk_cashier_update_id
 
@@ -70,10 +74,13 @@ class Form(Model, CRUD):
     icon = Column(String(255), nullable=True)
     image = Column(String(255), nullable=True)
     back_color = Column(String(50), nullable=True)
+    fore_color = Column(String(50), nullable=True)
     show_status_bar = Column(Boolean, nullable=False, default=True)
     show_in_taskbar = Column(Boolean, nullable=False, default=True)
     use_virtual_keyboard = Column(Boolean, nullable=False, default=False)
     is_visible = Column(Boolean, nullable=False, default=True)
+    is_startup = Column(Boolean, nullable=False, default=False)
+    display_mode = Column(String(50), nullable=True)  # MAIN, CUSTOMER, BOTH
     is_deleted = Column(Boolean, nullable=False, default=False)
     delete_description = Column(String(1000), nullable=True)
     fk_cashier_create_id = Column(UUID, ForeignKey("cashier.id"))
@@ -82,7 +89,7 @@ class Form(Model, CRUD):
     updated_at = Column(DateTime, server_default=func.now())
 
     # Relationship to form controls
-    controls = relationship("FormControl", back_populates="form")
+    controls = relationship("FormControl", back_populates="form", foreign_keys="[FormControl.fk_form_id]")
 
     def __repr__(self):
         return f"<Form(name='{self.name}', form_no='{self.form_no}')>"

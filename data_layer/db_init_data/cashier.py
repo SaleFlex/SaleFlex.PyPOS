@@ -20,7 +20,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from data_layer.model import Cashier
 
 def _insert_admin_cashier(session) -> Cashier:
-    """Insert admin user if not exists"""
+    """
+    Insert default cashiers if not exists.
+    Creates admin user for initial setup.
+    """
     admin_exists = session.query(Cashier).filter_by(user_name="admin").first()
     if not admin_exists:
         admin_cashier = Cashier(
@@ -36,7 +39,7 @@ def _insert_admin_cashier(session) -> Cashier:
         )
         session.add(admin_cashier)
         session.flush()  # To get the ID
-        print("✓ Admin user added")
+        print("✓ Default cashier 'Ferhat Mousavi' added (password: admin)")
         return admin_cashier
     else:
         return admin_exists

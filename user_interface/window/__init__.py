@@ -18,4 +18,5 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 from user_interface.window.base_window import BaseWindow
+from user_interface.window.dynamic_dialog import DynamicDialog
 

@@ -109,6 +109,8 @@ class EventHandler(GeneralEvent, SaleEvent, PaymentEvent, ConfigurationEvent,
             if handler:
                 result = handler()  # Execute the login process
         """
+        print(f"\n[EVENT_DISTRIBUTOR] Received event_name: '{event_name}' (type: {type(event_name)})")
+        
         try:
             # Create a comprehensive dictionary mapping event names to handler functions
             # All methods are now properly implemented in their respective event classes
@@ -283,9 +285,13 @@ class EventHandler(GeneralEvent, SaleEvent, PaymentEvent, ConfigurationEvent,
             
             # Try to find the event handler in the dictionary
             if event_name in event_handler_map:
-                return event_handler_map[event_name]
+                handler = event_handler_map[event_name]
+                print(f"[EVENT_DISTRIBUTOR] ✓ Found handler for '{event_name}': {handler}")
+                return handler
             
             # Return the default handler if no matching event handler is found
+            print(f"[EVENT_DISTRIBUTOR] ✗ No handler found for '{event_name}', returning default handler")
+            print(f"[EVENT_DISTRIBUTOR] Available keys sample: {list(event_handler_map.keys())[:10]}")
             return self._not_defined_function
             
         except Exception as e:

@@ -49,7 +49,7 @@ class CurrentStatus:
         Sets up initial state values representing a fresh application start:
         - User is not logged in
         - No previous form history
-        - Login form is the initial form to display
+        - Startup form will be loaded from database
         - No document processing is active
         
         All private attributes are initialized to safe default values
@@ -61,13 +61,33 @@ class CurrentStatus:
         # Form navigation tracking - initially no previous form
         self.__previous_form_type = FormName.NONE
         
-        # Current active form - application starts with login form
-        self.__current_form_type = FormName.LOGIN     # initial form
+        # Current active form - will be set from database
+        self.__current_form_type = FormName.LOGIN     # fallback if no startup form found
+        self.__current_form_id = None  # UUID of current form from database
+        self.__startup_form_id = None  # UUID of startup form
         
         # Document processing states - initially inactive
         self.__document_state = DocumentState.NONE
         self.__document_type = DocumentType.NONE
         self.__document_result = DocumentResult.NONE
+    
+    def load_startup_form(self):
+        """
+        Load the startup form ID from database.
+        
+        This method should be called after database initialization.
+        It queries the database for the form marked as startup.
+        """
+        try:
+            from user_interface.render.dynamic_renderer import DynamicFormRenderer
+            startup_form = DynamicFormRenderer.get_startup_form()
+            if startup_form:
+                self.__startup_form_id = startup_form.id
+                self.__current_form_id = startup_form.id
+        except Exception as e:
+            print(f"Error loading startup form: {e}")
+            self.__startup_form_id = None
+            self.__current_form_id = None
 
     @property
     def login_succeed(self):
@@ -205,3 +225,33 @@ class CurrentStatus:
             value (DocumentResult): Result of the document operation
         """
         self.__document_result = value
+    
+    @property
+    def current_form_id(self):
+        """
+        Get the current form ID from database.
+        
+        Returns:
+            UUID or None: The ID of the current form
+        """
+        return self.__current_form_id
+    
+    @current_form_id.setter
+    def current_form_id(self, value):
+        """
+        Set the current form ID.
+        
+        Args:
+            value (UUID): The form ID to set as current
+        """
+        self.__current_form_id = value
+    
+    @property
+    def startup_form_id(self):
+        """
+        Get the startup form ID.
+        
+        Returns:
+            UUID or None: The ID of the startup form
+        """
+        return self.__startup_form_id

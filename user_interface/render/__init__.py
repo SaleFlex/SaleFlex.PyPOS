@@ -17,4 +17,4 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from user_interface.design_file.interpreter import Interpreter
+from user_interface.render.dynamic_renderer import DynamicFormRenderer

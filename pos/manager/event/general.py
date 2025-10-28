@@ -17,7 +17,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from data_layer.enums import FormName
+from data_layer.enums import FormName, ControlName
 from data_layer import Cashier
 
 
@@ -53,51 +53,161 @@ class GeneralEvent:
         """
         Handle user login authentication.
         
-        Validates user credentials from textbox inputs, checks against database,
+        Validates user credentials from combobox or textbox inputs, checks against database,
         creates admin user if needed, and transitions to menu form on success.
+        
+        Supports two input methods:
+        - COMBOBOX (CASHIER_NAME_LIST): Select from cashier list (preferred - less touch screen use)
+        - TEXTBOX (user_name): Manual username entry (fallback)
         
         Process:
         1. Check if already logged in
-        2. Get username and password from UI textboxes  
-        3. Query database for matching cashier
-        4. Handle admin user creation if needed
-        5. Set login status and navigate to menu
+        2. Get username from COMBOBOX or TEXTBOX
+        3. Get password from textbox
+        4. Query database for matching cashier
+        5. Handle admin/supervisor user creation if needed
+        6. Set login status and navigate to startup form
         
         Returns:
             bool: True if login successful, False otherwise
         """
+        print("\n" + "="*80)
+        print("[LOGIN] _login method called!")
+        print("="*80)
+        
         # Skip if already logged in
         if self.login_succeed:
+            print("[LOGIN] Already logged in, skipping")
             return True
-            
-        # Extract credentials from textbox inputs
-        user_name = ""
+        
+        # Try to get username from COMBOBOX first (preferred method)
+        from user_interface.control import ComboBox
+        user_name_from_combo = ""
+        has_combobox = False
+        
+        print("[LOGIN] Searching for CASHIER_NAME_LIST combobox...")
+        for item in self.interface.window.children():
+            if isinstance(item, ComboBox) and hasattr(item, 'name'):
+                print(f"[LOGIN] Found combobox with name: '{item.name}'")
+                if item.name == ControlName.CASHIER_NAME_LIST.value:
+                    user_name_from_combo = item.currentText()
+                    has_combobox = True
+                    print(f"[LOGIN] ✓ Found CASHIER_NAME_LIST, selected value: '{user_name_from_combo}'")
+                    break
+        
+        # If no COMBOBOX, get username from TEXTBOX
+        user_name_from_textbox = ""
         password = ""
-        for key, value in self.interface.window.get_textbox_values().items():
+        print("[LOGIN] Getting textbox values...")
+        textbox_values = self.interface.window.get_textbox_values()
+        print(f"[LOGIN] Textbox values: {textbox_values}")
+        
+        for key, value in textbox_values.items():
             if key == "user_name":
-                user_name = value
-            if key == "password":
+                user_name_from_textbox = value
+                print(f"[LOGIN] Found username textbox: '{value}'")
+            elif key == "PASSWORD":  # Changed from "password" to "PASSWORD"
                 password = value
+                print(f"[LOGIN] Found password textbox: '{value}'")
         
-        # Query database for matching cashier credentials
-        cashiers = Cashier.filter_by(user_name=user_name.lower(), password=password)
-
-        # Validate credentials - reject if no match and not admin
-        if len(cashiers) == 0 and not (user_name.lower() == "admin" and password == "admin"):
-            return False
+        # Determine which username source to use
+        print(f"[LOGIN] has_combobox: {has_combobox}, user_name_from_combo: '{user_name_from_combo}'")
+        print(f"[LOGIN] user_name_from_textbox: '{user_name_from_textbox}', password: '{password}'")
+        
+        if has_combobox and user_name_from_combo:
+            # COMBOBOX mode: Parse "Name LastName" format
+            selected_cashier = user_name_from_combo
             
-        # Create admin user if using default admin credentials
-        if len(cashiers) == 0 and (user_name.lower() == "admin" and password == "admin"):
-            cashier = Cashier(user_name=user_name.lower(), password=password,
-                              name="", last_name="", identity_number="", description="",
-                              is_active=True, is_administrator=True)
-            cashier.save()
+            # Handle SUPERVISOR login
+            if selected_cashier.upper() == "SUPERVISOR":
+                if password == "admin":
+                    # Create or find admin user
+                    admins = Cashier.filter_by(user_name="admin")
+                    if not admins or len(admins) == 0:
+                        cashier = Cashier(
+                            no=0,
+                            user_name="admin",
+                            name="SUPERVISOR",
+                            last_name="",
+                            password="admin",
+                            identity_number="",
+                            description="System Administrator",
+                            is_active=True,
+                            is_administrator=True
+                        )
+                        cashier.save()
+                    
+                    self.login_succeed = True
+                    self._navigate_after_login()
+                    return True
+                else:
+                    return False
+            
+            # Parse cashier name (format: "Name LastName")
+            name_parts = selected_cashier.strip().split()
+            if len(name_parts) < 1:
+                return False
+            
+            # Find cashier by name and last_name
+            if len(name_parts) == 1:
+                cashiers = Cashier.filter_by(name=name_parts[0], password=password, is_deleted=False)
+            else:
+                name = name_parts[0]
+                last_name = " ".join(name_parts[1:])
+                cashiers = Cashier.filter_by(name=name, last_name=last_name, password=password, is_deleted=False)
         
-        # Set authentication status and navigate to main menu
+        else:
+            # TEXTBOX mode: Use user_name directly
+            if not user_name_from_textbox:
+                return False
+            
+            # Handle admin login with default credentials
+            if user_name_from_textbox.lower() == "admin" and password == "admin":
+                admins = Cashier.filter_by(user_name="admin")
+                if not admins or len(admins) == 0:
+                    cashier = Cashier(
+                        no=0,
+                        user_name="admin",
+                        name="Admin",
+                        last_name="User",
+                        password="admin",
+                        identity_number="",
+                        description="System Administrator",
+                        is_active=True,
+                        is_administrator=True
+                    )
+                    cashier.save()
+                
+                self.login_succeed = True
+                self._navigate_after_login()
+                return True
+            
+            # Find cashier by user_name and password
+            cashiers = Cashier.filter_by(user_name=user_name_from_textbox.lower(), password=password, is_deleted=False)
+        
+        # Validate credentials
+        if not cashiers or len(cashiers) == 0:
+            return False
+        
+        # Login successful
         self.login_succeed = True
-        self.current_form_type = FormName.MENU
-        self.interface.redraw(self.current_form_type)
+        self.current_cashier = cashiers[0]  # Store current cashier
+        self._navigate_after_login()
         return True
+    
+    def _navigate_after_login(self):
+        """
+        Navigate to the appropriate form after successful login.
+        Helper method to avoid code duplication.
+        """
+        # Navigate to startup form or SALE form
+        if self.startup_form_id:
+            self.current_form_type = FormName.SALE  # Update for tracking
+            self.interface.redraw(form_id=self.startup_form_id)
+        else:
+            # Fallback to SALE form by name using FormName enum
+            self.current_form_type = FormName.SALE
+            self.interface.redraw(form_name=FormName.SALE.name)
 
     def _login_extended(self):
         """
@@ -126,9 +236,12 @@ class GeneralEvent:
         self.cashier_data = None
         self.document_data = None
         
-        # Navigate back to login form
-        self.current_form_type = FormName.LOGIN
-        self.interface.redraw(self.current_form_type)
+        # Navigate back to startup form or login form
+        if self.startup_form_id:
+            self.interface.redraw(form_id=self.startup_form_id)
+        else:
+            self.current_form_type = FormName.LOGIN
+            self.interface.redraw(form_name=FormName.LOGIN.name)
         return True
 
     def _service_code_request(self):
@@ -181,8 +294,9 @@ class GeneralEvent:
         self.current_form_type = self.previous_form_type
         self.previous_form_type = temp_form_type
         
-        # Redraw interface with previous form
-        self.interface.redraw(self.current_form_type)
+        # Redraw interface with previous form using form name
+        form_name = self.current_form_type.name
+        self.interface.redraw(form_name=form_name)
         return True
 
     def _close_form(self):
@@ -222,7 +336,11 @@ class GeneralEvent:
             bool: True if redraw successful, False otherwise
         """
         if self.login_succeed:
-            self.interface.redraw(self.current_form_type)
+            if self.current_form_id:
+                self.interface.redraw(form_id=self.current_form_id)
+            else:
+                form_name = self.current_form_type.name
+                self.interface.redraw(form_name=form_name)
             return True
         return False
 
@@ -240,7 +358,7 @@ class GeneralEvent:
         """
         if self.login_succeed:
             self.current_form_type = FormName.SALE
-            self.interface.redraw(self.current_form_type)
+            self.interface.redraw(form_name=FormName.SALE.name)
             return True
         else:
             self._logout()
@@ -258,7 +376,7 @@ class GeneralEvent:
         """
         if self.login_succeed:
             self.current_form_type = FormName.CONFIG
-            self.interface.redraw(self.current_form_type)
+            self.interface.redraw(form_name=FormName.CONFIG.name)
             return True
         else:
             self._logout()
@@ -276,7 +394,7 @@ class GeneralEvent:
         """
         if self.login_succeed:
             self.current_form_type = FormName.CLOSURE
-            self.interface.redraw(self.current_form_type)
+            self.interface.redraw(form_name=FormName.CLOSURE.name)
             return True
         else:
             self._logout()
@@ -402,4 +520,56 @@ class GeneralEvent:
             return True
         else:
             self._logout()
+            return False
+    
+    # ==================== DYNAMIC FORM NAVIGATION ====================
+    
+    def _navigate_to_form(self, target_form_id, transition_mode="REPLACE"):
+        """
+        Navigate to a form dynamically based on database definition.
+        
+        This method handles navigation to forms defined in the database.
+        It supports two transition modes:
+        - MODAL: Show the form as a modal dialog (temporary, doesn't close current form)
+        - REPLACE: Replace the current form with the new one (closes current form)
+        
+        Args:
+            target_form_id (str or UUID): The ID of the target form
+            transition_mode (str): Either "MODAL" or "REPLACE" (default: "REPLACE")
+            
+        Returns:
+            bool: True if navigation successful, False otherwise
+        """
+        try:
+            from data_layer.model import Form
+            
+            # Get the target form
+            target_form = Form.get_by_id(target_form_id)
+            
+            if not target_form:
+                print(f"Form not found: {target_form_id}")
+                return False
+            
+            # Check if form requires login
+            if target_form.need_login and not self.login_succeed:
+                print(f"Login required to access form: {target_form.name}")
+                return False
+            
+            # Check if form requires special authorization
+            if target_form.need_auth:
+                # TODO: Implement authorization check
+                print(f"Authorization check for form: {target_form.name}")
+            
+            # Navigate based on transition mode
+            if transition_mode.upper() == "MODAL":
+                # Show as modal dialog
+                result = self.interface.show_modal(form_id=target_form_id)
+                return result == 1  # QDialog.Accepted
+            else:
+                # Replace current form
+                self.interface.redraw(form_id=target_form_id)
+                return True
+                
+        except Exception as e:
+            print(f"Error navigating to form {target_form_id}: {str(e)}")
             return False

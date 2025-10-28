@@ -17,126 +17,148 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from PySide6.QtWidgets import QMainWindow
+from PySide6.QtWidgets import QDialog
 from PySide6.QtCore import Qt
 
-from user_interface.control import TextBox, Button, ToolBar, StatusBar, NumPad, PaymentList, SaleList, ComboBox
+from user_interface.control import TextBox, Button, NumPad, PaymentList, SaleList, ComboBox
 from user_interface.control import VirtualKeyboard
 
 
-class BaseWindow(QMainWindow):
-    def __init__(self, app):
-        super().__init__(parent=None)
-        self.setWindowFlags(Qt.FramelessWindowHint)
+class DynamicDialog(QDialog):
+    """
+    Dynamic modal dialog that renders forms from database definitions.
+    
+    This class creates modal dialogs that display forms defined in the database,
+    using the same rendering logic as BaseWindow but in a modal context.
+    """
+    
+    def __init__(self, app, parent=None):
+        """
+        Initialize the dynamic dialog.
+        
+        Args:
+            app: The main application instance
+            parent: Parent widget (optional)
+        """
+        super().__init__(parent)
         self.app = app
-
         self.keyboard = VirtualKeyboard(source=None, parent=self)
-
+        self.payment_list = None
+        self.sale_list = None
+        
+        # Make dialog modal and frameless
+        self.setModal(True)
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
+    
     def draw_window(self, settings: dict, toolbar_settings: dict, design: list):
+        """
+        Draw the dialog content based on design specifications.
+        
+        Args:
+            settings (dict): Form settings (size, colors, etc.)
+            toolbar_settings (dict): Toolbar configuration (not used in dialogs)
+            design (list): List of control designs to render
+        """
         self.setUpdatesEnabled(False)
+        
+        # Set window properties
         p = self.palette()
         p.setColor(self.backgroundRole(), settings['background_color'])
         p.setColor(self.foregroundRole(), settings['foreground_color'])
         self.setPalette(p)
-
+        
         self.setWindowTitle(settings["name"])
-        self.move(0, 0)
         self.setFixedSize(settings["width"], settings["height"])
-
-        if settings["toolbar"]:
-            self._create_toolbar(toolbar_settings)
-        if settings["statusbar"]:
-            self._create_status_bar()
-
+        
+        # Render all controls
         for control_design_data in design:
-            if control_design_data["type"] == "textbox":
+            control_type = control_design_data["type"]
+            
+            if control_type == "textbox":
                 self._create_textbox(control_design_data)
-
-            if control_design_data["type"] == "button":
+            elif control_type == "button":
                 self._create_button(control_design_data)
-
-            if control_design_data["type"] == "numpad":
+            elif control_type == "numpad":
                 self._create_numpad(control_design_data)
-
-            if control_design_data["type"] == "payment_list":
+            elif control_type == "payment_list":
                 self._create_payment_list(control_design_data)
-
-            if control_design_data["type"] == "sale_list":
+            elif control_type == "sale_list":
                 self._create_sale_list(control_design_data)
-
-            if control_design_data["type"] == "combobox":
+            elif control_type == "combobox":
                 self._create_combobox(control_design_data)
-
+        
         self.setUpdatesEnabled(True)
-
+        
+        # Update keyboard size and position
         self.keyboard.resize_from_parent()
         self.keyboard.raise_()
-
+    
     def focus_text_box(self):
+        """Set focus to the first textbox found."""
         for item in self.children():
             if type(item) is TextBox:
                 item.setFocus()
                 break
-
+    
     def get_textbox_values(self):
+        """
+        Get all textbox values.
+        
+        Returns:
+            dict: Dictionary of field_name -> value pairs
+        """
         values = {}
         for item in self.children():
             if type(item) is TextBox:
                 values[item.__name__] = item.text()
         return values
-
+    
     def clear(self):
+        """Clear and cleanup all child widgets."""
         for item in self.children():
-            print(item)
-            if type(item) in [TextBox, Button, ToolBar, StatusBar, NumPad, PaymentList, SaleList, ComboBox]:
-                print(type(item), item)
+            if type(item) in [TextBox, Button, NumPad, PaymentList, SaleList, ComboBox]:
                 item.deleteLater()
                 item.setParent(None)
-        self.hide()
-
+    
     def _create_button(self, design_data):
-        print("="*80)
-        print(f"Creating button: {design_data}")
-        print(f"Button caption: {design_data.get('caption')}")
-        print(f"Button function value from DB: '{design_data.get('function')}'")
-        print(f"Button function type: {type(design_data.get('function'))}")
-        
+        """Create a button control."""
         button = Button(design_data["caption"], self)
         button.setGeometry(design_data["location_x"], design_data["location_y"],
                            design_data["width"], design_data["height"])
-
+        
         button.set_color(design_data['background_color'], design_data['foreground_color'])
         button.setToolTip(design_data["caption"])
         
-        # Get the event handler function
-        function_name = design_data.get("function")
-        print(f"Calling event_distributor with: '{function_name}'")
+        # Connect button to event handler
+        function_name = design_data.get("function", "NONE")
         
-        event_handler = self.app.event_distributor(function_name)
-        print(f"Event handler retrieved: {event_handler}")
-        print(f"Event handler type: {type(event_handler)}")
-        
-        if event_handler:
-            print(f"✓ Connecting button '{design_data.get('caption')}' to event handler: {event_handler.__name__}")
-            button.clicked.connect(event_handler)
+        # Special handling for form navigation
+        if function_name.startswith("NAVIGATE_TO_FORM:"):
+            # Parse navigation command: NAVIGATE_TO_FORM:<form_id>:<transition_mode>
+            parts = function_name.split(':')
+            if len(parts) >= 3:
+                target_form_id = parts[1]
+                transition_mode = parts[2]
+                button.clicked.connect(
+                    lambda: self.app._navigate_to_form(target_form_id, transition_mode)
+                )
+        elif function_name == "CLOSE_FORM":
+            # Close button for dialog
+            button.clicked.connect(self.accept)
         else:
-            print(f"✗ WARNING: No event handler found for function: '{function_name}'")
-        print("="*80)
-
+            # Regular event handler
+            button.clicked.connect(self.app.event_distributor(function_name))
+    
     def _create_numpad(self, design_data):
-        print(design_data)
-        
-        # Ensure numpad has appropriate size to fit all buttons
+        """Create a numpad control."""
         width = design_data.get("width", 300)
         height = design_data.get("height", 350)
         
-        # Make sure width and height are sufficient for a numpad
         if width < 250:
             width = 300
         if height < 300:
             height = 350
         
-        # Get background and foreground colors from design data
         background_color = design_data.get("background_color", 0x778D45)
         foreground_color = design_data.get("foreground_color", 0xFFFFFF)
         
@@ -147,23 +169,19 @@ class BaseWindow(QMainWindow):
                         location_y=design_data["location_y"],
                         background_color=background_color,
                         foreground_color=foreground_color)
-
-        numpad.setToolTip(design_data["caption"])
-        numpad.set_event(self.app.event_distributor(design_data["function"]))
-
+        
+        numpad.setToolTip(design_data.get("caption", ""))
+        numpad.set_event(self.app.event_distributor(design_data.get("function", "NONE")))
+    
     def _create_payment_list(self, design_data):
-        # Ensure payment list has appropriate dimensions
+        """Create a payment list control."""
         width = design_data.get("width", 970)
         height = design_data.get("height", 315)
-
-        # Get background and foreground colors from design data
         background_color = design_data.get("background_color", 0x778D45)
         foreground_color = design_data.get("foreground_color", 0xFFFFFF)
-
         location_x = design_data.get("location_x", 10)
         location_y = design_data.get("location_y", 100)
-
-        # Create the payment list widget
+        
         self.payment_list = PaymentList(self,
                         width=width,
                         height=height,
@@ -172,23 +190,18 @@ class BaseWindow(QMainWindow):
                         background_color=background_color,
                         foreground_color=foreground_color)
         
-        # Set the event handler if specified
-        if "function" in design_data:
+        if "function" in design_data and design_data["function"]:
             self.payment_list.set_event(self.app.event_distributor(design_data["function"]))
-
+    
     def _create_sale_list(self, design_data):
-        # Ensure payment list has appropriate dimensions
+        """Create a sale list control."""
         width = design_data.get("width", 970)
         height = design_data.get("height", 315)
-
-        # Get background and foreground colors from design data
         background_color = design_data.get("background_color", 0x778D45)
         foreground_color = design_data.get("foreground_color", 0xFFFFFF)
-
         location_x = design_data.get("location_x", 10)
         location_y = design_data.get("location_y", 100)
-
-        # Create the payment list widget
+        
         self.sale_list = SaleList(self,
                         width=width,
                         height=height,
@@ -196,40 +209,49 @@ class BaseWindow(QMainWindow):
                         location_y=location_y,
                         background_color=background_color,
                         foreground_color=foreground_color)
-
-        # Set the event handler if specified
-        if "function" in design_data:
+        
+        if "function" in design_data and design_data["function"]:
             self.sale_list.set_event(self.app.event_distributor(design_data["function"]))
-
+    
     def _create_textbox(self, design_data):
-        print(design_data)
+        """Create a textbox control."""
         textbox = TextBox(self)
-        if design_data.get('alignment') == "left":
+        
+        # Set alignment
+        alignment = design_data.get('alignment', 'left').lower()
+        if alignment == "left":
             textbox.setAlignment(Qt.AlignLeft)
-        elif design_data.get('alignment') == "right":
+        elif alignment == "right":
             textbox.setAlignment(Qt.AlignRight)
-        elif design_data.get('alignment') == "center":
+        elif alignment == "center":
             textbox.setAlignment(Qt.AlignCenter)
+        
+        # Set input type
         if design_data.get('input_type') == "password":
             textbox.set_password_type()
+        
+        # Set properties
         textbox.__name__ = design_data.get('field_name')
         textbox.setGeometry(design_data["location_x"], design_data["location_y"],
                             design_data["width"], design_data["height"])
-        textbox.set_font_size(design_data.get('font_size'))
+        textbox.set_font_size(design_data.get('font_size', 12))
         textbox.filed_name = design_data.get('caption')
+        
         if design_data.get('place_holder'):
             textbox.setPlaceholderText(design_data.get('place_holder'))
+        
         textbox.set_color(design_data['background_color'], design_data['foreground_color'])
-        if design_data['use_keyboard']:
+        
+        if design_data.get('use_keyboard', False):
             textbox.keyboard = self.keyboard
-
+    
     def _create_combobox(self, design_data):
-        print(design_data)
+        """Create a combobox control."""
         width = design_data.get("width", 240)
         height = design_data.get("height", 44)
         background_color = design_data.get("background_color", 0xFFFFFF)
         foreground_color = design_data.get("foreground_color", 0x000000)
-
+        
         combo = ComboBox(self,
                          width=width,
                          height=height,
@@ -238,33 +260,30 @@ class BaseWindow(QMainWindow):
                          background_color=background_color,
                          foreground_color=foreground_color,
                          font_size=design_data.get("font_size", 20))
-
-        # Populate items: either static list or by special name
+        
+        # Populate items
         items = design_data.get("items")
         if items and isinstance(items, list):
             combo.set_items([str(x) for x in items])
         else:
-            # Auto-populate by known names (e.g., CASHIER_NAME_LIST)
-            from data_layer.enums import ControlName, EventName
-            name_key = str(design_data.get("name", ""))
-            
-            if name_key == ControlName.CASHIER_NAME_LIST.value:
+            # Auto-populate by known names
+            name_key = str(design_data.get("name", "")).upper()
+            if name_key == "CASHIER_NAME_LIST":
                 try:
                     from data_layer.model import Cashier
                     cashiers = Cashier.get_all(is_deleted=False)
                     labels = [f"{c.name} {c.last_name}" for c in cashiers]
-                    # Add SUPERVISOR option if function1 is LOGIN event
-                    if design_data.get("function1") == EventName.LOGIN.value:
+                    if str(design_data.get("function1", "")).upper() == "LOGIN":
                         labels.append("SUPERVISOR")
                     combo.set_items(labels)
                 except Exception:
                     combo.set_items([])
-
+        
         # Optional event hookup
-        if "function" in design_data:
+        if "function" in design_data and design_data["function"]:
             combo.set_event(self.app.event_distributor(design_data["function"]))
-
-        # Set tooltip and store metadata
+        
+        # Set metadata
         if "caption" in design_data:
             combo.setToolTip(design_data["caption"])
         if "name" in design_data:
@@ -275,18 +294,4 @@ class BaseWindow(QMainWindow):
             combo.function1 = design_data["function1"]
         if "function2" in design_data:
             combo.function2 = design_data["function2"]
-
-    def _create_toolbar(self, design_data):
-        print(design_data)
-        tools = ToolBar()
-        if "button" in design_data and "back" in design_data["button"]:
-            tools.add_event(back_function_caption=design_data["button"]["back"]["caption"],
-                            back_function_image=design_data["button"]["back"]["image"],
-                            back_function=self.app.event_distributor("BACK"))
-        self.addToolBar(tools)
-
-    def _create_status_bar(self):
-        statusbar = StatusBar()
-        self.setStatusBar(statusbar)
-
 

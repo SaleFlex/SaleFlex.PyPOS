@@ -35,7 +35,8 @@ class FormControl(Model, CRUD):
                  list_values=None, dock=None, alignment=None, font=None, icon=None, tool_tip=None,
                  image=None, image_selected=None, font_auto_height=True, font_size=0,
                  text_image_relation=None, back_color=None, fore_color=None, keyboard_value=None,
-                 is_visible=True, fk_table_id=None, fk_cashier_create_id=None, fk_cashier_update_id=None):
+                 is_visible=True, fk_table_id=None, fk_target_form_id=None, form_transition_mode=None,
+                 fk_cashier_create_id=None, fk_cashier_update_id=None):
         Model.__init__(self)
         CRUD.__init__(self)
 
@@ -73,6 +74,8 @@ class FormControl(Model, CRUD):
         self.keyboard_value = keyboard_value
         self.is_visible = is_visible
         self.fk_table_id = fk_table_id
+        self.fk_target_form_id = fk_target_form_id
+        self.form_transition_mode = form_transition_mode
         self.fk_cashier_create_id = fk_cashier_create_id
         self.fk_cashier_update_id = fk_cashier_update_id
 
@@ -112,6 +115,8 @@ class FormControl(Model, CRUD):
     fore_color = Column(String(50), nullable=True)
     keyboard_value = Column(String(50), nullable=True)
     fk_table_id = Column(UUID, ForeignKey("table.id"), nullable=True)  # Link to Table model
+    fk_target_form_id = Column(UUID, ForeignKey("form.id"), nullable=True)  # Target form for navigation
+    form_transition_mode = Column(String(50), nullable=True)  # MODAL, REPLACE
     is_visible = Column(Boolean, nullable=False, default=True)
     is_deleted = Column(Boolean, nullable=False, default=False)
     delete_description = Column(String(1000), nullable=True)
@@ -121,9 +126,10 @@ class FormControl(Model, CRUD):
     updated_at = Column(DateTime, server_default=func.now())
 
     # Relationships
-    form = relationship("Form", back_populates="controls")
+    form = relationship("Form", back_populates="controls", foreign_keys=[fk_form_id])
     parent = relationship("FormControl", remote_side=[id], backref="children")
     table = relationship("Table")  # Link to Table model
+    target_form = relationship("Form", foreign_keys=[fk_target_form_id])  # Target form for navigation
 
     def __repr__(self):
         return f"<FormControl(name='{self.name}', type='{self.type}')>" 

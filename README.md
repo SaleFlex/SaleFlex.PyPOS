@@ -45,7 +45,7 @@ SaleFlex.PyPOS/
 ├── user_interface/         # UI Components
 │   ├── window/             # Application windows and dialogs
 │   ├── control/            # Custom UI controls
-│   ├── design_file/        # UI design specifications
+│   ├── render/             # Dynamic form rendering (database-driven)
 │   └── manager/            # UI management logic
 │
 ├── pos/                    # Core POS Business Logic

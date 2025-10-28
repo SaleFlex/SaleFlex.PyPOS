@@ -28,6 +28,7 @@ from pos.manager.current_data import CurrentData
 from pos.manager.event_handler import EventHandler
 from user_interface.manager import Interface
 from data_layer.db_manager import init_db
+from data_layer.enums import FormName
 from settings import env_data
 from user_interface.form.about_form import AboutForm
 from data_layer.model import (
@@ -163,6 +164,11 @@ class Application(CurrentStatus, CurrentData, EventHandler):
         # Pass self reference so the interface can access application methods
         self.interface = Interface(self)
 
+        # Load startup form from database
+        about.update_message("Loading startup form...")
+        self.app.processEvents()
+        self.load_startup_form()
+
         # Finalize and dispose the AboutForm
         about.update_message("Initialization complete.")
         self.app.processEvents()
@@ -174,17 +180,31 @@ class Application(CurrentStatus, CurrentData, EventHandler):
         Start the Point of Sale application.
         
         This method:
-        1. Draws the initial user interface based on current form type
-        2. Starts the Qt event loop
-        3. Exits the application when the event loop ends
+        1. Draws the initial user interface from database startup form
+        2. Checks if startup form requires login
+        3. If login required, shows LOGIN form first
+        4. Starts the Qt event loop
+        5. Exits the application when the event loop ends
         
-        The current_form_type is inherited from CurrentStatus and determines
-        which form (login, sale, configuration, etc.) to display initially.
+        The startup form is loaded from the database (Form table with is_startup=True).
+        If no startup form is found, it falls back to form name 'LOGIN'.
         
         Note: This method blocks until the application is closed by the user.
         """
-        # Draw the initial interface (typically the login form)
-        self.interface.draw(self.current_form_type)
+        # Check if startup form requires login
+        startup_form = None
+        if self.current_form_id:
+            startup_form = Form.get_by_id(self.current_form_id)
+        
+        # If startup form requires login and user not logged in, show LOGIN first
+        if startup_form and startup_form.need_login and not self.login_succeed:
+            self.interface.draw(form_name=FormName.LOGIN.name)
+        elif self.current_form_id:
+            # Use database form ID
+            self.interface.draw(form_id=self.current_form_id)
+        else:
+            # Fallback to LOGIN form using FormName enum
+            self.interface.draw(form_name=FormName.LOGIN.name)
         
         # Start the Qt event loop and exit with the same code when it ends
         # This is a blocking call that runs until the application is closed
