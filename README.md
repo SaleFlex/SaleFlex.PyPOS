@@ -53,7 +53,7 @@ SaleFlex.PyPOS/
 │   └── data/               # POS-specific data handling
 │
 ├── settings/               # Configuration management
-└── design_files/           # Design assets and templates
+└── design_files/           # Design assets
 ```
 
 ## Business Applications
