@@ -24,7 +24,8 @@ SaleFlex.PyPOS POS system is designed to streamline the sales process and improv
 - **System Integration**: Connect with accounting software, warehouse management, and ERP systems
 - **️Returns & Exchanges**: Handle product returns and exchanges efficiently
 - **Employee Management**: Track employee time, attendance, and performance
-- **Loyalty Programs**: Built-in customer loyalty and rewards management
+- **Campaign & Promotion Management**: Flexible promotional campaigns with time-based, product-specific, and basket discounts
+- **Loyalty Programs**: Tiered membership rewards system with points earning, redemption, and customer segmentation
 
 ## Project Structure
 
@@ -185,8 +186,24 @@ SaleFlex.PyPOS integrates seamlessly with **[SaleFlex.GATE](https://github.com/S
 - [ ] **Touch Optimization** - Enhanced touch screen experience
 
 ### Business Features
-- [ ] **Loyalty Module** - Customer rewards and loyalty programs
-- [ ] **Campaign Module** - Promotional campaigns and discounts
+- [ ] **Campaign & Promotion Management**:
+  - [ ] Multiple Campaign Types (Product Discount, Basket Discount, Time-Based, Buy X Get Y, Welcome Bonus)
+  - [ ] Flexible Discount Rules (Percentage, Fixed Amount, Free Product)
+  - [ ] Time-Based Restrictions (Date Range, Daily Hours, Days of Week)
+  - [ ] Product/Category/Brand/Payment Type Filters
+  - [ ] Usage Limits & Priority Rules
+  - [ ] Customer Segment Targeting
+  - [ ] Coupon Generation & Management (QR Code, Barcode Support)
+  - [ ] Campaign Usage Tracking & Analytics
+- [ ] **Loyalty Program Management**:
+  - [ ] Points Earning & Redemption Rules
+  - [ ] Point Expiry Management
+  - [ ] Tiered Membership System (Bronze, Silver, Gold, Platinum)
+  - [ ] Welcome & Birthday Bonus Points
+  - [ ] Tier-Based Benefits (Points Multiplier, Automatic Discounts)
+  - [ ] Complete Point Transaction History
+  - [ ] Customer Segmentation (VIP, New, Frequent, High Value, Inactive, Birthday)
+  - [ ] GDPR/KVKK Compliant Consent Management
 - [ ] **Reports Module** - Comprehensive business analytics
 - [ ] **Employee Management** - Staff scheduling and performance tracking
 - [ ] **Returns & Exchanges** - Product return and exchange handling
