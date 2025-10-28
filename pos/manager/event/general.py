@@ -199,10 +199,28 @@ class GeneralEvent:
         """
         Navigate to the appropriate form after successful login.
         Helper method to avoid code duplication.
+        Clears form history to start fresh after login.
         """
+        # Clear form history on login - start with fresh navigation history
+        self.clear_form_history()
+        
         # Navigate to startup form or SALE form
         if self.startup_form_id:
-            self.current_form_type = FormName.SALE  # Update for tracking
+            # Get the startup form to determine its FormName
+            from data_layer.model import Form
+            startup_form = Form.get_by_id(self.startup_form_id)
+            
+            if startup_form and startup_form.name:
+                # Try to find matching FormName enum
+                try:
+                    form_name_enum = FormName[startup_form.name.upper()]
+                    self.current_form_type = form_name_enum
+                except (KeyError, AttributeError):
+                    # If form name doesn't match enum, default to SALE
+                    self.current_form_type = FormName.SALE
+            else:
+                self.current_form_type = FormName.SALE
+                
             self.interface.redraw(form_id=self.startup_form_id)
         else:
             # Fallback to SALE form by name using FormName enum
@@ -226,7 +244,7 @@ class GeneralEvent:
         Handle user logout and session termination.
         
         Clears authentication status, resets session data,
-        and returns to login form.
+        and returns to login form. Also clears form navigation history.
         
         Returns:
             bool: Always True after successful logout
@@ -235,6 +253,9 @@ class GeneralEvent:
         self.login_succeed = False
         self.cashier_data = None
         self.document_data = None
+        
+        # Clear form navigation history
+        self.clear_form_history()
         
         # Navigate back to startup form or login form
         if self.startup_form_id:
@@ -278,26 +299,47 @@ class GeneralEvent:
         """
         Handle back/return navigation.
         
-        Swaps current and previous form types to implement back functionality.
+        Uses the form history stack to navigate to the previous form.
+        LOGIN and LOGIN_EXT forms are excluded from history.
         Requires valid authentication to prevent unauthorized navigation.
         
         Returns:
-            bool: True if navigation successful, False if not authenticated
+            bool: True if navigation successful, False if not authenticated or no history
         """
         # Require authentication for navigation
         if not self.login_succeed:
             self._logout()
             return False
-            
-        # Swap current and previous forms to go back
-        temp_form_type = self.current_form_type
-        self.current_form_type = self.previous_form_type
-        self.previous_form_type = temp_form_type
+        
+        # Get the previous form from history
+        previous_form = self.pop_form_history()
+        
+        if previous_form is None:
+            # No history available, cannot go back
+            print("[BACK] No form history available")
+            return False
+        
+        # Update current form without adding to history
+        # We need to temporarily set the form directly to avoid adding to history again
+        self._set_current_form_without_history(previous_form)
         
         # Redraw interface with previous form using form name
-        form_name = self.current_form_type.name
+        form_name = previous_form.name
         self.interface.redraw(form_name=form_name)
         return True
+    
+    def _set_current_form_without_history(self, form_type):
+        """
+        Set the current form without adding it to history.
+        
+        Used by back navigation to avoid polluting the history stack.
+        
+        Args:
+            form_type (FormName): The form type to set as current
+        """
+        # Access private attribute directly to bypass the setter
+        self._CurrentStatus__previous_form_type = self._CurrentStatus__current_form_type
+        self._CurrentStatus__current_form_type = form_type
 
     def _close_form(self):
         """
@@ -426,15 +468,6 @@ class GeneralEvent:
         if self.login_succeed:
             self.current_form_type = FormName.SERVICE
             self.interface.redraw(form_name=FormName.SERVICE.name)
-            return True
-
-    def _settings_form(self):
-        """
-        Navigate to settings form.
-        """
-        if self.login_succeed:
-            self.current_form_type = FormName.SETTINGS
-            self.interface.redraw(form_name=FormName.SETTINGS.name)
             return True
         else:
             self._logout()

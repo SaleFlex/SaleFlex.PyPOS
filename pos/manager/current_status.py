@@ -66,6 +66,10 @@ class CurrentStatus:
         self.__current_form_id = None  # UUID of current form from database
         self.__startup_form_id = None  # UUID of startup form
         
+        # Form history stack for back button functionality
+        # LOGIN and LOGIN_EXT are excluded from history
+        self.__form_history = []
+        
         # Document processing states - initially inactive
         self.__document_state = DocumentState.NONE
         self.__document_type = DocumentType.NONE
@@ -127,9 +131,18 @@ class CurrentStatus:
         When changing to a new form, the current form becomes the previous form,
         enabling proper navigation history tracking and back button functionality.
         
+        LOGIN and LOGIN_EXT forms are excluded from history as they are shown
+        based on need_login and need_auth requirements, not user navigation.
+        
         Args:
             value (FormName): The new form type to display
         """
+        # Don't add LOGIN or LOGIN_EXT to history - they're shown by need_login/need_auth
+        if self.__current_form_type not in [FormName.NONE, FormName.LOGIN, FormName.LOGIN_EXT]:
+            # Add current form to history before changing (if not already the last item)
+            if not self.__form_history or self.__form_history[-1] != self.__current_form_type:
+                self.__form_history.append(self.__current_form_type)
+        
         # Save current form as previous before changing
         self.__previous_form_type = self.__current_form_type
         # Set the new current form
@@ -255,3 +268,32 @@ class CurrentStatus:
             UUID or None: The ID of the startup form
         """
         return self.__startup_form_id
+    
+    @property
+    def form_history(self):
+        """
+        Get the form navigation history stack.
+        
+        Returns:
+            list: List of FormName enums representing navigation history
+        """
+        return self.__form_history
+    
+    def clear_form_history(self):
+        """
+        Clear the form navigation history.
+        
+        Used when logging out or resetting navigation state.
+        """
+        self.__form_history = []
+    
+    def pop_form_history(self):
+        """
+        Remove and return the last form from history.
+        
+        Returns:
+            FormName or None: The last form in history, or None if history is empty
+        """
+        if self.__form_history:
+            return self.__form_history.pop()
+        return None
