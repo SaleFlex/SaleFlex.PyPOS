@@ -244,11 +244,36 @@ class GeneralEvent:
         Handle user logout and session termination.
         
         Clears authentication status, resets session data,
-        and returns to login form. Also clears form navigation history.
+        and navigates to appropriate login form based on current form's requirements.
+        
+        Navigation logic:
+        - If current form requires need_auth=True -> navigate to LOGIN_EXT form
+        - If current form requires need_login=True -> navigate to LOGIN form
+        - Otherwise -> navigate to startup form or LOGIN form
         
         Returns:
             bool: Always True after successful logout
         """
+        from data_layer.model import Form
+        
+        # Determine target form based on current form's requirements
+        target_form_name = None
+        
+        # Check current form's authentication requirements
+        if self.current_form_id:
+            # Get current form from database
+            current_form = Form.get_by_id(self.current_form_id)
+            
+            if current_form:
+                if current_form.need_auth:
+                    # Form requires authorization -> go to extended login
+                    target_form_name = FormName.LOGIN_EXT
+                    print(f"[LOGOUT] Current form '{current_form.name}' requires authorization -> redirecting to LOGIN_EXT")
+                elif current_form.need_login:
+                    # Form requires login -> go to regular login
+                    target_form_name = FormName.LOGIN
+                    print(f"[LOGOUT] Current form '{current_form.name}' requires login -> redirecting to LOGIN")
+        
         # Clear authentication and session data
         self.login_succeed = False
         self.cashier_data = None
@@ -257,12 +282,19 @@ class GeneralEvent:
         # Clear form navigation history
         self.clear_form_history()
         
-        # Navigate back to startup form or login form
-        if self.startup_form_id:
+        # Navigate to appropriate form
+        if target_form_name:
+            # Navigate based on current form's requirements
+            self.current_form_type = target_form_name
+            self.interface.redraw(form_name=target_form_name.name)
+        elif self.startup_form_id:
+            # Navigate to startup form
             self.interface.redraw(form_id=self.startup_form_id)
         else:
+            # Default to LOGIN form
             self.current_form_type = FormName.LOGIN
             self.interface.redraw(form_name=FormName.LOGIN.name)
+        
         return True
 
     def _service_code_request(self):
