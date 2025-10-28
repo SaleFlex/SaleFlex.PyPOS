@@ -234,12 +234,17 @@ class DynamicFormRenderer:
                 'function': control.form_control_function1 or 'NONE'
             })
         
-        elif control.type.lower() == 'payment_list':
+        elif control.type.lower() == 'paymentlist':
             design.update({
                 'function': control.form_control_function1 or None
             })
         
-        elif control.type.lower() == 'sale_list':
+        elif control.type.lower() == 'saleslist':
+            design.update({
+                'function': control.form_control_function1 or None
+            })
+        
+        elif control.type.lower() == 'amountstable':
             design.update({
                 'function': control.form_control_function1 or None
             })

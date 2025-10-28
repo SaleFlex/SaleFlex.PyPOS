@@ -20,7 +20,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from PySide6.QtWidgets import QDialog
 from PySide6.QtCore import Qt
 
-from user_interface.control import TextBox, Button, NumPad, PaymentList, SaleList, ComboBox
+from user_interface.control import TextBox, Button, NumPad, PaymentList, SaleList, ComboBox, AmountTable
 from user_interface.control import VirtualKeyboard
 
 
@@ -45,6 +45,7 @@ class DynamicDialog(QDialog):
         self.keyboard = VirtualKeyboard(source=None, parent=self)
         self.payment_list = None
         self.sale_list = None
+        self.amount_table = None
         
         # Make dialog modal and frameless
         self.setModal(True)
@@ -80,10 +81,12 @@ class DynamicDialog(QDialog):
                 self._create_button(control_design_data)
             elif control_type == "numpad":
                 self._create_numpad(control_design_data)
-            elif control_type == "payment_list":
+            elif control_type == "paymentlist":
                 self._create_payment_list(control_design_data)
-            elif control_type == "sale_list":
+            elif control_type == "saleslist":
                 self._create_sale_list(control_design_data)
+            elif control_type == "amountstable":
+                self._create_amount_table(control_design_data)
             elif control_type == "combobox":
                 self._create_combobox(control_design_data)
         
@@ -212,6 +215,26 @@ class DynamicDialog(QDialog):
         
         if "function" in design_data and design_data["function"]:
             self.sale_list.set_event(self.app.event_distributor(design_data["function"]))
+    
+    def _create_amount_table(self, design_data):
+        """Create an amount table control."""
+        width = design_data.get("width", 250)
+        height = design_data.get("height", 200)
+        background_color = design_data.get("background_color", 0x778D45)
+        foreground_color = design_data.get("foreground_color", 0xFFFFFF)
+        location_x = design_data.get("location_x", 1)
+        location_y = design_data.get("location_y", 1)
+        
+        self.amount_table = AmountTable(self,
+                        width=width,
+                        height=height,
+                        location_x=location_x,
+                        location_y=location_y,
+                        background_color=background_color,
+                        foreground_color=foreground_color)
+        
+        if "function" in design_data and design_data["function"]:
+            self.amount_table.set_event(self.app.event_distributor(design_data["function"]))
     
     def _create_textbox(self, design_data):
         """Create a textbox control."""

@@ -20,7 +20,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from PySide6.QtWidgets import QMainWindow
 from PySide6.QtCore import Qt
 
-from user_interface.control import TextBox, Button, ToolBar, StatusBar, NumPad, PaymentList, SaleList, ComboBox
+from user_interface.control import TextBox, Button, ToolBar, StatusBar, NumPad, PaymentList, SaleList, ComboBox, AmountTable
 from user_interface.control import VirtualKeyboard
 
 
@@ -58,11 +58,14 @@ class BaseWindow(QMainWindow):
             if control_design_data["type"] == "numpad":
                 self._create_numpad(control_design_data)
 
-            if control_design_data["type"] == "payment_list":
+            if control_design_data["type"] == "paymentlist":
                 self._create_payment_list(control_design_data)
 
-            if control_design_data["type"] == "sale_list":
+            if control_design_data["type"] == "saleslist":
                 self._create_sale_list(control_design_data)
+
+            if control_design_data["type"] == "amountstable":
+                self._create_amount_table(control_design_data)
 
             if control_design_data["type"] == "combobox":
                 self._create_combobox(control_design_data)
@@ -200,6 +203,31 @@ class BaseWindow(QMainWindow):
         # Set the event handler if specified
         if "function" in design_data:
             self.sale_list.set_event(self.app.event_distributor(design_data["function"]))
+
+    def _create_amount_table(self, design_data):
+        # Ensure amount table has appropriate dimensions
+        width = design_data.get("width", 250)
+        height = design_data.get("height", 200)
+
+        # Get background and foreground colors from design data
+        background_color = design_data.get("background_color", 0x778D45)
+        foreground_color = design_data.get("foreground_color", 0xFFFFFF)
+
+        location_x = design_data.get("location_x", 1)
+        location_y = design_data.get("location_y", 1)
+
+        # Create the amount table widget
+        self.amount_table = AmountTable(self,
+                        width=width,
+                        height=height,
+                        location_x=location_x,
+                        location_y=location_y,
+                        background_color=background_color,
+                        foreground_color=foreground_color)
+
+        # Set the event handler if specified
+        if "function" in design_data:
+            self.amount_table.set_event(self.app.event_distributor(design_data["function"]))
 
     def _create_textbox(self, design_data):
         print(design_data)
