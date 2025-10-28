@@ -346,7 +346,7 @@ class GeneralEvent:
 
     # ==================== MAIN NAVIGATION EVENTS ====================
 
-    def _sale(self):
+    def _sales_form(self):
         """
         Navigate to sales form.
         
@@ -364,7 +364,7 @@ class GeneralEvent:
             self._logout()
             return False
 
-    def _configuration(self):
+    def _settings_form(self):
         """
         Navigate to configuration form.
         
@@ -382,7 +382,7 @@ class GeneralEvent:
             self._logout()
             return False
 
-    def _closure(self):
+    def _closure_form(self):
         """
         Navigate to end-of-day closure form.
         
@@ -402,9 +402,9 @@ class GeneralEvent:
 
     # ==================== MENU NAVIGATION EVENTS ====================
 
-    def _function_menu(self):
+    def _main_menu_form(self):
         """
-        Navigate to function menu.
+        Navigate to function menu form.
         
         Displays available system functions and operations menu.
         
@@ -412,64 +412,35 @@ class GeneralEvent:
             bool: True if navigation successful, False if not authenticated
         """
         if self.login_succeed:
-            # TODO: Define FormName.FUNCTION_MENU if needed
-            print("Function menu - navigation to be implemented")
+            self.current_form_type = FormName.MAIN_MENU
+            self.interface.redraw(form_name=FormName.MAIN_MENU.name)
             return True
         else:
             self._logout()
             return False
 
-    def _sales_menu(self):
+    def _service_form(self):
         """
-        Navigate to sales menu.
-        
-        Displays sales-related options and shortcuts menu.
-        
-        Returns:
-            bool: True if navigation successful, False if not authenticated
+        Navigate to service form.
         """
         if self.login_succeed:
-            # Navigate to sales form or sales submenu
-            return self._sale()
-        else:
-            self._logout()
-            return False
+            self.current_form_type = FormName.SERVICE
+            self.interface.redraw(form_name=FormName.SERVICE.name)
+            return True
 
-    def _service_menu(self):
+    def _settings_form(self):
         """
-        Navigate to service menu.
-        
-        Accesses service and maintenance options menu.
-        Typically requires elevated permissions.
-        
-        Returns:
-            bool: True if navigation successful, False if not authenticated
+        Navigate to settings form.
         """
         if self.login_succeed:
-            # TODO: Implement service menu navigation
-            print("Service menu - navigation to be implemented") 
+            self.current_form_type = FormName.SETTINGS
+            self.interface.redraw(form_name=FormName.SETTINGS.name)
             return True
         else:
             self._logout()
             return False
 
-    def _setting_menu(self):
-        """
-        Navigate to settings menu.
-        
-        Displays system settings and configuration options.
-        
-        Returns:
-            bool: True if navigation successful, False if not authenticated
-        """
-        if self.login_succeed:
-            # Navigate to configuration form
-            return self._configuration()
-        else:
-            self._logout()
-            return False
-
-    def _report_menu(self):
+    def _report_form(self):
         """
         Navigate to reports menu.
         
@@ -479,8 +450,8 @@ class GeneralEvent:
             bool: True if navigation successful, False if not authenticated
         """
         if self.login_succeed:
-            # TODO: Define FormName.REPORT_MENU if needed
-            print("Report menu - navigation to be implemented")
+            self.current_form_type = FormName.REPORT
+            self.interface.redraw(form_name=FormName.REPORT.name)
             return True
         else:
             self._logout()
@@ -488,7 +459,7 @@ class GeneralEvent:
 
     # ==================== USER MANAGEMENT EVENTS ====================
 
-    def _cashier(self):
+    def _cashier_form(self):
         """
         Handle cashier management operations.
         
@@ -498,14 +469,14 @@ class GeneralEvent:
             bool: True if operation successful, False otherwise
         """
         if self.login_succeed:
-            # TODO: Implement cashier management interface
-            print("Cashier management - functionality to be implemented")
+            self.current_form_type = FormName.CASHIER
+            self.interface.redraw(form_name=FormName.CASHIER.name)
             return True
         else:
             self._logout()
             return False
 
-    def _customer(self):
+    def _customer_form(self):
         """
         Handle customer management operations.
         
@@ -515,8 +486,8 @@ class GeneralEvent:
             bool: True if operation successful, False otherwise
         """
         if self.login_succeed:
-            # TODO: Implement customer management interface
-            print("Customer management - functionality to be implemented")
+            self.current_form_type = FormName.CUSTOMER
+            self.interface.redraw(form_name=FormName.CUSTOMER.name)
             return True
         else:
             self._logout()
