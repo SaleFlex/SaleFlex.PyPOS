@@ -115,7 +115,7 @@ class GeneralEvent:
         print(f"[LOGIN] user_name_from_textbox: '{user_name_from_textbox}', password: '{password}'")
         
         if has_combobox and user_name_from_combo:
-            # COMBOBOX mode: Parse "Name LastName" format
+            # COMBOBOX mode: Parse "username (name lastname)" format
             selected_cashier = user_name_from_combo
             
             # Handle SUPERVISOR login
@@ -143,18 +143,19 @@ class GeneralEvent:
                 else:
                     return False
             
-            # Parse cashier name (format: "Name LastName")
-            name_parts = selected_cashier.strip().split()
-            if len(name_parts) < 1:
+            # Parse cashier username (format: "username (name lastname)")
+            # Extract username from before the opening parenthesis
+            if " (" in selected_cashier:
+                user_name = selected_cashier.split(" (")[0].strip()
+            else:
+                # Fallback: treat entire string as username
+                user_name = selected_cashier.strip()
+            
+            if not user_name:
                 return False
             
-            # Find cashier by name and last_name
-            if len(name_parts) == 1:
-                cashiers = Cashier.filter_by(name=name_parts[0], password=password, is_deleted=False)
-            else:
-                name = name_parts[0]
-                last_name = " ".join(name_parts[1:])
-                cashiers = Cashier.filter_by(name=name, last_name=last_name, password=password, is_deleted=False)
+            # Find cashier by username and password
+            cashiers = Cashier.filter_by(user_name=user_name, password=password, is_deleted=False)
         
         else:
             # TEXTBOX mode: Use user_name directly

@@ -272,7 +272,8 @@ class DynamicDialog(QDialog):
                 try:
                     from data_layer.model import Cashier
                     cashiers = Cashier.get_all(is_deleted=False)
-                    labels = [f"{c.name} {c.last_name}" for c in cashiers]
+                    # Format: "username (name lastname)" for better identification
+                    labels = [f"{c.user_name} ({c.name} {c.last_name})" for c in cashiers]
                     if str(design_data.get("function1", "")).upper() == "LOGIN":
                         labels.append("SUPERVISOR")
                     combo.set_items(labels)

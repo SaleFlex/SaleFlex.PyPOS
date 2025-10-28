@@ -252,7 +252,8 @@ class BaseWindow(QMainWindow):
                 try:
                     from data_layer.model import Cashier
                     cashiers = Cashier.get_all(is_deleted=False)
-                    labels = [f"{c.name} {c.last_name}" for c in cashiers]
+                    # Format: "username (name lastname)" for better identification
+                    labels = [f"{c.user_name} ({c.name} {c.last_name})" for c in cashiers]
                     # Add SUPERVISOR option if function1 is LOGIN event
                     if design_data.get("function1") == EventName.LOGIN.value:
                         labels.append("SUPERVISOR")
