@@ -77,8 +77,8 @@ def _insert_virtual_keyboard_settings(session: Session):
         control_button_active_color="rgb(29, 150, 255)",
         
         # Text colors (optional, defaults to None)
-        button_text_color=None,
-        button_text_color_pressed=None
+        button_text_color="#000000",
+        button_text_color_pressed="#000000"
     )
 
     session.add(default_keyboard)
