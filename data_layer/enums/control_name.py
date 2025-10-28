@@ -53,10 +53,27 @@ class ControlName(enum.Enum):
                     to contain administrator password information.
                     Typically paired with EventName.LOGIN, EventName.LOGIN_EXTENDED, or EventName.SAVE_CHANGES.
     
+    Cashier Information Controls:
+    -----------------------------
+    NAME: Control (usually textbox) in CASHIER or CASHIER_CONFIG forms to contain cashier's first name.
+          Typically paired with EventName.SAVE_CHANGES in form_control_function_1.
+    
+    LAST_NAME: Control (usually textbox) in CASHIER or CASHIER_CONFIG forms to contain cashier's last name.
+               Typically paired with EventName.SAVE_CHANGES in form_control_function_1.
+    
+    ID_NUMBER: Control (usually textbox) in CASHIER or CASHIER_CONFIG forms to contain cashier's identification number.
+               Typically paired with EventName.SAVE_CHANGES in form_control_function_1.
+    
+    DESCRIPTION: Control (usually textbox) in CASHIER or CASHIER_CONFIG forms to contain additional information.
+                 Typically paired with EventName.SAVE_CHANGES in form_control_function_1.
+    
     Application Controls:
     --------------------
     EXIT: Control (usually button) for exiting the application.
           Typically paired with EventName.EXIT_APPLICATION in form_control_function_1.
+    
+    BACK: Control (usually button) for going back to the previous form or menu.
+          Typically paired with EventName.BACK in form_control_function_1.
     
     Configuration Controls:
     ----------------------
@@ -103,8 +120,15 @@ class ControlName(enum.Enum):
     PASSWORD = "PASSWORD"
     ADMIN_PASSWORD = "ADMIN_PASSWORD"
     
+    # Cashier Information Controls
+    NAME = "NAME"
+    LAST_NAME = "LAST_NAME"
+    ID_NUMBER = "ID_NUMBER"
+    DESCRIPTION = "DESCRIPTION"
+    
     # Application Controls
     EXIT = "EXIT"
+    BACK = "BACK"
     
     # Configuration Controls
     BARCODE_LENGTH = "BARCODE_LENGTH"

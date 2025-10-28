@@ -60,6 +60,69 @@ def _insert_default_forms(session: Session, cashier_id: str):
         },
         {
             'form_no': 2,
+            'name': FormName.MAIN_MENU.name,
+            'function': FormName.MAIN_MENU.name,
+            'need_login': True,  # Requires login
+            'need_auth': False,
+            'width': 1024,
+            'height': 768,
+            'form_border_style': 'SINGLE',
+            'start_position': 'CENTERSCREEN',
+            'caption': 'SaleFlex - Main Menu',
+            'back_color': '0x2F4F4F',  # DarkSlateGray
+            'fore_color': '0xFFFFFF',  # White
+            'show_status_bar': True,
+            'show_in_taskbar': False,
+            'use_virtual_keyboard': False,
+            'is_visible': True,
+            'is_startup': True,  # MAIN_MENU is the startup form
+            'display_mode': 'MAIN',
+            'fk_cashier_create_id': cashier_id
+        },
+        {
+            'form_no': 3,
+            'name': FormName.CONFIG.name,
+            'function': FormName.CONFIG.name,
+            'need_login': True,  # Requires login
+            'need_auth': False,
+            'width': 1024,
+            'height': 768,
+            'form_border_style': 'SINGLE',
+            'start_position': 'CENTERSCREEN',
+            'caption': 'SaleFlex - Configuration',
+            'back_color': '0x2F4F4F',  # DarkSlateGray
+            'fore_color': '0xFFFFFF',  # White
+            'show_status_bar': True,
+            'show_in_taskbar': False,
+            'use_virtual_keyboard': False,
+            'is_visible': True,
+            'is_startup': False,
+            'display_mode': 'MAIN',
+            'fk_cashier_create_id': cashier_id
+        },
+        {
+            'form_no': 4,
+            'name': FormName.CASHIER.name,
+            'function': FormName.CASHIER.name,
+            'need_login': True,  # Requires login
+            'need_auth': False,
+            'width': 1024,
+            'height': 768,
+            'form_border_style': 'SINGLE',
+            'start_position': 'CENTERSCREEN',
+            'caption': 'SaleFlex - Cashier Management',
+            'back_color': '0x2F4F4F',  # DarkSlateGray
+            'fore_color': '0xFFFFFF',  # White
+            'show_status_bar': True,
+            'show_in_taskbar': False,
+            'use_virtual_keyboard': True,
+            'is_visible': True,
+            'is_startup': False,
+            'display_mode': 'MAIN',
+            'fk_cashier_create_id': cashier_id
+        },
+        {
+            'form_no': 5,
             'name': FormName.SALE.name,  # Using enum for form name
             'function': FormName.SALE.name,  # Using enum for function name
             'need_login': True,  # Requires login
@@ -75,7 +138,7 @@ def _insert_default_forms(session: Session, cashier_id: str):
             'show_in_taskbar': False,
             'use_virtual_keyboard': False,
             'is_visible': True,
-            'is_startup': True,  # SALE is the startup form
+            'is_startup': False,
             'display_mode': 'MAIN',
             'fk_cashier_create_id': cashier_id
         }

@@ -73,9 +73,11 @@ class FormName(enum.Enum):
     Other Forms (FUNCTION, MENU, SERVICE, RESERVATION):
         - FUNCTION: Function menu/selection
         - MENU: General menu form
+        - MAIN_MENU: Main menu form with navigation options
         - SERVICE: Service operations
         - RESERVATION: Reservation management
         - CASHIER_PERFORMANCE_TARGET: Cashier performance targets
+        - CASHIER: Cashier management and information form
     """
     
     NONE = 0           # No form selected.
@@ -100,7 +102,9 @@ class FormName(enum.Enum):
     EMPLOYEE = 19      # Employee management form.
     RESERVATION = 20   # Reservation form.
     WAREHOUSE = 21     # Warehouse form.
-    MENU = 22          # Menu form.
+    CASHIER_PERFORMANCE_TARGET = 22      # Cashier performance target form.
+    MAIN_MENU = 23     # Main menu form with navigation to other forms.
+    SUB_MENU = 24      # Sub menu form with navigation to other forms.
+    CASHIER = 25       # Cashier management form for adding/editing cashier information.
     CONFIG = 6         # Configuration form (same as SETTING).
-    CLOSURE = 15       # End of day closure form (same as END_OF_DAY). 
-    CASHIER_PERFORMANCE_TARGET = 23      # Cashier performance target form.
+    CLOSURE = 15       # End of day closure form (same as END_OF_DAY).
