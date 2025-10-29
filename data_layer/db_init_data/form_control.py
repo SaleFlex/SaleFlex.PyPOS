@@ -1549,10 +1549,47 @@ def _insert_form_controls(session: Session, cashier_id: str):
     
     # Closure form controls
     closure_form_controls = [
+        # DataGrid to display previous closures
         FormControl(
             fk_form_id=closure_form.id,
             fk_parent_id=None,
-            name="CLOSURE",
+            name=ControlName.DATAGRID.value,
+            form_control_function1=EventName.NONE.value,
+            form_control_function2=None,
+            type_no=9,
+            type="DATAGRID",
+            width=900,
+            height=400,
+            location_x=62,
+            location_y=50,
+            start_position=None,
+            caption1="Closure History",
+            caption2=None,
+            list_values=None,
+            dock=None,
+            alignment=None,
+            text_alignment="CENTER",
+            character_casing="NORMAL",
+            font="Tahoma",
+            icon=None,
+            tool_tip="Previous closure records",
+            image=None,
+            image_selected=None,
+            font_auto_height=False,
+            font_size=10,
+            input_type="ALPHANUMERIC",
+            text_image_relation=None,
+            back_color="0xFFFFFF",
+            fore_color="0x000000",
+            keyboard_value=None,
+            fk_cashier_create_id=cashier_id,
+            fk_cashier_update_id=cashier_id
+        ),
+        # Closure button (moved down)
+        FormControl(
+            fk_form_id=closure_form.id,
+            fk_parent_id=None,
+            name=ControlName.CLOSURE.value,
             form_control_function1=EventName.CLOSURE.value,
             form_control_function2=None,
             type_no=1,
@@ -1560,7 +1597,7 @@ def _insert_form_controls(session: Session, cashier_id: str):
             width=400,
             height=80,
             location_x=312,
-            location_y=300,
+            location_y=480,
             start_position=None,
             caption1="CLOSURE",
             caption2=None,
@@ -1584,6 +1621,7 @@ def _insert_form_controls(session: Session, cashier_id: str):
             fk_cashier_create_id=cashier_id,
             fk_cashier_update_id=cashier_id
         ),
+        # Back button
         FormControl(
             fk_form_id=closure_form.id,
             fk_parent_id=None,

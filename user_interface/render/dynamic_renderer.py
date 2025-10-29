@@ -255,6 +255,12 @@ class DynamicFormRenderer:
                 'function': control.form_control_function1 or None
             })
         
+        elif control.type.lower() == 'datagrid':
+            design.update({
+                'function': control.form_control_function1 or None,
+                'font_size': int(control.font_size) if control.font_size else 10,
+            })
+        
         return design
     
     def _find_control_by_id(self, control_id):

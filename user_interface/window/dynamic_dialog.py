@@ -20,7 +20,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from PySide6.QtWidgets import QDialog
 from PySide6.QtCore import Qt
 
-from user_interface.control import TextBox, Button, NumPad, PaymentList, SaleList, ComboBox, AmountTable, Label
+from user_interface.control import TextBox, Button, NumPad, PaymentList, SaleList, ComboBox, AmountTable, Label, DataGrid
 from user_interface.control import VirtualKeyboard
 
 
@@ -91,6 +91,8 @@ class DynamicDialog(QDialog):
                 self._create_amount_table(control_design_data)
             elif control_type == "combobox":
                 self._create_combobox(control_design_data)
+            elif control_type == "datagrid":
+                self._create_datagrid(control_design_data)
         
         self.setUpdatesEnabled(True)
         
@@ -121,7 +123,7 @@ class DynamicDialog(QDialog):
     def clear(self):
         """Clear and cleanup all child widgets."""
         for item in self.children():
-            if type(item) in [TextBox, Button, Label, NumPad, PaymentList, SaleList, ComboBox, AmountTable]:
+            if type(item) in [TextBox, Button, Label, NumPad, PaymentList, SaleList, ComboBox, AmountTable, DataGrid]:
                 item.deleteLater()
                 item.setParent(None)
     
@@ -352,4 +354,85 @@ class DynamicDialog(QDialog):
             combo.function1 = design_data["function1"]
         if "function2" in design_data:
             combo.function2 = design_data["function2"]
+    
+    def _create_datagrid(self, design_data):
+        """
+        Create a DataGrid control for displaying tabular data.
+        
+        Args:
+            design_data (dict): Design specifications for the datagrid
+        """
+        width = design_data.get("width", 600)
+        height = design_data.get("height", 400)
+        background_color = design_data.get("background_color", 0xFFFFFF)
+        foreground_color = design_data.get("foreground_color", 0x000000)
+        
+        datagrid = DataGrid(self)
+        datagrid.setGeometry(
+            design_data.get("location_x", 0),
+            design_data.get("location_y", 0),
+            width,
+            height
+        )
+        
+        # Apply colors
+        datagrid.set_color(background_color, foreground_color)
+        
+        # Set font size if provided
+        if "font_size" in design_data:
+            from PySide6.QtGui import QFont
+            font = QFont("Verdana", design_data["font_size"])
+            datagrid.setFont(font)
+        
+        # Store metadata
+        if "name" in design_data:
+            datagrid.name = design_data["name"]
+        if "function" in design_data:
+            datagrid.function = design_data["function"]
+        if "caption" in design_data:
+            datagrid.setToolTip(design_data["caption"])
+        
+        # Auto-populate data if this is the CLOSURE DATAGRID
+        from data_layer.enums import ControlName
+        name_key = str(design_data.get("name", ""))
+        
+        if name_key == ControlName.DATAGRID.value:
+            # Load closure data from database
+            try:
+                from data_layer.model import Closure
+                closures = Closure.get_all(is_deleted=False)
+                
+                # Set column headers
+                datagrid.set_columns([
+                    "Closure No", 
+                    "Date", 
+                    "Cashier", 
+                    "Total Sales", 
+                    "Cash", 
+                    "Credit Card"
+                ])
+                
+                # Prepare data rows
+                data_rows = []
+                for closure in closures:
+                    row = [
+                        str(closure.closure_no),
+                        closure.date_create.strftime("%Y-%m-%d %H:%M") if closure.date_create else "",
+                        closure.cashier.user_name if closure.cashier else "",
+                        f"{closure.total_amount:.2f}" if closure.total_amount else "0.00",
+                        f"{closure.cash_amount:.2f}" if closure.cash_amount else "0.00",
+                        f"{closure.credit_card_amount:.2f}" if closure.credit_card_amount else "0.00"
+                    ]
+                    data_rows.append(row)
+                
+                # Set data
+                datagrid.set_data(data_rows)
+                
+            except Exception as e:
+                print(f"Error loading closure data: {e}")
+                # Set empty data on error
+                datagrid.set_columns(["No Data Available"])
+                datagrid.set_data([])
+        
+        datagrid.show()
 
