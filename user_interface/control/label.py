@@ -25,11 +25,25 @@ class Label(QLabel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setFont(QFont("Verdana", 20))
+        self._click_handler = None
 
     def set_color(self, background_color, foreground_color):
-        self.setStyleSheet(f"QLabel {{background-color: #{background_color:06X};" +
-                          f"color: #{foreground_color:06X};border-radius: 4px;}}")
+        # If background color is white (0xFFFFFF) or None, make it transparent
+        # Labels should not have borders or background like textboxes
+        if background_color is None or background_color == 0xFFFFFF:
+            self.setStyleSheet(f"QLabel {{background-color: transparent;" +
+                              f"color: #{foreground_color:06X};}}")
+        else:
+            self.setStyleSheet(f"QLabel {{background-color: #{background_color:06X};" +
+                              f"color: #{foreground_color:06X};}}")
 
     def set_event(self, function):
-        self.click()
+        """Set a click event handler for the label."""
+        self._click_handler = function
+
+    def mousePressEvent(self, event):
+        """Handle mouse press events on the label."""
+        super().mousePressEvent(event)
+        if self._click_handler is not None:
+            self._click_handler()
 

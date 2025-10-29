@@ -20,7 +20,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from PySide6.QtWidgets import QMainWindow
 from PySide6.QtCore import Qt
 
-from user_interface.control import TextBox, Button, ToolBar, StatusBar, NumPad, PaymentList, SaleList, ComboBox, AmountTable
+from user_interface.control import TextBox, Button, ToolBar, StatusBar, NumPad, PaymentList, SaleList, ComboBox, AmountTable, Label
 from user_interface.control import VirtualKeyboard
 
 
@@ -54,6 +54,9 @@ class BaseWindow(QMainWindow):
 
             if control_design_data["type"] == "button":
                 self._create_button(control_design_data)
+
+            if control_design_data["type"] == "label":
+                self._create_label(control_design_data)
 
             if control_design_data["type"] == "numpad":
                 self._create_numpad(control_design_data)
@@ -91,7 +94,7 @@ class BaseWindow(QMainWindow):
     def clear(self):
         for item in self.children():
             print(item)
-            if type(item) in [TextBox, Button, ToolBar, StatusBar, NumPad, PaymentList, SaleList, ComboBox, AmountTable]:
+            if type(item) in [TextBox, Button, Label, ToolBar, StatusBar, NumPad, PaymentList, SaleList, ComboBox, AmountTable]:
                 print(type(item), item)
                 item.deleteLater()
                 item.setParent(None)
@@ -228,6 +231,38 @@ class BaseWindow(QMainWindow):
         # Set the event handler if specified
         if "function" in design_data:
             self.amount_table.set_event(self.app.event_distributor(design_data["function"]))
+
+    def _create_label(self, design_data):
+        print(design_data)
+        label = Label(self)
+        label.setText(design_data.get('caption', ''))
+        label.setGeometry(design_data["location_x"], design_data["location_y"],
+                         design_data["width"], design_data["height"])
+        
+        # Set text alignment
+        if design_data.get('text_alignment') == "LEFT":
+            label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        elif design_data.get('text_alignment') == "RIGHT":
+            label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        elif design_data.get('text_alignment') == "CENTER":
+            label.setAlignment(Qt.AlignCenter)
+        else:
+            label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        
+        # Set colors
+        label.set_color(design_data.get('background_color', 0xFFFFFF), 
+                       design_data.get('foreground_color', 0x000000))
+        
+        # Set font size if specified
+        if design_data.get('font_size'):
+            from PySide6.QtGui import QFont
+            font = label.font()
+            font.setPointSize(int(design_data['font_size']))
+            label.setFont(font)
+        
+        # Set tooltip
+        if design_data.get('caption'):
+            label.setToolTip(design_data['caption'])
 
     def _create_textbox(self, design_data):
         print(design_data)

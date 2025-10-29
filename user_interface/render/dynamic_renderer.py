@@ -202,7 +202,13 @@ class DynamicFormRenderer:
         }
         
         # Add control-specific properties
-        if control.type.lower() == 'textbox':
+        if control.type.lower() == 'label':
+            design.update({
+                'text_alignment': control.text_alignment if control.text_alignment else 'LEFT',
+                'font_size': int(control.font_size) if control.font_size else 12,
+            })
+        
+        elif control.type.lower() == 'textbox':
             design.update({
                 'field_name': control.name,
                 'place_holder': control.caption1 or '',
