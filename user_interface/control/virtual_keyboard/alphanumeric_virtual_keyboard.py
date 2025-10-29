@@ -246,13 +246,22 @@ class AlphaNumericVirtualKeyboard(QWidget):
             return
         
         self.source = source
-        if self.x_pos == 0:
-            self.x_pos = int((self.parent.width() - self.keyboard_width) / 2)
+        
+        # Center the keyboard horizontally
+        self.x_pos = int((self.parent.width() - self.keyboard_width) / 2)
 
-        if self.y_pos == 0 and self.source.pos().y() + self.source.size().height() > self.parent.height() / 2:
-            self.y_pos = 0
-        else:
+        # Position the keyboard based on the TextBox location
+        # If TextBox is in the upper half of the form, place keyboard at the bottom
+        # If TextBox is in the lower half of the form, place keyboard at the top
+        textbox_y_position = self.source.pos().y()
+        parent_mid_height = self.parent.height() / 2
+        
+        if textbox_y_position < parent_mid_height:
+            # TextBox is at top - place keyboard at bottom
             self.y_pos = self.parent.height() - self.keyboard_height
+        else:
+            # TextBox is at bottom - place keyboard at top
+            self.y_pos = 0
 
         self.setWindowFlags(Qt.WindowStaysOnTopHint)
         self.setWindowState(Qt.WindowState.WindowActive)
