@@ -141,6 +141,20 @@ SaleFlex.PyPOS integrates seamlessly with **[SaleFlex.GATE](https://github.com/S
    python saleflex.py
    ```
 
+### First Login
+
+After running the application, you will see the login screen:
+
+![Login Screen](sample_login.jpg)
+
+**Default Login Credentials:**
+- **Username**: `admin`
+- **Password**: `admin`
+
+After successful login, you will be redirected to the main menu:
+
+![Main Menu](sample_main_menu.jpg)
+
 ### Configuration
 - Edit `settings.toml` to configure database connections, hardware settings, and business parameters
 - The application uses SQLite by default, stored in `db.sqlite3`
@@ -150,8 +164,8 @@ SaleFlex.PyPOS integrates seamlessly with **[SaleFlex.GATE](https://github.com/S
 ### Core Infrastructure
 - [x] **Project Structure** - Basic application framework
 - [x] **Database Layer** - SQLAlchemy ORM integration
-- [X] **Database Structure** - POS data layer structure
-- [ ] **UI Foundation** - PySide6 interface framework
+- [x] **Database Structure** - POS data layer structure
+- [x] **UI Foundation** - PySide6 interface framework
 - [ ] **Configuration Management** - Advanced settings system
 - [ ] **Logging & Monitoring** - Comprehensive logging and error tracking
 
