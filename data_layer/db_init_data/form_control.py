@@ -1473,6 +1473,42 @@ def _insert_form_controls(session: Session, cashier_id: str):
             fk_cashier_create_id=cashier_id,
             fk_cashier_update_id=cashier_id
         ),
+        # Save button
+        FormControl(
+            fk_form_id=cashier_form.id,
+            fk_parent_id=None,
+            name=ControlName.SAVE.value,
+            form_control_function1=EventName.SAVE_CHANGES.value,
+            form_control_function2=None,
+            type_no=1,
+            type="BUTTON",
+            width=125,
+            height=99,
+            location_x=745,
+            location_y=630,
+            start_position=None,
+            caption1="SAVE",
+            caption2=None,
+            list_values=None,
+            dock=None,
+            alignment=None,
+            text_alignment="CENTER",
+            character_casing="UPPER",
+            font="Tahoma",
+            icon=None,
+            tool_tip="Save cashier information",
+            image=None,
+            image_selected=None,
+            font_auto_height=False,
+            font_size=14,
+            input_type="ALPHANUMERIC",
+            text_image_relation=None,
+            back_color="0x228B22",  # Forest Green for save action
+            fore_color="0xFFFFFF",
+            keyboard_value=None,
+            fk_cashier_create_id=cashier_id,
+            fk_cashier_update_id=cashier_id
+        ),
         # Back button
         FormControl(
             fk_form_id=cashier_form.id,

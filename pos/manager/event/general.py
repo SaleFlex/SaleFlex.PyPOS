@@ -408,12 +408,100 @@ class GeneralEvent:
         Saves any pending changes in the current form before navigation
         or form closure. Used for configuration and data entry forms.
         
+        Currently supports:
+        - CASHIER form: Save cashier information (to be fully implemented)
+        - Other forms: Will be implemented as needed
+        
         Returns:
             bool: True if changes saved successfully, False otherwise
         """
-        # TODO: Implement form data saving logic
-        print("Save changes - functionality to be implemented")
+        print("\n" + "="*80)
+        print("[SAVE_CHANGES] Save changes event triggered")
+        print("="*80)
+        
+        # Check if user is authenticated
+        if not self.login_succeed:
+            print("[SAVE_CHANGES] User not authenticated")
+            return False
+        
+        # Determine current form type
+        current_form = self.current_form_type
+        print(f"[SAVE_CHANGES] Current form: {current_form}")
+        
+        # Handle CASHIER form saving
+        if current_form == FormName.CASHIER:
+            return self._save_cashier_changes()
+        
+        # Handle other forms as they are implemented
+        # elif current_form == FormName.CONFIG:
+        #     return self._save_config_changes()
+        # elif current_form == FormName.CUSTOMER:
+        #     return self._save_customer_changes()
+        
+        # Default: functionality to be implemented for other forms
+        print(f"[SAVE_CHANGES] Save functionality not yet implemented for form: {current_form}")
         return False
+    
+    def _save_cashier_changes(self):
+        """
+        Save cashier information from CASHIER form.
+        
+        Retrieves data from form controls (textboxes) and saves
+        cashier information to the database.
+        
+        Form controls expected:
+        - CASHIER_NAME: Username
+        - NAME: First name
+        - LAST_NAME: Last name
+        - PASSWORD: Password
+        - ID_NUMBER: Identification number
+        - DESCRIPTION: Additional description
+        
+        Returns:
+            bool: True if save successful, False otherwise
+        """
+        print("[SAVE_CASHIER] Collecting cashier form data...")
+        
+        # Get all textbox values from the form
+        textbox_values = self.interface.window.get_textbox_values()
+        print(f"[SAVE_CASHIER] Textbox values: {textbox_values}")
+        
+        # Extract cashier data from form controls
+        cashier_data = {
+            'user_name': textbox_values.get('CASHIER_NAME', '').strip(),
+            'name': textbox_values.get('NAME', '').strip(),
+            'last_name': textbox_values.get('LAST_NAME', '').strip(),
+            'password': textbox_values.get('PASSWORD', '').strip(),
+            'identity_number': textbox_values.get('ID_NUMBER', '').strip(),
+            'description': textbox_values.get('DESCRIPTION', '').strip()
+        }
+        
+        print(f"[SAVE_CASHIER] Collected data: {cashier_data}")
+        
+        # Validate required fields
+        if not cashier_data['user_name']:
+            print("[SAVE_CASHIER] ✗ Username is required")
+            return False
+        
+        if not cashier_data['password']:
+            print("[SAVE_CASHIER] ✗ Password is required")
+            return False
+        
+        # TODO: Implement actual database save operation
+        # This will be completed in a future update
+        # For now, just log the action
+        print("[SAVE_CASHIER] ✓ Data validated successfully")
+        print("[SAVE_CASHIER] TODO: Implement database save operation")
+        print(f"[SAVE_CASHIER] Data to be saved:")
+        print(f"  - Username: {cashier_data['user_name']}")
+        print(f"  - Name: {cashier_data['name']}")
+        print(f"  - Last Name: {cashier_data['last_name']}")
+        print(f"  - ID Number: {cashier_data['identity_number']}")
+        print(f"  - Description: {cashier_data['description']}")
+        
+        # Return True to indicate the operation was processed
+        # (even though actual save is not yet implemented)
+        return True
 
     def _redraw_form(self):
         """

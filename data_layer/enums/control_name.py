@@ -129,6 +129,7 @@ class ControlName(enum.Enum):
     # Application Controls
     EXIT = "EXIT"
     BACK = "BACK"
+    SAVE = "SAVE"
     
     # End of Day Controls
     CLOSURE = "CLOSURE"
