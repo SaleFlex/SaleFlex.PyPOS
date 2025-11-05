@@ -23,9 +23,10 @@ from uuid import uuid4
 
 from data_layer.model.crud_model import Model
 from data_layer.model.crud_model import CRUD
+from data_layer.model.mixins import AuditMixin, SoftDeleteMixin
 
 
-class ReceiptFooter(Model, CRUD):
+class ReceiptFooter(Model, CRUD, AuditMixin, SoftDeleteMixin):
     def __init__(self, footer_text=None):
         Model.__init__(self)
         CRUD.__init__(self)
@@ -36,10 +37,6 @@ class ReceiptFooter(Model, CRUD):
 
     id = Column(UUID, primary_key=True, default=uuid4)
     footer_text = Column(String(1000), nullable=True)
-    is_deleted = Column(Boolean, nullable=False, default=False)
-    delete_description = Column(String(1000), nullable=True)
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now())
 
     def __repr__(self):
         return f"<ReceiptFooter(footer_text='{self.footer_text[:50]}...')>" 

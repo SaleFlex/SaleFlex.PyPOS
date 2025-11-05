@@ -23,9 +23,10 @@ from uuid import uuid4
 
 from data_layer.model.crud_model import Model
 from data_layer.model.crud_model import CRUD
+from data_layer.model.mixins import AuditMixin, SoftDeleteMixin
 
 
-class CampaignUsage(Model, CRUD):
+class CampaignUsage(Model, CRUD, AuditMixin, SoftDeleteMixin):
     """
     Tracks campaign usage history for analytics and usage limit enforcement
     Records each time a campaign is applied to a transaction
@@ -60,11 +61,6 @@ class CampaignUsage(Model, CRUD):
     usage_date = Column(DateTime, server_default=func.now())
     coupon_code = Column(String(100), nullable=True)  # If campaign was activated via coupon
     notes = Column(Text, nullable=True)
-    
-    is_deleted = Column(Boolean, nullable=False, default=False)
-    delete_description = Column(String(1000), nullable=True)
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now())
 
     def __repr__(self):
         return f"<CampaignUsage(campaign_id='{self.fk_campaign_id}', customer_id='{self.fk_customer_id}', amount={self.discount_amount})>"

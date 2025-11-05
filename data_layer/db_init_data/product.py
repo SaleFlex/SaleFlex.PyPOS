@@ -17,7 +17,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from data_layer.model import Product, Vat, DepartmentSubGroup, ProductManufacturer, Store, ProductUnit
+from data_layer.model import Product, Vat, DepartmentSubGroup, ProductManufacturer, Store, ProductUnit, Warehouse
 
 
 def _insert_products(session, admin_cashier_id: str):
@@ -36,9 +36,16 @@ def _insert_products(session, admin_cashier_id: str):
         pc_unit = session.query(ProductUnit).filter_by(code="PCS").first()
         kg_unit = session.query(ProductUnit).filter_by(code="KG").first()
         
+        # Get primary warehouse (Sales Floor)
+        sales_floor_warehouse = session.query(Warehouse).filter_by(code="SALES-001").first()
+        
         if not vat_0_percent or not default_manufacturer or not default_store or not fresh_food_sub_group or not pc_unit or not kg_unit:
             print("⚠ Required references not found. Cannot insert products.")
             return
+        
+        if not sales_floor_warehouse:
+            print("Sales Floor warehouse not found. Products will be created without primary warehouse.")
+            # Continue anyway as primary warehouse is optional
 
         # Sample products based on C# TablePlu data
         products_data = [
@@ -473,6 +480,10 @@ def _insert_products(session, admin_cashier_id: str):
             product.fk_store_id = default_store.id
             product.fk_cashier_create_id = admin_cashier_id
             product.fk_cashier_update_id = admin_cashier_id
+            
+            # Set primary warehouse (Sales Floor)
+            if sales_floor_warehouse:
+                product.fk_primary_warehouse_id = sales_floor_warehouse.id
             
             session.add(product)
 

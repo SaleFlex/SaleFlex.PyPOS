@@ -23,9 +23,10 @@ from uuid import uuid4
 
 from data_layer.model.crud_model import Model
 from data_layer.model.crud_model import CRUD
+from data_layer.model.mixins import AuditMixin, SoftDeleteMixin
 
 
-class CampaignType(Model, CRUD):
+class CampaignType(Model, CRUD, AuditMixin, SoftDeleteMixin):
     """
     Defines types of promotional campaigns
     Examples: PRODUCT_DISCOUNT, BASKET_DISCOUNT, TIME_BASED, BUY_X_GET_Y, WELCOME_BONUS
@@ -56,11 +57,6 @@ class CampaignType(Model, CRUD):
     
     # Type-specific settings stored as JSON
     settings_json = Column(Text, nullable=True)
-    
-    is_deleted = Column(Boolean, nullable=False, default=False)
-    delete_description = Column(String(1000), nullable=True)
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now())
 
     def __repr__(self):
         return f"<CampaignType(code='{self.code}', name='{self.name}')>"

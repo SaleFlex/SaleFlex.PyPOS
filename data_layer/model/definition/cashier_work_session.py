@@ -23,9 +23,10 @@ from uuid import uuid4
 
 from data_layer.model.crud_model import Model
 from data_layer.model.crud_model import CRUD
+from data_layer.model.mixins import AuditMixin, SoftDeleteMixin
 
 
-class CashierWorkSession(Model, CRUD):
+class CashierWorkSession(Model, CRUD, AuditMixin, SoftDeleteMixin):
     def __init__(self, fk_cashier_id=None, fk_store_id=None, session_start_time=None, 
                  session_end_time=None, session_status=None):
         Model.__init__(self)
@@ -85,12 +86,6 @@ class CashierWorkSession(Model, CRUD):
     login_ip_address = Column(String(45), nullable=True)  # IPv4 or IPv6
     logout_ip_address = Column(String(45), nullable=True)
     pos_terminal_id = Column(String(50), nullable=True)
-    
-    # Audit fields
-    is_deleted = Column(Boolean, nullable=False, default=False)
-    delete_description = Column(String(1000), nullable=True)
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now())
 
     def __repr__(self):
         return f"<CashierWorkSession(cashier_id='{self.fk_cashier_id}', start_time='{self.session_start_time}', status='{self.session_status}')>" 

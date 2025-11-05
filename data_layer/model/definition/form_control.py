@@ -24,9 +24,10 @@ from uuid import uuid4
 
 from data_layer.model.crud_model import Model
 from data_layer.model.crud_model import CRUD
+from data_layer.model.mixins import AuditMixin, SoftDeleteMixin
 
 
-class FormControl(Model, CRUD):
+class FormControl(Model, CRUD, AuditMixin, SoftDeleteMixin):
     """Model representing a control element within a form."""
     def __init__(self, name="TMP_CONTROL_NAME", character_casing="NORMAL", text_alignment="LEFT", input_type="NUMERIC",
                  fk_form_id=None, fk_parent_id=None, parent_name=None, type_no=0, type="NOTYPE",
@@ -118,12 +119,6 @@ class FormControl(Model, CRUD):
     fk_target_form_id = Column(UUID, ForeignKey("form.id"), nullable=True)  # Target form for navigation
     form_transition_mode = Column(String(50), nullable=True)  # MODAL, REPLACE
     is_visible = Column(Boolean, nullable=False, default=True)
-    is_deleted = Column(Boolean, nullable=False, default=False)
-    delete_description = Column(String(1000), nullable=True)
-    fk_cashier_create_id = Column(UUID, ForeignKey("cashier.id"))
-    fk_cashier_update_id = Column(UUID, ForeignKey("cashier.id"))
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now())
 
     # Relationships
     form = relationship("Form", back_populates="controls", foreign_keys=[fk_form_id])

@@ -17,15 +17,16 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float, ForeignKey, UUID, Text
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float, ForeignKey, UUID, Text, Numeric
 from sqlalchemy.sql import func
 from uuid import uuid4
 
 from data_layer.model.crud_model import Model
 from data_layer.model.crud_model import CRUD
+from data_layer.model.mixins import AuditMixin, SoftDeleteMixin
 
 
-class WarehouseStockMovement(Model, CRUD):
+class WarehouseStockMovement(Model, CRUD, AuditMixin, SoftDeleteMixin):
     def __init__(self, fk_product_id=None, movement_type=None, quantity=0):
         Model.__init__(self)
         CRUD.__init__(self)
@@ -50,8 +51,8 @@ class WarehouseStockMovement(Model, CRUD):
     movement_type = Column(String(50), nullable=False)  # RECEIPT, SALE, TRANSFER, ADJUSTMENT, RETURN, LOSS, DAMAGE
     movement_subtype = Column(String(50), nullable=True)  # PURCHASE, CUSTOMER_RETURN, SUPPLIER_RETURN, CYCLE_COUNT, etc.
     quantity = Column(Integer, nullable=False)  # Quantity moved (positive for increases, negative for decreases)
-    unit_cost = Column(Float, nullable=True)  # Cost per unit
-    total_cost = Column(Float, nullable=True)  # Total cost of movement
+    unit_cost = Column(Numeric(precision=15, scale=4), nullable=True)  # Cost per unit
+    total_cost = Column(Numeric(precision=15, scale=4), nullable=True)  # Total cost of movement
     
     # Transaction references
     fk_transaction_head_id = Column(UUID, ForeignKey("transaction_head.id"), nullable=True)
@@ -121,13 +122,5 @@ class WarehouseStockMovement(Model, CRUD):
     # Performance metrics
     processing_time = Column(Float, nullable=True)  # Time taken to process movement
     
-    # Audit fields
-    is_deleted = Column(Boolean, nullable=False, default=False)
-    delete_description = Column(String(1000), nullable=True)
-    fk_cashier_create_id = Column(UUID, ForeignKey("cashier.id"))
-    fk_cashier_update_id = Column(UUID, ForeignKey("cashier.id"))
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now())
-
     def __repr__(self):
         return f"<WarehouseStockMovement(movement_number='{self.movement_number}', type='{self.movement_type}', quantity='{self.quantity}')>" 

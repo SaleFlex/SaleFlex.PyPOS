@@ -23,9 +23,10 @@ from uuid import uuid4
 
 from data_layer.model.crud_model import Model
 from data_layer.model.crud_model import CRUD
+from data_layer.model.mixins import AuditMixin, SoftDeleteMixin
 
 
-class ProductUnit(Model, CRUD):
+class ProductUnit(Model, CRUD, AuditMixin, SoftDeleteMixin):
     def __init__(self, code=None, name=None, description=None):
         Model.__init__(self)
         CRUD.__init__(self)
@@ -43,12 +44,6 @@ class ProductUnit(Model, CRUD):
     base_id = Column(Integer, nullable=True)
     base_amount = Column(Float, nullable=True)
     symbol = Column(String(10), nullable=True)
-    is_deleted = Column(Boolean, nullable=False, default=False)
-    delete_description = Column(String(1000), nullable=True)
-    fk_cashier_create_id = Column(UUID, nullable=True)
-    fk_cashier_update_id = Column(UUID, nullable=True)
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now())
 
     def __repr__(self):
         return f"<ProductUnit(name='{self.name}', code='{self.code}', description='{self.description}')>"

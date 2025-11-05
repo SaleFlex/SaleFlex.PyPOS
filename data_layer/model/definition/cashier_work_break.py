@@ -23,9 +23,10 @@ from uuid import uuid4
 
 from data_layer.model.crud_model import Model
 from data_layer.model.crud_model import CRUD
+from data_layer.model.mixins import AuditMixin, SoftDeleteMixin
 
 
-class CashierWorkBreak(Model, CRUD):
+class CashierWorkBreak(Model, CRUD, AuditMixin, SoftDeleteMixin):
     def __init__(self, fk_cashier_id=None, fk_work_session_id=None, break_type=None, 
                  break_start_time=None, break_end_time=None):
         Model.__init__(self)
@@ -111,12 +112,6 @@ class CashierWorkBreak(Model, CRUD):
     break_notes = Column(String(1000), nullable=True)
     supervisor_comments = Column(String(1000), nullable=True)
     reason_for_break = Column(String(500), nullable=True)
-    
-    # Audit fields
-    is_deleted = Column(Boolean, nullable=False, default=False)
-    delete_description = Column(String(1000), nullable=True)
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now())
 
     def __repr__(self):
         return f"<CashierWorkBreak(cashier_id='{self.fk_cashier_id}', break_type='{self.break_type}', start_time='{self.break_start_time}')>" 

@@ -24,9 +24,10 @@ from uuid import uuid4
 from data_layer.model.crud_model import Model
 from data_layer.model.crud_model import CRUD
 from data_layer.model.definition.transaction_status import KitchenOrderStatus
+from data_layer.model.mixins import AuditMixin, SoftDeleteMixin
 
 
-class TransactionKitchenOrder(Model, CRUD):
+class TransactionKitchenOrder(Model, CRUD, AuditMixin, SoftDeleteMixin):
     def __init__(self):
         Model.__init__(self)
         CRUD.__init__(self)
@@ -49,12 +50,6 @@ class TransactionKitchenOrder(Model, CRUD):
     served_at = Column(DateTime, nullable=True)
     is_cancelled = Column(Boolean, nullable=False, default=False)
     cancel_reason = Column(String(500), nullable=True)
-    is_deleted = Column(Boolean, nullable=False, default=False)
-    delete_description = Column(String(1000), nullable=True)
-    fk_cashier_create_id = Column(UUID, ForeignKey("cashier.id"))
-    fk_cashier_update_id = Column(UUID, ForeignKey("cashier.id"))
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now())
 
     def __repr__(self):
         return f"<TransactionKitchenOrder(order_number='{self.order_number}', kitchen_order_status='{self.kitchen_order_status}', quantity='{self.quantity}')>" 

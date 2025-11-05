@@ -23,9 +23,10 @@ from uuid import uuid4
 
 from data_layer.model.crud_model import Model
 from data_layer.model.crud_model import CRUD
+from data_layer.model.mixins import AuditMixin, SoftDeleteMixin
 
 
-class CouponUsage(Model, CRUD):
+class CouponUsage(Model, CRUD, AuditMixin, SoftDeleteMixin):
     """
     Tracks coupon redemption history
     Records each time a coupon is used in a transaction
@@ -58,11 +59,6 @@ class CouponUsage(Model, CRUD):
     discount_amount = Column(Numeric(18, 2), nullable=False)  # Discount amount applied
     usage_date = Column(DateTime, server_default=func.now())
     notes = Column(Text, nullable=True)
-    
-    is_deleted = Column(Boolean, nullable=False, default=False)
-    delete_description = Column(String(1000), nullable=True)
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now())
 
     def __repr__(self):
         return f"<CouponUsage(coupon_id='{self.fk_coupon_id}', customer_id='{self.fk_customer_id}', amount={self.discount_amount})>"

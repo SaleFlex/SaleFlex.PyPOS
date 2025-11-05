@@ -23,9 +23,10 @@ from uuid import uuid4
 
 from data_layer.model.crud_model import Model
 from data_layer.model.crud_model import CRUD
+from data_layer.model.mixins import AuditMixin, SoftDeleteMixin
 
 
-class CampaignProduct(Model, CRUD):
+class CampaignProduct(Model, CRUD, AuditMixin, SoftDeleteMixin):
     """
     Links specific products to campaigns
     Allows product-specific discount configurations or identifies gift products
@@ -66,11 +67,6 @@ class CampaignProduct(Model, CRUD):
     # Status and display
     is_active = Column(Boolean, nullable=False, default=True)
     display_order = Column(Integer, nullable=False, default=0)
-    
-    is_deleted = Column(Boolean, nullable=False, default=False)
-    delete_description = Column(String(1000), nullable=True)
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now())
 
     def __repr__(self):
         return f"<CampaignProduct(campaign_id='{self.fk_campaign_id}', product_id='{self.fk_product_id}')>"

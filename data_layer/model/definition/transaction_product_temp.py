@@ -17,16 +17,21 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from sqlalchemy import Column, Integer, BigInteger, Boolean, String, DateTime, Float, ForeignKey, UUID
-from sqlalchemy.sql import func
+from sqlalchemy import (
+    Column, Integer, BigInteger, Boolean, String,
+    DateTime, Float, ForeignKey, UUID, Numeric, Index
+)
 
 from data_layer.model.crud_model import Model
 from data_layer.model.crud_model import CRUD
+from data_layer.model.mixins import AuditMixin, SoftDeleteMixin
 
 from uuid import uuid4
 
 
-class TransactionProductTemp(Model, CRUD):
+class TransactionProductTemp(Model, CRUD, AuditMixin, SoftDeleteMixin):
+    """Temporary transaction product line items"""
+
     def __init__(self):
         Model.__init__(self)
         CRUD.__init__(self)
@@ -34,27 +39,74 @@ class TransactionProductTemp(Model, CRUD):
     __tablename__ = "transaction_product_temp"
 
     id = Column(UUID, primary_key=True, default=uuid4)
-    fk_transaction_head_id = Column(UUID, ForeignKey("transaction_head_temp.id"))
+    fk_transaction_head_id = Column(UUID, ForeignKey("transaction_head_temp.id"), index=True)
     line_no = Column(Integer, nullable=False)
+
+    # Product references
     fk_department_main_group_id = Column(UUID, ForeignKey("department_main_group.id"), nullable=False)
-    fk_department_sub_group_id = Column(UUID, ForeignKey("department_main_group.id"), nullable=True)
-    fk_product_id = Column(UUID, ForeignKey("product.id"), nullable=True)
+    fk_department_sub_group_id = Column(UUID, ForeignKey("department_sub_group.id"), nullable=True)
+    fk_product_id = Column(UUID, ForeignKey("product.id"), nullable=True, index=True)
     fk_product_barcode_id = Column(UUID, ForeignKey("product_barcode.id"), nullable=True)
     fk_product_barcode_mask_id = Column(UUID, ForeignKey("product_barcode_mask.id"), nullable=True)
-    vat_rate = Column(Integer, nullable=False)
-    unit_price = Column(Float, nullable=False)
-    unit_discount = Column(Float, nullable=False)
-    quantity = Column(Float, nullable=False)
-    total_price = Column(Float, nullable=False)
-    total_vat = Column(Float, nullable=False)
-    total_discount = Column(Float, nullable=True)
+
+    # Product snapshot (critical for historical accuracy)
+    product_code = Column(String(50), nullable=True)
+    product_name = Column(String(200), nullable=True)
+    product_description = Column(String(500), nullable=True)
+
+    # VAT rate
+    vat_rate = Column(Numeric(precision=5, scale=2), nullable=False)  # e.g., 18.50%
+
+    # Tax details
+    tax_category = Column(String(50), nullable=True)
+    tax_exemption_reason = Column(String(200), nullable=True)
+    tax_inclusive = Column(Boolean, nullable=False, default=True)
+
+    # All monetary values now use Numeric
+    cost_price = Column(Numeric(precision=15, scale=4), nullable=True)  # NEW: For margin analysis
+    list_price = Column(Numeric(precision=15, scale=4), nullable=True)  # NEW: Original price
+    unit_price = Column(Numeric(precision=15, scale=4), nullable=False)
+    unit_discount = Column(Numeric(precision=15, scale=4), nullable=False, default=0)
+
+    # Discount details
+    discount_rate = Column(Numeric(precision=5, scale=2), nullable=True)  # Discount percentage
+    discount_reason = Column(String(200), nullable=True)
+
+    # Measurement & quantity
+    quantity = Column(Numeric(precision=15, scale=4), nullable=False)
+    unit_of_measure = Column(String(20), nullable=False, default="EA")  # "EA", "KG", "LT", "M"
+    base_unit_quantity = Column(Numeric(precision=15, scale=4), nullable=True)  # Converted to base unit
+    weight = Column(Numeric(precision=15, scale=4), nullable=True)
+    weight_unit = Column(String(10), nullable=True)  # "KG", "LB", "G"
+
+    # Calculated totals
+    total_price = Column(Numeric(precision=15, scale=4), nullable=False)
+    total_vat = Column(Numeric(precision=15, scale=4), nullable=False)
+    total_discount = Column(Numeric(precision=15, scale=4), nullable=True)
+
+    # Traceability
+    serial_number = Column(String(100), nullable=True)
+    lot_number = Column(String(100), nullable=True)
+    expiry_date = Column(DateTime, nullable=True)
+
+    # Product attributes (for restaurants)
+    modifiers_json = Column(String(2000), nullable=True)  # JSON string for modifiers
+    special_instructions = Column(String(500), nullable=True)
+
+    # Warranty & returns
+    warranty_months = Column(Integer, nullable=True)
+    return_period_days = Column(Integer, nullable=True)
+    is_returnable = Column(Boolean, nullable=False, default=True)
+
+    # Line item status
     is_cancel = Column(Boolean, nullable=False, default=False)
-    is_deleted = Column(Boolean, nullable=False, default=False)
-    delete_description = Column(String(1000), nullable=True)
-    fk_cashier_create_id = Column(UUID, ForeignKey("cashier.id"))
-    fk_cashier_update_id = Column(UUID, ForeignKey("cashier.id"))
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now())
+    is_voided = Column(Boolean, nullable=False, default=False)
+    void_reason = Column(String(200), nullable=True)
 
     def __repr__(self):
-        return f"<TransactionProductTemp(total_price='{self.total_price}')>"
+        return f"<TransactionProductTemp(product='{self.product_name}', qty='{self.quantity}', total='{self.total_price}')>"
+
+    __table_args__ = (
+        Index('idx_temp_product_transaction', 'fk_transaction_head_id'),
+        Index('idx_temp_product_id', 'fk_product_id'),
+    )

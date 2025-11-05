@@ -34,7 +34,7 @@ def _insert_warehouses(session, admin_cashier_id: str):
         barking_district = session.query(District).filter_by(code="LDN-BAD").first()
         
         if not default_store or not london_city:
-            print("⚠ Required references not found. Cannot insert warehouses.")
+            print("Required references not found. Cannot insert warehouses.")
             return
 
         # Define warehouse data for a UK retail store
@@ -92,16 +92,16 @@ def _insert_warehouses(session, admin_cashier_id: str):
                 "high_value_items_area": False
             },
             {
-                "name": "Display Storage",
-                "code": "DISP-001",
-                "description": "Display area storage for shop floor items",
-                "warehouse_type": "DISPLAY",
+                "name": "Sales Floor",
+                "code": "SALES-001",
+                "description": "Main sales floor with product displays and shelves",
+                "warehouse_type": "SALES_FLOOR",
                 "address": "123 High Street, Westminster, London SW1A 1AA",
                 "district": westminster_district,
-                "total_area": 200.0,
-                "usable_area": 180.0,
-                "height": 3.0,
-                "max_capacity": 540.0,
+                "total_area": 350.0,
+                "usable_area": 300.0,
+                "height": 3.5,
+                "max_capacity": 1050.0,
                 "temperature_controlled": False,
                 "requires_security_access": False,
                 "security_level": "LOW",
@@ -260,7 +260,7 @@ def _insert_warehouses(session, admin_cashier_id: str):
         print("✓ UK Store warehouses added:")
         print("  - Main Storage Warehouse (Croydon)")
         print("  - Store Backroom (Westminster)")
-        print("  - Display Storage (Westminster)")
+        print("  - Sales Floor (Westminster)")
         print("  - Cold Storage Facility (Barking)")
         print("  - Security Storage (Westminster)")
         print("  - Temporary Storage (Westminster)")

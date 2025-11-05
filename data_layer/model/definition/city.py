@@ -44,10 +44,6 @@ class City(Model, CRUD):
     short_name = Column(String(10), nullable=True)
     numeric_code = Column(Integer, nullable=True)
     fk_country_id = Column(UUID, ForeignKey("country.id"), nullable=False)
-    is_deleted = Column(Boolean, nullable=False, default=False)
-    delete_description = Column(String(1000), nullable=True)
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now())
 
     def __repr__(self):
         return f"<City(name='{self.name}', code='{self.code}')>" 

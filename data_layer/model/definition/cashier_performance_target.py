@@ -17,15 +17,16 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float, ForeignKey, UUID, Date
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float, ForeignKey, UUID, Date, Numeric
 from sqlalchemy.sql import func
 from uuid import uuid4
 
 from data_layer.model.crud_model import Model
 from data_layer.model.crud_model import CRUD
+from data_layer.model.mixins import AuditMixin, SoftDeleteMixin
 
 
-class CashierPerformanceTarget(Model, CRUD):
+class CashierPerformanceTarget(Model, CRUD, AuditMixin, SoftDeleteMixin):
     def __init__(self, fk_cashier_id=None, fk_store_id=None, fk_supervisor_id=None,
                  target_type=None, target_period=None, target_start_date=None, target_end_date=None,
                  target_year=None, target_month=None, target_week=None,
@@ -151,16 +152,16 @@ class CashierPerformanceTarget(Model, CRUD):
     target_week = Column(Integer, nullable=True)  # 1-52
     
     # Sales performance targets
-    target_total_sales = Column(Integer, nullable=True)  # In cents
-    target_daily_sales = Column(Integer, nullable=True)  # In cents
+    target_total_sales = Column(Numeric(precision=15, scale=4), nullable=True)
+    target_daily_sales = Column(Numeric(precision=15, scale=4), nullable=True)
     target_transactions_count = Column(Integer, nullable=True)
     target_items_sold = Column(Integer, nullable=True)
     target_customers_served = Column(Integer, nullable=True)
-    target_average_transaction_amount = Column(Integer, nullable=True)  # In cents
+    target_average_transaction_amount = Column(Numeric(precision=15, scale=4), nullable=True)
     
     # Efficiency targets
     target_transactions_per_hour = Column(Float, nullable=True)
-    target_sales_per_hour = Column(Integer, nullable=True)  # In cents
+    target_sales_per_hour = Column(Numeric(precision=15, scale=4), nullable=True)
     target_items_per_hour = Column(Float, nullable=True)
     target_customers_per_hour = Column(Float, nullable=True)
     target_average_transaction_time = Column(Float, nullable=True)  # In seconds
@@ -208,7 +209,7 @@ class CashierPerformanceTarget(Model, CRUD):
     
     # Incentive and reward information
     incentive_type = Column(String(30), nullable=True)  # BONUS, COMMISSION, RECOGNITION, PROMOTION, GIFT
-    incentive_amount = Column(Integer, nullable=True)  # In cents
+    incentive_amount = Column(Numeric(precision=15, scale=4), nullable=True)
     incentive_description = Column(String(500), nullable=True)
     penalty_type = Column(String(30), nullable=True)  # WARNING, TRAINING, COUNSELING, REVIEW
     penalty_description = Column(String(500), nullable=True)
@@ -248,14 +249,6 @@ class CashierPerformanceTarget(Model, CRUD):
     target_rationale = Column(String(1000), nullable=True)
     success_criteria = Column(String(1000), nullable=True)
     measurement_method = Column(String(500), nullable=True)
-    
-    # Audit fields
-    is_deleted = Column(Boolean, nullable=False, default=False)
-    delete_description = Column(String(1000), nullable=True)
-    fk_cashier_create_id = Column(UUID, ForeignKey("cashier.id"), nullable=True)
-    fk_cashier_update_id = Column(UUID, ForeignKey("cashier.id"), nullable=True)
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now())
 
     def __repr__(self):
         return f"<CashierPerformanceTarget(cashier_id='{self.fk_cashier_id}', target_type='{self.target_type}', period='{self.target_period}')>" 

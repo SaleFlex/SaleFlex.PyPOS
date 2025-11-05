@@ -23,9 +23,10 @@ from uuid import uuid4
 
 from data_layer.model.crud_model import Model
 from data_layer.model.crud_model import CRUD
+from data_layer.model.mixins import AuditMixin, SoftDeleteMixin
 
 
-class PosVirtualKeyboard(Model, CRUD):
+class PosVirtualKeyboard(Model, CRUD, AuditMixin, SoftDeleteMixin):
     """Model representing virtual keyboard settings and appearance."""
     def __init__(self, name="DEFAULT_VIRTUAL_KEYBOARD", is_active=True, 
                  keyboard_width=970, keyboard_height=315, x_position=0, y_position=0,
@@ -136,12 +137,6 @@ class PosVirtualKeyboard(Model, CRUD):
     # Text colors
     button_text_color = Column(String(50), nullable=True)
     button_text_color_pressed = Column(String(50), nullable=True)
-    
-    # Standard fields
-    is_deleted = Column(Boolean, nullable=False, default=False)
-    delete_description = Column(String(1000), nullable=True)
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now())
 
     def __repr__(self):
         return f"<PosVirtualKeyboard(name='{self.name}', is_active={self.is_active})>"

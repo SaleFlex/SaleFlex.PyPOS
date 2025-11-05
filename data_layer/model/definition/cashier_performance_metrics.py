@@ -17,15 +17,16 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float, ForeignKey, UUID, Date
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float, ForeignKey, UUID, Date, Numeric
 from sqlalchemy.sql import func
 from uuid import uuid4
 
 from data_layer.model.crud_model import Model
 from data_layer.model.crud_model import CRUD
+from data_layer.model.mixins import AuditMixin, SoftDeleteMixin
 
 
-class CashierPerformanceMetrics(Model, CRUD):
+class CashierPerformanceMetrics(Model, CRUD, AuditMixin, SoftDeleteMixin):
     def __init__(self, fk_cashier_id=None, fk_store_id=None, period_type=None, 
                  period_start_date=None, period_end_date=None):
         Model.__init__(self)
@@ -61,16 +62,16 @@ class CashierPerformanceMetrics(Model, CRUD):
     
     # Sales performance metrics
     total_transactions = Column(Integer, nullable=False, default=0)
-    total_sales_amount = Column(Integer, nullable=False, default=0)  # In cents
+    total_sales_amount = Column(Numeric(precision=15, scale=4), nullable=False, default=0)
     total_items_sold = Column(Integer, nullable=False, default=0)
     total_customers_served = Column(Integer, nullable=False, default=0)
     
     # Efficiency metrics
     transactions_per_hour = Column(Float, nullable=True)
-    sales_per_hour = Column(Float, nullable=True)  # In cents per hour
+    sales_per_hour = Column(Numeric(precision=15, scale=4), nullable=True)
     items_per_hour = Column(Float, nullable=True)
     customers_per_hour = Column(Float, nullable=True)
-    average_transaction_amount = Column(Float, nullable=True)  # In cents
+    average_transaction_amount = Column(Numeric(precision=15, scale=4), nullable=True)
     average_items_per_transaction = Column(Float, nullable=True)
     
     # Transaction timing metrics
@@ -114,7 +115,7 @@ class CashierPerformanceMetrics(Model, CRUD):
     peak_hour_start = Column(Integer, nullable=True)  # Hour of day (0-23)
     peak_hour_end = Column(Integer, nullable=True)  # Hour of day (0-23)
     peak_transactions_per_hour = Column(Float, nullable=True)
-    peak_sales_per_hour = Column(Float, nullable=True)  # In cents
+    peak_sales_per_hour = Column(Numeric(precision=15, scale=4), nullable=True)
     
     # Customer satisfaction metrics
     customer_complaints = Column(Integer, nullable=False, default=0)
@@ -125,12 +126,6 @@ class CashierPerformanceMetrics(Model, CRUD):
     performance_notes = Column(String(2000), nullable=True)
     supervisor_feedback = Column(String(2000), nullable=True)
     improvement_suggestions = Column(String(2000), nullable=True)
-    
-    # Audit fields
-    is_deleted = Column(Boolean, nullable=False, default=False)
-    delete_description = Column(String(1000), nullable=True)
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now())
 
     def __repr__(self):
         return f"<CashierPerformanceMetrics(cashier_id='{self.fk_cashier_id}', period='{self.period_type}', start_date='{self.period_start_date}')>" 

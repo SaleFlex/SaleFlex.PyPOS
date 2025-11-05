@@ -23,9 +23,10 @@ from uuid import uuid4
 
 from data_layer.model.crud_model import Model
 from data_layer.model.crud_model import CRUD
+from data_layer.model.mixins import SoftDeleteMixin
 
 
-class Customer(Model, CRUD):
+class Customer(Model, CRUD, SoftDeleteMixin):
     """
     Stores customer information including personal details and preferences
     Extended to support loyalty programs and customer segmentation
@@ -97,8 +98,6 @@ class Customer(Model, CRUD):
     total_bonus_point = Column(Integer, nullable=False, default=0)
     
     # Status flags
-    is_deleted = Column(Boolean, nullable=False, default=False)
-    delete_description = Column(String(1000), nullable=True)
     is_administrator = Column(Boolean(False), default=False)
     is_active = Column(Boolean(False), default=False)
     

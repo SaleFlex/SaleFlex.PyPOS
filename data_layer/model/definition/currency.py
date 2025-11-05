@@ -17,15 +17,16 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float, UUID
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float, UUID, Numeric
 from sqlalchemy.sql import func
 from uuid import uuid4
 
 from data_layer.model.crud_model import Model
 from data_layer.model.crud_model import CRUD
+from data_layer.model.mixins import AuditMixin, SoftDeleteMixin
 
 
-class Currency(Model, CRUD):
+class Currency(Model, CRUD, AuditMixin, SoftDeleteMixin):
     def __init__(self, name=None, no=None, rate=None, currency_code=None, 
                  sign=None, sign_direction=None, currency_symbol=None):
         Model.__init__(self)
@@ -44,15 +45,11 @@ class Currency(Model, CRUD):
     id = Column(UUID, primary_key=True, default=uuid4)
     no = Column(Integer, nullable=False, unique=True)
     name = Column(String(50), nullable=False)
-    rate = Column(Float, nullable=False, default=1.0)
+    rate = Column(Numeric(precision=15, scale=4), nullable=False, default=1.0)
     currency_code = Column(Integer, nullable=True)
     sign = Column(String(10), nullable=True)
     sign_direction = Column(String(10), nullable=True)  # LEFT, RIGHT
     currency_symbol = Column(String(10), nullable=True)
-    is_deleted = Column(Boolean, nullable=False, default=False)
-    delete_description = Column(String(1000), nullable=True)
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now())
 
     def __repr__(self):
         return f"<Currency(name='{self.name}', no='{self.no}', rate='{self.rate}')>" 

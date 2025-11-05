@@ -23,9 +23,10 @@ from uuid import uuid4
 
 from data_layer.model.crud_model import Model
 from data_layer.model.crud_model import CRUD
+from data_layer.model.mixins import AuditMixin, SoftDeleteMixin
 
 
-class ProductVariant(Model, CRUD):
+class ProductVariant(Model, CRUD, AuditMixin, SoftDeleteMixin):
     def __init__(self, fk_product_id=None, variant_name=None, variant_code=None):
         Model.__init__(self)
         CRUD.__init__(self)
@@ -38,62 +39,54 @@ class ProductVariant(Model, CRUD):
 
     id = Column(UUID, primary_key=True, default=uuid4)
     fk_product_id = Column(UUID, ForeignKey("product.id"), nullable=False)
-    variant_name = Column(String(100), nullable=False)  # Varyant adı
-    variant_code = Column(String(50), nullable=False, unique=True)  # Varyant kodu
+    variant_name = Column(String(100), nullable=False)  # Variant name
+    variant_code = Column(String(50), nullable=False, unique=True)  # Variant code
     
     # Clothing and Fashion variants
-    color = Column(String(50), nullable=True)  # Renk
-    color_hex = Column(String(7), nullable=True)  # Renk HEX kodu (#FFFFFF)
-    size = Column(String(20), nullable=True)  # Beden (XS, S, M, L, XL, 38, 40, 42, etc.)
-    fabric = Column(String(100), nullable=True)  # Kumaş tipi
-    pattern = Column(String(50), nullable=True)  # Desen (solid, striped, dotted, etc.)
+    color = Column(String(50), nullable=True)  # Color
+    color_hex = Column(String(7), nullable=True)  # Color HEX code (#FFFFFF)
+    size = Column(String(20), nullable=True)  # Size (XS, S, M, L, XL, 38, 40, 42, etc.)
+    fabric = Column(String(100), nullable=True)  # Fabric type
+    pattern = Column(String(50), nullable=True)  # Pattern (solid, striped, dotted, etc.)
     
     # Shoe specific variants
-    shoe_size_eu = Column(String(10), nullable=True)  # EU beden (38, 39, 40, etc.)
-    shoe_size_us = Column(String(10), nullable=True)  # US beden (7, 8, 9, etc.)
-    shoe_size_uk = Column(String(10), nullable=True)  # UK beden (5, 6, 7, etc.)
-    shoe_width = Column(String(10), nullable=True)  # Ayakkabı genişliği (narrow, medium, wide)
-    heel_height = Column(Float, nullable=True)  # Topuk yüksekliği (cm)
-    sole_material = Column(String(50), nullable=True)  # Taban malzemesi
-    upper_material = Column(String(50), nullable=True)  # Üst malzeme
-    closure_type = Column(String(50), nullable=True)  # Kapanış tipi (lace, velcro, slip-on, etc.)
+    shoe_size_eu = Column(String(10), nullable=True)  # EU size (38, 39, 40, etc.)
+    shoe_size_us = Column(String(10), nullable=True)  # US size (7, 8, 9, etc.)
+    shoe_size_uk = Column(String(10), nullable=True)  # UK size (5, 6, 7, etc.)
+    shoe_width = Column(String(10), nullable=True)  # Shoe width (narrow, medium, wide)
+    heel_height = Column(Float, nullable=True)  # Heel height (cm)
+    sole_material = Column(String(50), nullable=True)  # Sole material
+    upper_material = Column(String(50), nullable=True)  # Upper material
+    closure_type = Column(String(50), nullable=True)  # Closure type (lace, velcro, slip-on, etc.)
     
     # Electronics variants
-    storage_capacity = Column(String(20), nullable=True)  # Depolama kapasitesi (64GB, 128GB, etc.)
-    ram_capacity = Column(String(20), nullable=True)  # RAM kapasitesi (4GB, 8GB, etc.)
-    processor_type = Column(String(50), nullable=True)  # İşlemci tipi
-    screen_size = Column(String(20), nullable=True)  # Ekran boyutu (13", 15", etc.)
-    connectivity = Column(String(100), nullable=True)  # Bağlantı seçenekleri (WiFi, Bluetooth, etc.)
+    storage_capacity = Column(String(20), nullable=True)  # Storage capacity (64GB, 128GB, etc.)
+    ram_capacity = Column(String(20), nullable=True)  # RAM capacity (4GB, 8GB, etc.)
+    processor_type = Column(String(50), nullable=True)  # Processor type
+    screen_size = Column(String(20), nullable=True)  # Screen size (13", 15", etc.)
+    connectivity = Column(String(100), nullable=True)  # Connectivity options (WiFi, Bluetooth, etc.)
     
     # Cosmetics variants
-    shade = Column(String(50), nullable=True)  # Ton/gölge
-    finish = Column(String(50), nullable=True)  # Finish tipi (matte, glossy, satin, etc.)
-    skin_type = Column(String(50), nullable=True)  # Cilt tipi (oily, dry, combination, etc.)
+    shade = Column(String(50), nullable=True)  # Shade/tone
+    finish = Column(String(50), nullable=True)  # Finish type (matte, glossy, satin, etc.)
+    skin_type = Column(String(50), nullable=True)  # Skin type (oily, dry, combination, etc.)
     
     # Jewelry variants
-    metal_type = Column(String(50), nullable=True)  # Metal tipi (gold, silver, platinum, etc.)
-    stone_type = Column(String(50), nullable=True)  # Taş tipi (diamond, ruby, sapphire, etc.)
-    carat_weight = Column(Float, nullable=True)  # Karat ağırlığı
-    ring_size = Column(String(10), nullable=True)  # Yüzük ölçüsü
-    chain_length = Column(Float, nullable=True)  # Zincir uzunluğu (cm)
+    metal_type = Column(String(50), nullable=True)  # Metal type (gold, silver, platinum, etc.)
+    stone_type = Column(String(50), nullable=True)  # Stone type (diamond, ruby, sapphire, etc.)
+    carat_weight = Column(Float, nullable=True)  # Carat weight
+    ring_size = Column(String(10), nullable=True)  # Ring size
+    chain_length = Column(Float, nullable=True)  # Chain length (cm)
     
     # Variant specific information
-    weight = Column(Float, nullable=True)  # Varyant ağırlığı
-    dimensions = Column(String(100), nullable=True)  # Boyutlar
-    additional_info = Column(String(500), nullable=True)  # Ek bilgiler
+    weight = Column(Float, nullable=True)  # Variant weight
+    dimensions = Column(String(100), nullable=True)  # Dimensions
+    additional_info = Column(String(500), nullable=True)  # Additional information
     
     # Status fields
     is_active = Column(Boolean, nullable=False, default=True)
-    is_default = Column(Boolean, nullable=False, default=False)  # Varsayılan varyant mı?
-    sort_order = Column(Integer, nullable=False, default=0)  # Sıralama
+    is_default = Column(Boolean, nullable=False, default=False)  # Is default variant?
+    sort_order = Column(Integer, nullable=False, default=0)  # Sort order
     
-    # Audit fields
-    is_deleted = Column(Boolean, nullable=False, default=False)
-    delete_description = Column(String(1000), nullable=True)
-    fk_cashier_create_id = Column(UUID, ForeignKey("cashier.id"))
-    fk_cashier_update_id = Column(UUID, ForeignKey("cashier.id"))
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now())
-
     def __repr__(self):
         return f"<ProductVariant(variant_name='{self.variant_name}', variant_code='{self.variant_code}')>" 

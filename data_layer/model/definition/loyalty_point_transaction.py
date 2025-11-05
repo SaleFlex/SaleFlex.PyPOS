@@ -23,9 +23,10 @@ from uuid import uuid4
 
 from data_layer.model.crud_model import Model
 from data_layer.model.crud_model import CRUD
+from data_layer.model.mixins import AuditMixin, SoftDeleteMixin
 
 
-class LoyaltyPointTransaction(Model, CRUD):
+class LoyaltyPointTransaction(Model, CRUD, AuditMixin, SoftDeleteMixin):
     """
     Records all loyalty point movements (earned, redeemed, expired, adjusted)
     Provides complete audit trail of customer point balance changes
@@ -76,11 +77,6 @@ class LoyaltyPointTransaction(Model, CRUD):
     reference_number = Column(String(100), nullable=True)  # External reference (receipt number, etc.)
     description = Column(String(500), nullable=True)
     notes = Column(Text, nullable=True)
-    
-    is_deleted = Column(Boolean, nullable=False, default=False)
-    delete_description = Column(String(1000), nullable=True)
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now())
 
     def __repr__(self):
         return f"<LoyaltyPointTransaction(customer_id='{self.fk_customer_id}', type='{self.transaction_type}', points={self.points_amount})>"

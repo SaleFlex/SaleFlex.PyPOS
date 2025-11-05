@@ -17,15 +17,16 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float, ForeignKey, UUID, Date
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float, ForeignKey, UUID, Date, Numeric
 from sqlalchemy.sql import func
 from uuid import uuid4
 
 from data_layer.model.crud_model import Model
 from data_layer.model.crud_model import CRUD
+from data_layer.model.mixins import AuditMixin, SoftDeleteMixin
 
 
-class WarehouseProductStock(Model, CRUD):
+class WarehouseProductStock(Model, CRUD, AuditMixin, SoftDeleteMixin):
     def __init__(self, fk_product_id=None, fk_warehouse_location_id=None, quantity=0):
         Model.__init__(self)
         CRUD.__init__(self)
@@ -58,9 +59,9 @@ class WarehouseProductStock(Model, CRUD):
     reorder_quantity = Column(Integer, nullable=False, default=0)  # Reorder quantity
     
     # Cost information
-    average_cost = Column(Float, nullable=True, default=0.0)  # Average cost per unit
-    last_cost = Column(Float, nullable=True, default=0.0)  # Last purchase cost
-    total_value = Column(Float, nullable=True, default=0.0)  # Total stock value
+    average_cost = Column(Numeric(precision=15, scale=4), nullable=True, default=0.0)  # Average cost per unit
+    last_cost = Column(Numeric(precision=15, scale=4), nullable=True, default=0.0)  # Last purchase cost
+    total_value = Column(Numeric(precision=15, scale=4), nullable=True, default=0.0)  # Total stock value
     
     # Lot and expiration tracking
     lot_number = Column(String(50), nullable=True)  # Lot number
@@ -117,13 +118,5 @@ class WarehouseProductStock(Model, CRUD):
         {'extend_existing': True}
     )
     
-    # Audit fields
-    is_deleted = Column(Boolean, nullable=False, default=False)
-    delete_description = Column(String(1000), nullable=True)
-    fk_cashier_create_id = Column(UUID, ForeignKey("cashier.id"))
-    fk_cashier_update_id = Column(UUID, ForeignKey("cashier.id"))
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now())
-
     def __repr__(self):
         return f"<WarehouseProductStock(product_id='{self.fk_product_id}', location_id='{self.fk_warehouse_location_id}', quantity='{self.quantity}')>" 

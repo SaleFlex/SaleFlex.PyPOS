@@ -23,9 +23,10 @@ from uuid import uuid4
 
 from data_layer.model.crud_model import Model
 from data_layer.model.crud_model import CRUD
+from data_layer.model.mixins import AuditMixin, SoftDeleteMixin
 
 
-class CustomerLoyalty(Model, CRUD):
+class CustomerLoyalty(Model, CRUD, AuditMixin, SoftDeleteMixin):
     """
     Stores customer's loyalty program membership details
     Tracks points balance, tier, and program participation
@@ -82,11 +83,6 @@ class CustomerLoyalty(Model, CRUD):
     
     # Status
     is_active = Column(Boolean, nullable=False, default=True)
-    
-    is_deleted = Column(Boolean, nullable=False, default=False)
-    delete_description = Column(String(1000), nullable=True)
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now())
 
     def __repr__(self):
         return f"<CustomerLoyalty(customer_id='{self.fk_customer_id}', available_points={self.available_points})>"

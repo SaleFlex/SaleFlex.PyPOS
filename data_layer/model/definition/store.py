@@ -23,9 +23,10 @@ from uuid import uuid4
 
 from data_layer.model.crud_model import Model
 from data_layer.model.crud_model import CRUD
+from data_layer.model.mixins import AuditMixin, SoftDeleteMixin
 
 
-class Store(Model, CRUD):
+class Store(Model, CRUD, AuditMixin, SoftDeleteMixin):
     def __init__(self, name=None, brand_name=None, company_name=None,
                  web_page_url=None, description=None, serial_number=None,
                  model=None, operating_system_version=None, owner_national_id_number=None,
@@ -124,12 +125,6 @@ class Store(Model, CRUD):
     force_to_work_online = Column(Boolean, nullable=False, default=False)
     fk_default_country_id = Column(UUID, ForeignKey('country.id'), nullable=True)
     
-    # Standard fields
-    is_deleted = Column(Boolean, nullable=False, default=False)
-    delete_description = Column(String(1000), nullable=True)
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now())
-
     def __repr__(self):
         return f"<Store(name='{self.name}', brand_name='{self.brand_name}', company_name='{self.company_name}', serial_number='{self.serial_number}')>"
 

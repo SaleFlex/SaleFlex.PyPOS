@@ -23,9 +23,10 @@ from uuid import uuid4
 
 from data_layer.model.crud_model import Model
 from data_layer.model.crud_model import CRUD
+from data_layer.model.mixins import AuditMixin, SoftDeleteMixin
 
 
-class CustomerSegment(Model, CRUD):
+class CustomerSegment(Model, CRUD, AuditMixin, SoftDeleteMixin):
     """
     Defines customer segments for targeted marketing and campaigns
     Segments can be based on behavior, demographics, purchase patterns, etc.
@@ -70,11 +71,6 @@ class CustomerSegment(Model, CRUD):
     display_order = Column(Integer, nullable=False, default=0)
     color_code = Column(String(20), nullable=True)  # Hex color for UI
     icon = Column(String(100), nullable=True)
-    
-    is_deleted = Column(Boolean, nullable=False, default=False)
-    delete_description = Column(String(1000), nullable=True)
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now())
 
     def __repr__(self):
         return f"<CustomerSegment(code='{self.code}', name='{self.name}', type='{self.segment_type}')>"

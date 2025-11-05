@@ -23,9 +23,10 @@ from uuid import uuid4
 
 from data_layer.model.crud_model import Model
 from data_layer.model.crud_model import CRUD
+from data_layer.model.mixins import AuditMixin, SoftDeleteMixin
 
 
-class LoyaltyProgram(Model, CRUD):
+class LoyaltyProgram(Model, CRUD, AuditMixin, SoftDeleteMixin):
     """
     Defines loyalty program configuration
     Typically one active program per store or entire POS system
@@ -85,13 +86,8 @@ class LoyaltyProgram(Model, CRUD):
     # Additional custom settings stored as JSON
     settings_json = Column(Text, nullable=True)
     
-    # Audit trail
-    fk_created_by = Column(UUID, ForeignKey('cashier.id'), nullable=True)
-    
-    is_deleted = Column(Boolean, nullable=False, default=False)
-    delete_description = Column(String(1000), nullable=True)
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now())
+    # Additional audit trail (AuditMixin already provides fk_cashier_create_id, fk_cashier_update_id)
+    # fk_created_by is now handled by AuditMixin as fk_cashier_create_id
 
     def __repr__(self):
         return f"<LoyaltyProgram(name='{self.name}', is_active={self.is_active})>"

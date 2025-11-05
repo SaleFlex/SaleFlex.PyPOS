@@ -17,15 +17,16 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float, ForeignKey, UUID, Date, Text
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float, ForeignKey, UUID, Date, Text, Numeric
 from sqlalchemy.sql import func
 from uuid import uuid4
 
 from data_layer.model.crud_model import Model
 from data_layer.model.crud_model import CRUD
+from data_layer.model.mixins import AuditMixin, SoftDeleteMixin
 
 
-class Product(Model, CRUD):
+class Product(Model, CRUD, AuditMixin, SoftDeleteMixin):
     def __init__(self, name=None, short_name=None, code=None, old_code=None, shelf_code=None):
         Model.__init__(self)
         CRUD.__init__(self)
@@ -55,8 +56,8 @@ class Product(Model, CRUD):
     discount_percent = Column(Integer, nullable=False, default=0)
     is_allowed_negative_stock = Column(Boolean, nullable=False, default=False)
     is_allowed_return = Column(Boolean, nullable=False, default=True)
-    purchase_price = Column(Integer, nullable=True, default=0)  # In cents
-    sale_price = Column(Integer, nullable=False, default=0)  # In cents
+    purchase_price = Column(Numeric(precision=15, scale=4), nullable=True, default=0)
+    sale_price = Column(Numeric(precision=15, scale=4), nullable=False, default=0)
     stock = Column(Integer, nullable=False, default=0)
     min_stock = Column(Integer, nullable=False, default=0)
     max_stock = Column(Integer, nullable=False, default=0)
@@ -65,52 +66,52 @@ class Product(Model, CRUD):
     vat_no = Column(Integer, nullable=False, default=1)
     
     # Expiration and dating fields (for markets/grocery stores)
-    expiration_date = Column(Date, nullable=True)  # Son kullanma tarihi
-    production_date = Column(Date, nullable=True)  # Üretim tarihi
-    shelf_life_days = Column(Integer, nullable=True)  # Raf ömrü (gün)
-    lot_number = Column(String(50), nullable=True)  # Lot numarası
+    expiration_date = Column(Date, nullable=True)  # Expiration date
+    production_date = Column(Date, nullable=True)  # Production date
+    shelf_life_days = Column(Integer, nullable=True)  # Shelf life (days)
+    lot_number = Column(String(50), nullable=True)  # Lot number
     
     # Nutritional information (for food products)
-    calories_per_100g = Column(Float, nullable=True)  # 100g başına kalori
-    protein_per_100g = Column(Float, nullable=True)  # 100g başına protein
-    carb_per_100g = Column(Float, nullable=True)  # 100g başına karbonhidrat
-    fat_per_100g = Column(Float, nullable=True)  # 100g başına yağ
-    fiber_per_100g = Column(Float, nullable=True)  # 100g başına lif
-    sodium_per_100g = Column(Float, nullable=True)  # 100g başına sodyum
-    allergen_info = Column(String(500), nullable=True)  # Alerjen bilgileri
+    calories_per_100g = Column(Float, nullable=True)  # Calories per 100g
+    protein_per_100g = Column(Float, nullable=True)  # Protein per 100g
+    carb_per_100g = Column(Float, nullable=True)  # Carbohydrates per 100g
+    fat_per_100g = Column(Float, nullable=True)  # Fat per 100g
+    fiber_per_100g = Column(Float, nullable=True)  # Fiber per 100g
+    sodium_per_100g = Column(Float, nullable=True)  # Sodium per 100g
+    allergen_info = Column(String(500), nullable=True)  # Allergen information
     
     # Restaurant specific fields
-    ingredients = Column(Text, nullable=True)  # İçerikler/malzemeler
-    recipe_instructions = Column(Text, nullable=True)  # Tarif talimatları
-    preparation_time = Column(Integer, nullable=True)  # Hazırlanma süresi (dakika)
-    cooking_time = Column(Integer, nullable=True)  # Pişirme süresi (dakika)
-    serving_size = Column(String(50), nullable=True)  # Porsiyon boyutu
-    spice_level = Column(Integer, nullable=True)  # Acılık seviyesi (1-5)
+    ingredients = Column(Text, nullable=True)  # Ingredients/components
+    recipe_instructions = Column(Text, nullable=True)  # Recipe instructions
+    preparation_time = Column(Integer, nullable=True)  # Preparation time (minutes)
+    cooking_time = Column(Integer, nullable=True)  # Cooking time (minutes)
+    serving_size = Column(String(50), nullable=True)  # Serving size
+    spice_level = Column(Integer, nullable=True)  # Spice level (1-5)
     is_vegetarian = Column(Boolean, nullable=False, default=False)
     is_vegan = Column(Boolean, nullable=False, default=False)
     is_halal = Column(Boolean, nullable=False, default=False)
     is_kosher = Column(Boolean, nullable=False, default=False)
     
     # Physical dimensions and weight (for clothing, shoes, etc.)
-    weight = Column(Float, nullable=True)  # Ağırlık (gram)
-    length = Column(Float, nullable=True)  # Uzunluk (cm)
-    width = Column(Float, nullable=True)  # Genişlik (cm)
-    height = Column(Float, nullable=True)  # Yükseklik (cm)
+    weight = Column(Float, nullable=True)  # Weight (grams)
+    length = Column(Float, nullable=True)  # Length (cm)
+    width = Column(Float, nullable=True)  # Width (cm)
+    height = Column(Float, nullable=True)  # Height (cm)
     
     # Season and style information (for fashion items)
-    season = Column(String(20), nullable=True)  # Mevsim (spring, summer, autumn, winter)
-    style = Column(String(100), nullable=True)  # Stil (casual, formal, sporty, etc.)
-    gender = Column(String(10), nullable=True)  # Cinsiyet (male, female, unisex, kids)
-    age_group = Column(String(20), nullable=True)  # Yaş grubu (baby, child, teen, adult, senior)
+    season = Column(String(20), nullable=True)  # Season (spring, summer, autumn, winter)
+    style = Column(String(100), nullable=True)  # Style (casual, formal, sporty, etc.)
+    gender = Column(String(10), nullable=True)  # Gender (male, female, unisex, kids)
+    age_group = Column(String(20), nullable=True)  # Age group (baby, child, teen, adult, senior)
     
     # Care instructions (for clothing and textiles)
-    care_instructions = Column(Text, nullable=True)  # Bakım talimatları
-    washing_temperature = Column(Integer, nullable=True)  # Yıkama sıcaklığı
+    care_instructions = Column(Text, nullable=True)  # Care instructions
+    washing_temperature = Column(Integer, nullable=True)  # Washing temperature
     
     # Brand and collection information
-    brand = Column(String(100), nullable=True)  # Marka
-    collection = Column(String(100), nullable=True)  # Koleksiyon
-    model_year = Column(Integer, nullable=True)  # Model yılı
+    brand = Column(String(100), nullable=True)  # Brand
+    collection = Column(String(100), nullable=True)  # Collection
+    model_year = Column(Integer, nullable=True)  # Model year
     
     # Special flags
     is_gift_wrappable = Column(Boolean, nullable=False, default=False)
@@ -119,9 +120,9 @@ class Product(Model, CRUD):
     requires_age_verification = Column(Boolean, nullable=False, default=False)
     
     # Additional product information
-    origin_country = Column(String(100), nullable=True)  # Menşei ülke
-    warranty_period = Column(Integer, nullable=True)  # Garanti süresi (ay)
-    warranty_description = Column(String(500), nullable=True)  # Garanti açıklaması
+    origin_country = Column(String(100), nullable=True)  # Country of origin
+    warranty_period = Column(Integer, nullable=True)  # Warranty period (months)
+    warranty_description = Column(String(500), nullable=True)  # Warranty description
     
     fk_vat_id = Column(UUID, ForeignKey("vat.id"))
     fk_product_unit_id = Column(UUID, ForeignKey("product_unit.id"))
@@ -129,12 +130,7 @@ class Product(Model, CRUD):
     fk_department_sub_group_id = Column(UUID, ForeignKey("department_sub_group.id"), nullable=False,)
     fk_manufacturer_id = Column(UUID, ForeignKey("product_manufacturer.id"))
     fk_store_id = Column(UUID, ForeignKey("store.id"))
-    is_deleted = Column(Boolean, nullable=False, default=False)
-    delete_description = Column(String(1000), nullable=True)
-    fk_cashier_create_id = Column(UUID, ForeignKey("cashier.id"))
-    fk_cashier_update_id = Column(UUID, ForeignKey("cashier.id"))
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now())
+    fk_primary_warehouse_id = Column(UUID, ForeignKey("warehouse.id"), nullable=True)  # Primary warehouse for this product
 
     def __repr__(self):
         return f"<Product(name='{self.name}', code='{self.code}', sale_price='{self.sale_price}')>"

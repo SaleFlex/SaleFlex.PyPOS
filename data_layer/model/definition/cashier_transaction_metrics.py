@@ -17,15 +17,16 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float, ForeignKey, UUID
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float, ForeignKey, UUID, Numeric
 from sqlalchemy.sql import func
 from uuid import uuid4
 
 from data_layer.model.crud_model import Model
 from data_layer.model.crud_model import CRUD
+from data_layer.model.mixins import AuditMixin, SoftDeleteMixin
 
 
-class CashierTransactionMetrics(Model, CRUD):
+class CashierTransactionMetrics(Model, CRUD, AuditMixin, SoftDeleteMixin):
     def __init__(self, fk_cashier_id=None, fk_transaction_head_id=None, 
                  fk_work_session_id=None, transaction_start_time=None, transaction_end_time=None):
         Model.__init__(self)
@@ -66,19 +67,19 @@ class CashierTransactionMetrics(Model, CRUD):
     number_of_manual_entries = Column(Integer, nullable=False, default=0)
     
     # Transaction value metrics
-    transaction_total_amount = Column(Integer, nullable=False, default=0)  # In cents
-    transaction_subtotal = Column(Integer, nullable=False, default=0)  # In cents
-    transaction_tax_amount = Column(Integer, nullable=False, default=0)  # In cents
-    transaction_discount_amount = Column(Integer, nullable=False, default=0)  # In cents
-    average_item_price = Column(Float, nullable=True)  # In cents
+    transaction_total_amount = Column(Numeric(precision=15, scale=4), nullable=False, default=0)
+    transaction_subtotal = Column(Numeric(precision=15, scale=4), nullable=False, default=0)
+    transaction_tax_amount = Column(Numeric(precision=15, scale=4), nullable=False, default=0)
+    transaction_discount_amount = Column(Numeric(precision=15, scale=4), nullable=False, default=0)
+    average_item_price = Column(Numeric(precision=15, scale=4), nullable=True)
     
     # Payment method metrics
     payment_method_used = Column(String(50), nullable=True)  # CASH, CARD, MOBILE, GIFT_CARD, MIXED
     number_of_payment_methods = Column(Integer, nullable=False, default=1)
-    cash_payment_amount = Column(Integer, nullable=False, default=0)  # In cents
-    card_payment_amount = Column(Integer, nullable=False, default=0)  # In cents
-    mobile_payment_amount = Column(Integer, nullable=False, default=0)  # In cents
-    change_given = Column(Integer, nullable=False, default=0)  # In cents
+    cash_payment_amount = Column(Numeric(precision=15, scale=4), nullable=False, default=0)
+    card_payment_amount = Column(Numeric(precision=15, scale=4), nullable=False, default=0)
+    mobile_payment_amount = Column(Numeric(precision=15, scale=4), nullable=False, default=0)
+    change_given = Column(Numeric(precision=15, scale=4), nullable=False, default=0)
     
     # Customer service metrics
     customer_queue_wait_time = Column(Float, nullable=True)  # Time customer waited in queue (seconds)
@@ -158,12 +159,6 @@ class CashierTransactionMetrics(Model, CRUD):
     transaction_notes = Column(String(1000), nullable=True)
     customer_feedback = Column(String(1000), nullable=True)
     supervisor_comments = Column(String(1000), nullable=True)
-    
-    # Audit fields
-    is_deleted = Column(Boolean, nullable=False, default=False)
-    delete_description = Column(String(1000), nullable=True)
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now())
 
     def __repr__(self):
         return f"<CashierTransactionMetrics(cashier_id='{self.fk_cashier_id}', transaction_id='{self.fk_transaction_head_id}', start_time='{self.transaction_start_time}')>" 

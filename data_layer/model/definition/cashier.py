@@ -23,9 +23,10 @@ from uuid import uuid4
 
 from data_layer.model.crud_model import Model
 from data_layer.model.crud_model import CRUD
+from data_layer.model.mixins import SoftDeleteMixin
 
 
-class Cashier(Model, CRUD):
+class Cashier(Model, CRUD, SoftDeleteMixin):
     def __init__(self, no=None, user_name=None, name=None, last_name=None, password=None,
                  identity_number=None, description=None, is_administrator=False, is_active=False):
         Model.__init__(self)
@@ -51,8 +52,6 @@ class Cashier(Model, CRUD):
     password = Column(String(50), nullable=False)
     identity_number = Column(String(24), nullable=False)
     description = Column(String(100), nullable=False)
-    is_deleted = Column(Boolean, nullable=False, default=False)
-    delete_description = Column(String(1000), nullable=True)
     is_administrator = Column(Boolean, default=False)
     is_active = Column(Boolean, default=False)
     created_at = Column(DateTime, server_default=func.now())

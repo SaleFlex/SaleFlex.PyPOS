@@ -23,9 +23,10 @@ from uuid import uuid4
 
 from data_layer.model.crud_model import Model
 from data_layer.model.crud_model import CRUD
+from data_layer.model.mixins import AuditMixin, SoftDeleteMixin
 
 
-class Coupon(Model, CRUD):
+class Coupon(Model, CRUD, AuditMixin, SoftDeleteMixin):
     """
     Defines discount coupons linked to campaigns
     Supports single-use, multi-use, personal, and public coupons with various distribution methods
@@ -92,13 +93,7 @@ class Coupon(Model, CRUD):
     sent_date = Column(DateTime, nullable=True)
     sent_method = Column(String(50), nullable=True)  # SMS, EMAIL, PUSH, MANUAL
     
-    # Audit trail
-    fk_created_by = Column(UUID, ForeignKey('cashier.id'), nullable=True)
-    
-    is_deleted = Column(Boolean, nullable=False, default=False)
-    delete_description = Column(String(1000), nullable=True)
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now())
+    # Note: created_by tracking is now handled by AuditMixin (fk_cashier_create_id)
 
     def __repr__(self):
         return f"<Coupon(code='{self.code}', name='{self.name}', type='{self.coupon_type}')>"
