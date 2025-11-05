@@ -34,9 +34,9 @@ class TransactionKitchenOrder(Model, CRUD):
     __tablename__ = "transaction_kitchen_order"
 
     id = Column(UUID, primary_key=True, default=uuid4)
-    fk_transaction_head_id = Column(BigInteger, ForeignKey("transaction_head.id"))
-    fk_transaction_product_id = Column(BigInteger, ForeignKey("transaction_product.id"))
-    fk_table_id = Column(BigInteger, ForeignKey("table.id"), nullable=True)
+    fk_transaction_head_id = Column(UUID, ForeignKey("transaction_head.id"))
+    fk_transaction_product_id = Column(UUID, ForeignKey("transaction_product.id"))
+    fk_table_id = Column(UUID, ForeignKey("table.id"), nullable=True)
     order_number = Column(String(50), nullable=False)
     kitchen_order_status = Column(String(50), nullable=False, default=KitchenOrderStatus.WAITING.value)
     quantity = Column(Float, nullable=False)
@@ -51,8 +51,8 @@ class TransactionKitchenOrder(Model, CRUD):
     cancel_reason = Column(String(500), nullable=True)
     is_deleted = Column(Boolean, nullable=False, default=False)
     delete_description = Column(String(1000), nullable=True)
-    fk_cashier_create_id = Column(BigInteger, ForeignKey("cashier.id"))
-    fk_cashier_update_id = Column(BigInteger, ForeignKey("cashier.id"))
+    fk_cashier_create_id = Column(UUID, ForeignKey("cashier.id"))
+    fk_cashier_update_id = Column(UUID, ForeignKey("cashier.id"))
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now())
 

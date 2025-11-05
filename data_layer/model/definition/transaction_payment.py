@@ -33,7 +33,7 @@ class TransactionPayment(Model, CRUD):
     __tablename__ = "transaction_payment"
 
     id = Column(UUID, primary_key=True, default=uuid4)
-    fk_transaction_head_id = Column(BigInteger, ForeignKey("transaction_head.id"))
+    fk_transaction_head_id = Column(UUID, ForeignKey("transaction_head.id"))
     line_no = Column(Integer, nullable=False)
     payment_type = Column(String(50), nullable=False)
     payment_total = Column(Float, nullable=False)
@@ -45,8 +45,8 @@ class TransactionPayment(Model, CRUD):
     is_cancel = Column(Boolean, nullable=False, default=False)
     is_deleted = Column(Boolean, nullable=False, default=False)
     delete_description = Column(String(1000), nullable=True)
-    fk_cashier_create_id = Column(BigInteger, ForeignKey("cashier.id"))
-    fk_cashier_update_id = Column(BigInteger, ForeignKey("cashier.id"))
+    fk_cashier_create_id = Column(UUID, ForeignKey("cashier.id"))
+    fk_cashier_update_id = Column(UUID, ForeignKey("cashier.id"))
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now())
 
