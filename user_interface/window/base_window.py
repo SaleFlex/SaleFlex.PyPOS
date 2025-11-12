@@ -17,8 +17,10 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+import os
 from PySide6.QtWidgets import QMainWindow
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QIcon
 
 from user_interface.control import TextBox, Button, ToolBar, StatusBar, NumPad, PaymentList, SaleList, ComboBox, AmountTable, Label, DataGrid
 from user_interface.control import VirtualKeyboard
@@ -31,6 +33,19 @@ class BaseWindow(QMainWindow):
         self.app = app
 
         self.keyboard = VirtualKeyboard(source=None, parent=self)
+        
+        # Set window icon from settings
+        self._set_window_icon()
+
+    def _set_window_icon(self):
+        """Set the window icon from settings.toml configuration."""
+        try:
+            from settings.settings import Settings
+            icon_path = Settings().app_icon
+            if icon_path and os.path.exists(icon_path):
+                self.setWindowIcon(QIcon(icon_path))
+        except Exception:
+            pass  # Silently fail if icon cannot be loaded
 
     def draw_window(self, settings: dict, toolbar_settings: dict, design: list):
         self.setUpdatesEnabled(False)

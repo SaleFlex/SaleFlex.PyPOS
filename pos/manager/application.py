@@ -152,13 +152,14 @@ class Application(CurrentStatus, CurrentData, EventHandler):
                 # On any unexpected read error, keep an empty list
                 self.pos_data[model_name] = []
 
-        # Set application icon if logo file exists
-        # Logo path is constructed from the images folder in design_files
+        # Set application icon from settings.toml
+        # Icon path is configured in settings.toml under app.icon
         about.update_message("Configuring application UI...")
         self.app.processEvents()
-        logo_path = os.path.join(env_data.image_absolute_folder, "logo.png")
-        if os.path.exists(logo_path):
-            self.app.setWindowIcon(QIcon(logo_path))
+        from settings.settings import Settings
+        icon_path = Settings().app_icon
+        if icon_path and os.path.exists(icon_path):
+            self.app.setWindowIcon(QIcon(icon_path))
 
         # Initialize the user interface manager
         # Pass self reference so the interface can access application methods

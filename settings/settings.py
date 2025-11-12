@@ -124,3 +124,24 @@ class Settings:
         except Exception:
             return ""
         return ""
+
+    @property
+    def app_icon(self):
+        """Return application icon path from settings.toml.
+        
+        Returns the icon path specified in app.icon, or default path if missing.
+        The path is relative to the project root.
+        """
+        try:
+            if isinstance(self.app, dict):
+                icon_value = self.app.get("icon")
+                if icon_value:
+                    # Convert path to absolute path
+                    project_path = os.path.dirname(os.path.abspath(sys.modules['__main__'].__file__))
+                    return os.path.join(project_path, icon_value)
+            
+            # Default icon path
+            project_path = os.path.dirname(os.path.abspath(sys.modules['__main__'].__file__))
+            return os.path.join(project_path, "design_files", "images", "saleflex.ico")
+        except Exception:
+            return ""

@@ -5,9 +5,10 @@ This module defines the AboutForm widget which displays application
 information centered on the primary screen.
 """
 
+import os
 import time
 from PySide6.QtCore import Qt, QRect
-from PySide6.QtGui import QGuiApplication, QFont, QColor, QPalette
+from PySide6.QtGui import QGuiApplication, QFont, QColor, QPalette, QIcon
 from PySide6.QtWidgets import QWidget, QLabel, QVBoxLayout, QSpacerItem, QSizePolicy
 from settings.settings import Settings
 
@@ -31,6 +32,7 @@ class AboutForm(QWidget):
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
         self.setFixedSize(425, 425)
         self._apply_background_theme()
+        self._set_window_icon()
 
         # Layout and widgets
         self._title_label = QLabel("SaleFlex.PyPOS", self)
@@ -74,6 +76,15 @@ class AboutForm(QWidget):
         palette.setColor(QPalette.WindowText, foreground)
         self.setAutoFillBackground(True)
         self.setPalette(palette)
+
+    def _set_window_icon(self) -> None:
+        """Set the window icon from settings.toml configuration."""
+        try:
+            icon_path = Settings().app_icon
+            if icon_path and os.path.exists(icon_path):
+                self.setWindowIcon(QIcon(icon_path))
+        except Exception:
+            pass  # Silently fail if icon cannot be loaded
 
     # Public API
     def show(self) -> None:  # type: ignore[override]

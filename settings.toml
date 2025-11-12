@@ -1,5 +1,6 @@
 [app]
 version = "1.0.0b2"
+icon = "design_files\\images\\saleflex.ico"
 
 [pos]
 id = 1
