@@ -155,6 +155,10 @@ After successful login, you will be redirected to the main menu:
 
 ![Main Menu](sample_main_menu.jpg)
 
+If you select "SALES", you will see a form as shown below:
+
+![Sale Form](sample_sale_form.jpg)
+
 ### Configuration
 - Edit `settings.toml` to configure database connections, hardware settings, and business parameters
 - The application uses SQLite by default, stored in `db.sqlite3`
