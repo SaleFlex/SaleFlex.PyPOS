@@ -94,22 +94,19 @@ class SaleEvent:
     
     # ==================== PLU SALES EVENTS ====================
     
-    def _sale_plu_code(self, key=None):
+    def _sale_plu_code(self, button=None):
         """
         Handle PLU (Price Look-Up) sale by product code.
         
-        Processes sale of specific products using PLU codes.
-        Looks up product information, price, and inventory status.
-        
-        Process:
-        1. Get PLU code from input
-        2. Look up product in database
-        3. Check inventory availability
-        4. Add item to current transaction
-        5. Update display and totals
+        Processes sale of specific products using PLU codes from button names.
+        When a button with name starting with "PLU" and function SALE_PLU_CODE is clicked:
+        1. Extract code from button name (e.g., PLU5000157070008 -> 5000157070008)
+        2. Look up product table for matching code
+        3. Add item to sale list with product's sale_price
+        4. Update button text to show product.short_name
         
         Parameters:
-            key: Optional parameter from numpad input
+            button: Button object that was clicked (contains control_name attribute)
         
         Returns:
             bool: True if PLU sale successful, False otherwise
@@ -117,23 +114,116 @@ class SaleEvent:
         if not self.login_succeed:
             self._logout()
             return False
+        
+        try:
+            # Get button control name
+            if button is None or not hasattr(button, 'control_name'):
+                print("[SALE_PLU_CODE] No button provided or button missing control_name")
+                return False
             
-        # TODO: Implement PLU code sale logic
-        if key is not None:
-            print(f"PLU code sale - key pressed: {key}")
-        else:
-            print("PLU code sale - functionality to be implemented")
-        return False
+            control_name = button.control_name
+            print(f"[SALE_PLU_CODE] Processing button with control_name: '{control_name}'")
+            
+            # Check if control name starts with "PLU"
+            if not control_name or not control_name.upper().startswith("PLU"):
+                print(f"[SALE_PLU_CODE] Control name '{control_name}' does not start with PLU")
+                return False
+            
+            # Extract code from control name (remove "PLU" prefix)
+            product_code = control_name[3:]  # Remove first 3 characters "PLU"
+            print(f"[SALE_PLU_CODE] Extracted product code: '{product_code}'")
+            
+            if not product_code:
+                print("[SALE_PLU_CODE] Empty code after removing PLU prefix")
+                return False
+            
+            # Import models
+            from data_layer.model import Product
+            from user_interface.control.sale_list.sale_list import SaleList
+            
+            # Search for product with matching code
+            products = Product.filter_by(code=product_code, is_deleted=False)
+            
+            if not products or len(products) == 0:
+                print(f"[SALE_PLU_CODE] No product found with code: '{product_code}'")
+                return False
+            
+            # Get the first matching product
+            product = products[0]
+            print(f"[SALE_PLU_CODE] Found product: {product.name} (short_name: {product.short_name})")
+            
+            # Get sale price from product
+            sale_price = float(product.sale_price) if product.sale_price else 0.0
+            print(f"[SALE_PLU_CODE] Using sale_price: {sale_price}")
+            
+            if sale_price == 0.0:
+                print("[SALE_PLU_CODE] Warning: Product sale_price is 0")
+            
+            # Find sale_list widget in the current window
+            # Button's parent should be BaseWindow
+            current_window = button.parent() if button else None
+            sale_list = None
+            
+            if current_window:
+                # Check if window has sale_list attribute (set in _create_sale_list)
+                if hasattr(current_window, 'sale_list'):
+                    sale_list = current_window.sale_list
+                else:
+                    # Fallback: Search for SaleList widget in window's children
+                    for child in current_window.children():
+                        if isinstance(child, SaleList):
+                            sale_list = child
+                            break
+            
+            if not sale_list:
+                print("[SALE_PLU_CODE] SaleList widget not found in current window")
+                return False
+            
+            # Add product to sale list
+            product_name = product.short_name if product.short_name else product.name
+            quantity = 1.0  # Default quantity
+            
+            success = sale_list.add_product(
+                product_name=product_name,
+                quantity=quantity,
+                unit_price=sale_price,
+                barcode="",  # No barcode for code-based lookup
+                reference_id=str(product.id),
+                plu_no=product.code
+            )
+            
+            if success:
+                print(f"[SALE_PLU_CODE] ✓ Successfully added product '{product_name}' to sale list")
+                
+                # Update button text to show product short_name
+                button.setText(product_name)
+                print(f"[SALE_PLU_CODE] Updated button text to: '{product_name}'")
+                
+                return True
+            else:
+                print("[SALE_PLU_CODE] Failed to add product to sale list")
+                return False
+                
+        except Exception as e:
+            print(f"[SALE_PLU_CODE] Error processing PLU code sale: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return False
     
-    def _sale_plu_barcode(self, key=None):
+    def _sale_plu_barcode(self, button=None):
         """
         Handle PLU sale by barcode scanning/entry.
         
-        Processes sales using barcode input from scanner or manual entry.
-        Converts barcode to PLU and processes as regular PLU sale.
+        Processes sales using barcode from button names.
+        When a button with name starting with "PLU" and function SALE_PLU_BARCODE is clicked:
+        1. Extract barcode from button name (e.g., PLU5000157070008 -> 5000157070008)
+        2. Look up product_barcode table for matching barcode
+        3. Get product from product table using fk_product_id
+        4. Add item to sale list with product's sale_price
+        5. Update button text to show product.short_name
         
         Parameters:
-            key: Optional parameter from numpad input
+            button: Button object that was clicked (contains control_name attribute)
         
         Returns:
             bool: True if barcode sale successful, False otherwise
@@ -141,13 +231,107 @@ class SaleEvent:
         if not self.login_succeed:
             self._logout()
             return False
+        
+        try:
+            # Get button control name
+            if button is None or not hasattr(button, 'control_name'):
+                print("[SALE_PLU_BARCODE] No button provided or button missing control_name")
+                return False
             
-        # TODO: Implement barcode scanning logic
-        if key is not None:
-            print(f"PLU barcode sale - key pressed: {key}")
-        else:
-            print("PLU barcode sale - functionality to be implemented")
-        return False
+            control_name = button.control_name
+            print(f"[SALE_PLU_BARCODE] Processing button with control_name: '{control_name}'")
+            
+            # Check if control name starts with "PLU"
+            if not control_name or not control_name.upper().startswith("PLU"):
+                print(f"[SALE_PLU_BARCODE] Control name '{control_name}' does not start with PLU")
+                return False
+            
+            # Extract barcode from control name (remove "PLU" prefix)
+            barcode = control_name[3:]  # Remove first 3 characters "PLU"
+            print(f"[SALE_PLU_BARCODE] Extracted barcode: '{barcode}'")
+            
+            if not barcode:
+                print("[SALE_PLU_BARCODE] Empty barcode after removing PLU prefix")
+                return False
+            
+            # Import models
+            from data_layer.model import ProductBarcode, Product
+            from user_interface.control.sale_list.sale_list import SaleList
+            
+            # Search for product_barcode with matching barcode
+            barcode_records = ProductBarcode.filter_by(barcode=barcode, is_deleted=False)
+            
+            if not barcode_records or len(barcode_records) == 0:
+                print(f"[SALE_PLU_BARCODE] No product found with barcode: '{barcode}'")
+                return False
+            
+            # Get the first matching barcode record
+            product_barcode = barcode_records[0]
+            print(f"[SALE_PLU_BARCODE] Found product_barcode: {product_barcode}")
+            
+            # Get product using fk_product_id
+            product = Product.get_by_id(product_barcode.fk_product_id)
+            
+            if not product:
+                print(f"[SALE_PLU_BARCODE] Product not found with id: {product_barcode.fk_product_id}")
+                return False
+            
+            print(f"[SALE_PLU_BARCODE] Found product: {product.name} (short_name: {product.short_name})")
+            
+            # Determine sale price (prefer product_barcode.sale_price, fallback to product.sale_price)
+            sale_price = float(product_barcode.sale_price) if product_barcode.sale_price else float(product.sale_price)
+            print(f"[SALE_PLU_BARCODE] Using sale_price: {sale_price}")
+            
+            # Find sale_list widget in the current window
+            # Button's parent should be BaseWindow
+            current_window = button.parent() if button else None
+            sale_list = None
+            
+            if current_window:
+                # Check if window has sale_list attribute (set in _create_sale_list)
+                if hasattr(current_window, 'sale_list'):
+                    sale_list = current_window.sale_list
+                else:
+                    # Fallback: Search for SaleList widget in window's children
+                    for child in current_window.children():
+                        if isinstance(child, SaleList):
+                            sale_list = child
+                            break
+            
+            if not sale_list:
+                print("[SALE_PLU_BARCODE] SaleList widget not found in current window")
+                return False
+            
+            # Add product to sale list
+            product_name = product.short_name if product.short_name else product.name
+            quantity = 1.0  # Default quantity
+            
+            success = sale_list.add_product(
+                product_name=product_name,
+                quantity=quantity,
+                unit_price=sale_price,
+                barcode=barcode,
+                reference_id=str(product_barcode.id),
+                plu_no=product.code
+            )
+            
+            if success:
+                print(f"[SALE_PLU_BARCODE] ✓ Successfully added product '{product_name}' to sale list")
+                
+                # Update button text to show product short_name
+                button.setText(product_name)
+                print(f"[SALE_PLU_BARCODE] Updated button text to: '{product_name}'")
+                
+                return True
+            else:
+                print("[SALE_PLU_BARCODE] Failed to add product to sale list")
+                return False
+                
+        except Exception as e:
+            print(f"[SALE_PLU_BARCODE] Error processing PLU barcode sale: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return False
     
     def _get_plu_from_maingroup(self):
         """

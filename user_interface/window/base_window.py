@@ -132,6 +132,10 @@ class BaseWindow(QMainWindow):
         button.set_color(design_data['background_color'], design_data['foreground_color'])
         button.setToolTip(design_data["caption"])
         
+        # Store button metadata for event handling
+        button_name = design_data.get("name", "")
+        button.control_name = button_name  # Store control name for SALE_PLU_CODE handling
+        
         # Get the event handler function
         function_name = design_data.get("function")
         print(f"Calling event_distributor with: '{function_name}'")
@@ -142,9 +146,54 @@ class BaseWindow(QMainWindow):
         
         if event_handler:
             print(f"✓ Connecting button '{design_data.get('caption')}' to event handler: {event_handler.__name__}")
-            button.clicked.connect(event_handler)
+            
+            # Special handling for SALE_PLU_CODE and SALE_PLU_BARCODE: pass button object to handler
+            # Use default parameter to avoid closure issues
+            if function_name in ["SALE_PLU_CODE", "SALE_PLU_BARCODE"]:
+                button.clicked.connect(lambda checked=False, btn=button: event_handler(btn))
+            else:
+                button.clicked.connect(event_handler)
         else:
             print(f"✗ WARNING: No event handler found for function: '{function_name}'")
+        
+        # Set button text based on product information for PLU buttons
+        if function_name in ["SALE_PLU_CODE", "SALE_PLU_BARCODE"] and button_name and button_name.upper().startswith("PLU"):
+            try:
+                # Extract code/barcode from button name (remove "PLU" prefix)
+                code_or_barcode = button_name[3:]  # Remove first 3 characters "PLU"
+                
+                if function_name == "SALE_PLU_CODE":
+                    # Find product by code
+                    from data_layer.model import Product
+                    products = Product.filter_by(code=code_or_barcode, is_deleted=False)
+                    if products and len(products) > 0:
+                        product = products[0]
+                        product_name = product.short_name if product.short_name else product.name
+                        button.setText(product_name)
+                        print(f"[BUTON] SALE_PLU_CODE: Set button text to '{product_name}' for code '{code_or_barcode}'")
+                    else:
+                        print(f"[BUTON] SALE_PLU_CODE: No product found with code '{code_or_barcode}'")
+                
+                elif function_name == "SALE_PLU_BARCODE":
+                    # Find product_barcode by barcode, then get product
+                    from data_layer.model import ProductBarcode, Product
+                    barcode_records = ProductBarcode.filter_by(barcode=code_or_barcode, is_deleted=False)
+                    if barcode_records and len(barcode_records) > 0:
+                        product_barcode = barcode_records[0]
+                        product = Product.get_by_id(product_barcode.fk_product_id)
+                        if product:
+                            product_name = product.short_name if product.short_name else product.name
+                            button.setText(product_name)
+                            print(f"[BUTON] SALE_PLU_BARCODE: Set button text to '{product_name}' for barcode '{code_or_barcode}'")
+                        else:
+                            print(f"[BUTON] SALE_PLU_BARCODE: Product not found with id '{product_barcode.fk_product_id}'")
+                    else:
+                        print(f"[BUTON] SALE_PLU_BARCODE: No product_barcode found with barcode '{code_or_barcode}'")
+            except Exception as e:
+                print(f"[BUTON] Error setting button text for PLU button: {str(e)}")
+                import traceback
+                traceback.print_exc()
+        
         print("="*80)
 
     def _create_numpad(self, design_data):
