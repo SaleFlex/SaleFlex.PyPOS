@@ -28,8 +28,7 @@ class Button(QPushButton):
         self._base_font_size = 20
         self._font_name = font_name
         self.setFont(QFont(self._font_name, self._base_font_size))
-        # Enable word wrap for multi-line text via CSS
-        self._word_wrap_enabled = True
+        # Text wrapping is handled programmatically in _adjust_font_size()
         
     def setText(self, text):
         """Override setText to auto-adjust font size and wrap text"""
@@ -116,7 +115,7 @@ class Button(QPushButton):
         
     def set_color(self, background_color, foreground_color):
         # 3D appearance with gradient and border effect
-        word_wrap_style = "word-wrap: break-word;" if self._word_wrap_enabled else ""
+        # Note: word-wrap is not supported in Qt CSS, text wrapping is handled programmatically
         style = f"""
             QPushButton {{
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
@@ -127,7 +126,6 @@ class Button(QPushButton):
                 border: 2px solid #{self._darken_color(background_color, 0.5):06X};
                 border-radius: 6px;
                 padding: 5px;
-                {word_wrap_style}
             }}
             QPushButton:hover {{
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
