@@ -173,13 +173,10 @@ class DynamicDialog(QDialog):
     
     def _create_numpad(self, design_data):
         """Create a numpad control."""
+        # Use width and height directly from database/design_data
+        # NumPad now handles dynamic sizing internally
         width = design_data.get("width", 300)
         height = design_data.get("height", 350)
-        
-        if width < 250:
-            width = 300
-        if height < 300:
-            height = 350
         
         background_color = design_data.get("background_color", 0x778D45)
         foreground_color = design_data.get("foreground_color", 0xFFFFFF)

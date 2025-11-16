@@ -211,15 +211,10 @@ class BaseWindow(QMainWindow):
     def _create_numpad(self, design_data):
         print(design_data)
         
-        # Ensure numpad has appropriate size to fit all buttons
+        # Use width and height directly from database/design_data
+        # NumPad now handles dynamic sizing internally
         width = design_data.get("width", 300)
         height = design_data.get("height", 350)
-        
-        # Make sure width and height are sufficient for a numpad
-        if width < 250:
-            width = 300
-        if height < 300:
-            height = 350
         
         # Get background and foreground colors from design data
         background_color = design_data.get("background_color", 0x778D45)

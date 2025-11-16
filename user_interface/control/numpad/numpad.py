@@ -58,40 +58,45 @@ class NumPad(QWidget):
         print("NumPad", self.numpad_width, self.numpad_height, self.location_x, self.location_y)
         print(f"NumPad colors: bg={background_color:x}, fg={foreground_color:x}")
         
+        # Calculate dynamic dimensions based on numpad size
+        self._calculate_dynamic_dimensions()
+        
         # Set position and size
         self.setGeometry(location_x, location_y, width, height)
         
-        # Create main layout
+        # Create main layout with dynamic spacing and margins
         self.main_layout = QVBoxLayout(self)
-        self.main_layout.setSpacing(10)
-        self.main_layout.setContentsMargins(5, 5, 5, 5)
+        self.main_layout.setSpacing(self.dynamic_spacing)
+        self.main_layout.setContentsMargins(self.dynamic_margin, self.dynamic_margin, 
+                                           self.dynamic_margin, self.dynamic_margin)
         
-        # Create text display
+        # Create text display with dynamic height
         self.text_display = QLineEdit(self)
         self.text_display.setAlignment(Qt.AlignRight)
         self.text_display.setReadOnly(True)
-        self.text_display.setMinimumHeight(50)
+        self.text_display.setMinimumHeight(self.text_display_height)
+        self.text_display.setMaximumHeight(self.text_display_height)
         
-        # Set text display colors
+        # Set text display colors with dynamic font size
         text_bg_color = self.background_color.lighter(150).name()
         text_fg_color = self.foreground_color.name()
         
         self.text_display.setStyleSheet(f"""
             QLineEdit {{
-                font-size: 24px;
+                font-size: {self.text_font_size}px;
                 font-weight: bold;
-                border: 2px solid {self.background_color.darker(120).name()};
-                border-radius: 5px;
+                border: {max(1, int(self.dynamic_margin * 0.4))}px solid {self.background_color.darker(120).name()};
+                border-radius: {max(3, int(self.dynamic_margin))}px;
                 background-color: {text_bg_color};
                 color: {text_fg_color};
-                padding: 5px;
+                padding: {max(2, int(self.dynamic_margin))}px;
             }}
         """)
         self.main_layout.addWidget(self.text_display)
         
-        # Create grid layout for buttons
+        # Create grid layout for buttons with dynamic spacing
         self.button_layout = QGridLayout()
-        self.button_layout.setSpacing(5)
+        self.button_layout.setSpacing(self.button_spacing)
         self.main_layout.addLayout(self.button_layout)
         
         # Define numpad buttons in a grid layout
@@ -134,6 +139,78 @@ class NumPad(QWidget):
         
         # Set up a timer to focus on this widget when the form is shown
         QtCore.QTimer.singleShot(100, self.initialize_focus)
+
+    def _calculate_dynamic_dimensions(self):
+        """Calculate dynamic dimensions based on numpad width and height"""
+        # Base dimensions for reference (320x315)
+        base_width = 320
+        base_height = 315
+        
+        # Calculate scale factors
+        width_scale = self.numpad_width / base_width
+        height_scale = self.numpad_height / base_height
+        # Use average scale for proportional sizing
+        scale = (width_scale + height_scale) / 2
+        
+        # Dynamic margins (proportional to size, minimum 3px)
+        self.dynamic_margin = max(3, int(5 * scale))
+        
+        # Dynamic spacing between elements (proportional to size, minimum 3px)
+        self.dynamic_spacing = max(3, int(10 * scale))
+        
+        # Button spacing (proportional to size, minimum 2px)
+        self.button_spacing = max(2, int(5 * scale))
+        
+        # Calculate available space for buttons
+        available_width = self.numpad_width - (2 * self.dynamic_margin)
+        available_height = self.numpad_height - (2 * self.dynamic_margin)
+        
+        # Text display takes approximately 15-20% of height
+        self.text_display_height = max(30, int(available_height * 0.15))
+        
+        # Available height for button grid
+        button_grid_height = available_height - self.text_display_height - self.dynamic_spacing
+        
+        # Number of rows (5 rows: 3 number rows + 1 row with Clear/0/Backspace + 1 Enter row)
+        num_rows = 5
+        
+        # Number of columns (3 columns for most rows)
+        num_cols = 3
+        
+        # Calculate button dimensions
+        # Account for spacing between buttons: (num_cols - 1) * button_spacing
+        button_width = max(30, int((available_width - (num_cols - 1) * self.button_spacing) / num_cols))
+        
+        # Account for spacing between rows: (num_rows - 1) * button_spacing
+        button_height = max(25, int((button_grid_height - (num_rows - 1) * self.button_spacing) / num_rows))
+        
+        # Store button dimensions
+        self.button_width = button_width
+        self.button_height = button_height
+        
+        # Calculate font sizes based on button size
+        # Base font sizes for reference (button size ~80px)
+        base_button_size = 80
+        base_number_font = 24
+        base_action_font = 16
+        base_enter_font = 18
+        base_text_font = 24
+        
+        # Scale font sizes proportionally to button size
+        font_scale = min(button_height, button_width) / base_button_size
+        self.number_font_size = max(12, int(base_number_font * font_scale))
+        self.action_font_size = max(10, int(base_action_font * font_scale))
+        self.enter_font_size = max(12, int(base_enter_font * font_scale))
+        self.text_font_size = max(14, int(base_text_font * scale))
+        
+        print(f"Dynamic dimensions calculated:")
+        print(f"  Scale: {scale:.2f}")
+        print(f"  Margin: {self.dynamic_margin}px")
+        print(f"  Spacing: {self.dynamic_spacing}px")
+        print(f"  Button spacing: {self.button_spacing}px")
+        print(f"  Text display height: {self.text_display_height}px")
+        print(f"  Button size: {self.button_width}x{self.button_height}px")
+        print(f"  Font sizes - Number: {self.number_font_size}px, Action: {self.action_font_size}px, Enter: {self.enter_font_size}px, Text: {self.text_font_size}px")
 
     def set_auto_focus(self, enabled):
         """Enable or disable automatic focus regaining
@@ -347,7 +424,13 @@ class NumPad(QWidget):
         # Create all buttons and add to layout
         for row_idx, row in enumerate(self.numpad_keys):
             for col_idx, key in enumerate(row):
-                button = NumPadButton(key, self)
+                # Pass button dimensions to NumPadButton
+                button = NumPadButton(key, self, 
+                                     button_width=self.button_width,
+                                     button_height=self.button_height,
+                                     number_font_size=self.number_font_size,
+                                     action_font_size=self.action_font_size,
+                                     enter_font_size=self.enter_font_size)
                 
                 # Apply color scheme
                 self._apply_button_style(button, key)
@@ -366,20 +449,24 @@ class NumPad(QWidget):
         base_bg = self.background_color
         base_fg = self.foreground_color
         
+        # Calculate border width and radius based on button size
+        border_width = max(1, int(min(self.button_width, self.button_height) * 0.04))
+        border_radius = max(4, int(min(self.button_width, self.button_height) * 0.1))
+        
         # Different styling based on button type
         if key.isdigit():
             # Number buttons - make them large and prominent
             button.setStyleSheet(f"""
                 QPushButton {{
-                    min-width: 60px;
-                    max-width: 100px;
-                    min-height: 60px;
-                    max-height: 100px;
-                    font-size: 24px;
+                    min-width: {self.button_width}px;
+                    max-width: {self.button_width}px;
+                    min-height: {self.button_height}px;
+                    max-height: {self.button_height}px;
+                    font-size: {self.number_font_size}px;
                     font-weight: bold;
                     font-family: Noto Sans CJK JP;
-                    border: 3px solid {base_bg.darker(130).name()};
-                    border-radius: 8px;
+                    border: {border_width}px solid {base_bg.darker(130).name()};
+                    border-radius: {border_radius}px;
                     background-color: {base_bg.lighter(130).name()};
                     color: {base_fg.name()};
                 }}
@@ -392,14 +479,14 @@ class NumPad(QWidget):
             # Backspace button - distinctive styling
             button.setStyleSheet(f"""
                 QPushButton {{
-                    min-width: 60px;
-                    max-width: 100px;
-                    min-height: 60px;
-                    max-height: 100px;
-                    font-size: 16px;
+                    min-width: {self.button_width}px;
+                    max-width: {self.button_width}px;
+                    min-height: {self.button_height}px;
+                    max-height: {self.button_height}px;
+                    font-size: {self.action_font_size}px;
                     font-family: Noto Sans CJK JP;
-                    border: 3px solid {base_bg.darker(120).name()};
-                    border-radius: 8px;
+                    border: {border_width}px solid {base_bg.darker(120).name()};
+                    border-radius: {border_radius}px;
                     background-color: {QColor(255, 204, 203).name()};
                     color: black;
                 }}
@@ -412,14 +499,14 @@ class NumPad(QWidget):
             # Clear button - distinctive styling
             button.setStyleSheet(f"""
                 QPushButton {{
-                    min-width: 60px;
-                    max-width: 100px;
-                    min-height: 60px;
-                    max-height: 100px;
-                    font-size: 16px;
+                    min-width: {self.button_width}px;
+                    max-width: {self.button_width}px;
+                    min-height: {self.button_height}px;
+                    max-height: {self.button_height}px;
+                    font-size: {self.action_font_size}px;
                     font-family: Noto Sans CJK JP;
-                    border: 3px solid {base_bg.darker(120).name()};
-                    border-radius: 8px;
+                    border: {border_width}px solid {base_bg.darker(120).name()};
+                    border-radius: {border_radius}px;
                     background-color: {QColor(255, 230, 204).name()};
                     color: black;
                 }}
@@ -433,13 +520,13 @@ class NumPad(QWidget):
             button.setStyleSheet(f"""
                 QPushButton {{
                     min-width: 100%;
-                    min-height: 60px;
-                    max-height: 100px;
-                    font-size: 18px;
+                    min-height: {self.button_height}px;
+                    max-height: {self.button_height}px;
+                    font-size: {self.enter_font_size}px;
                     font-weight: bold;
                     font-family: Noto Sans CJK JP;
-                    border: 3px solid {base_bg.darker(120).name()};
-                    border-radius: 8px;
+                    border: {border_width}px solid {base_bg.darker(120).name()};
+                    border-radius: {border_radius}px;
                     background-color: {base_bg.lighter(150).name()};
                     color: {base_fg.name()};
                 }}
@@ -452,14 +539,14 @@ class NumPad(QWidget):
             # Default styling for other buttons
             button.setStyleSheet(f"""
                 QPushButton {{
-                    min-width: 60px;
-                    max-width: 100px;
-                    min-height: 60px;
-                    max-height: 100px;
-                    font-size: 16px;
+                    min-width: {self.button_width}px;
+                    max-width: {self.button_width}px;
+                    min-height: {self.button_height}px;
+                    max-height: {self.button_height}px;
+                    font-size: {self.action_font_size}px;
                     font-family: Noto Sans CJK JP;
-                    border: 3px solid {base_bg.darker(120).name()};
-                    border-radius: 8px;
+                    border: {border_width}px solid {base_bg.darker(120).name()};
+                    border-radius: {border_radius}px;
                     background-color: {base_bg.lighter(120).name()};
                     color: {base_fg.name()};
                 }}
@@ -530,14 +617,56 @@ class NumPad(QWidget):
         self.text_display.setText(text)
 
     def resizeEvent(self, event):
-        """Override resize event to ensure proper size
+        """Override resize event to recalculate dimensions and update layout
         
         Parameters
         ----------
         event : QtCore.QEvent
             Resize event
         """
-        self.resize(self.numpad_width, self.numpad_height)
+        # Update dimensions if size changed
+        new_width = event.size().width()
+        new_height = event.size().height()
+        
+        if new_width != self.numpad_width or new_height != self.numpad_height:
+            self.numpad_width = new_width
+            self.numpad_height = new_height
+            
+            # Recalculate dynamic dimensions
+            self._calculate_dynamic_dimensions()
+            
+            # Update layout spacing and margins
+            self.main_layout.setSpacing(self.dynamic_spacing)
+            self.main_layout.setContentsMargins(self.dynamic_margin, self.dynamic_margin, 
+                                               self.dynamic_margin, self.dynamic_margin)
+            
+            # Update text display
+            self.text_display.setMinimumHeight(self.text_display_height)
+            self.text_display.setMaximumHeight(self.text_display_height)
+            self.text_display.setStyleSheet(f"""
+                QLineEdit {{
+                    font-size: {self.text_font_size}px;
+                    font-weight: bold;
+                    border: {max(1, int(self.dynamic_margin * 0.4))}px solid {self.background_color.darker(120).name()};
+                    border-radius: {max(3, int(self.dynamic_margin))}px;
+                    background-color: {self.background_color.lighter(150).name()};
+                    color: {self.foreground_color.name()};
+                    padding: {max(2, int(self.dynamic_margin))}px;
+                }}
+            """)
+            
+            # Update button spacing
+            self.button_layout.setSpacing(self.button_spacing)
+            
+            # Update button styles
+            for row_idx, row in enumerate(self.numpad_keys):
+                for col_idx, key in enumerate(row):
+                    item = self.button_layout.itemAtPosition(row_idx, col_idx)
+                    if item:
+                        button = item.widget()
+                        if button:
+                            self._apply_button_style(button, key)
+        
         event.accept()
 
     def paintEvent(self, event):

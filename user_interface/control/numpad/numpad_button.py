@@ -26,7 +26,8 @@ class NumPadButton(QtWidgets.QPushButton):
     """
     key_button_clicked_signal = QtCore.Signal(str)
 
-    def __init__(self, key, parent=None):
+    def __init__(self, key, parent=None, button_width=80, button_height=80, 
+                 number_font_size=24, action_font_size=16, enter_font_size=18):
         """ KeyButton class constructor
 
         Parameters
@@ -35,109 +36,29 @@ class NumPadButton(QtWidgets.QPushButton):
             key of the button
         parent : QWidget, optional
             Parent widget (the default is None)
+        button_width : int, optional
+            Width of the button (default is 80)
+        button_height : int, optional
+            Height of the button (default is 80)
+        number_font_size : int, optional
+            Font size for number buttons (default is 24)
+        action_font_size : int, optional
+            Font size for action buttons (default is 16)
+        enter_font_size : int, optional
+            Font size for Enter button (default is 18)
         """
         super(NumPadButton, self).__init__(parent)
         self._key = key
+        self._button_width = button_width
+        self._button_height = button_height
+        self._number_font_size = number_font_size
+        self._action_font_size = action_font_size
+        self._enter_font_size = enter_font_size
         self.set_key(key)
         self.clicked.connect(self.emit_key)
         
-        # Apply appropriate styling based on button type
-        if key.isdigit():
-            # Number buttons - make them large and prominent
-            self.setStyleSheet("""
-                QPushButton {
-                    min-width: 60px;
-                    max-width: 100px;
-                    min-height: 60px;
-                    max-height: 100px;
-                    font-size: 24px;
-                    font-weight: bold;
-                    font-family: Noto Sans CJK JP;
-                    border: 3px solid #8f8f91;
-                    border-radius: 8px;
-                    background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #f6f7fa, stop: 1 #dadbde);
-                }
-                QPushButton:pressed {
-                    background-color: #4a90e2;
-                    color: white;
-                }
-            """)
-        elif key == "Backspace":
-            # Backspace button - distinctive styling
-            self.setStyleSheet("""
-                QPushButton {
-                    min-width: 60px;
-                    max-width: 100px;
-                    min-height: 60px;
-                    max-height: 100px;
-                    font-size: 16px;
-                    font-family: Noto Sans CJK JP;
-                    border: 3px solid #8f8f91;
-                    border-radius: 8px;
-                    background-color: #ffcccb;
-                }
-                QPushButton:pressed {
-                    background-color: #ff9999;
-                    color: white;
-                }
-            """)
-        elif key == "Clear":
-            # Clear button - distinctive styling
-            self.setStyleSheet("""
-                QPushButton {
-                    min-width: 60px;
-                    max-width: 100px;
-                    min-height: 60px;
-                    max-height: 100px;
-                    font-size: 16px;
-                    font-family: Noto Sans CJK JP;
-                    border: 3px solid #8f8f91;
-                    border-radius: 8px;
-                    background-color: #ffe6cc;
-                }
-                QPushButton:pressed {
-                    background-color: #ffcc99;
-                    color: white;
-                }
-            """)
-        elif key == "Enter":
-            # Enter button - make it wide and stand out
-            self.setStyleSheet("""
-                QPushButton {
-                    min-width: 100%;
-                    min-height: 60px;
-                    max-height: 100px;
-                    font-size: 18px;
-                    font-weight: bold;
-                    font-family: Noto Sans CJK JP;
-                    border: 3px solid #8f8f91;
-                    border-radius: 8px;
-                    background-color: #c8e6c9;
-                }
-                QPushButton:pressed {
-                    background-color: #81c784;
-                    color: white;
-                }
-            """)
-        else:
-            # Default styling for other buttons
-            self.setStyleSheet("""
-                QPushButton {
-                    min-width: 60px;
-                    max-width: 100px;
-                    min-height: 60px;
-                    max-height: 100px;
-                    font-size: 16px;
-                    font-family: Noto Sans CJK JP;
-                    border: 3px solid #8f8f91;
-                    border-radius: 8px;
-                    background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #f6f7fa, stop: 1 #dadbde);
-                }
-                QPushButton:pressed {
-                    background-color: rgb(29, 150, 255);
-                }
-            """)
-            
+        # Note: Styling will be applied by NumPad's _apply_button_style method
+        # We don't apply default styling here to allow NumPad to control it dynamically
         self.setFocusPolicy(Qt.NoFocus)
 
     def set_key(self, key):
@@ -164,7 +85,7 @@ class NumPadButton(QtWidgets.QPushButton):
         QSize
             Size of the created button
         """
-        return QtCore.QSize(80, 80)
+        return QtCore.QSize(self._button_width, self._button_height)
 
     def key_disabled(self, flag):
         self.setDisabled(flag)
