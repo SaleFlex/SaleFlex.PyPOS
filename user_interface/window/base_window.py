@@ -125,12 +125,19 @@ class BaseWindow(QMainWindow):
         print(f"Button function value from DB: '{design_data.get('function')}'")
         print(f"Button function type: {type(design_data.get('function'))}")
         
-        button = Button(design_data["caption"], self)
+        # Get font name from design_data, default to "Verdana"
+        font_name = design_data.get("font", "Verdana")
+        # Create button with empty text first, then set geometry, then set text
+        # This ensures button dimensions are set before font adjustment
+        button = Button("", self, font_name=font_name)
         button.setGeometry(design_data["location_x"], design_data["location_y"],
                            design_data["width"], design_data["height"])
 
         button.set_color(design_data['background_color'], design_data['foreground_color'])
         button.setToolTip(design_data["caption"])
+        
+        # Set button text after geometry is set - this will trigger font adjustment
+        button.setText(design_data["caption"])
         
         # Store button metadata for event handling
         button_name = design_data.get("name", "")
@@ -193,6 +200,11 @@ class BaseWindow(QMainWindow):
                 print(f"[BUTON] Error setting button text for PLU button: {str(e)}")
                 import traceback
                 traceback.print_exc()
+        
+        # Trigger font adjustment after button is fully created and sized for ALL buttons
+        # Use QTimer to ensure button dimensions are set
+        from PySide6.QtCore import QTimer
+        QTimer.singleShot(0, lambda: button._adjust_font_size() if hasattr(button, '_adjust_font_size') else None)
         
         print("="*80)
 

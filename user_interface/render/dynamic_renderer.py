@@ -224,6 +224,8 @@ class DynamicFormRenderer:
                 design['function'] = f"NAVIGATE_TO_FORM:{control.fk_target_form_id}:{control.form_transition_mode or 'REPLACE'}"
             else:
                 design['function'] = control.form_control_function1 or 'NONE'
+            # Add font information
+            design['font'] = control.font or 'Verdana'
         
         elif control.type.lower() == 'combobox':
             design.update({
