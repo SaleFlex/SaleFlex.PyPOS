@@ -19,7 +19,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from PySide6.QtWidgets import QPushButton
 from PySide6.QtGui import QFont, QFontMetrics
-from PySide6.QtCore import Qt
 
 
 class Button(QPushButton):
