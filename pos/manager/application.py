@@ -36,9 +36,9 @@ from data_layer.db_manager import init_db
 from data_layer.enums import FormName
 from settings import env_data
 from user_interface.form.about_form import AboutForm
-# Model imports are now handled in CurrentData.populate_pos_data()
+# Model imports are now handled in CurrentData.populate_pos_data() and populate_product_data()
 # Only import models that are used directly in Application class methods
-from data_layer.model import Currency, Form
+from data_layer.model import Form
 
 
 class Application(CurrentStatus, CurrentData, EventHandler):
@@ -168,6 +168,8 @@ class Application(CurrentStatus, CurrentData, EventHandler):
         This method loads the currency sign from the cached pos_settings attribute,
         which is more efficient than querying the database directly. The currency
         sign is stored in CurrentData.current_currency.
+        
+        Note: Currency data is now loaded from product_data instead of pos_data.
         """
         try:
             from data_layer.model import Currency
@@ -176,8 +178,8 @@ class Application(CurrentStatus, CurrentData, EventHandler):
             if self.pos_settings:
                 settings = self.pos_settings
                 if settings.fk_current_currency_id:
-                    # Get currency from pos_data (already loaded in memory)
-                    all_currencies = self.pos_data.get("Currency", [])
+                    # Get currency from product_data (already loaded in memory)
+                    all_currencies = self.product_data.get("Currency", [])
                     currency = next((c for c in all_currencies if c.id == settings.fk_current_currency_id), None)
                     
                     if currency and currency.sign:
@@ -197,7 +199,7 @@ class Application(CurrentStatus, CurrentData, EventHandler):
                 if pos_settings and len(pos_settings) > 0:
                     settings = pos_settings[0]
                     if settings.fk_current_currency_id:
-                        all_currencies = self.pos_data.get("Currency", [])
+                        all_currencies = self.product_data.get("Currency", [])
                         currency = next((c for c in all_currencies if c.id == settings.fk_current_currency_id), None)
                         if currency and currency.sign:
                             self.current_currency = currency.sign

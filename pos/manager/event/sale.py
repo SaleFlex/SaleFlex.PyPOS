@@ -159,18 +159,18 @@ class SaleEvent:
             current_currency_sign = self.current_currency if hasattr(self, 'current_currency') and self.current_currency else "GBP"
             print(f"[SALE_DEPARTMENT] Current currency sign: '{current_currency_sign}'")
             
-            # Find currency from pos_data (more efficient than database query)
+            # Find currency from product_data (more efficient than database query)
             decimal_places = 2  # Default
             try:
-                # Try to get currency from pos_data if available
-                if hasattr(self, 'pos_data') and self.pos_data:
-                    all_currencies = self.pos_data.get("Currency", [])
+                # Try to get currency from product_data if available
+                if hasattr(self, 'product_data') and self.product_data:
+                    all_currencies = self.product_data.get("Currency", [])
                     currency = next((c for c in all_currencies if c.sign == current_currency_sign and not c.is_deleted), None)
                     if currency and currency.decimal_places is not None:
                         decimal_places = currency.decimal_places
-                        print(f"[SALE_DEPARTMENT] Currency decimal_places from pos_data: {decimal_places}")
+                        print(f"[SALE_DEPARTMENT] Currency decimal_places from product_data: {decimal_places}")
                     else:
-                        print(f"[SALE_DEPARTMENT] Currency not found in pos_data with sign: '{current_currency_sign}', defaulting to decimal_places=2")
+                        print(f"[SALE_DEPARTMENT] Currency not found in product_data with sign: '{current_currency_sign}', defaulting to decimal_places=2")
                 else:
                     # Fallback: query from database
                     from data_layer.model import Currency

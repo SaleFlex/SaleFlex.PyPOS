@@ -24,6 +24,11 @@ SOFTWARE.
 
 from data_layer.model import (
     Cashier,
+    CashierPerformanceMetrics,
+    CashierPerformanceTarget,
+    CashierTransactionMetrics,
+    CashierWorkBreak,
+    CashierWorkSession,
     City,
     Country,
     Currency,
@@ -72,9 +77,15 @@ class CurrentData:
     - Temporary session state that needs to be shared across components
     
     Key Features:
-    - pos_data: Dictionary containing all reference data models (Cashier, City, Country,
-      Currency, CurrencyTable, District, Form, FormControl, LabelValue, PaymentType,
-      PosSettings, PosVirtualKeyboard, ReceiptFooter, ReceiptHeader, Store, Table, Vat)
+    - pos_data: Dictionary containing all reference data models (Cashier, CashierPerformanceMetrics,
+      CashierPerformanceTarget, CashierTransactionMetrics, CashierWorkBreak, CashierWorkSession,
+      City, Country, District, Form, FormControl, LabelValue, PaymentType, PosSettings,
+      PosVirtualKeyboard, ReceiptFooter, ReceiptHeader, Store, Table) loaded once at
+      application startup to avoid repeated database reads
+    - product_data: Dictionary containing product-related models (Currency, CurrencyTable, Vat,
+      DepartmentMainGroup, DepartmentSubGroup, Product, ProductAttribute, ProductBarcode,
+      ProductBarcodeMask, ProductManufacturer, ProductUnit, ProductVariant, Warehouse,
+      WarehouseLocation, WarehouseProductStock, WarehouseStockAdjustment, WarehouseStockMovement)
       loaded once at application startup to avoid repeated database reads
     - Cache synchronization: When reference data is modified, pos_data cache is automatically
       updated to stay synchronized with database
@@ -144,10 +155,13 @@ class CurrentData:
         
         The following models are loaded:
         - Cashier: User accounts for POS operators
+        - CashierPerformanceMetrics: Cashier performance metrics and statistics
+        - CashierPerformanceTarget: Cashier performance targets and goals
+        - CashierTransactionMetrics: Transaction-level performance metrics
+        - CashierWorkBreak: Cashier break records and tracking
+        - CashierWorkSession: Cashier work session records
         - City: City master data
         - Country: Country master data
-        - Currency: Currency master data
-        - CurrencyTable: Currency exchange rates
         - District: District/region master data
         - Form: Dynamic form definitions
         - FormControl: Form controls (buttons, textboxes, etc.)
@@ -159,7 +173,6 @@ class CurrentData:
         - ReceiptHeader: Receipt header templates
         - Store: Store/outlet information
         - Table: Restaurant table management
-        - Vat: VAT/tax rate definitions
         
         Args:
             progress_callback: Optional callback function(message: str) to report progress
@@ -167,10 +180,13 @@ class CurrentData:
         # Define all reference data models to load (excluding transaction/sales data)
         model_classes = [
             Cashier,
+            CashierPerformanceMetrics,
+            CashierPerformanceTarget,
+            CashierTransactionMetrics,
+            CashierWorkBreak,
+            CashierWorkSession,
             City,
             Country,
-            Currency,
-            CurrencyTable,
             District,
             Form,
             FormControl,
@@ -182,7 +198,6 @@ class CurrentData:
             ReceiptHeader,
             Store,
             Table,
-            Vat,
         ]
         
         # Load each model into pos_data dictionary
@@ -222,6 +237,8 @@ class CurrentData:
         and cached in product_data dictionary for fast access throughout the session.
         
         The following models are loaded:
+        - Currency: Currency master data
+        - CurrencyTable: Currency exchange rates
         - DepartmentMainGroup: Main department groups
         - DepartmentSubGroup: Sub department groups
         - Product: Product master data
@@ -231,6 +248,7 @@ class CurrentData:
         - ProductManufacturer: Manufacturer information
         - ProductUnit: Product unit definitions
         - ProductVariant: Product variants
+        - Vat: VAT/tax rate definitions
         - Warehouse: Warehouse master data
         - WarehouseLocation: Warehouse location data
         - WarehouseProductStock: Product stock levels by warehouse
@@ -242,6 +260,8 @@ class CurrentData:
         """
         # Define all product-related models to load
         model_classes = [
+            Currency,
+            CurrencyTable,
             DepartmentMainGroup,
             DepartmentSubGroup,
             Product,
@@ -251,6 +271,7 @@ class CurrentData:
             ProductManufacturer,
             ProductUnit,
             ProductVariant,
+            Vat,
             Warehouse,
             WarehouseLocation,
             WarehouseProductStock,
@@ -339,7 +360,8 @@ class CurrentData:
         synchronized with database after bulk changes.
         
         Args:
-            model_class: The model class to refresh (e.g., Cashier, Currency, etc.)
+            model_class: The model class to refresh (e.g., Cashier, Form, etc.)
+                        Note: Currency, CurrencyTable, and Vat are now in product_data
         """
         model_name = model_class.__name__
         
