@@ -560,11 +560,13 @@ control.form_transition_mode = "MODAL"  # Correct (uppercase)
 ### Performance Tips
 
 1. **In-Memory Data Caching**: All reference data (Cashier, Currency, Form, FormControl, LabelValue, PaymentType, PosSettings, Store, Table, Vat, etc.) is loaded once at application startup into `pos_data` dictionary. This minimizes disk I/O and improves performance, especially important for POS devices with limited disk write cycles.
-2. **RAM Management**: Consider a cache system for frequently used forms instead of `REPLACE`
-3. **Database Queries**: Forms and controls are loaded into `pos_data` dict at application startup - no repeated database reads during runtime
-4. **Cache Synchronization**: When reference data is modified (e.g., new cashier created), the cache is automatically updated via `update_pos_data_cache()` method
-5. **Modal Dialog Cleanup**: Modal dialogs are automatically cleaned up (no memory leaks)
-6. **Login Performance**: Login operations use cached `pos_data` instead of database queries, significantly reducing disk I/O
+2. **Product Data Caching**: All product-related models (Product, ProductBarcode, DepartmentMainGroup, DepartmentSubGroup, Warehouse, etc.) are loaded once at application startup into `product_data` dictionary. Sale operations, button rendering, and product lookups use cached data instead of database queries.
+3. **RAM Management**: Consider a cache system for frequently used forms instead of `REPLACE`
+4. **Database Queries**: Forms, controls, and products are loaded into cache dictionaries at application startup - no repeated database reads during runtime
+5. **Cache Synchronization**: When reference data is modified (e.g., new cashier created), the cache is automatically updated via `update_pos_data_cache()` method. When product data is modified, use `update_product_data_cache()` method.
+6. **Modal Dialog Cleanup**: Modal dialogs are automatically cleaned up (no memory leaks)
+7. **Login Performance**: Login operations use cached `pos_data` instead of database queries, significantly reducing disk I/O
+8. **Sale Performance**: All sale operations (PLU code lookup, barcode lookup, department lookup) use cached `product_data`, eliminating database queries during transactions
 
 ### Future Enhancements
 
@@ -842,7 +844,11 @@ Potential future improvements:
 
 SaleFlex.PyPOS implements an **in-memory caching strategy** to minimize disk I/O and improve performance, especially critical for POS devices with limited disk write cycles. All reference data models are loaded once at application startup and cached in memory throughout the session.
 
-### Cached Models
+The caching system is divided into two main categories:
+1. **POS Reference Data** (`pos_data`): System configuration and reference data
+2. **Product Data** (`product_data`): Product-related models used in sales operations
+
+### POS Reference Data Cache (`pos_data`)
 
 The following reference data models are loaded into `pos_data` dictionary at startup:
 
@@ -864,11 +870,30 @@ The following reference data models are loaded into `pos_data` dictionary at sta
 - **Table**: Restaurant table management
 - **Vat**: VAT/tax rate definitions
 
+### Product Data Cache (`product_data`)
+
+The following product-related models are loaded into `product_data` dictionary at startup:
+
+- **DepartmentMainGroup**: Main product category groups
+- **DepartmentSubGroup**: Sub-categories within main groups
+- **Product**: Product master data with pricing, stock, and descriptions
+- **ProductAttribute**: Product attributes and specifications
+- **ProductBarcode**: Barcode associations for products
+- **ProductBarcodeMask**: Barcode format definitions
+- **ProductManufacturer**: Manufacturer/brand information
+- **ProductUnit**: Measurement units (PCS, KG, L, M, etc.)
+- **ProductVariant**: Product variations (size, color, style)
+- **Warehouse**: Warehouse/depot definitions
+- **WarehouseLocation**: Specific locations within warehouses
+- **WarehouseProductStock**: Current stock levels per product per warehouse
+- **WarehouseStockAdjustment**: Stock adjustment records
+- **WarehouseStockMovement**: Stock movement history
+
 ### Implementation
 
 #### CurrentData Class
 
-The `CurrentData` class manages the caching system:
+The `CurrentData` class manages both caching systems:
 
 ```python
 # pos_data is populated at application startup
@@ -876,7 +901,15 @@ self.pos_data = {
     "Cashier": [...],
     "Currency": [...],
     "Form": [...],
-    # ... other models
+    # ... other reference models
+}
+
+# product_data is populated at application startup
+self.product_data = {
+    "Product": [...],
+    "ProductBarcode": [...],
+    "DepartmentMainGroup": [...],
+    # ... other product models
 }
 
 # Special cached references
@@ -886,6 +919,7 @@ self.current_currency = "GBP"  # Loaded from PosSettings
 
 #### Accessing Cached Data
 
+**POS Reference Data:**
 ```python
 # Access cashier list from cache
 cashiers = self.pos_data.get("Cashier", [])
@@ -900,10 +934,33 @@ currencies = self.pos_data.get("Currency", [])
 settings = self.pos_settings
 ```
 
+**Product Data:**
+```python
+# Access product list from cache
+products = self.product_data.get("Product", [])
+
+# Find product by code (used in sale operations)
+product = next((p for p in products 
+                if p.code == "PROD001" 
+                and not (hasattr(p, 'is_deleted') and p.is_deleted)), None)
+
+# Access product barcodes
+barcodes = self.product_data.get("ProductBarcode", [])
+
+# Find barcode record
+barcode = next((b for b in barcodes 
+                if b.barcode == "1234567890123"
+                and not (hasattr(b, 'is_deleted') and b.is_deleted)), None)
+
+# Access departments
+departments = self.product_data.get("DepartmentMainGroup", [])
+```
+
 #### Cache Synchronization
 
 When reference data is modified, the cache must be updated:
 
+**POS Reference Data:**
 ```python
 # After creating/updating a cashier
 cashier.save()
@@ -911,6 +968,16 @@ self.update_pos_data_cache(cashier)
 
 # To refresh entire model from database
 self.refresh_pos_data_model(Cashier)
+```
+
+**Product Data:**
+```python
+# After creating/updating a product
+product.save()
+self.update_product_data_cache(product)
+
+# To refresh entire model from database
+self.refresh_product_data_model(Product)
 ```
 
 ### Benefits
@@ -921,8 +988,9 @@ self.refresh_pos_data_model(Cashier)
 4. **Consistent Data**: All components access the same cached data
 5. **Automatic Synchronization**: Cache updates when data is modified
 
-### Login Optimization
+### Performance Optimizations
 
+**Login Operations:**
 Login operations are optimized to use cached data:
 
 ```python
@@ -936,16 +1004,43 @@ cashiers = [c for c in all_cashiers
 
 This eliminates database reads during authentication, improving login performance.
 
+**Sale Operations:**
+All product lookups in sale operations use `product_data` cache:
+
+```python
+# Product lookup by code (SALE_PLU_CODE)
+products = [p for p in self.product_data.get("Product", [])
+            if p.code == product_code 
+            and not (hasattr(p, 'is_deleted') and p.is_deleted)]
+
+# Barcode lookup (SALE_PLU_BARCODE)
+barcodes = [b for b in self.product_data.get("ProductBarcode", [])
+            if b.barcode == barcode
+            and not (hasattr(b, 'is_deleted') and b.is_deleted)]
+
+# Department lookup (SALE_DEPARTMENT)
+departments = [d for d in self.product_data.get("DepartmentMainGroup", [])
+               if d.code == department_code
+               and not (hasattr(d, 'is_deleted') and d.is_deleted)]
+```
+
+**Button Rendering:**
+Button text loading in sale forms uses `product_data` cache instead of database queries, significantly improving form rendering speed.
+
 ### Cache Population
 
-The cache is populated during application initialization:
+Both caches are populated during application initialization:
 
 ```python
 # In Application.__init__()
+# Load POS reference data
 self.populate_pos_data(progress_callback=about.update_message)
+
+# Load product data
+self.populate_product_data(progress_callback=about.update_message)
 ```
 
-This method loads all reference models from the database once and stores them in `pos_data` dictionary.
+These methods load all models from the database once and store them in their respective dictionaries (`pos_data` and `product_data`).
 
 ---
 
