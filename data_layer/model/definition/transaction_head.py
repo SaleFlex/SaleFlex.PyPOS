@@ -69,7 +69,7 @@ class TransactionHead(Model, CRUD, AuditMixin, SoftDeleteMixin):
     rounding_amount = Column(Numeric(precision=15, scale=4), nullable=False, default=0)
 
     # Multi-currency
-    base_currency = Column(String(3), nullable=False, default="USD")
+    base_currency = Column(String(3), nullable=False, default="GBP")
     display_currency = Column(String(3), nullable=True)
     exchange_rate = Column(Numeric(precision=15, scale=6), nullable=True, default=1.0)
 

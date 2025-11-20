@@ -5,6 +5,7 @@ from data_layer.db_init_data.cashier import _insert_admin_cashier
 from data_layer.db_init_data.city import _insert_cities
 from data_layer.db_init_data.country import _insert_countries
 from data_layer.db_init_data.currency import _insert_currencies
+from data_layer.db_init_data.currency_table import _insert_currency_table
 from data_layer.db_init_data.department_group import _insert_department_groups
 from data_layer.db_init_data.district import _insert_districts
 from data_layer.db_init_data.form import _insert_default_forms
@@ -25,6 +26,7 @@ from data_layer.db_init_data.product_attribute import _insert_product_attributes
 from data_layer.db_init_data.cashier_performance_target import _insert_cashier_performance_targets
 from data_layer.db_init_data.warehouse import _insert_warehouses
 from data_layer.db_init_data.pos_virtual_keyboard import _insert_virtual_keyboard_settings, _insert_alternative_keyboard_themes
+from data_layer.db_init_data.pos_settings import _insert_pos_settings
 from data_layer.db_init_data.campaign import _insert_campaigns
 from data_layer.db_init_data.loyalty import _insert_loyalty
 from data_layer.db_init_data.customer_segment import _insert_customer_segments
@@ -53,8 +55,11 @@ def insert_initial_data(engine: Engine):
             # Insert warehouses
             _insert_warehouses(session, admin_cashier.id)
 
-            # Insert currencies
-            _insert_currencies(session)
+            # Insert currencies and get GBP currency for PosSettings
+            gbp_currency = _insert_currencies(session)
+            
+            # Insert currency exchange rates (must be after currencies)
+            _insert_currency_table(session, admin_cashier.id)
 
             # Insert payment types
             _insert_payment_types(session)
@@ -118,6 +123,9 @@ def insert_initial_data(engine: Engine):
 
             # Insert customer segments
             _insert_customer_segments(session)
+            
+            # Insert POS settings (must be after currencies for current_currency reference)
+            _insert_pos_settings(session, admin_cashier.id, gbp_currency)
 
     except SQLAlchemyError as e:
         print(f"✗ Initial data insertion error: {e}")

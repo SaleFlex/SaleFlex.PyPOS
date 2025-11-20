@@ -450,7 +450,7 @@ class SaleList(QWidget):
         
         # Set default transaction properties
         custom_sales_data.transaction = "Sale"      # Default to sale transaction
-        custom_sales_data.transaction_type = "PLU"  # Default to PLU (product lookup) type
+        custom_sales_data.transaction_type = kwargs.get('transaction_type', "PLU")  # Default to PLU (product lookup) type
         custom_sales_data.unit_quantity = str(custom_sales_data.quantity)
         
         # Apply optional parameters from keyword arguments

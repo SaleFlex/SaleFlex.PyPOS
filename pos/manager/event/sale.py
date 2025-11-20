@@ -37,7 +37,7 @@ class SaleEvent:
     
     # ==================== DEPARTMENT SALES EVENTS ====================
     
-    def _sale_department(self, key=None):
+    def _sale_department(self, button=None):
         """
         Handle department-based sale entry.
         
@@ -46,13 +46,15 @@ class SaleEvent:
         
         Process:
         1. Verify authentication and transaction state
-        2. Get department information from button/control
-        3. Prompt for price entry if needed
-        4. Add department sale to current transaction
-        5. Update transaction display
+        2. Extract department number from button name (remove "DEPARTMENT" prefix)
+        3. Get price from numpad
+        4. Look up department info from department_main_group (1-99) or department_sub_group (>99)
+        5. Check max_price if defined
+        6. Add department sale to current transaction
+        7. Update transaction display
         
         Parameters:
-            key: Optional parameter from numpad input
+            button: Button object that was clicked (contains control_name attribute)
         
         Returns:
             bool: True if department sale successful, False otherwise
@@ -60,13 +62,239 @@ class SaleEvent:
         if not self.login_succeed:
             self._logout()
             return False
+        
+        try:
+            # Get button control name
+            if button is None or not hasattr(button, 'control_name'):
+                print("[SALE_DEPARTMENT] No button provided or button missing control_name")
+                return False
             
-        # TODO: Implement department sale logic
-        if key is not None:
-            print(f"Department sale - key pressed: {key}")
-        else:
-            print("Department sale - functionality to be implemented")
-        return False
+            control_name = button.control_name
+            print(f"[SALE_DEPARTMENT] Processing button with control_name: '{control_name}'")
+            
+            # Check if control name starts with "DEPARTMENT"
+            if not control_name or not control_name.upper().startswith("DEPARTMENT"):
+                print(f"[SALE_DEPARTMENT] Control name '{control_name}' does not start with DEPARTMENT")
+                return False
+            
+            # Extract department number from control name (remove "DEPARTMENT" prefix)
+            department_no_str = control_name[10:]  # Remove first 10 characters "DEPARTMENT"
+            print(f"[SALE_DEPARTMENT] Extracted department number string: '{department_no_str}'")
+            
+            if not department_no_str:
+                print("[SALE_DEPARTMENT] Empty department number after removing DEPARTMENT prefix")
+                return False
+            
+            try:
+                department_no = int(department_no_str)
+            except ValueError:
+                print(f"[SALE_DEPARTMENT] Invalid department number: '{department_no_str}'")
+                return False
+            
+            print(f"[SALE_DEPARTMENT] Department number: {department_no}")
+            
+            # Find numpad widget in the current window to get price
+            current_window = button.parent() if button else None
+            numpad = None
+            
+            if current_window:
+                # Search for NumPad widget in window's children
+                from user_interface.control.numpad.numpad import NumPad
+                for child in current_window.children():
+                    if isinstance(child, NumPad):
+                        numpad = child
+                        break
+            
+            if not numpad:
+                print("[SALE_DEPARTMENT] NumPad widget not found in current window")
+                return False
+            
+            # Get price from numpad
+            numpad_text = numpad.get_text()
+            print(f"[SALE_DEPARTMENT] NumPad text: '{numpad_text}'")
+            
+            if not numpad_text or numpad_text.strip() == "":
+                print("[SALE_DEPARTMENT] No price entered in numpad")
+                
+                # Show error message using MessageForm
+                try:
+                    from user_interface.form.message_form import MessageForm
+                    from data_layer.model import LabelValue
+                    
+                    # Get error message from LabelValue
+                    label_values = LabelValue.filter_by(key="NoAmountEntered", culture_info="en-GB", is_deleted=False)
+                    if label_values and len(label_values) > 0:
+                        error_message = label_values[0].value
+                    else:
+                        error_message = "Please enter an amount."
+                    
+                    # Show error dialog
+                    MessageForm.show_error(current_window, error_message, "")
+                except Exception as e:
+                    print(f"[SALE_DEPARTMENT] Error showing message form: {e}")
+                    import traceback
+                    traceback.print_exc()
+                
+                return False
+            
+            try:
+                # Convert numpad text to integer (numpad value is multiplied by 10^decimal_places)
+                numpad_value = int(numpad_text)
+            except ValueError:
+                print(f"[SALE_DEPARTMENT] Invalid price format: '{numpad_text}'")
+                return False
+            
+            print(f"[SALE_DEPARTMENT] NumPad value (before division): {numpad_value}")
+            
+            # Get current currency and divide by 10^decimal_places
+            from user_interface.form.message_form import MessageForm
+            from data_layer.model import LabelValue
+            
+            # Get current currency from CurrentStatus
+            current_currency_sign = self.current_currency if hasattr(self, 'current_currency') and self.current_currency else "GBP"
+            print(f"[SALE_DEPARTMENT] Current currency sign: '{current_currency_sign}'")
+            
+            # Find currency from pos_data (more efficient than database query)
+            decimal_places = 2  # Default
+            try:
+                # Try to get currency from pos_data if available
+                if hasattr(self, 'pos_data') and self.pos_data:
+                    all_currencies = self.pos_data.get("Currency", [])
+                    currency = next((c for c in all_currencies if c.sign == current_currency_sign and not c.is_deleted), None)
+                    if currency and currency.decimal_places is not None:
+                        decimal_places = currency.decimal_places
+                        print(f"[SALE_DEPARTMENT] Currency decimal_places from pos_data: {decimal_places}")
+                    else:
+                        print(f"[SALE_DEPARTMENT] Currency not found in pos_data with sign: '{current_currency_sign}', defaulting to decimal_places=2")
+                else:
+                    # Fallback: query from database
+                    from data_layer.model import Currency
+                    currencies = Currency.filter_by(sign=current_currency_sign, is_deleted=False)
+                    if currencies and len(currencies) > 0:
+                        currency = currencies[0]
+                        decimal_places = currency.decimal_places if currency.decimal_places is not None else 2
+                        print(f"[SALE_DEPARTMENT] Currency decimal_places from database: {decimal_places}")
+                    else:
+                        print(f"[SALE_DEPARTMENT] Currency not found with sign: '{current_currency_sign}', defaulting to decimal_places=2")
+            except Exception as e:
+                print(f"[SALE_DEPARTMENT] Error getting currency decimal_places: {e}, defaulting to 2")
+                decimal_places = 2
+            
+            # Divide by 10^decimal_places to get actual price
+            divisor = 10 ** decimal_places
+            price = float(numpad_value) / divisor
+            print(f"[SALE_DEPARTMENT] Price after division (numpad_value / {divisor}): {price}")
+            
+            # Import models
+            from data_layer.model import DepartmentMainGroup, DepartmentSubGroup
+            from user_interface.control.sale_list.sale_list import SaleList
+            
+            department = None
+            department_name = ""
+            
+            # Determine which table to query based on department number
+            if 1 <= department_no <= 99:
+                # Query department_main_group table
+                print(f"[SALE_DEPARTMENT] Querying department_main_group for code: '{department_no}'")
+                departments = DepartmentMainGroup.filter_by(code=str(department_no), is_deleted=False)
+                
+                if not departments or len(departments) == 0:
+                    print(f"[SALE_DEPARTMENT] No department_main_group found with code: '{department_no}'")
+                    return False
+                
+                department = departments[0]
+                department_name = department.name if department.name else f"Department {department_no}"
+                print(f"[SALE_DEPARTMENT] Found department_main_group: {department_name}")
+                
+            elif department_no > 99:
+                # Query department_sub_group table
+                print(f"[SALE_DEPARTMENT] Querying department_sub_group for code: '{department_no}'")
+                departments = DepartmentSubGroup.filter_by(code=str(department_no), is_deleted=False)
+                
+                if not departments or len(departments) == 0:
+                    print(f"[SALE_DEPARTMENT] No department_sub_group found with code: '{department_no}'")
+                    return False
+                
+                department = departments[0]
+                department_name = department.name if department.name else f"Department {department_no}"
+                print(f"[SALE_DEPARTMENT] Found department_sub_group: {department_name}")
+            else:
+                print(f"[SALE_DEPARTMENT] Invalid department number range: {department_no}")
+                return False
+            
+            # Check max_price if defined
+            if department.max_price is not None:
+                max_price = float(department.max_price)
+                print(f"[SALE_DEPARTMENT] Max price check: {price} <= {max_price}")
+                
+                if price > max_price:
+                    print(f"[SALE_DEPARTMENT] Price {price} exceeds max_price {max_price}")
+                    
+                    # Show error message using MessageForm
+                    try:
+                        # Get error message from LabelValue
+                        label_values = LabelValue.filter_by(key="PriceExceedsMaxPrice", culture_info="en-GB", is_deleted=False)
+                        if label_values and len(label_values) > 0:
+                            error_message_template = label_values[0].value
+                            # Replace placeholders
+                            error_message = error_message_template.replace("{price}", f"{price:.2f}").replace("{max_price}", f"{max_price:.2f}")
+                        else:
+                            error_message = f"The price entered ({price:.2f}) is greater than the allowed amount({max_price:.2f})."
+                        
+                        # Show error dialog
+                        MessageForm.show_error(current_window, error_message, "")
+                    except Exception as e:
+                        print(f"[SALE_DEPARTMENT] Error showing message form: {e}")
+                    
+                    return False
+            
+            # Find sale_list widget in the current window
+            sale_list = None
+            
+            if current_window:
+                # Check if window has sale_list attribute (set in _create_sale_list)
+                if hasattr(current_window, 'sale_list'):
+                    sale_list = current_window.sale_list
+                else:
+                    # Fallback: Search for SaleList widget in window's children
+                    for child in current_window.children():
+                        if isinstance(child, SaleList):
+                            sale_list = child
+                            break
+            
+            if not sale_list:
+                print("[SALE_DEPARTMENT] SaleList widget not found in current window")
+                return False
+            
+            # Add department sale to sale list
+            quantity = 1.0  # Default quantity for department sales
+            
+            success = sale_list.add_product(
+                product_name=department_name,
+                quantity=quantity,
+                unit_price=price,
+                department_no=department_no,
+                reference_id=0,  # Department uses UUID, so we use 0 and rely on department_no
+                transaction_type="DEPARTMENT"
+            )
+            
+            if success:
+                print(f"[SALE_DEPARTMENT] ✓ Successfully added department '{department_name}' to sale list")
+                
+                # Clear numpad after successful sale
+                numpad.set_text("")
+                print(f"[SALE_DEPARTMENT] Cleared numpad")
+                
+                return True
+            else:
+                print("[SALE_DEPARTMENT] Failed to add department to sale list")
+                return False
+                
+        except Exception as e:
+            print(f"[SALE_DEPARTMENT] Error processing department sale: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return False
     
     def _sale_department_by_no(self, key=None):
         """

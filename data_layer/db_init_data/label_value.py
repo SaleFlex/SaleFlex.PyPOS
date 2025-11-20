@@ -106,6 +106,13 @@ def _insert_label_values(session):
             {"key": "DocumentCancelled", "value": "Document Cancelled.", "culture_info": "en-GB"},
             {"key": "NetSale", "value": "NET SALE", "culture_info": "en-GB"},
             {"key": "Change", "value": "CHANGE", "culture_info": "en-GB"},
+            {"key": "Ok", "value": "Ok", "culture_info": "en-GB"},
+            {"key": "Yes", "value": "Yes", "culture_info": "en-GB"},
+            {"key": "No", "value": "No", "culture_info": "en-GB"},
+            {"key": "Accept", "value": "Accept", "culture_info": "en-GB"},
+            {"key": "Reject", "value": "Reject", "culture_info": "en-GB"},
+            {"key": "PriceExceedsMaxPrice", "value": "The price entered ({price}) is greater than the allowed amount({max_price}).", "culture_info": "en-GB"},
+            {"key": "NoAmountEntered", "value": "Please enter an amount.", "culture_info": "en-GB"},
         ]
 
         for label_data in label_values:
@@ -116,4 +123,4 @@ def _insert_label_values(session):
             )
             session.add(label_value)
 
-        print("✓ Default label values added (79 labels)") 
+        print("✓ Default label values added (80 labels)") 

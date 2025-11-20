@@ -9,6 +9,7 @@ from .closure_payment_type_summary import ClosurePaymentTypeSummary
 from .closure_total import ClosureTotal
 from .country import Country
 from .currency import Currency
+from .currency_table import CurrencyTable
 from .customer import Customer
 from .department_main_group import DepartmentMainGroup
 from .department_sub_group import DepartmentSubGroup
@@ -101,6 +102,7 @@ __all__ = [
     'ClosureTotal',
     'Country',
     'Currency',
+    'CurrencyTable',
     'Customer',
     'DepartmentMainGroup',
     'DepartmentSubGroup',

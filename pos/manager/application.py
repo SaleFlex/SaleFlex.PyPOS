@@ -121,6 +121,12 @@ class Application(CurrentStatus, CurrentData, EventHandler):
         about.update_message("Initializing database...")
         self.app.processEvents()
         init_db()
+        
+        # Initialize KeyboardSettingsLoader for virtual keyboard settings
+        from data_layer.engine import Engine
+        from user_interface.control.virtual_keyboard.keyboard_settings_loader import KeyboardSettingsLoader
+        keyboard_engine = Engine()
+        KeyboardSettingsLoader.initialize(keyboard_engine)
 
         # Load reference data into memory to reduce disk I/O during runtime
         about.update_message("Loading reference data into memory...")
@@ -148,8 +154,13 @@ class Application(CurrentStatus, CurrentData, EventHandler):
             self.app.processEvents()
             try:
                 self.pos_data[model_name] = model_cls.get_all()
-            except Exception:
+                if model_name == "PosSettings":
+                    print(f"[DEBUG] Loaded {len(self.pos_data[model_name])} {model_name} records")
+            except Exception as e:
                 # On any unexpected read error, keep an empty list
+                print(f"[DEBUG] Error loading {model_name}: {e}")
+                import traceback
+                traceback.print_exc()
                 self.pos_data[model_name] = []
 
         # Set application icon from settings.toml
@@ -169,12 +180,61 @@ class Application(CurrentStatus, CurrentData, EventHandler):
         about.update_message("Loading startup form...")
         self.app.processEvents()
         self.load_startup_form()
+        
+        # Load current currency from PosSettings
+        about.update_message("Loading currency settings...")
+        self.app.processEvents()
+        self.load_current_currency_from_pos_data()
 
         # Finalize and dispose the AboutForm
         about.update_message("Initialization complete.")
         self.app.processEvents()
         time.sleep(1)
         about.dispose()
+    
+    def load_current_currency_from_pos_data(self):
+        """
+        Load the current currency sign from PosSettings using pos_data.
+        
+        This method overrides the base class method to use pos_data instead of
+        querying the database directly, which is more efficient since pos_data
+        is already loaded into memory.
+        """
+        try:
+            from data_layer.model import Currency
+            
+            # Get PosSettings from pos_data (already loaded in memory)
+            pos_settings = self.pos_data.get("PosSettings", [])
+            print(f"[DEBUG] PosSettings count in pos_data: {len(pos_settings) if pos_settings else 0}")
+            if pos_settings and len(pos_settings) > 0:
+                # Get the first POS settings record
+                settings = pos_settings[0]
+                if settings.fk_current_currency_id:
+                    # Get currency from pos_data (already loaded in memory)
+                    all_currencies = self.pos_data.get("Currency", [])
+                    currency = next((c for c in all_currencies if c.id == settings.fk_current_currency_id), None)
+                    
+                    if currency and currency.sign:
+                        self.current_currency = currency.sign
+                        print(f"✓ Current currency loaded: {self.current_currency}")
+                    else:
+                        # Default to GBP if currency not found
+                        self.current_currency = "GBP"
+                        print("✓ Currency not found, defaulting to GBP")
+                else:
+                    # Default to GBP if not set
+                    self.current_currency = "GBP"
+                    print("✓ Current currency not set, defaulting to GBP")
+            else:
+                # Default to GBP if no settings found
+                self.current_currency = "GBP"
+                print("✓ No POS settings found, defaulting to GBP")
+        except Exception as e:
+            print(f"Error loading current currency: {e}")
+            import traceback
+            traceback.print_exc()
+            # Default to GBP on error
+            self.current_currency = "GBP"
 
     def run(self):
         """

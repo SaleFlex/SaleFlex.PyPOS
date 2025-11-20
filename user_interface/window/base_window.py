@@ -154,9 +154,9 @@ class BaseWindow(QMainWindow):
         if event_handler:
             print(f"✓ Connecting button '{design_data.get('caption')}' to event handler: {event_handler.__name__}")
             
-            # Special handling for SALE_PLU_CODE and SALE_PLU_BARCODE: pass button object to handler
+            # Special handling for SALE_PLU_CODE, SALE_PLU_BARCODE, and SALE_DEPARTMENT: pass button object to handler
             # Use default parameter to avoid closure issues
-            if function_name in ["SALE_PLU_CODE", "SALE_PLU_BARCODE"]:
+            if function_name in ["SALE_PLU_CODE", "SALE_PLU_BARCODE", "SALE_DEPARTMENT"]:
                 button.clicked.connect(lambda checked=False, btn=button: event_handler(btn))
             else:
                 button.clicked.connect(event_handler)

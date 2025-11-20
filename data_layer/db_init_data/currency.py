@@ -21,7 +21,11 @@ from data_layer.model import Currency
 
 
 def _insert_currencies(session):
-    """Insert default currencies if not exists"""
+    """Insert default currencies if not exists
+    
+    Returns:
+        Currency: GBP Currency object, or None if currencies already exist
+    """
     currency_exists = session.query(Currency).first()
     if not currency_exists:
         currencies = [
@@ -32,7 +36,8 @@ def _insert_currencies(session):
                 "sign": "ARS",
                 "sign_direction": "LEFT",
                 "currency_symbol": "$",
-                "rate": 1025.50
+                "rate": 1025.50,
+                "decimal_places": 2
             },
             {
                 "no": 2,
@@ -41,7 +46,8 @@ def _insert_currencies(session):
                 "sign": "AUD",
                 "sign_direction": "LEFT",
                 "currency_symbol": "$",
-                "rate": 2.05
+                "rate": 2.05,
+                "decimal_places": 2
             },
             {
                 "no": 3,
@@ -50,7 +56,8 @@ def _insert_currencies(session):
                 "sign": "BRL",
                 "sign_direction": "LEFT",
                 "currency_symbol": "R$",
-                "rate": 7.85
+                "rate": 7.85,
+                "decimal_places": 2
             },
             {
                 "no": 4,
@@ -59,7 +66,8 @@ def _insert_currencies(session):
                 "sign": "GBP",
                 "sign_direction": "LEFT",
                 "currency_symbol": "£",
-                "rate": 1.0
+                "rate": 1.0,
+                "decimal_places": 2
             },
             {
                 "no": 5,
@@ -68,7 +76,8 @@ def _insert_currencies(session):
                 "sign": "CAD",
                 "sign_direction": "LEFT",
                 "currency_symbol": "$",
-                "rate": 1.82
+                "rate": 1.82,
+                "decimal_places": 2
             },
             {
                 "no": 6,
@@ -77,7 +86,8 @@ def _insert_currencies(session):
                 "sign": "CLP",
                 "sign_direction": "LEFT",
                 "currency_symbol": "$",
-                "rate": 1245.80
+                "rate": 1245.80,
+                "decimal_places": 0
             },
             {
                 "no": 7,
@@ -86,7 +96,8 @@ def _insert_currencies(session):
                 "sign": "CNY",
                 "sign_direction": "LEFT",
                 "currency_symbol": "¥",
-                "rate": 9.46
+                "rate": 9.46,
+                "decimal_places": 2
             },
             {
                 "no": 8,
@@ -95,7 +106,8 @@ def _insert_currencies(session):
                 "sign": "COP",
                 "sign_direction": "LEFT",
                 "currency_symbol": "$",
-                "rate": 5287.45
+                "rate": 5287.45,
+                "decimal_places": 2
             },
             {
                 "no": 9,
@@ -104,7 +116,8 @@ def _insert_currencies(session):
                 "sign": "CZK",
                 "sign_direction": "LEFT",
                 "currency_symbol": "Kč",
-                "rate": 28.35
+                "rate": 28.35,
+                "decimal_places": 2
             },
             {
                 "no": 10,
@@ -113,7 +126,8 @@ def _insert_currencies(session):
                 "sign": "DKK",
                 "sign_direction": "LEFT",
                 "currency_symbol": "kr",
-                "rate": 8.80
+                "rate": 8.80,
+                "decimal_places": 2
             },
             {
                 "no": 11,
@@ -122,7 +136,8 @@ def _insert_currencies(session):
                 "sign": "EGP",
                 "sign_direction": "LEFT",
                 "currency_symbol": "£",
-                "rate": 51.15
+                "rate": 51.15,
+                "decimal_places": 2
             },
             {
                 "no": 12,
@@ -131,7 +146,8 @@ def _insert_currencies(session):
                 "sign": "EUR",
                 "sign_direction": "LEFT",
                 "currency_symbol": "€",
-                "rate": 1.18
+                "rate": 1.18,
+                "decimal_places": 2
             },
             {
                 "no": 13,
@@ -140,7 +156,8 @@ def _insert_currencies(session):
                 "sign": "HKD",
                 "sign_direction": "LEFT",
                 "currency_symbol": "$",
-                "rate": 10.22
+                "rate": 10.22,
+                "decimal_places": 2
             },
             {
                 "no": 14,
@@ -149,7 +166,8 @@ def _insert_currencies(session):
                 "sign": "HUF",
                 "sign_direction": "LEFT",
                 "currency_symbol": "Ft",
-                "rate": 461.75
+                "rate": 461.75,
+                "decimal_places": 2
             },
             {
                 "no": 15,
@@ -158,7 +176,8 @@ def _insert_currencies(session):
                 "sign": "INR",
                 "sign_direction": "LEFT",
                 "currency_symbol": "₹",
-                "rate": 110.85
+                "rate": 110.85,
+                "decimal_places": 2
             },
             {
                 "no": 16,
@@ -167,7 +186,8 @@ def _insert_currencies(session):
                 "sign": "IDR",
                 "sign_direction": "LEFT",
                 "currency_symbol": "Rp",
-                "rate": 20586.75
+                "rate": 20586.75,
+                "decimal_places": 2
             },
             {
                 "no": 17,
@@ -176,7 +196,8 @@ def _insert_currencies(session):
                 "sign": "IRR",
                 "sign_direction": "LEFT",
                 "currency_symbol": "﷼",
-                "rate": 55000.0
+                "rate": 55000.0,
+                "decimal_places": 2
             },
             {
                 "no": 18,
@@ -185,7 +206,8 @@ def _insert_currencies(session):
                 "sign": "IQD",
                 "sign_direction": "LEFT",
                 "currency_symbol": "د.ع",
-                "rate": 1713.75
+                "rate": 1713.75,
+                "decimal_places": 3
             },
             {
                 "no": 19,
@@ -194,7 +216,8 @@ def _insert_currencies(session):
                 "sign": "ILS",
                 "sign_direction": "LEFT",
                 "currency_symbol": "₪",
-                "rate": 4.72
+                "rate": 4.72,
+                "decimal_places": 2
             },
             {
                 "no": 20,
@@ -203,7 +226,8 @@ def _insert_currencies(session):
                 "sign": "JPY",
                 "sign_direction": "LEFT",
                 "currency_symbol": "¥",
-                "rate": 193.45
+                "rate": 193.45,
+                "decimal_places": 0
             },
             {
                 "no": 21,
@@ -212,7 +236,8 @@ def _insert_currencies(session):
                 "sign": "KWD",
                 "sign_direction": "LEFT",
                 "currency_symbol": "د.ك",
-                "rate": 0.40
+                "rate": 0.40,
+                "decimal_places": 3
             },
             {
                 "no": 22,
@@ -221,7 +246,8 @@ def _insert_currencies(session):
                 "sign": "MYR",
                 "sign_direction": "LEFT",
                 "currency_symbol": "RM",
-                "rate": 5.89
+                "rate": 5.89,
+                "decimal_places": 2
             },
             {
                 "no": 23,
@@ -230,7 +256,8 @@ def _insert_currencies(session):
                 "sign": "MXN",
                 "sign_direction": "LEFT",
                 "currency_symbol": "$",
-                "rate": 26.42
+                "rate": 26.42,
+                "decimal_places": 2
             },
             {
                 "no": 24,
@@ -239,7 +266,8 @@ def _insert_currencies(session):
                 "sign": "NZD",
                 "sign_direction": "LEFT",
                 "currency_symbol": "$",
-                "rate": 2.21
+                "rate": 2.21,
+                "decimal_places": 2
             },
             {
                 "no": 25,
@@ -248,7 +276,8 @@ def _insert_currencies(session):
                 "sign": "NOK",
                 "sign_direction": "LEFT",
                 "currency_symbol": "kr",
-                "rate": 14.86
+                "rate": 14.86,
+                "decimal_places": 2
             },
             {
                 "no": 26,
@@ -257,7 +286,8 @@ def _insert_currencies(session):
                 "sign": "PHP",
                 "sign_direction": "LEFT",
                 "currency_symbol": "₱",
-                "rate": 73.62
+                "rate": 73.62,
+                "decimal_places": 2
             },
             {
                 "no": 27,
@@ -266,7 +296,8 @@ def _insert_currencies(session):
                 "sign": "PLN",
                 "sign_direction": "LEFT",
                 "currency_symbol": "zł",
-                "rate": 5.15
+                "rate": 5.15,
+                "decimal_places": 2
             },
             {
                 "no": 28,
@@ -275,7 +306,8 @@ def _insert_currencies(session):
                 "sign": "QAR",
                 "sign_direction": "LEFT",
                 "currency_symbol": "ر.ق",
-                "rate": 4.77
+                "rate": 4.77,
+                "decimal_places": 2
             },
             {
                 "no": 29,
@@ -284,7 +316,8 @@ def _insert_currencies(session):
                 "sign": "RON",
                 "sign_direction": "LEFT",
                 "currency_symbol": "lei",
-                "rate": 5.85
+                "rate": 5.85,
+                "decimal_places": 2
             },
             {
                 "no": 30,
@@ -293,7 +326,8 @@ def _insert_currencies(session):
                 "sign": "RUB",
                 "sign_direction": "LEFT",
                 "currency_symbol": "₽",
-                "rate": 101.25
+                "rate": 101.25,
+                "decimal_places": 2
             },
             {
                 "no": 31,
@@ -302,7 +336,8 @@ def _insert_currencies(session):
                 "sign": "SAR",
                 "sign_direction": "LEFT",
                 "currency_symbol": "ر.س",
-                "rate": 4.91
+                "rate": 4.91,
+                "decimal_places": 2
             },
             {
                 "no": 32,
@@ -311,7 +346,8 @@ def _insert_currencies(session):
                 "sign": "SGD",
                 "sign_direction": "LEFT",
                 "currency_symbol": "$",
-                "rate": 1.76
+                "rate": 1.76,
+                "decimal_places": 2
             },
             {
                 "no": 33,
@@ -320,7 +356,8 @@ def _insert_currencies(session):
                 "sign": "ZAR",
                 "sign_direction": "LEFT",
                 "currency_symbol": "R",
-                "rate": 24.17
+                "rate": 24.17,
+                "decimal_places": 2
             },
             {
                 "no": 34,
@@ -329,7 +366,8 @@ def _insert_currencies(session):
                 "sign": "KRW",
                 "sign_direction": "LEFT",
                 "currency_symbol": "₩",
-                "rate": 1789.65
+                "rate": 1789.65,
+                "decimal_places": 0
             },
             {
                 "no": 35,
@@ -338,7 +376,8 @@ def _insert_currencies(session):
                 "sign": "SEK",
                 "sign_direction": "LEFT",
                 "currency_symbol": "kr",
-                "rate": 14.72
+                "rate": 14.72,
+                "decimal_places": 2
             },
             {
                 "no": 36,
@@ -347,7 +386,8 @@ def _insert_currencies(session):
                 "sign": "CHF",
                 "sign_direction": "LEFT",
                 "currency_symbol": "Fr",
-                "rate": 1.17
+                "rate": 1.17,
+                "decimal_places": 2
             },
             {
                 "no": 37,
@@ -356,7 +396,8 @@ def _insert_currencies(session):
                 "sign": "THB",
                 "sign_direction": "LEFT",
                 "currency_symbol": "฿",
-                "rate": 47.85
+                "rate": 47.85,
+                "decimal_places": 2
             },
             {
                 "no": 38,
@@ -365,7 +406,8 @@ def _insert_currencies(session):
                 "sign": "TRY",
                 "sign_direction": "LEFT",
                 "currency_symbol": "₺",
-                "rate": 35.21
+                "rate": 35.21,
+                "decimal_places": 2
             },
             {
                 "no": 39,
@@ -374,7 +416,8 @@ def _insert_currencies(session):
                 "sign": "AED",
                 "sign_direction": "LEFT",
                 "currency_symbol": "د.إ",
-                "rate": 4.81
+                "rate": 4.81,
+                "decimal_places": 2
             },
             {
                 "no": 40,
@@ -383,10 +426,12 @@ def _insert_currencies(session):
                 "sign": "USD",
                 "sign_direction": "LEFT",
                 "currency_symbol": "$",
-                "rate": 1.31
+                "rate": 1.31,
+                "decimal_places": 2
             }
         ]
 
+        gbp_currency = None
         for currency_data in currencies:
             currency = Currency(
                 no=currency_data["no"],
@@ -395,8 +440,18 @@ def _insert_currencies(session):
                 sign=currency_data["sign"],
                 sign_direction=currency_data["sign_direction"],
                 currency_symbol=currency_data["currency_symbol"],
-                rate=currency_data["rate"]
+                decimal_places=currency_data.get("decimal_places", 2)  # Default to 2 decimal places
             )
             session.add(currency)
+            session.flush()  # Flush to get the ID
+            
+            # Store GBP currency for return
+            if currency_data["sign"] == "GBP":
+                gbp_currency = currency
         
         print("✓ Default currencies added (40 currencies)")
+        return gbp_currency  # Return GBP currency for use in PosSettings
+    else:
+        # Currencies already exist, find and return GBP currency
+        gbp_currency = session.query(Currency).filter_by(sign="GBP", is_deleted=False).first()
+        return gbp_currency
