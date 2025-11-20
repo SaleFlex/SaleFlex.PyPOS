@@ -559,8 +559,8 @@ control.form_transition_mode = "MODAL"  # Correct (uppercase)
 
 ### Performance Tips
 
-1. **In-Memory Data Caching**: All reference data (Cashier, Currency, Form, FormControl, LabelValue, PaymentType, PosSettings, Store, Table, Vat, etc.) is loaded once at application startup into `pos_data` dictionary. This minimizes disk I/O and improves performance, especially important for POS devices with limited disk write cycles.
-2. **Product Data Caching**: All product-related models (Product, ProductBarcode, DepartmentMainGroup, DepartmentSubGroup, Warehouse, etc.) are loaded once at application startup into `product_data` dictionary. Sale operations, button rendering, and product lookups use cached data instead of database queries.
+1. **In-Memory Data Caching**: All reference data (Cashier, CashierPerformanceMetrics, CashierPerformanceTarget, CashierTransactionMetrics, CashierWorkBreak, CashierWorkSession, City, Country, District, Form, FormControl, LabelValue, PaymentType, PosSettings, PosVirtualKeyboard, ReceiptFooter, ReceiptHeader, Store, Table, etc.) is loaded once at application startup into `pos_data` dictionary. This minimizes disk I/O and improves performance, especially important for POS devices with limited disk write cycles.
+2. **Product Data Caching**: All product-related models (Currency, CurrencyTable, Vat, Product, ProductBarcode, DepartmentMainGroup, DepartmentSubGroup, Warehouse, etc.) are loaded once at application startup into `product_data` dictionary. Sale operations, button rendering, product lookups, currency calculations, and VAT rate lookups use cached data instead of database queries.
 3. **RAM Management**: Consider a cache system for frequently used forms instead of `REPLACE`
 4. **Database Queries**: Forms, controls, and products are loaded into cache dictionaries at application startup - no repeated database reads during runtime
 5. **Cache Synchronization**: When reference data is modified (e.g., new cashier created), the cache is automatically updated via `update_pos_data_cache()` method. When product data is modified, use `update_product_data_cache()` method.
@@ -853,10 +853,13 @@ The caching system is divided into two main categories:
 The following reference data models are loaded into `pos_data` dictionary at startup:
 
 - **Cashier**: User accounts for POS operators
+- **CashierPerformanceMetrics**: Cashier performance metrics and statistics
+- **CashierPerformanceTarget**: Cashier performance targets and goals
+- **CashierTransactionMetrics**: Transaction-level performance metrics
+- **CashierWorkBreak**: Cashier break records and tracking
+- **CashierWorkSession**: Cashier work session records
 - **City**: City master data
 - **Country**: Country master data
-- **Currency**: Currency master data
-- **CurrencyTable**: Currency exchange rates
 - **District**: District/region master data
 - **Form**: Dynamic form definitions
 - **FormControl**: Form controls (buttons, textboxes, etc.)
@@ -868,12 +871,13 @@ The following reference data models are loaded into `pos_data` dictionary at sta
 - **ReceiptHeader**: Receipt header templates
 - **Store**: Store/outlet information
 - **Table**: Restaurant table management
-- **Vat**: VAT/tax rate definitions
 
 ### Product Data Cache (`product_data`)
 
 The following product-related models are loaded into `product_data` dictionary at startup:
 
+- **Currency**: Currency master data (USD, EUR, GBP, etc.)
+- **CurrencyTable**: Currency exchange rates with historical tracking
 - **DepartmentMainGroup**: Main product category groups
 - **DepartmentSubGroup**: Sub-categories within main groups
 - **Product**: Product master data with pricing, stock, and descriptions
@@ -883,6 +887,7 @@ The following product-related models are loaded into `product_data` dictionary a
 - **ProductManufacturer**: Manufacturer/brand information
 - **ProductUnit**: Measurement units (PCS, KG, L, M, etc.)
 - **ProductVariant**: Product variations (size, color, style)
+- **Vat**: VAT/tax rate definitions
 - **Warehouse**: Warehouse/depot definitions
 - **WarehouseLocation**: Specific locations within warehouses
 - **WarehouseProductStock**: Current stock levels per product per warehouse
@@ -899,16 +904,27 @@ The `CurrentData` class manages both caching systems:
 # pos_data is populated at application startup
 self.pos_data = {
     "Cashier": [...],
-    "Currency": [...],
+    "CashierPerformanceMetrics": [...],
+    "CashierPerformanceTarget": [...],
+    "CashierTransactionMetrics": [...],
+    "CashierWorkBreak": [...],
+    "CashierWorkSession": [...],
+    "City": [...],
+    "Country": [...],
+    "District": [...],
     "Form": [...],
+    "FormControl": [...],
     # ... other reference models
 }
 
 # product_data is populated at application startup
 self.product_data = {
+    "Currency": [...],
+    "CurrencyTable": [...],
     "Product": [...],
     "ProductBarcode": [...],
     "DepartmentMainGroup": [...],
+    "Vat": [...],
     # ... other product models
 }
 
@@ -927,15 +943,23 @@ cashiers = self.pos_data.get("Cashier", [])
 # Find specific cashier
 cashier = next((c for c in cashiers if c.user_name == "admin"), None)
 
-# Access currency list
-currencies = self.pos_data.get("Currency", [])
-
 # Access PosSettings (cached reference)
 settings = self.pos_settings
+
+# Access forms
+forms = self.pos_data.get("Form", [])
 ```
 
 **Product Data:**
 ```python
+# Access currency list from cache
+currencies = self.product_data.get("Currency", [])
+
+# Find currency by sign (used in sale operations)
+currency = next((c for c in currencies 
+                 if c.sign == "GBP" 
+                 and not (hasattr(c, 'is_deleted') and c.is_deleted)), None)
+
 # Access product list from cache
 products = self.product_data.get("Product", [])
 
@@ -954,6 +978,9 @@ barcode = next((b for b in barcodes
 
 # Access departments
 departments = self.product_data.get("DepartmentMainGroup", [])
+
+# Access VAT rates
+vat_rates = self.product_data.get("Vat", [])
 ```
 
 #### Cache Synchronization
@@ -1008,6 +1035,11 @@ This eliminates database reads during authentication, improving login performanc
 All product lookups in sale operations use `product_data` cache:
 
 ```python
+# Currency lookup (for decimal places calculation)
+currencies = [c for c in self.product_data.get("Currency", [])
+              if c.sign == currency_sign 
+              and not (hasattr(c, 'is_deleted') and c.is_deleted)]
+
 # Product lookup by code (SALE_PLU_CODE)
 products = [p for p in self.product_data.get("Product", [])
             if p.code == product_code 
@@ -1022,6 +1054,11 @@ barcodes = [b for b in self.product_data.get("ProductBarcode", [])
 departments = [d for d in self.product_data.get("DepartmentMainGroup", [])
                if d.code == department_code
                and not (hasattr(d, 'is_deleted') and d.is_deleted)]
+
+# VAT rate lookup
+vat_rates = [v for v in self.product_data.get("Vat", [])
+             if v.code == vat_code
+             and not (hasattr(v, 'is_deleted') and v.is_deleted)]
 ```
 
 **Button Rendering:**
