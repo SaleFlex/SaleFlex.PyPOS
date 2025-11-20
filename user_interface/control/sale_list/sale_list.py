@@ -262,7 +262,7 @@ class SaleList(QWidget):
         self.table_widget.setColumnCount(9)
         self.table_widget.setHorizontalHeaderLabels([
             "Row #",        # Sequential row number
-            "Ref ID",       # Database reference ID
+            "Ref ID",       # Database reference ID (hidden from display)
             "Type",         # Transaction type (PLU, DEPARTMENT, etc.)
             "Transaction",  # Transaction description (Sale, Return, etc.)
             "Product Name", # Product or item name
@@ -283,8 +283,33 @@ class SaleList(QWidget):
         self.COL_PRICE = 7             # Unit price column
         self.COL_TOTAL_AMOUNT = 8      # Total amount column
         
+        # Hide Ref ID column from display (kept in data for background operations)
+        self.table_widget.setColumnHidden(self.COL_REFERENCE_ID, True)
+        
         # Configure table behavior and appearance
-        self.table_widget.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)  # Auto-resize columns to fit
+        header = self.table_widget.horizontalHeader()
+        
+        # Set fixed widths for small columns (must be set before resize mode)
+        self.table_widget.setColumnWidth(self.COL_ROW_NUMBER, 50)        # Row # - small
+        self.table_widget.setColumnWidth(self.COL_TRANSACTION_TYPE, 60)   # Type - small
+        self.table_widget.setColumnWidth(self.COL_TRANSACTION, 80)       # Transaction - medium-small
+        self.table_widget.setColumnWidth(self.COL_UNIT_QUANTITY, 70)     # Unit Qty - medium-small
+        self.table_widget.setColumnWidth(self.COL_UNIT, 50)               # Unit - small
+        self.table_widget.setColumnWidth(self.COL_PRICE, 90)              # Price - medium
+        self.table_widget.setColumnWidth(self.COL_TOTAL_AMOUNT, 90)       # Total - medium
+        
+        # Set resize modes: Fixed for small/medium columns
+        header.setSectionResizeMode(self.COL_ROW_NUMBER, QHeaderView.Fixed)
+        header.setSectionResizeMode(self.COL_TRANSACTION_TYPE, QHeaderView.Fixed)
+        header.setSectionResizeMode(self.COL_TRANSACTION, QHeaderView.Fixed)
+        header.setSectionResizeMode(self.COL_UNIT_QUANTITY, QHeaderView.Fixed)
+        header.setSectionResizeMode(self.COL_UNIT, QHeaderView.Fixed)
+        header.setSectionResizeMode(self.COL_PRICE, QHeaderView.Fixed)
+        header.setSectionResizeMode(self.COL_TOTAL_AMOUNT, QHeaderView.Fixed)
+        
+        # Set Product Name to stretch (takes all remaining space - largest column)
+        header.setSectionResizeMode(self.COL_NAME_OF_PRODUCT, QHeaderView.Stretch)
+        
         self.table_widget.setSelectionBehavior(QTableWidget.SelectRows)               # Select entire rows, not individual cells
         self.table_widget.setEditTriggers(QTableWidget.NoEditTriggers)               # Prevent direct cell editing
         
@@ -300,6 +325,19 @@ class SaleList(QWidget):
         header_palette.setColor(header.backgroundRole(), background_color)
         header_palette.setColor(header.foregroundRole(), foreground_color)
         header.setPalette(header_palette)
+        
+        # Calculate lightened color for selected row (for better readability)
+        def lighten_color(color):
+            """Lighten color for selected row"""
+            r = (color >> 16) & 0xFF
+            g = (color >> 8) & 0xFF
+            b = color & 0xFF
+            r = min(255, r + 60)
+            g = min(255, g + 60)
+            b = min(255, b + 60)
+            return (r << 16) | (g << 8) | b
+        
+        selected_bg_color = lighten_color(background_color)
         
         # Enable alternating row colors and apply comprehensive styling
         self.table_widget.setAlternatingRowColors(True)
@@ -320,7 +358,8 @@ class SaleList(QWidget):
                 padding: 4px;
             }}
             QTableWidget::item:selected {{
-                background-color: #{(background_color + 0x222222) & 0xFFFFFF:06x};
+                background-color: #{selected_bg_color:06x};
+                color: #{foreground_color:06x};
             }}
         """)
         
