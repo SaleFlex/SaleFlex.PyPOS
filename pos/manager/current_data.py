@@ -28,6 +28,8 @@ from data_layer.model import (
     Country,
     Currency,
     CurrencyTable,
+    DepartmentMainGroup,
+    DepartmentSubGroup,
     District,
     Form,
     FormControl,
@@ -35,11 +37,23 @@ from data_layer.model import (
     PaymentType,
     PosSettings,
     PosVirtualKeyboard,
+    Product,
+    ProductAttribute,
+    ProductBarcode,
+    ProductBarcodeMask,
+    ProductManufacturer,
+    ProductUnit,
+    ProductVariant,
     ReceiptFooter,
     ReceiptHeader,
     Store,
     Table,
     Vat,
+    Warehouse,
+    WarehouseLocation,
+    WarehouseProductStock,
+    WarehouseStockAdjustment,
+    WarehouseStockMovement,
 )
 
 
@@ -115,6 +129,10 @@ class CurrentData:
         # Current currency sign (e.g., "GBP", "USD")
         # Will be loaded from PosSettings after database initialization
         self.current_currency = None
+        
+        # Cached product-related data loaded at startup (after DB init)
+        # Example keys: "Product", "ProductBarcode", "DepartmentMainGroup", ...
+        self.product_data = {}
     
     def populate_pos_data(self, progress_callback=None):
         """
@@ -195,6 +213,73 @@ class CurrentData:
         
         print(f"[DEBUG] pos_data populated with {len(self.pos_data)} model types")
     
+    def populate_product_data(self, progress_callback=None):
+        """
+        Populate product_data dictionary with product-related data from database.
+        
+        This method loads all product-related models into memory to minimize
+        disk I/O during runtime. All data is loaded once at application startup
+        and cached in product_data dictionary for fast access throughout the session.
+        
+        The following models are loaded:
+        - DepartmentMainGroup: Main department groups
+        - DepartmentSubGroup: Sub department groups
+        - Product: Product master data
+        - ProductAttribute: Product attributes
+        - ProductBarcode: Product barcode mappings
+        - ProductBarcodeMask: Barcode mask definitions
+        - ProductManufacturer: Manufacturer information
+        - ProductUnit: Product unit definitions
+        - ProductVariant: Product variants
+        - Warehouse: Warehouse master data
+        - WarehouseLocation: Warehouse location data
+        - WarehouseProductStock: Product stock levels by warehouse
+        - WarehouseStockAdjustment: Stock adjustment records
+        - WarehouseStockMovement: Stock movement records
+        
+        Args:
+            progress_callback: Optional callback function(message: str) to report progress
+        """
+        # Define all product-related models to load
+        model_classes = [
+            DepartmentMainGroup,
+            DepartmentSubGroup,
+            Product,
+            ProductAttribute,
+            ProductBarcode,
+            ProductBarcodeMask,
+            ProductManufacturer,
+            ProductUnit,
+            ProductVariant,
+            Warehouse,
+            WarehouseLocation,
+            WarehouseProductStock,
+            WarehouseStockAdjustment,
+            WarehouseStockMovement,
+        ]
+        
+        # Load each model into product_data dictionary
+        for model_cls in model_classes:
+            model_name = model_cls.__name__
+            
+            # Report progress if callback provided
+            if progress_callback:
+                progress_callback(f"Loading {model_name}...")
+            
+            try:
+                # Load all records from database (excluding soft-deleted records)
+                self.product_data[model_name] = model_cls.get_all()
+                
+                print(f"[DEBUG] Loaded {len(self.product_data[model_name])} {model_name} records")
+            except Exception as e:
+                # On any unexpected read error, keep an empty list
+                print(f"[DEBUG] Error loading {model_name}: {e}")
+                import traceback
+                traceback.print_exc()
+                self.product_data[model_name] = []
+        
+        print(f"[DEBUG] product_data populated with {len(self.product_data)} model types")
+    
     def update_pos_data_cache(self, model_instance):
         """
         Update pos_data cache when a model instance is created, updated, or deleted.
@@ -269,5 +354,73 @@ class CurrentData:
             print(f"[DEBUG] Refreshed {model_name} in pos_data cache: {len(self.pos_data[model_name])} records")
         except Exception as e:
             print(f"[DEBUG] Error refreshing {model_name} in pos_data cache: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    def update_product_data_cache(self, model_instance):
+        """
+        Update product_data cache when a model instance is created, updated, or deleted.
+        
+        This method ensures that product_data cache stays synchronized with database
+        changes. When a model instance is modified, this method should be called
+        to update the cache accordingly.
+        
+        Args:
+            model_instance: The model instance that was created, updated, or deleted
+        """
+        if not model_instance:
+            return
+        
+        model_name = model_instance.__class__.__name__
+        
+        # Only update cache for models that are in product_data
+        if model_name not in self.product_data:
+            return
+        
+        # If instance is soft-deleted, remove from cache
+        if hasattr(model_instance, 'is_deleted') and model_instance.is_deleted:
+            self.product_data[model_name] = [
+                item for item in self.product_data[model_name] 
+                if item.id != model_instance.id
+            ]
+            print(f"[DEBUG] Removed {model_name} (id={model_instance.id}) from product_data cache (soft-deleted)")
+            return
+        
+        # Check if instance already exists in cache
+        existing_index = None
+        for i, item in enumerate(self.product_data[model_name]):
+            if item.id == model_instance.id:
+                existing_index = i
+                break
+        
+        if existing_index is not None:
+            # Update existing item in cache
+            self.product_data[model_name][existing_index] = model_instance
+            print(f"[DEBUG] Updated {model_name} (id={model_instance.id}) in product_data cache")
+        else:
+            # Add new item to cache
+            self.product_data[model_name].append(model_instance)
+            print(f"[DEBUG] Added {model_name} (id={model_instance.id}) to product_data cache")
+    
+    def refresh_product_data_model(self, model_class):
+        """
+        Refresh a specific model's data in product_data cache from database.
+        
+        This method reloads all records for a specific model from the database
+        and updates the cache. Use this when you need to ensure cache is
+        synchronized with database after bulk changes.
+        
+        Args:
+            model_class: The model class to refresh (e.g., Product, ProductBarcode, etc.)
+        """
+        model_name = model_class.__name__
+        
+        try:
+            # Reload from database
+            self.product_data[model_name] = model_class.get_all()
+            
+            print(f"[DEBUG] Refreshed {model_name} in product_data cache: {len(self.product_data[model_name])} records")
+        except Exception as e:
+            print(f"[DEBUG] Error refreshing {model_name} in product_data cache: {e}")
             import traceback
             traceback.print_exc()

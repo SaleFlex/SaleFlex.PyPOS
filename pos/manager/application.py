@@ -125,6 +125,12 @@ class Application(CurrentStatus, CurrentData, EventHandler):
         about.update_message("Loading reference data into memory...")
         self.app.processEvents()
         self.populate_pos_data(progress_callback=lambda msg: about.update_message(msg) or self.app.processEvents())
+        
+        # Load product-related data into memory to reduce disk I/O during runtime
+        # This populates product_data with all product-related models
+        about.update_message("Loading product data into memory...")
+        self.app.processEvents()
+        self.populate_product_data(progress_callback=lambda msg: about.update_message(msg) or self.app.processEvents())
 
         # Set application icon from settings.toml
         # Icon path is configured in settings.toml under app.icon

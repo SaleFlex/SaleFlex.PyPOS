@@ -190,8 +190,7 @@ class SaleEvent:
             price = float(numpad_value) / divisor
             print(f"[SALE_DEPARTMENT] Price after division (numpad_value / {divisor}): {price}")
             
-            # Import models
-            from data_layer.model import DepartmentMainGroup, DepartmentSubGroup
+            # Import SaleList
             from user_interface.control.sale_list.sale_list import SaleList
             
             department = None
@@ -199,9 +198,12 @@ class SaleEvent:
             
             # Determine which table to query based on department number
             if 1 <= department_no <= 99:
-                # Query department_main_group table
+                # Query department_main_group from product_data cache
                 print(f"[SALE_DEPARTMENT] Querying department_main_group for code: '{department_no}'")
-                departments = DepartmentMainGroup.filter_by(code=str(department_no), is_deleted=False)
+                departments = [
+                    d for d in self.product_data.get("DepartmentMainGroup", [])
+                    if d.code == str(department_no) and not (hasattr(d, 'is_deleted') and d.is_deleted)
+                ]
                 
                 if not departments or len(departments) == 0:
                     print(f"[SALE_DEPARTMENT] No department_main_group found with code: '{department_no}'")
@@ -212,9 +214,12 @@ class SaleEvent:
                 print(f"[SALE_DEPARTMENT] Found department_main_group: {department_name}")
                 
             elif department_no > 99:
-                # Query department_sub_group table
+                # Query department_sub_group from product_data cache
                 print(f"[SALE_DEPARTMENT] Querying department_sub_group for code: '{department_no}'")
-                departments = DepartmentSubGroup.filter_by(code=str(department_no), is_deleted=False)
+                departments = [
+                    d for d in self.product_data.get("DepartmentSubGroup", [])
+                    if d.code == str(department_no) and not (hasattr(d, 'is_deleted') and d.is_deleted)
+                ]
                 
                 if not departments or len(departments) == 0:
                     print(f"[SALE_DEPARTMENT] No department_sub_group found with code: '{department_no}'")
@@ -370,12 +375,14 @@ class SaleEvent:
                 print("[SALE_PLU_CODE] Empty code after removing PLU prefix")
                 return False
             
-            # Import models
-            from data_layer.model import Product
+            # Import SaleList
             from user_interface.control.sale_list.sale_list import SaleList
             
-            # Search for product with matching code
-            products = Product.filter_by(code=product_code, is_deleted=False)
+            # Search for product with matching code from product_data cache
+            products = [
+                p for p in self.product_data.get("Product", [])
+                if p.code == product_code and not (hasattr(p, 'is_deleted') and p.is_deleted)
+            ]
             
             if not products or len(products) == 0:
                 print(f"[SALE_PLU_CODE] No product found with code: '{product_code}'")
@@ -487,12 +494,14 @@ class SaleEvent:
                 print("[SALE_PLU_BARCODE] Empty barcode after removing PLU prefix")
                 return False
             
-            # Import models
-            from data_layer.model import ProductBarcode, Product
+            # Import SaleList
             from user_interface.control.sale_list.sale_list import SaleList
             
-            # Search for product_barcode with matching barcode
-            barcode_records = ProductBarcode.filter_by(barcode=barcode, is_deleted=False)
+            # Search for product_barcode with matching barcode from product_data cache
+            barcode_records = [
+                pb for pb in self.product_data.get("ProductBarcode", [])
+                if pb.barcode == barcode and not (hasattr(pb, 'is_deleted') and pb.is_deleted)
+            ]
             
             if not barcode_records or len(barcode_records) == 0:
                 print(f"[SALE_PLU_BARCODE] No product found with barcode: '{barcode}'")
@@ -502,12 +511,17 @@ class SaleEvent:
             product_barcode = barcode_records[0]
             print(f"[SALE_PLU_BARCODE] Found product_barcode: {product_barcode}")
             
-            # Get product using fk_product_id
-            product = Product.get_by_id(product_barcode.fk_product_id)
+            # Get product using fk_product_id from product_data cache
+            products = [
+                p for p in self.product_data.get("Product", [])
+                if p.id == product_barcode.fk_product_id
+            ]
             
-            if not product:
+            if not products or len(products) == 0:
                 print(f"[SALE_PLU_BARCODE] Product not found with id: {product_barcode.fk_product_id}")
                 return False
+            
+            product = products[0]
             
             print(f"[SALE_PLU_BARCODE] Found product: {product.name} (short_name: {product.short_name})")
             

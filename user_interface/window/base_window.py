@@ -175,9 +175,11 @@ class BaseWindow(QMainWindow):
                 code_or_barcode = button_name[3:]  # Remove first 3 characters "PLU"
                 
                 if function_name == "SALE_PLU_CODE":
-                    # Find product by code
-                    from data_layer.model import Product
-                    products = Product.filter_by(code=code_or_barcode, is_deleted=False)
+                    # Find product by code from product_data cache
+                    products = [
+                        p for p in self.app.product_data.get("Product", [])
+                        if p.code == code_or_barcode and not (hasattr(p, 'is_deleted') and p.is_deleted)
+                    ]
                     if products and len(products) > 0:
                         product = products[0]
                         product_name = product.short_name if product.short_name else product.name
@@ -187,13 +189,20 @@ class BaseWindow(QMainWindow):
                         print(f"[BUTON] SALE_PLU_CODE: No product found with code '{code_or_barcode}'")
                 
                 elif function_name == "SALE_PLU_BARCODE":
-                    # Find product_barcode by barcode, then get product
-                    from data_layer.model import ProductBarcode, Product
-                    barcode_records = ProductBarcode.filter_by(barcode=code_or_barcode, is_deleted=False)
+                    # Find product_barcode by barcode from product_data cache, then get product
+                    barcode_records = [
+                        pb for pb in self.app.product_data.get("ProductBarcode", [])
+                        if pb.barcode == code_or_barcode and not (hasattr(pb, 'is_deleted') and pb.is_deleted)
+                    ]
                     if barcode_records and len(barcode_records) > 0:
                         product_barcode = barcode_records[0]
-                        product = Product.get_by_id(product_barcode.fk_product_id)
-                        if product:
+                        # Find product by id from product_data cache
+                        products = [
+                            p for p in self.app.product_data.get("Product", [])
+                            if p.id == product_barcode.fk_product_id
+                        ]
+                        if products and len(products) > 0:
+                            product = products[0]
                             product_name = product.short_name if product.short_name else product.name
                             button.setText(product_name)
                             print(f"[BUTON] SALE_PLU_BARCODE: Set button text to '{product_name}' for barcode '{code_or_barcode}'")
