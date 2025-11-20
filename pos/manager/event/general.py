@@ -293,6 +293,17 @@ class GeneralEvent:
             self.interface.redraw(form_name=target_form_name.name)
         elif self.startup_form_id:
             # Navigate to startup form
+            # Get startup form to determine its FormName
+            startup_form = Form.get_by_id(self.startup_form_id)
+            if startup_form and startup_form.name:
+                try:
+                    form_name_enum = FormName[startup_form.name.upper()]
+                    self.current_form_type = form_name_enum
+                except (KeyError, AttributeError):
+                    # If form name doesn't match enum, keep current or set to LOGIN
+                    self.current_form_type = FormName.LOGIN
+            else:
+                self.current_form_type = FormName.LOGIN
             self.interface.redraw(form_id=self.startup_form_id)
         else:
             # Default to LOGIN form
@@ -354,26 +365,52 @@ class GeneralEvent:
         Returns:
             bool: True if navigation successful, False if not authenticated or no history
         """
+        print("\n[BACK] Back button pressed")
+        print(f"[BACK] Login status: {self.login_succeed}")
+        print(f"[BACK] Form history length: {len(self.form_history)}")
+        print(f"[BACK] Form history: {[f.name for f in self.form_history]}")
+        
         # Require authentication for navigation
         if not self.login_succeed:
+            print("[BACK] User not logged in, calling logout")
             self._logout()
             return False
         
         # Get the previous form from history
-        previous_form = self.pop_form_history()
+        previous_form_type = self.pop_form_history()
         
-        if previous_form is None:
+        if previous_form_type is None:
             # No history available, cannot go back
             print("[BACK] No form history available")
             return False
         
+        print(f"[BACK] Previous form from history: {previous_form_type.name}")
+        
+        # Find the form from database by name
+        from data_layer.model import Form
+        forms = Form.filter_by(name=previous_form_type.name, is_deleted=False)
+        
+        if not forms or len(forms) == 0:
+            print(f"[BACK] Form not found in database: {previous_form_type.name}")
+            return False
+        
+        previous_form = forms[0]
+        print(f"[BACK] Found form in database: {previous_form.name} (ID: {previous_form.id})")
+        
         # Update current form without adding to history
         # We need to temporarily set the form directly to avoid adding to history again
-        self._set_current_form_without_history(previous_form)
+        self._set_current_form_without_history(previous_form_type)
         
-        # Redraw interface with previous form using form name
-        form_name = previous_form.name
-        self.interface.redraw(form_name=form_name)
+        # Set current_form_id as well
+        self._CurrentStatus__current_form_id = previous_form.id
+        print(f"[BACK] Set current_form_type to: {previous_form_type.name}")
+        print(f"[BACK] Set current_form_id to: {previous_form.id}")
+        
+        # Redraw interface with previous form using form ID
+        # Use skip_history_update=True to avoid adding back to history
+        print(f"[BACK] Redrawing interface with form_id: {previous_form.id}")
+        self.interface.redraw(form_id=previous_form.id, skip_history_update=True)
+        print("[BACK] Back navigation completed successfully")
         return True
     
     def _set_current_form_without_history(self, form_type):
@@ -702,11 +739,18 @@ class GeneralEvent:
             
             # Navigate based on transition mode
             if transition_mode.upper() == "MODAL":
-                # Show as modal dialog
+                # Show as modal dialog (don't update current_form_type for modal dialogs)
                 result = self.interface.show_modal(form_id=target_form_id)
                 return result == 1  # QDialog.Accepted
             else:
-                # Replace current form
+                # Replace current form - update current_form_type
+                if target_form.name:
+                    try:
+                        form_name_enum = FormName[target_form.name.upper()]
+                        self.current_form_type = form_name_enum
+                    except (KeyError, AttributeError):
+                        # If form name doesn't match enum, keep current
+                        pass
                 self.interface.redraw(form_id=target_form_id)
                 return True
                 
