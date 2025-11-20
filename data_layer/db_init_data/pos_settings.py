@@ -23,7 +23,7 @@ SOFTWARE.
 """
 
 from data_layer.model import PosSettings
-from settings.settings import Settings
+from pos.hardware import get_device_serial_number, get_operation_system
 
 
 def _insert_pos_settings(session, admin_cashier_id, gbp_currency=None):
@@ -44,14 +44,6 @@ def _insert_pos_settings(session, admin_cashier_id, gbp_currency=None):
         return
     
     print("[DEBUG] Creating new POS settings...")
-    settings = Settings()
-    
-    # Get values from settings.toml
-    pos_data = settings.setting_data.get("pos", {})
-    receipt_printer_data = settings.setting_data.get("receipt_printer", {})
-    invoice_printer_data = settings.setting_data.get("invoice_printer", {})
-    weighing_scales_data = settings.setting_data.get("weighing_scales", {})
-    backend_data = settings.setting_data.get("backend_integration", {})
     
     # Get GBP currency ID if provided, otherwise query for it
     gbp_currency_id = None
@@ -71,56 +63,58 @@ def _insert_pos_settings(session, admin_cashier_id, gbp_currency=None):
     if not gbp_currency_id:
         print("[DEBUG] WARNING: GBP currency ID not found, creating PosSettings without currency")
     
+    # Get United Kingdom country ID
+    from data_layer.model import Country
+    uk_country = session.query(Country).filter_by(name="United Kingdom").first()
+    uk_country_id = None
+    if uk_country:
+        uk_country_id = uk_country.id
+        print(f"[DEBUG] Found United Kingdom country: id={uk_country_id}")
+    else:
+        print("[DEBUG] WARNING: United Kingdom country not found!")
+    
+    # Get device information
+    device_serial = get_device_serial_number()
+    device_os = get_operation_system()
+    print(f"[DEBUG] Device serial number: {device_serial}")
+    print(f"[DEBUG] Device OS: {device_os}")
+    
+    # Create PosSettings with default values
+    # Note: Model fields are now managed through the database, not settings.toml
     pos_settings = PosSettings(
-        name=pos_data.get("name", "Store 1. POS"),
-        mac_address=pos_data.get("mac_address", "BC091B5FBEB9"),
-        force_to_work_online=pos_data.get("force_to_work_online", True),
+        pos_no_in_store=1,  # Default POS number in store
+        name="Store 1. POS",  # Default value
+        mac_address="BC091B5FBEB9",  # Default value
+        force_to_work_online=True,  # Default value
         fk_current_currency_id=gbp_currency_id,  # Foreign key to Currency (GBP)
+        fk_default_country_id=uk_country_id,  # Foreign key to Country (United Kingdom)
         fk_cashier_create_id=admin_cashier_id,  # AuditMixin field
         fk_cashier_update_id=admin_cashier_id   # AuditMixin field
     )
     
-    # Set printer settings from settings.toml if available
-    if receipt_printer_data.get("type"):
-        pos_settings.receipt_printer_type = receipt_printer_data.get("type")
-    if receipt_printer_data.get("port"):
-        pos_settings.receipt_printer_port = receipt_printer_data.get("port")
-    if invoice_printer_data.get("type"):
-        pos_settings.invoice_printer_type = invoice_printer_data.get("type")
-    if invoice_printer_data.get("port"):
-        pos_settings.invoice_printer_port = invoice_printer_data.get("port")
+    # Set default display settings
+    pos_settings.customer_display_type = "INTERNAL"
+    pos_settings.customer_display_port = "INTERNAL"
     
-    # Set scale settings if available
-    if weighing_scales_data.get("type"):
-        pos_settings.scale_type = weighing_scales_data.get("type")
-    if weighing_scales_data.get("port"):
-        pos_settings.scale_port = weighing_scales_data.get("port")
+    # Set barcode reader port
+    pos_settings.barcode_reader_port = "PS/2"
     
-    # Set backend integration settings if available
-    backend_conn1 = backend_data.get("backend_connection_1")
-    if backend_conn1 and ':' in backend_conn1:
-        parts = backend_conn1.split(':')
-        pos_settings.server_ip1 = parts[0]
-        try:
-            pos_settings.server_port1 = int(parts[1]) if len(parts) > 1 else None
-        except ValueError:
-            pass
+    # Set backend type (default: GATE)
+    pos_settings.backend_type = "GATE"
     
-    backend_conn2 = backend_data.get("backend_connection_2")
-    if backend_conn2 and ':' in backend_conn2:
-        parts = backend_conn2.split(':')
-        pos_settings.server_ip2 = parts[0]
-        try:
-            pos_settings.server_port2 = int(parts[1]) if len(parts) > 1 else None
-        except ValueError:
-            pass
+    # Set device information
+    pos_settings.device_serial_number = device_serial
+    pos_settings.device_operation_system = device_os
     
-    print(f"[DEBUG] About to add PosSettings: name={pos_settings.name}, currency_id={pos_settings.fk_current_currency_id}")
+    # Note: Printer, scale, and backend settings are now managed through the database
+    # and should be configured via the application UI or API, not settings.toml
+    
+    print(f"[DEBUG] About to add PosSettings: name={pos_settings.name}, pos_no={pos_settings.pos_no_in_store}, currency_id={pos_settings.fk_current_currency_id}, country_id={pos_settings.fk_default_country_id}, serial={pos_settings.device_serial_number}")
     session.add(pos_settings)
     session.flush()  # Flush to get any errors before commit
     
     # Verify the object was added
-    print(f"[DEBUG] PosSettings added: id={pos_settings.id}, name={pos_settings.name}, currency_id={pos_settings.fk_current_currency_id}")
+    print(f"[DEBUG] PosSettings added: id={pos_settings.id}, name={pos_settings.name}, pos_no={pos_settings.pos_no_in_store}, currency_id={pos_settings.fk_current_currency_id}, country_id={pos_settings.fk_default_country_id}, serial={pos_settings.device_serial_number}")
     
     # Note: Don't commit here - the context manager in insert_initial_data will commit
     print("✓ Default POS settings added (will be committed with transaction)")
