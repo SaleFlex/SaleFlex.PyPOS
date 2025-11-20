@@ -160,8 +160,10 @@ If you select "SALES", you will see a form as shown below:
 ![Sale Form](sample_sale_form.jpg)
 
 ### Configuration
-- Edit `settings.toml` to configure database connections, hardware settings, and business parameters
+- Edit `settings.toml` to configure database connections and basic application settings
+- **Note**: Many POS settings (hardware ports, display settings, backend connections) are now managed through the database (`PosSettings` model) and can be configured via the application UI or API
 - The application uses SQLite by default, stored in `db.sqlite3`
+- Device information (serial number, OS) is automatically detected and stored on first initialization
 
 ## Development Roadmap
 
@@ -221,7 +223,7 @@ If you select "SALES", you will see a form as shown below:
   - [ ] Tier-Based Benefits (Points Multiplier, Automatic Discounts)
   - [ ] Complete Point Transaction History
   - [ ] Customer Segmentation (VIP, New, Frequent, High Value, Inactive, Birthday)
-  - [ ] GDPR/KVKK Compliant Consent Management
+  - [ ] GDPR Compliant Consent Management
 - [ ] **Reports Module** - Comprehensive business analytics
 - [ ] **Employee Management** - Staff scheduling and performance tracking
 - [ ] **Returns & Exchanges** - Product return and exchange handling

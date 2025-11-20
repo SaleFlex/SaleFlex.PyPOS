@@ -124,8 +124,10 @@ pip install -r requirements.txt
 
 ### Configuration
 
-- Edit `settings.toml` to configure database connections, hardware settings, and business parameters
+- Edit `settings.toml` to configure database connections and basic application settings
+- **Note**: Many POS settings (hardware ports, display settings, backend connections, device information) are now managed through the database (`PosSettings` model) and are automatically initialized on first run
 - The application uses SQLite by default, stored in `db.sqlite3`
+- Device information (serial number, OS) is automatically detected using the `pos.hardware.device_info` module
 
 ---
 
@@ -959,7 +961,7 @@ SaleFlex.PyPOS uses a comprehensive database schema with over 80 models organize
 - **Form**: Dynamic form definitions with layout, colors, and display settings
 - **FormControl**: Form controls (buttons, textboxes, comboboxes) with positioning and behavior
 - **PosVirtualKeyboard**: Virtual keyboard theme and configuration settings
-- **PosSettings**: POS system-wide settings and configuration
+- **PosSettings**: POS system-wide settings and configuration including device information (serial number, OS), backend connection settings (IP/port), display configuration, and hardware port settings
 - **ReceiptHeader**: Receipt header templates
 - **ReceiptFooter**: Receipt footer templates
 - **LabelValue**: Label/value pairs for translations and configuration
@@ -1016,7 +1018,7 @@ The `insert_initial_data()` function in `db_init_data/__init__.py` orchestrates 
 27. **Campaigns** (`_insert_campaigns`): Creates sample promotional campaigns
 28. **Loyalty Programs** (`_insert_loyalty`): Sets up loyalty program with tiers
 29. **Customer Segments** (`_insert_customer_segments`): Creates default customer segments
-30. **POS Settings** (`_insert_pos_settings`): Configures system-wide POS settings
+30. **POS Settings** (`_insert_pos_settings`): Configures system-wide POS settings including device serial number (generated from MAC address and disk serial), operating system information, default country (United Kingdom), default currency (GBP), customer display settings (INTERNAL), barcode reader port (PS/2), backend connection settings (127.0.0.1:5000), and backend type (GATE)
 
 ### Function Details
 
@@ -1091,6 +1093,14 @@ Creates sample promotional campaigns:
 - Basket discount campaigns
 - Time-based promotions
 - Campaign rules and conditions
+
+#### `_insert_pos_settings(session, admin_cashier_id, gbp_currency=None)`
+Configures system-wide POS settings:
+- **Device Information**: Automatically generates unique device serial number (combining MAC address and disk serial number hash) and detects operating system
+- **Default Values**: Sets POS number in store (1), customer display type (INTERNAL), customer display port (INTERNAL), barcode reader port (PS/2)
+- **Backend Configuration**: Sets default backend connection settings (IP: 127.0.0.1, Port: 5000 for both primary and secondary connections) and backend type (GATE)
+- **Geographic Settings**: Links to default country (United Kingdom) and currency (GBP)
+- **Hardware Module**: Uses `pos.hardware.device_info` module for cross-platform device information collection
 
 ### Initialization Behavior
 
