@@ -559,9 +559,12 @@ control.form_transition_mode = "MODAL"  # Correct (uppercase)
 
 ### Performance Tips
 
-1. **RAM Management**: Consider a cache system for frequently used forms instead of `REPLACE`
-2. **Database Queries**: Forms and controls are loaded into `pos_data` dict at application startup
-3. **Modal Dialog Cleanup**: Modal dialogs are automatically cleaned up (no memory leaks)
+1. **In-Memory Data Caching**: All reference data (Cashier, Currency, Form, FormControl, LabelValue, PaymentType, PosSettings, Store, Table, Vat, etc.) is loaded once at application startup into `pos_data` dictionary. This minimizes disk I/O and improves performance, especially important for POS devices with limited disk write cycles.
+2. **RAM Management**: Consider a cache system for frequently used forms instead of `REPLACE`
+3. **Database Queries**: Forms and controls are loaded into `pos_data` dict at application startup - no repeated database reads during runtime
+4. **Cache Synchronization**: When reference data is modified (e.g., new cashier created), the cache is automatically updated via `update_pos_data_cache()` method
+5. **Modal Dialog Cleanup**: Modal dialogs are automatically cleaned up (no memory leaks)
+6. **Login Performance**: Login operations use cached `pos_data` instead of database queries, significantly reducing disk I/O
 
 ### Future Enhancements
 
@@ -830,6 +833,119 @@ Potential future improvements:
 - [ ] Sound effects on key press
 - [ ] Keyboard layout editor UI
 - [ ] Import/export themes
+
+---
+
+## Data Caching Strategy
+
+### Overview
+
+SaleFlex.PyPOS implements an **in-memory caching strategy** to minimize disk I/O and improve performance, especially critical for POS devices with limited disk write cycles. All reference data models are loaded once at application startup and cached in memory throughout the session.
+
+### Cached Models
+
+The following reference data models are loaded into `pos_data` dictionary at startup:
+
+- **Cashier**: User accounts for POS operators
+- **City**: City master data
+- **Country**: Country master data
+- **Currency**: Currency master data
+- **CurrencyTable**: Currency exchange rates
+- **District**: District/region master data
+- **Form**: Dynamic form definitions
+- **FormControl**: Form controls (buttons, textboxes, etc.)
+- **LabelValue**: Label/value pairs for translations
+- **PaymentType**: Payment method definitions
+- **PosSettings**: POS system-wide settings (also cached as `pos_settings` attribute)
+- **PosVirtualKeyboard**: Virtual keyboard configurations
+- **ReceiptFooter**: Receipt footer templates
+- **ReceiptHeader**: Receipt header templates
+- **Store**: Store/outlet information
+- **Table**: Restaurant table management
+- **Vat**: VAT/tax rate definitions
+
+### Implementation
+
+#### CurrentData Class
+
+The `CurrentData` class manages the caching system:
+
+```python
+# pos_data is populated at application startup
+self.pos_data = {
+    "Cashier": [...],
+    "Currency": [...],
+    "Form": [...],
+    # ... other models
+}
+
+# Special cached references
+self.pos_settings = pos_data["PosSettings"][0]  # First PosSettings record
+self.current_currency = "GBP"  # Loaded from PosSettings
+```
+
+#### Accessing Cached Data
+
+```python
+# Access cashier list from cache
+cashiers = self.pos_data.get("Cashier", [])
+
+# Find specific cashier
+cashier = next((c for c in cashiers if c.user_name == "admin"), None)
+
+# Access currency list
+currencies = self.pos_data.get("Currency", [])
+
+# Access PosSettings (cached reference)
+settings = self.pos_settings
+```
+
+#### Cache Synchronization
+
+When reference data is modified, the cache must be updated:
+
+```python
+# After creating/updating a cashier
+cashier.save()
+self.update_pos_data_cache(cashier)
+
+# To refresh entire model from database
+self.refresh_pos_data_model(Cashier)
+```
+
+### Benefits
+
+1. **Reduced Disk I/O**: Reference data loaded once at startup, no repeated database reads
+2. **Improved Performance**: In-memory lookups are significantly faster than database queries
+3. **Extended Disk Life**: Critical for POS devices with limited disk write cycles
+4. **Consistent Data**: All components access the same cached data
+5. **Automatic Synchronization**: Cache updates when data is modified
+
+### Login Optimization
+
+Login operations are optimized to use cached data:
+
+```python
+# Login uses pos_data cache instead of database queries
+all_cashiers = self.pos_data.get("Cashier", [])
+cashiers = [c for c in all_cashiers 
+            if c.user_name == username 
+            and c.password == password 
+            and not c.is_deleted]
+```
+
+This eliminates database reads during authentication, improving login performance.
+
+### Cache Population
+
+The cache is populated during application initialization:
+
+```python
+# In Application.__init__()
+self.populate_pos_data(progress_callback=about.update_message)
+```
+
+This method loads all reference models from the database once and stores them in `pos_data` dictionary.
 
 ---
 

@@ -26,6 +26,7 @@ SaleFlex.PyPOS POS system is designed to streamline the sales process and improv
 - **Employee Management**: Track employee time, attendance, and performance
 - **Campaign & Promotion Management**: Flexible promotional campaigns with time-based, product-specific, and basket discounts
 - **Loyalty Programs**: Tiered membership rewards system with points earning, redemption, and customer segmentation
+- **Optimized Performance**: In-memory caching of reference data minimizes disk I/O, extending disk life for POS devices with limited write cycles
 
 ## Project Structure
 
@@ -299,10 +300,11 @@ If you select "SALES", you will see a form as shown below:
 - [ ] **PCI DSS Compliance** - Payment industry security standards
 
 ### Performance & Scalability
+- [x] **In-Memory Data Caching** - Reference data loaded once at startup to minimize disk I/O
 - [ ] **Database Optimization** - Query optimization and indexing
-- [ ] **Caching Layer** - Redis/Memcached integration
+- [ ] **External Caching Layer** - Redis/Memcached integration (optional)
 - [ ] **Load Testing** - Performance testing under high load
-- [ ] **Memory Management** - Efficient resource utilization
+- [x] **Memory Management** - Efficient resource utilization via pos_data cache
 - [ ] **Concurrent Transaction Handling** - Multi-terminal support
 
 ### Data Management
