@@ -36,99 +36,99 @@ def _insert_product_barcodes(session, admin_cashier_id: str):
                 "product_code": "4",
                 "barcode": "5000157070008",
                 "old_barcode": "5000157070008",
-                "purchase_price": 10000,  # 100 * 100 (cents)
-                "sale_price": 11000   # 110 * 100 (cents)
+                "purchase_price": 100.0,
+                "sale_price": 110.0
             },
             {
                 "product_code": "5",
                 "barcode": "7622210449283",
                 "old_barcode": "7622210449283",
-                "purchase_price": 8000,   # 80 * 100 (cents)
-                "sale_price": 8800    # 88 * 100 (cents)
+                "purchase_price": 80.0,
+                "sale_price": 88.0
             },
             {
                 "product_code": "6",
                 "barcode": "5000328721575",
                 "old_barcode": "5000328721575",
-                "purchase_price": 15000,  # 150 * 100 (cents)
-                "sale_price": 16500   # 165 * 100 (cents)
+                "purchase_price": 150.0,
+                "sale_price": 165.0
             },
             {
                 "product_code": "7",
                 "barcode": "8711200334532",
                 "old_barcode": "8711200334532",
-                "purchase_price": 20000,  # 200 * 100 (cents)
-                "sale_price": 22000   # 220 * 100 (cents)
+                "purchase_price": 200.0,
+                "sale_price": 220.0
             },
             {
                 "product_code": "8",
                 "barcode": "5449000000996",
                 "old_barcode": "5449000000996",
-                "purchase_price": 17200,  # 172 * 100 (cents)
-                "sale_price": 19000   # 190 * 100 (cents)
+                "purchase_price": 172.0,
+                "sale_price": 190.0
             },
             {
                 "product_code": "9",
                 "barcode": "0746817004304",
                 "old_barcode": "0746817004304",
-                "purchase_price": 35000,  # 350 * 100 (cents)
-                "sale_price": 38500   # 385 * 100 (cents)
+                "purchase_price": 350.0,
+                "sale_price": 385.0
             },
             {
                 "product_code": "10",
                 "barcode": "7622210700394",
                 "old_barcode": "7622210700394",
-                "purchase_price": 18000,  # 180 * 100 (cents)
-                "sale_price": 20000   # 200 * 100 (cents)
+                "purchase_price": 180.0,
+                "sale_price": 200.0
             },
             {
                 "product_code": "11",
                 "barcode": "5000328355037",
                 "old_barcode": "5000328355037",
-                "purchase_price": 13500,  # 135 * 100 (cents)
-                "sale_price": 15000   # 150 * 100 (cents)
+                "purchase_price": 135.0,
+                "sale_price": 150.0
             },
             {
                 "product_code": "12",
                 "barcode": "5000157077916",
                 "old_barcode": "5000157077916",
-                "purchase_price": 11000,  # 110 * 100 (cents)
-                "sale_price": 12000   # 120 * 100 (cents)
+                "purchase_price": 110.0,
+                "sale_price": 120.0
             },
             {
                 "product_code": "13",
                 "barcode": "5010044003089",
                 "old_barcode": "5010044003089",
-                "purchase_price": 13600,  # 136 * 100 (cents)
-                "sale_price": 15000   # 150 * 100 (cents)
+                "purchase_price": 136.0,
+                "sale_price": 150.0
             },
             {
                 "product_code": "14",
                 "barcode": "5740900802725",
                 "old_barcode": "5740900802725",
-                "purchase_price": 45500,  # 455 * 100 (cents)
-                "sale_price": 50000   # 500 * 100 (cents)
+                "purchase_price": 455.0,
+                "sale_price": 500.0
             },
             {
                 "product_code": "15",
                 "barcode": "8001090390021",
                 "old_barcode": "8001090390021",
-                "purchase_price": 54600,  # 546 * 100 (cents)
-                "sale_price": 60000   # 600 * 100 (cents)
+                "purchase_price": 546.0,
+                "sale_price": 600.0
             },
             {
                 "product_code": "16",
                 "barcode": "8714100852703",
                 "old_barcode": "8714100852703",
-                "purchase_price": 9100,   # 91 * 100 (cents)
-                "sale_price": 10000   # 100 * 100 (cents)
+                "purchase_price": 91.0,
+                "sale_price": 100.0
             },
             {
                 "product_code": "17",
                 "barcode": "5000171054815",
                 "old_barcode": "5000171054815",
-                "purchase_price": 27200,  # 272 * 100 (cents)
-                "sale_price": 30000   # 300 * 100 (cents)
+                "purchase_price": 272.0,
+                "sale_price": 300.0
             }
         ]
 

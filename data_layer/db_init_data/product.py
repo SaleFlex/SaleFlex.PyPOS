@@ -58,8 +58,8 @@ def _insert_products(session, admin_cashier_id: str):
                 "code": "1",
                 "old_code": "1",
                 "shelf_code": "",
-                "purchase_price": 10000,  # 100 * 100 (cents)
-                "sale_price": 11000,  # 110 * 100 (cents)
+                "purchase_price": 100.0,
+                "sale_price": 110.0,
                 "name": "Baguette",
                 "short_name": "Baguette",
                 "description": "Baguette",
@@ -81,8 +81,8 @@ def _insert_products(session, admin_cashier_id: str):
                 "code": "2",
                 "old_code": "2",
                 "shelf_code": "",
-                "purchase_price": 5000,  # 50 * 100 (cents)
-                "sale_price": 5500,  # 55 * 100 (cents)
+                "purchase_price": 50.0,
+                "sale_price": 55.0,
                 "name": "Granny Smith Apple",
                 "short_name": "Apple",
                 "description": "Granny Smith Apple",
@@ -104,8 +104,8 @@ def _insert_products(session, admin_cashier_id: str):
                 "code": "3",
                 "old_code": "3",
                 "shelf_code": "",
-                "purchase_price": 9000,  # 90 * 100 (cents)
-                "sale_price": 9500,  # 95 * 100 (cents)
+                "purchase_price": 90.0,
+                "sale_price": 95.0,
                 "name": "Cavendish Banana",
                 "short_name": "Banana",
                 "description": "Cavendish Banana",
@@ -127,8 +127,8 @@ def _insert_products(session, admin_cashier_id: str):
                 "code": "4",
                 "old_code": "4",
                 "shelf_code": "",
-                "purchase_price": 10000,  # 100 * 100 (cents)
-                "sale_price": 11000,  # 110 * 100 (cents)
+                "purchase_price": 100.0,
+                "sale_price": 110.0,
                 "name": "Heinz Tomato Ketchup",
                 "short_name": "Heinz Ketchup",
                 "description": "Heinz Tomato Ketchup (460g)",
@@ -150,8 +150,8 @@ def _insert_products(session, admin_cashier_id: str):
                 "code": "5",
                 "old_code": "5",
                 "shelf_code": "",
-                "purchase_price": 10000,  # 100 * 100 (cents)
-                "sale_price": 11000,  # 110 * 100 (cents)
+                "purchase_price": 100.0,
+                "sale_price": 110.0,
                 "name": "Cadbury Dairy Milk Chocolate Bar",
                 "short_name": "Chocolate Bar",
                 "description": "Cadbury Dairy Milk Chocolate Bar (110g)",
@@ -173,8 +173,8 @@ def _insert_products(session, admin_cashier_id: str):
                 "code": "6",
                 "old_code": "6",
                 "shelf_code": "",
-                "purchase_price": 10000,  # 100 * 100 (cents)
-                "sale_price": 11000,  # 110 * 100 (cents)
+                "purchase_price": 100.0,
+                "sale_price": 110.0,
                 "name": "Walkers Ready Salted Crisps",
                 "short_name": "Walkers Crisps",
                 "description": "Walkers Ready Salted Crisps (25g x 6 pack)",
@@ -196,8 +196,8 @@ def _insert_products(session, admin_cashier_id: str):
                 "code": "7",
                 "old_code": "7",
                 "shelf_code": "",
-                "purchase_price": 10000,  # 100 * 100 (cents)
-                "sale_price": 11000,  # 110 * 100 (cents)
+                "purchase_price": 100.0,
+                "sale_price": 110.0,
                 "name": "PG Tips Tea Bags",
                 "short_name": "PG Tea Bags",
                 "description": "PG Tips Tea Bags (80 Bags)",
@@ -219,8 +219,8 @@ def _insert_products(session, admin_cashier_id: str):
                 "code": "8",
                 "old_code": "8",
                 "shelf_code": "",
-                "purchase_price": 10000,  # 100 * 100 (cents)
-                "sale_price": 11000,  # 110 * 100 (cents)
+                "purchase_price": 100.0,
+                "sale_price": 110.0,
                 "name": "Coca-Cola Original Taste",
                 "short_name": "Coca-Cola",
                 "description": "Coca-Cola Original Taste (1.5L Bottle)",
@@ -242,8 +242,8 @@ def _insert_products(session, admin_cashier_id: str):
                 "code": "9",
                 "old_code": "9",
                 "shelf_code": "",
-                "purchase_price": 10000,  # 100 * 100 (cents)
-                "sale_price": 11000,  # 110 * 100 (cents)
+                "purchase_price": 100.0,
+                "sale_price": 110.0,
                 "name": "Beard Butter Original",
                 "short_name": "Beard Butter",
                 "description": "Beard Butter Original Formula",
@@ -265,8 +265,8 @@ def _insert_products(session, admin_cashier_id: str):
                 "code": "10",
                 "old_code": "10",
                 "shelf_code": "",
-                "purchase_price": 10000,  # 100 * 100 (cents)
-                "sale_price": 11000,  # 110 * 100 (cents)
+                "purchase_price": 100.0,
+                "sale_price": 110.0,
                 "name": "Cadbury Dairy Milk Chocolate",
                 "short_name": "Milk Chocolate",
                 "description": "Cadbury Dairy Milk Chocolate 180g",
@@ -288,8 +288,8 @@ def _insert_products(session, admin_cashier_id: str):
                 "code": "11",
                 "old_code": "11",
                 "shelf_code": "",
-                "purchase_price": 10000,  # 100 * 100 (cents)
-                "sale_price": 11000,  # 110 * 100 (cents)
+                "purchase_price": 100.0,
+                "sale_price": 110.0,
                 "name": "Walkers Ready Salted Crisps",
                 "short_name": "Salted Crisps",
                 "description": "Walkers Ready Salted Crisps 6 Pack",
@@ -311,8 +311,8 @@ def _insert_products(session, admin_cashier_id: str):
                 "code": "12",
                 "old_code": "12",
                 "shelf_code": "",
-                "purchase_price": 10000,  # 100 * 100 (cents)
-                "sale_price": 11000,  # 110 * 100 (cents)
+                "purchase_price": 100.0,
+                "sale_price": 110.0,
                 "name": "Heinz Baked Beans",
                 "short_name": "Baked Beans",
                 "description": "Heinz Baked Beans 415g",
@@ -334,8 +334,8 @@ def _insert_products(session, admin_cashier_id: str):
                 "code": "13",
                 "old_code": "13",
                 "shelf_code": "",
-                "purchase_price": 10000,  # 100 * 100 (cents)
-                "sale_price": 11000,  # 110 * 100 (cents)
+                "purchase_price": 100.0,
+                "sale_price": 110.0,
                 "name": "Warburtons Sliced White Bread",
                 "short_name": "Sliced White Bread",
                 "description": "Warburtons Medium Sliced White Bread 800g",
@@ -357,8 +357,8 @@ def _insert_products(session, admin_cashier_id: str):
                 "code": "14",
                 "old_code": "14",
                 "shelf_code": "",
-                "purchase_price": 10000,  # 100 * 100 (cents)
-                "sale_price": 11000,  # 110 * 100 (cents)
+                "purchase_price": 100.0,
+                "sale_price": 110.0,
                 "name": "Lurpak Butter Spreadable",
                 "short_name": "Butter Spreadable",
                 "description": "Lurpak Butter Spreadable 500g",
@@ -380,8 +380,8 @@ def _insert_products(session, admin_cashier_id: str):
                 "code": "15",
                 "old_code": "15",
                 "shelf_code": "",
-                "purchase_price": 10000,  # 100 * 100 (cents)
-                "sale_price": 11000,  # 110 * 100 (cents)
+                "purchase_price": 100.0,
+                "sale_price": 110.0,
                 "name": "Ariel Washing Powder",
                 "short_name": "Washing Powder",
                 "description": "Ariel Washing Powder 40 Washes",
@@ -403,8 +403,8 @@ def _insert_products(session, admin_cashier_id: str):
                 "code": "16",
                 "old_code": "16",
                 "shelf_code": "",
-                "purchase_price": 10000,  # 100 * 100 (cents)
-                "sale_price": 11000,  # 110 * 100 (cents)
+                "purchase_price": 100.0,
+                "sale_price": 110.0,
                 "name": "Domestos Thick Bleach",
                 "short_name": "Thick Bleach",
                 "description": "Domestos Thick Bleach 750ml",
@@ -426,8 +426,8 @@ def _insert_products(session, admin_cashier_id: str):
                 "code": "17",
                 "old_code": "17",
                 "shelf_code": "",
-                "purchase_price": 10000,  # 100 * 100 (cents)
-                "sale_price": 11000,  # 110 * 100 (cents)
+                "purchase_price": 100.0,
+                "sale_price": 110.0,
                 "name": "Tropicana Orange Juice",
                 "short_name": "Orange Juice",
                 "description": "Tropicana Smooth Orange Juice 1L",
