@@ -99,6 +99,12 @@ def _insert_pos_settings(session, admin_cashier_id, gbp_currency=None):
     # Set barcode reader port
     pos_settings.barcode_reader_port = "PS/2"
     
+    # Set backend connection settings (default values)
+    pos_settings.backend_ip1 = "127.0.0.1"
+    pos_settings.backend_port1 = 5000
+    pos_settings.backend_ip2 = "127.0.0.1"
+    pos_settings.backend_port2 = 5000
+    
     # Set backend type (default: GATE)
     pos_settings.backend_type = "GATE"
     
