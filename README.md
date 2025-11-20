@@ -4,7 +4,7 @@
 ![Python 3.13](https://img.shields.io/badge/python-%3E=_3.13-success.svg)
 ![PySide6](https://img.shields.io/badge/PySide6-6.10.0-blue.svg)
 ![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0.44-green.svg)
-![License](https://img.shields.io/badge/license-GPL%20v3-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
 # SaleFlex.PyPOS
 
@@ -322,7 +322,7 @@ We welcome contributions to SaleFlex.PyPOS! Please read our contributing guideli
 
 ## License
 
-This project is licensed under the GNU General Public License v3.0. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ## Contributors
 

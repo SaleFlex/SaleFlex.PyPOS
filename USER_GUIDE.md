@@ -141,6 +141,6 @@ For additional help and resources:
 
 ## Legal Information
 
-SaleFlex.PyPOS is free software licensed under the GNU General Public License v3.0.
+SaleFlex.PyPOS is free software licensed under the MIT License.
 
 Copyright (c) 2025 Ferhat Mousavi 
