@@ -79,9 +79,6 @@ class CurrentStatus:
         self.__document_state = DocumentState.NONE
         self.__document_type = DocumentType.FISCAL_RECEIPT
         self.__document_result = DocumentResult.NONE
-        
-        # Current currency - will be loaded from PosSettings
-        self.__current_currency = None
     
     def load_startup_form(self):
         """
@@ -322,59 +319,3 @@ class CurrentStatus:
         if self.__form_history:
             return self.__form_history.pop()
         return None
-    
-    @property
-    def current_currency(self):
-        """
-        Get the current currency sign (e.g., "GBP", "USD").
-        
-        Returns:
-            str or None: The current currency sign, or None if not set
-        """
-        return self.__current_currency
-    
-    @current_currency.setter
-    def current_currency(self, value):
-        """
-        Set the current currency sign.
-        
-        Args:
-            value (str): The currency sign to set (e.g., "GBP", "USD")
-        """
-        self.__current_currency = value
-    
-    def load_current_currency(self):
-        """
-        Load the current currency sign from PosSettings.
-        
-        This method should be called after database initialization.
-        It queries the database for the current currency setting and loads the currency sign.
-        """
-        try:
-            from data_layer.model import PosSettings, Currency
-            pos_settings = PosSettings.get_all()
-            if pos_settings and len(pos_settings) > 0:
-                # Get the first POS settings record
-                settings = pos_settings[0]
-                if settings.fk_current_currency_id:
-                    # Get currency by ID
-                    currency = Currency.get_by_id(settings.fk_current_currency_id)
-                    if currency and currency.sign:
-                        self.__current_currency = currency.sign
-                        print(f"✓ Current currency loaded: {self.__current_currency}")
-                    else:
-                        # Default to GBP if currency not found
-                        self.__current_currency = "GBP"
-                        print("✓ Currency not found, defaulting to GBP")
-                else:
-                    # Default to GBP if not set
-                    self.__current_currency = "GBP"
-                    print("✓ Current currency not set, defaulting to GBP")
-            else:
-                # Default to GBP if no settings found
-                self.__current_currency = "GBP"
-                print("✓ No POS settings found, defaulting to GBP")
-        except Exception as e:
-            print(f"Error loading current currency: {e}")
-            # Default to GBP on error
-            self.__current_currency = "GBP"

@@ -155,7 +155,7 @@ class SaleEvent:
             from user_interface.form.message_form import MessageForm
             from data_layer.model import LabelValue
             
-            # Get current currency from CurrentStatus
+            # Get current currency from CurrentData
             current_currency_sign = self.current_currency if hasattr(self, 'current_currency') and self.current_currency else "GBP"
             print(f"[SALE_DEPARTMENT] Current currency sign: '{current_currency_sign}'")
             

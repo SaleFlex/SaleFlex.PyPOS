@@ -36,22 +36,9 @@ from data_layer.db_manager import init_db
 from data_layer.enums import FormName
 from settings import env_data
 from user_interface.form.about_form import AboutForm
-from data_layer.model import (
-    Cashier,
-    City,
-    Country,
-    Currency,
-    District,
-    Form,
-    FormControl,
-    LabelValue,
-    PaymentType,
-    PosSettings,
-    Store,
-    Table,
-    Vat,
-    Warehouse,
-)
+# Model imports are now handled in CurrentData.populate_pos_data()
+# Only import models that are used directly in Application class methods
+from data_layer.model import Currency, Form
 
 
 class Application(CurrentStatus, CurrentData, EventHandler):
@@ -134,39 +121,10 @@ class Application(CurrentStatus, CurrentData, EventHandler):
         KeyboardSettingsLoader.initialize(keyboard_engine)
 
         # Load reference data into memory to reduce disk I/O during runtime
+        # This populates pos_data with all reference models (excluding transaction/sales data)
         about.update_message("Loading reference data into memory...")
         self.app.processEvents()
-        self.pos_data = {}
-        model_classes = [
-            Cashier,
-            City,
-            Country,
-            Currency,
-            District,
-            Form,
-            FormControl,
-            LabelValue,
-            PaymentType,
-            PosSettings,
-            Store,
-            Table,
-            Vat,
-            Warehouse,
-        ]
-        for model_cls in model_classes:
-            model_name = model_cls.__name__
-            about.update_message(f"Loading {model_name}...")
-            self.app.processEvents()
-            try:
-                self.pos_data[model_name] = model_cls.get_all()
-                if model_name == "PosSettings":
-                    print(f"[DEBUG] Loaded {len(self.pos_data[model_name])} {model_name} records")
-            except Exception as e:
-                # On any unexpected read error, keep an empty list
-                print(f"[DEBUG] Error loading {model_name}: {e}")
-                import traceback
-                traceback.print_exc()
-                self.pos_data[model_name] = []
+        self.populate_pos_data(progress_callback=lambda msg: about.update_message(msg) or self.app.processEvents())
 
         # Set application icon from settings.toml
         # Icon path is configured in settings.toml under app.icon
@@ -199,21 +157,18 @@ class Application(CurrentStatus, CurrentData, EventHandler):
     
     def load_current_currency_from_pos_data(self):
         """
-        Load the current currency sign from PosSettings using pos_data.
+        Load the current currency sign from PosSettings using cached pos_settings.
         
-        This method overrides the base class method to use pos_data instead of
-        querying the database directly, which is more efficient since pos_data
-        is already loaded into memory.
+        This method loads the currency sign from the cached pos_settings attribute,
+        which is more efficient than querying the database directly. The currency
+        sign is stored in CurrentData.current_currency.
         """
         try:
             from data_layer.model import Currency
             
-            # Get PosSettings from pos_data (already loaded in memory)
-            pos_settings = self.pos_data.get("PosSettings", [])
-            print(f"[DEBUG] PosSettings count in pos_data: {len(pos_settings) if pos_settings else 0}")
-            if pos_settings and len(pos_settings) > 0:
-                # Get the first POS settings record
-                settings = pos_settings[0]
+            # Use cached pos_settings (already loaded in memory, avoids database read)
+            if self.pos_settings:
+                settings = self.pos_settings
                 if settings.fk_current_currency_id:
                     # Get currency from pos_data (already loaded in memory)
                     all_currencies = self.pos_data.get("Currency", [])
@@ -231,9 +186,26 @@ class Application(CurrentStatus, CurrentData, EventHandler):
                     self.current_currency = "GBP"
                     print("✓ Current currency not set, defaulting to GBP")
             else:
-                # Default to GBP if no settings found
-                self.current_currency = "GBP"
-                print("✓ No POS settings found, defaulting to GBP")
+                # Fallback: try pos_data if pos_settings not cached
+                pos_settings = self.pos_data.get("PosSettings", [])
+                if pos_settings and len(pos_settings) > 0:
+                    settings = pos_settings[0]
+                    if settings.fk_current_currency_id:
+                        all_currencies = self.pos_data.get("Currency", [])
+                        currency = next((c for c in all_currencies if c.id == settings.fk_current_currency_id), None)
+                        if currency and currency.sign:
+                            self.current_currency = currency.sign
+                            print(f"✓ Current currency loaded: {self.current_currency}")
+                        else:
+                            self.current_currency = "GBP"
+                            print("✓ Currency not found, defaulting to GBP")
+                    else:
+                        self.current_currency = "GBP"
+                        print("✓ Current currency not set, defaulting to GBP")
+                else:
+                    # Default to GBP if no settings found
+                    self.current_currency = "GBP"
+                    print("✓ No POS settings found, defaulting to GBP")
         except Exception as e:
             print(f"Error loading current currency: {e}")
             import traceback

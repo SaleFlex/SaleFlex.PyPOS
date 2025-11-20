@@ -58,8 +58,9 @@ class GeneralEvent:
         """
         Handle user login authentication.
         
-        Validates user credentials from combobox or textbox inputs, checks against database,
-        creates admin user if needed, and transitions to menu form on success.
+        Validates user credentials from combobox or textbox inputs, checks against
+        pos_data cache (loaded at startup to minimize disk I/O), creates admin user
+        if needed, and transitions to menu form on success.
         
         Supports two input methods:
         - COMBOBOX (CASHIER_NAME_LIST): Select from cashier list (preferred - less touch screen use)
@@ -69,9 +70,13 @@ class GeneralEvent:
         1. Check if already logged in
         2. Get username from COMBOBOX or TEXTBOX
         3. Get password from textbox
-        4. Query database for matching cashier
-        5. Handle admin/supervisor user creation if needed
+        4. Search pos_data cache for matching cashier (avoids database read)
+        5. Handle admin/supervisor user creation if needed (updates cache automatically)
         6. Set login status and navigate to startup form
+        
+        Note: All cashier lookups are performed from pos_data cache to minimize disk I/O.
+        Only when creating a new admin user is a database write performed, and the cache
+        is automatically updated.
         
         Parameters:
             key: Optional parameter from numpad input
@@ -129,9 +134,14 @@ class GeneralEvent:
             # Handle SUPERVISOR login
             if selected_cashier.upper() == "SUPERVISOR":
                 if password == "admin":
-                    # Create or find admin user
-                    admins = Cashier.filter_by(user_name="admin")
-                    if not admins or len(admins) == 0:
+                    # Try to find admin user from pos_data first (avoids database read)
+                    all_cashiers = self.pos_data.get("Cashier", [])
+                    admin_cashiers = [c for c in all_cashiers if c.user_name == "admin" and not c.is_deleted]
+                    
+                    if admin_cashiers:
+                        cashier = admin_cashiers[0]
+                    else:
+                        # Admin not found in cache, create new one
                         cashier = Cashier(
                             no=0,
                             user_name="admin",
@@ -144,8 +154,8 @@ class GeneralEvent:
                             is_administrator=True
                         )
                         cashier.save()
-                    else:
-                        cashier = admins[0]
+                        # Update pos_data cache after creating new cashier
+                        self.update_pos_data_cache(cashier)
                     
                     # Set cashier_data after successful login
                     self.cashier_data = cashier
@@ -166,8 +176,12 @@ class GeneralEvent:
             if not user_name:
                 return False
             
-            # Find cashier by username and password
-            cashiers = Cashier.filter_by(user_name=user_name, password=password, is_deleted=False)
+            # Find cashier by username and password from pos_data (avoids database read)
+            all_cashiers = self.pos_data.get("Cashier", [])
+            cashiers = [c for c in all_cashiers 
+                        if c.user_name == user_name 
+                        and c.password == password 
+                        and not c.is_deleted]
         
         else:
             # TEXTBOX mode: Use user_name directly
@@ -176,8 +190,14 @@ class GeneralEvent:
             
             # Handle admin login with default credentials
             if user_name_from_textbox.lower() == "admin" and password == "admin":
-                admins = Cashier.filter_by(user_name="admin")
-                if not admins or len(admins) == 0:
+                # Try to find admin user from pos_data first (avoids database read)
+                all_cashiers = self.pos_data.get("Cashier", [])
+                admin_cashiers = [c for c in all_cashiers if c.user_name == "admin" and not c.is_deleted]
+                
+                if admin_cashiers:
+                    cashier = admin_cashiers[0]
+                else:
+                    # Admin not found in cache, create new one
                     cashier = Cashier(
                         no=0,
                         user_name="admin",
@@ -190,8 +210,8 @@ class GeneralEvent:
                         is_administrator=True
                     )
                     cashier.save()
-                else:
-                    cashier = admins[0]
+                    # Update pos_data cache after creating new cashier
+                    self.update_pos_data_cache(cashier)
                 
                 # Set cashier_data after successful login
                 self.cashier_data = cashier
@@ -199,8 +219,12 @@ class GeneralEvent:
                 self._navigate_after_login()
                 return True
             
-            # Find cashier by user_name and password
-            cashiers = Cashier.filter_by(user_name=user_name_from_textbox.lower(), password=password, is_deleted=False)
+            # Find cashier by user_name and password from pos_data (avoids database read)
+            all_cashiers = self.pos_data.get("Cashier", [])
+            cashiers = [c for c in all_cashiers 
+                        if c.user_name == user_name_from_textbox.lower() 
+                        and c.password == password 
+                        and not c.is_deleted]
         
         # Validate credentials
         if not cashiers or len(cashiers) == 0:
