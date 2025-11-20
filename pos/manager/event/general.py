@@ -139,7 +139,11 @@ class GeneralEvent:
                             is_administrator=True
                         )
                         cashier.save()
+                    else:
+                        cashier = admins[0]
                     
+                    # Set cashier_data after successful login
+                    self.cashier_data = cashier
                     self.login_succeed = True
                     self._navigate_after_login()
                     return True
@@ -181,7 +185,11 @@ class GeneralEvent:
                         is_administrator=True
                     )
                     cashier.save()
+                else:
+                    cashier = admins[0]
                 
+                # Set cashier_data after successful login
+                self.cashier_data = cashier
                 self.login_succeed = True
                 self._navigate_after_login()
                 return True
@@ -193,9 +201,9 @@ class GeneralEvent:
         if not cashiers or len(cashiers) == 0:
             return False
         
-        # Login successful
+        # Login successful - set cashier_data
+        self.cashier_data = cashiers[0]
         self.login_succeed = True
-        self.current_cashier = cashiers[0]  # Store current cashier
         self._navigate_after_login()
         return True
     

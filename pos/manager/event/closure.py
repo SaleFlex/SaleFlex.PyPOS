@@ -64,11 +64,11 @@ class ClosureEvent:
                 return False
             
             # Check if user has authorization for closure
-            if not hasattr(self, 'current_cashier') or not self.current_cashier:
+            if not self.cashier_data:
                 print("[CLOSURE] ✗ No current cashier found")
                 return False
             
-            print(f"[CLOSURE] Current cashier: {self.current_cashier.user_name}")
+            print(f"[CLOSURE] Current cashier: {self.cashier_data.user_name}")
             print(f"[CLOSURE] Starting end-of-day closure process...")
             
             # TODO: Implement closure logic
@@ -83,8 +83,8 @@ class ClosureEvent:
             print("="*80)
             print("CLOSURE OPERATION")
             print("="*80)
-            print(f"End-of-day closure initiated by: {self.current_cashier.user_name}")
-            print(f"Name: {self.current_cashier.name} {self.current_cashier.last_name}")
+            print(f"End-of-day closure initiated by: {self.cashier_data.user_name}")
+            print(f"Name: {self.cashier_data.name} {self.cashier_data.last_name}")
             print("\nThis feature will be implemented to:")
             print("  • Generate Z-report")
             print("  • Calculate daily totals")
