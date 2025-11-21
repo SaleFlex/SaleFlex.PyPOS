@@ -30,7 +30,7 @@ def _insert_cities(session):
     city_exists = session.query(City).first()
     if not city_exists:
         # First, get the UK country ID
-        uk_country = session.query(Country).filter_by(code="GB").first()
+        uk_country = session.query(Country).filter_by(iso_alpha2="GB").first()
         if not uk_country:
             print("⚠ UK country not found, skipping city insertion")
             return

@@ -53,16 +53,16 @@ class CountryRegion(Model, CRUD, AuditMixin, SoftDeleteMixin):
     id = Column(UUID, primary_key=True, default=uuid4)
     fk_country_id = Column(UUID, ForeignKey("country.id"), nullable=False, index=True)
     
-    # Region code (e.g., "CA", "NY", "ON", "BC")
+    # ISO 3166-2 code: Full ISO 3166-2 subdivision code (e.g., "US-CA", "CA-ON", "DE-BY")
+    # Format: {country_iso_alpha2}-{region_code}
+    iso_3166_2 = Column(String(15), nullable=True)
+    
+    # Region code: Subdivision code without country prefix (e.g., "CA", "NY", "ON", "BC")
     # Used for template file naming: {country_code}_{region_code}.json
     region_code = Column(String(10), nullable=False)
     
     # Full region name (e.g., "California", "Ontario", "Bavaria")
-    region_name = Column(String(200), nullable=False)
-    
-    # ISO 3166-2 code (e.g., "US-CA", "CA-ON", "DE-BY")
-    # Format: {country_code}-{region_code}
-    iso_code = Column(String(15), nullable=True)
+    name = Column(String(200), nullable=False)
     
     # Region type (e.g., "state", "province", "region", "free_zone", "special_economic_zone")
     region_type = Column(String(50), nullable=True)
@@ -86,7 +86,7 @@ class CountryRegion(Model, CRUD, AuditMixin, SoftDeleteMixin):
     )
 
     def __repr__(self):
-        return f"<CountryRegion(country='{self.fk_country_id}', code='{self.region_code}', name='{self.region_name}')>"
+        return f"<CountryRegion(country='{self.fk_country_id}', code='{self.region_code}', name='{self.name}')>"
     
     def get_template_filename(self, country_code):
         """

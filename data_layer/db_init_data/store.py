@@ -60,7 +60,7 @@ def _insert_default_store(session):
     store_exists = session.query(Store).first()
     if not store_exists:
         # Get United Kingdom country ID (numeric code 826 corresponds to United Kingdom)
-        United_Kingdom_country = session.query(Country).filter(Country.code == 'GB').first()
+        United_Kingdom_country = session.query(Country).filter(Country.iso_alpha2 == 'GB').first()
         default_country_id = United_Kingdom_country.id if United_Kingdom_country else None
         
         default_store = Store(

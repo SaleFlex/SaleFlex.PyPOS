@@ -228,9 +228,9 @@ def _insert_countries(session):
         for country_data in countries:
             country = Country(
                 name=country_data["name"],
-                code=country_data["code"],
-                short_name=country_data["short_name"],
-                numeric_code=country_data["numeric_code"]
+                iso_alpha2=country_data["code"],
+                iso_alpha3=country_data["short_name"],
+                iso_numeric=country_data["numeric_code"]
             )
             session.add(country)
 

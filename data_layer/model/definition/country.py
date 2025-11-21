@@ -31,22 +31,25 @@ from data_layer.model.crud_model import CRUD
 
 
 class Country(Model, CRUD):
-    def __init__(self, name=None, code=None, short_name=None, numeric_code=None):
+    def __init__(self, name=None, iso_alpha2=None, iso_alpha3=None, iso_numeric=None):
         Model.__init__(self)
         CRUD.__init__(self)
 
         self.name = name
-        self.code = code
-        self.short_name = short_name
-        self.numeric_code = numeric_code
+        self.iso_alpha2 = iso_alpha2
+        self.iso_alpha3 = iso_alpha3
+        self.iso_numeric = iso_numeric
 
     __tablename__ = "country"
 
     id = Column(UUID, primary_key=True, default=uuid4)
     name = Column(String(100), nullable=False)
-    code = Column(String(5), nullable=False, unique=True)
-    short_name = Column(String(10), nullable=True)
-    numeric_code = Column(Integer, nullable=True)
+    # ISO 3166-1 alpha-2: 2-letter country code (e.g., "US", "TR", "CA")
+    iso_alpha2 = Column(String(2), nullable=False, unique=True)
+    # ISO 3166-1 alpha-3: 3-letter country code (e.g., "USA", "TUR", "CAN")
+    iso_alpha3 = Column(String(3), nullable=True)
+    # ISO 3166-1 numeric: 3-digit numeric country code (e.g., 840 for US, 792 for TR)
+    iso_numeric = Column(Integer, nullable=True)
 
     def __repr__(self):
-        return f"<Country(name='{self.name}', code='{self.code}')>" 
+        return f"<Country(name='{self.name}', iso_alpha2='{self.iso_alpha2}')>" 

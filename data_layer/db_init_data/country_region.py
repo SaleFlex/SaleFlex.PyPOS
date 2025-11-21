@@ -50,12 +50,12 @@ def _insert_country_regions(session, admin_cashier_id):
     print("[DEBUG] Creating country regions...")
     
     # Get countries
-    usa = session.query(Country).filter_by(code='US').first()
-    canada = session.query(Country).filter_by(code='CA').first()
-    turkey = session.query(Country).filter_by(code='TR').first()
-    germany = session.query(Country).filter_by(code='DE').first()
-    france = session.query(Country).filter_by(code='FR').first()
-    uk = session.query(Country).filter_by(code='GB').first()
+    usa = session.query(Country).filter_by(iso_alpha2='US').first()
+    canada = session.query(Country).filter_by(iso_alpha2='CA').first()
+    turkey = session.query(Country).filter_by(iso_alpha2='TR').first()
+    germany = session.query(Country).filter_by(iso_alpha2='DE').first()
+    france = session.query(Country).filter_by(iso_alpha2='FR').first()
+    uk = session.query(Country).filter_by(iso_alpha2='GB').first()
     
     regions_data = []
     
@@ -119,8 +119,8 @@ def _insert_country_regions(session, admin_cashier_id):
             regions_data.append({
                 "fk_country_id": usa.id,
                 "region_code": state["code"],
-                "region_name": state["name"],
-                "iso_code": state["iso"],
+                "name": state["name"],
+                "iso_3166_2": state["iso"],
                 "region_type": state["type"],
                 "has_special_requirements": state.get("special", False),
                 "display_order": state["order"],
@@ -149,8 +149,8 @@ def _insert_country_regions(session, admin_cashier_id):
             regions_data.append({
                 "fk_country_id": canada.id,
                 "region_code": province["code"],
-                "region_name": province["name"],
-                "iso_code": province["iso"],
+                "name": province["name"],
+                "iso_3166_2": province["iso"],
                 "region_type": province["type"],
                 "has_special_requirements": False,
                 "display_order": province["order"],
@@ -182,8 +182,8 @@ def _insert_country_regions(session, admin_cashier_id):
             regions_data.append({
                 "fk_country_id": germany.id,
                 "region_code": state["code"],
-                "region_name": state["name"],
-                "iso_code": state["iso"],
+                "name": state["name"],
+                "iso_3166_2": state["iso"],
                 "region_type": state["type"],
                 "has_special_requirements": False,
                 "display_order": state["order"],
@@ -212,8 +212,8 @@ def _insert_country_regions(session, admin_cashier_id):
             regions_data.append({
                 "fk_country_id": france.id,
                 "region_code": region["code"],
-                "region_name": region["name"],
-                "iso_code": region["iso"],
+                "name": region["name"],
+                "iso_3166_2": region["iso"],
                 "region_type": region["type"],
                 "has_special_requirements": False,
                 "display_order": region["order"],
@@ -225,8 +225,8 @@ def _insert_country_regions(session, admin_cashier_id):
         region = CountryRegion(
             fk_country_id=region_data["fk_country_id"],
             region_code=region_data["region_code"],
-            region_name=region_data["region_name"],
-            iso_code=region_data["iso_code"],
+            name=region_data["name"],
+            iso_3166_2=region_data["iso_3166_2"],
             region_type=region_data["region_type"],
             has_special_requirements=region_data["has_special_requirements"],
             display_order=region_data["display_order"],
