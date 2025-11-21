@@ -626,7 +626,8 @@ class CurrentData:
         - All other fields set to default/zero values
         
         This method requires:
-        - pos_settings to be loaded (for fk_pos_id and fk_store_id)
+        - pos_settings to be loaded (for fk_pos_id)
+        - pos_data to contain Store (for fk_store_id - uses first store from pos_data["Store"])
         - product_data to contain Currency (for fk_base_currency_id)
         
         Note: If cashier_data is not set, the closure will be created but fk_cashier_opened_id
@@ -641,6 +642,16 @@ class CurrentData:
             # Validate required data
             if not self.pos_settings:
                 print("[DEBUG] Cannot create closure: pos_settings not loaded")
+                return
+            
+            # Get store_id from pos_data["Store"]
+            store_id = None
+            stores = self.pos_data.get("Store", [])
+            if stores:
+                store_id = stores[0].id
+                print(f"[DEBUG] Using store for closure: {store_id}")
+            else:
+                print("[DEBUG] Cannot create closure: no store found in pos_data")
                 return
             
             # Get base currency from pos_settings
@@ -693,7 +704,7 @@ class CurrentData:
                 new_closure.id = uuid4()
                 new_closure.closure_unique_id = closure_unique_id
                 new_closure.closure_number = next_closure_number
-                new_closure.fk_store_id = self.pos_settings.fk_store_id
+                new_closure.fk_store_id = store_id
                 new_closure.fk_pos_id = self.pos_settings.id
                 new_closure.closure_date = today
                 new_closure.closure_start_time = datetime.now()
