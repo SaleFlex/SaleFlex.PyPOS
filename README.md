@@ -29,6 +29,7 @@ SaleFlex.PyPOS POS system is designed to streamline the sales process and improv
 - **Country-Specific Closure Templates**: Flexible template system for country-specific closure data (E-Fatura for Turkey, state tax for USA, VAT reporting for EU, etc.) stored as JSON templates in `static_files/closures/` directory
 - **Region Support**: `CountryRegion` model tracks sub-country regions (states, provinces, special economic zones) with ISO 3166-2 compliant fields. Includes 80+ pre-populated regions for region-specific closure templates and compliance
 - **Active Closure Management**: Session-based closure tracking system that automatically loads open closures at startup and manages closure lifecycle (open → active → closed). Closure data is maintained in memory during operations and saved to database when closed
+- **Document Management System**: Complete transaction lifecycle management with temporary models during processing and automatic conversion to permanent models upon completion. Supports document suspension/resumption for restaurant mode (table/order management) and automatic recovery of incomplete transactions at startup
 - **Optimized Performance**: In-memory caching of reference data (`pos_data`) and product data (`product_data`) minimizes disk I/O, extending disk life for POS devices with limited write cycles. All product lookups, currency calculations, VAT rate lookups, button rendering, and sale operations use cached data instead of database queries
 
 ## Project Structure
@@ -180,7 +181,8 @@ If you select "SALES", you will see a form as shown below:
 - [ ] **Logging & Monitoring** - Comprehensive logging and error tracking
 
 ### POS Core Modules
-- [ ] **POS Manager Module** - Central business logic and transaction handling
+- [x] **POS Manager Module** - Central business logic and transaction handling with document management system
+- [x] **Document Management System** - Transaction lifecycle management with temp/permanent models, pending documents, and restaurant mode support
 - [ ] **SPU/PLU Management** - Product and pricing management
 - [ ] **Customer Module** - Customer relationship management
 - [ ] **Payment Module** - Multi-payment method processing

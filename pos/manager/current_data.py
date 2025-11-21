@@ -64,9 +64,37 @@ from data_layer.model import (
     ReceiptHeader,
     Store,
     Table,
+    TransactionDelivery,
+    TransactionDeliveryTemp,
+    TransactionDiscount,
+    TransactionDiscountTemp,
     TransactionDiscountType,
     TransactionDocumentType,
+    TransactionFiscal,
+    TransactionFiscalTemp,
+    TransactionHead,
+    TransactionHeadTemp,
+    TransactionKitchenOrder,
+    TransactionKitchenOrderTemp,
+    TransactionLoyalty,
+    TransactionLoyaltyTemp,
+    TransactionNote,
+    TransactionNoteTemp,
+    TransactionPayment,
+    TransactionPaymentTemp,
+    TransactionProduct,
+    TransactionProductTemp,
+    TransactionRefund,
+    TransactionRefundTemp,
     TransactionSequence,
+    TransactionSurcharge,
+    TransactionSurchargeTemp,
+    TransactionTax,
+    TransactionTaxTemp,
+    TransactionTip,
+    TransactionTipTemp,
+    TransactionTotal,
+    TransactionTotalTemp,
     Vat,
     Warehouse,
     WarehouseLocation,
@@ -74,6 +102,7 @@ from data_layer.model import (
     WarehouseStockAdjustment,
     WarehouseStockMovement,
 )
+from data_layer.model.definition.transaction_status import TransactionStatus, TransactionType
 
 
 class CurrentData:
@@ -109,7 +138,8 @@ class CurrentData:
     
     Attributes:
         cashier_data: Information about the currently logged-in cashier (set during login)
-        document_data: Current transaction/document being processed
+        document_data: Dictionary containing current transaction/document being processed with all temp models
+        pending_documents_data: List of dictionaries containing pending documents (is_pending=True)
         pos_data: Dictionary of cached reference data models (populated at startup)
         pos_settings: POS settings object (cached reference from pos_data)
         current_currency: Current currency sign (e.g., "GBP", "USD")
@@ -136,6 +166,11 @@ class CurrentData:
         create_empty_closure: Create a new empty closure with all summary structures
         close_closure: Close the current open closure and create a new empty one
         _load_closure_data: Internal method to load all closure data into self.closure
+        create_empty_document: Create a new empty document with all transaction temp models initialized
+        load_incomplete_document: Load the last incomplete document from database
+        load_pending_documents: Load all pending documents (is_pending=True) from database
+        complete_document: Complete the current document by copying all temp models to permanent models
+        set_document_pending: Set the current document as pending (suspended) or resume it
     """
     
     def __init__(self):
@@ -158,8 +193,31 @@ class CurrentData:
         self.cashier_data = None
         
         # Current transaction or document being processed
-        # Holds the active sale, return, or other document data
+        # Dictionary structure containing all transaction temp models:
+        # {
+        #     "head": TransactionHeadTemp instance (main transaction header),
+        #     "products": List[TransactionProductTemp],
+        #     "payments": List[TransactionPaymentTemp],
+        #     "discounts": List[TransactionDiscountTemp],
+        #     "totals": List[TransactionTotalTemp],
+        #     "deliveries": List[TransactionDeliveryTemp],
+        #     "kitchen_orders": List[TransactionKitchenOrderTemp],
+        #     "loyalty": List[TransactionLoyaltyTemp],
+        #     "notes": List[TransactionNoteTemp],
+        #     "fiscal": TransactionFiscalTemp or None,
+        #     "refunds": List[TransactionRefundTemp],
+        #     "surcharges": List[TransactionSurchargeTemp],
+        #     "taxes": List[TransactionTaxTemp],
+        #     "tips": List[TransactionTipTemp]
+        # }
+        # Will be populated when starting a new transaction or loading an incomplete one
         self.document_data = None
+        
+        # List of pending documents (is_pending = True)
+        # Each item is a dictionary with the same structure as document_data
+        # Used in restaurant mode for managing suspended orders/tables
+        # Will be populated at application startup with all pending transactions
+        self.pending_documents_data = []
 
         # Cached reference data loaded at startup (after DB init)
         # Example keys: "Cashier", "City", "Country", ...
@@ -194,6 +252,622 @@ class CurrentData:
         # Will be populated at application startup with the last open closure
         # (closure_end_time is None) or a new empty closure if none exists
         self.closure = None
+    
+    def create_empty_document(self):
+        """
+        Create a new empty document with all transaction temp models initialized.
+        
+        This method creates a fresh document structure with:
+        - TransactionHeadTemp initialized with default values:
+          * document_type: First TransactionDocumentType record
+          * transaction_type: TransactionType.SALE
+          * transaction_status: TransactionStatus.DRAFT
+          * closure_number: TransactionSequence with name="ClosureNumber"
+          * receipt_number: TransactionSequence with name="ReceiptNumber"
+          * fk_store_id: First Store from pos_data
+        - All other temp models initialized as empty lists or None
+        
+        This method should be called when starting a new transaction.
+        """
+        from datetime import datetime
+        from uuid import uuid4
+        from data_layer.engine import Engine
+        
+        try:
+            # Validate required data
+            if not self.pos_settings:
+                print("[DEBUG] Cannot create document: pos_settings not loaded")
+                return None
+            
+            # Get document_type from TransactionDocumentType (first record)
+            document_types = self.pos_data.get("TransactionDocumentType", [])
+            if not document_types:
+                print("[DEBUG] Cannot create document: no TransactionDocumentType found")
+                return None
+            document_type = document_types[0].name
+            
+            # Get closure_number from TransactionSequence
+            closure_number = 1
+            sequences = self.pos_data.get("TransactionSequence", [])
+            for seq in sequences:
+                if seq.name == "ClosureNumber":
+                    closure_number = seq.value
+                    break
+            
+            # Get receipt_number from TransactionSequence
+            receipt_number = 1
+            for seq in sequences:
+                if seq.name == "ReceiptNumber":
+                    receipt_number = seq.value
+                    break
+            
+            # Get store_id from pos_data["Store"]
+            store_id = None
+            stores = self.pos_data.get("Store", [])
+            if stores:
+                store_id = stores[0].id
+            else:
+                print("[DEBUG] Cannot create document: no store found in pos_data")
+                return None
+            
+            # Get pos_id from pos_settings (use pos_no_in_store as pos_id is Integer)
+            pos_id = self.pos_settings.pos_no_in_store if hasattr(self.pos_settings, 'pos_no_in_store') else 1
+            
+            # Generate unique transaction ID
+            transaction_unique_id = f"{datetime.now().strftime('%Y%m%d')}-{receipt_number:06d}"
+            
+            # Create new TransactionHeadTemp
+            head = TransactionHeadTemp()
+            head.id = uuid4()
+            head.transaction_unique_id = transaction_unique_id
+            head.pos_id = pos_id
+            head.transaction_date_time = datetime.now()
+            head.document_type = document_type
+            head.transaction_type = TransactionType.SALE.value
+            head.transaction_status = TransactionStatus.DRAFT.value
+            head.fk_store_id = store_id
+            head.closure_number = closure_number
+            head.receipt_number = receipt_number
+            head.is_closed = False
+            head.is_pending = False
+            head.is_cancel = False
+            
+            # Initialize document_data structure
+            self.document_data = {
+                "head": head,
+                "products": [],
+                "payments": [],
+                "discounts": [],
+                "totals": [],
+                "deliveries": [],
+                "kitchen_orders": [],
+                "loyalty": [],
+                "notes": [],
+                "fiscal": None,
+                "refunds": [],
+                "surcharges": [],
+                "taxes": [],
+                "tips": []
+            }
+            
+            print(f"[DEBUG] Created new empty document: {transaction_unique_id}")
+            return self.document_data
+            
+        except Exception as e:
+            print(f"[DEBUG] Error creating empty document: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
+    
+    def load_incomplete_document(self):
+        """
+        Load the last incomplete document from database.
+        
+        An incomplete document is one where:
+        - is_closed = False
+        - is_pending = False
+        - is_cancel = False
+        
+        This method should be called at application startup to resume
+        any transaction that was in progress when the application closed.
+        
+        Returns:
+            True if document was loaded, False otherwise
+        """
+        from data_layer.engine import Engine
+        
+        try:
+            with Engine().get_session() as session:
+                # Find the last incomplete transaction
+                incomplete_head = session.query(TransactionHeadTemp).filter(
+                    TransactionHeadTemp.is_closed == False,
+                    TransactionHeadTemp.is_pending == False,
+                    TransactionHeadTemp.is_cancel == False,
+                    TransactionHeadTemp.is_deleted == False
+                ).order_by(
+                    TransactionHeadTemp.transaction_date_time.desc()
+                ).first()
+                
+                if not incomplete_head:
+                    print("[DEBUG] No incomplete document found")
+                    return False
+                
+                # Load all related temp models
+                self._load_document_data(incomplete_head.id, session)
+                
+                print(f"[DEBUG] Loaded incomplete document: {incomplete_head.transaction_unique_id}")
+                return True
+                
+        except Exception as e:
+            print(f"[DEBUG] Error loading incomplete document: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+    
+    def load_pending_documents(self):
+        """
+        Load all pending documents (is_pending = True) from database.
+        
+        This method loads all pending transactions into self.pending_documents_data.
+        Each pending document is a dictionary with the same structure as document_data.
+        
+        This method should be called at application startup.
+        """
+        from data_layer.engine import Engine
+        
+        try:
+            self.pending_documents_data = []
+            
+            with Engine().get_session() as session:
+                # Find all pending transactions
+                pending_heads = session.query(TransactionHeadTemp).filter(
+                    TransactionHeadTemp.is_pending == True,
+                    TransactionHeadTemp.is_deleted == False
+                ).order_by(
+                    TransactionHeadTemp.transaction_date_time.desc()
+                ).all()
+                
+                for head in pending_heads:
+                    # Load document data for this pending transaction
+                    doc_data = self._load_document_data_dict(head.id, session)
+                    if doc_data:
+                        self.pending_documents_data.append(doc_data)
+                
+                print(f"[DEBUG] Loaded {len(self.pending_documents_data)} pending documents")
+                
+        except Exception as e:
+            print(f"[DEBUG] Error loading pending documents: {e}")
+            import traceback
+            traceback.print_exc()
+            self.pending_documents_data = []
+    
+    def _load_document_data(self, head_id, session):
+        """
+        Load all transaction temp models for a given transaction head ID.
+        Populates self.document_data with the loaded data.
+        
+        Args:
+            head_id: UUID of the TransactionHeadTemp
+            session: SQLAlchemy session
+        """
+        try:
+            # Load head
+            head = session.query(TransactionHeadTemp).filter_by(id=head_id).first()
+            if not head:
+                print(f"[DEBUG] Transaction head not found: {head_id}")
+                return
+            
+            # Initialize document_data structure
+            self.document_data = {
+                "head": head,
+                "products": session.query(TransactionProductTemp).filter_by(
+                    fk_transaction_head_id=head_id, is_deleted=False
+                ).all(),
+                "payments": session.query(TransactionPaymentTemp).filter_by(
+                    fk_transaction_head_id=head_id, is_deleted=False
+                ).all(),
+                "discounts": session.query(TransactionDiscountTemp).filter_by(
+                    fk_transaction_head_id=head_id, is_deleted=False
+                ).all(),
+                "totals": session.query(TransactionTotalTemp).filter_by(
+                    fk_transaction_head_id=head_id, is_deleted=False
+                ).all(),
+                "deliveries": session.query(TransactionDeliveryTemp).filter_by(
+                    fk_transaction_head_id=head_id, is_deleted=False
+                ).all(),
+                "kitchen_orders": session.query(TransactionKitchenOrderTemp).filter_by(
+                    fk_transaction_head_id=head_id, is_deleted=False
+                ).all(),
+                "loyalty": session.query(TransactionLoyaltyTemp).filter_by(
+                    fk_transaction_head_id=head_id, is_deleted=False
+                ).all(),
+                "notes": session.query(TransactionNoteTemp).filter_by(
+                    fk_transaction_head_id=head_id, is_deleted=False
+                ).all(),
+                "fiscal": session.query(TransactionFiscalTemp).filter_by(
+                    fk_transaction_head_id=head_id, is_deleted=False
+                ).first(),
+                "refunds": session.query(TransactionRefundTemp).filter_by(
+                    fk_transaction_head_id=head_id, is_deleted=False
+                ).all(),
+                "surcharges": session.query(TransactionSurchargeTemp).filter_by(
+                    fk_transaction_head_id=head_id, is_deleted=False
+                ).all(),
+                "taxes": session.query(TransactionTaxTemp).filter_by(
+                    fk_transaction_head_id=head_id, is_deleted=False
+                ).all(),
+                "tips": session.query(TransactionTipTemp).filter_by(
+                    fk_transaction_head_id=head_id, is_deleted=False
+                ).all()
+            }
+            
+        except Exception as e:
+            print(f"[DEBUG] Error loading document data: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    def _load_document_data_dict(self, head_id, session):
+        """
+        Load all transaction temp models for a given transaction head ID.
+        Returns a dictionary with the loaded data (does not modify self.document_data).
+        
+        Args:
+            head_id: UUID of the TransactionHeadTemp
+            session: SQLAlchemy session
+            
+        Returns:
+            Dictionary with document data structure or None if head not found
+        """
+        try:
+            # Load head
+            head = session.query(TransactionHeadTemp).filter_by(id=head_id).first()
+            if not head:
+                return None
+            
+            # Return document data dictionary
+            return {
+                "head": head,
+                "products": session.query(TransactionProductTemp).filter_by(
+                    fk_transaction_head_id=head_id, is_deleted=False
+                ).all(),
+                "payments": session.query(TransactionPaymentTemp).filter_by(
+                    fk_transaction_head_id=head_id, is_deleted=False
+                ).all(),
+                "discounts": session.query(TransactionDiscountTemp).filter_by(
+                    fk_transaction_head_id=head_id, is_deleted=False
+                ).all(),
+                "totals": session.query(TransactionTotalTemp).filter_by(
+                    fk_transaction_head_id=head_id, is_deleted=False
+                ).all(),
+                "deliveries": session.query(TransactionDeliveryTemp).filter_by(
+                    fk_transaction_head_id=head_id, is_deleted=False
+                ).all(),
+                "kitchen_orders": session.query(TransactionKitchenOrderTemp).filter_by(
+                    fk_transaction_head_id=head_id, is_deleted=False
+                ).all(),
+                "loyalty": session.query(TransactionLoyaltyTemp).filter_by(
+                    fk_transaction_head_id=head_id, is_deleted=False
+                ).all(),
+                "notes": session.query(TransactionNoteTemp).filter_by(
+                    fk_transaction_head_id=head_id, is_deleted=False
+                ).all(),
+                "fiscal": session.query(TransactionFiscalTemp).filter_by(
+                    fk_transaction_head_id=head_id, is_deleted=False
+                ).first(),
+                "refunds": session.query(TransactionRefundTemp).filter_by(
+                    fk_transaction_head_id=head_id, is_deleted=False
+                ).all(),
+                "surcharges": session.query(TransactionSurchargeTemp).filter_by(
+                    fk_transaction_head_id=head_id, is_deleted=False
+                ).all(),
+                "taxes": session.query(TransactionTaxTemp).filter_by(
+                    fk_transaction_head_id=head_id, is_deleted=False
+                ).all(),
+                "tips": session.query(TransactionTipTemp).filter_by(
+                    fk_transaction_head_id=head_id, is_deleted=False
+                ).all()
+            }
+            
+        except Exception as e:
+            print(f"[DEBUG] Error loading document data dict: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
+    
+    def complete_document(self, is_cancel=False, cancel_reason=None):
+        """
+        Complete the current document by copying all temp models to permanent models.
+        
+        This method:
+        1. Updates TransactionHeadTemp:
+           - Sets transaction_status to COMPLETED (or CANCELLED if is_cancel=True)
+           - Sets is_closed = True
+           - Sets is_cancel = True if is_cancel parameter is True
+        2. Copies all temp models to their permanent counterparts
+        3. Saves everything to database
+        4. Resets document_data to None
+        
+        Args:
+            is_cancel: If True, marks transaction as cancelled
+            cancel_reason: Optional reason for cancellation
+        """
+        from datetime import datetime
+        from uuid import uuid4
+        from data_layer.engine import Engine
+        
+        if not self.document_data or not self.document_data.get("head"):
+            print("[DEBUG] No document to complete")
+            return False
+        
+        try:
+            head_temp = self.document_data["head"]
+            
+            # Update head_temp status
+            if is_cancel:
+                head_temp.transaction_status = TransactionStatus.CANCELLED.value
+                head_temp.is_cancel = True
+                if cancel_reason:
+                    head_temp.cancel_reason = cancel_reason
+            else:
+                head_temp.transaction_status = TransactionStatus.COMPLETED.value
+            
+            head_temp.is_closed = True
+            
+            with Engine().get_session() as session:
+                # Save updated head_temp
+                session.merge(head_temp)
+                
+                # Copy head_temp to TransactionHead
+                head = TransactionHead()
+                # Copy all fields from head_temp
+                for key in head_temp.__table__.columns.keys():
+                    if hasattr(head_temp, key):
+                        setattr(head, key, getattr(head_temp, key))
+                head.id = uuid4()  # New ID for permanent record
+                
+                session.add(head)
+                session.flush()  # Get the new head.id
+                
+                # Copy all related temp models to permanent models
+                # Store mapping of temp IDs to permanent IDs for foreign key updates
+                product_id_map = {}  # temp_id -> permanent_id
+                payment_id_map = {}  # temp_id -> permanent_id
+                total_id_map = {}    # temp_id -> permanent_id
+                
+                # Products
+                for prod_temp in self.document_data.get("products", []):
+                    prod = TransactionProduct()
+                    temp_id = prod_temp.id
+                    for key in prod_temp.__table__.columns.keys():
+                        if hasattr(prod_temp, key):
+                            if key == "fk_transaction_head_id":
+                                setattr(prod, key, head.id)
+                            else:
+                                setattr(prod, key, getattr(prod_temp, key))
+                    prod.id = uuid4()
+                    product_id_map[temp_id] = prod.id
+                    session.add(prod)
+                
+                # Payments
+                for pay_temp in self.document_data.get("payments", []):
+                    pay = TransactionPayment()
+                    temp_id = pay_temp.id
+                    for key in pay_temp.__table__.columns.keys():
+                        if hasattr(pay_temp, key):
+                            if key == "fk_transaction_head_id":
+                                setattr(pay, key, head.id)
+                            else:
+                                setattr(pay, key, getattr(pay_temp, key))
+                    pay.id = uuid4()
+                    payment_id_map[temp_id] = pay.id
+                    session.add(pay)
+                
+                # Totals
+                for total_temp in self.document_data.get("totals", []):
+                    total = TransactionTotal()
+                    temp_id = total_temp.id
+                    for key in total_temp.__table__.columns.keys():
+                        if hasattr(total_temp, key):
+                            if key == "fk_transaction_head_id":
+                                setattr(total, key, head.id)
+                            else:
+                                setattr(total, key, getattr(total_temp, key))
+                    total.id = uuid4()
+                    total_id_map[temp_id] = total.id
+                    session.add(total)
+                
+                # Discounts
+                for disc_temp in self.document_data.get("discounts", []):
+                    disc = TransactionDiscount()
+                    for key in disc_temp.__table__.columns.keys():
+                        if hasattr(disc_temp, key):
+                            if key == "fk_transaction_head_id":
+                                setattr(disc, key, head.id)
+                            elif key == "fk_transaction_product_id" and getattr(disc_temp, key):
+                                # Map temp product ID to permanent product ID
+                                setattr(disc, key, product_id_map.get(getattr(disc_temp, key)))
+                            elif key == "fk_transaction_payment_id" and getattr(disc_temp, key):
+                                # Map temp payment ID to permanent payment ID
+                                setattr(disc, key, payment_id_map.get(getattr(disc_temp, key)))
+                            elif key == "fk_transaction_total_id" and getattr(disc_temp, key):
+                                # Map temp total ID to permanent total ID
+                                setattr(disc, key, total_id_map.get(getattr(disc_temp, key)))
+                            else:
+                                setattr(disc, key, getattr(disc_temp, key))
+                    disc.id = uuid4()
+                    session.add(disc)
+                
+                # Deliveries
+                for del_temp in self.document_data.get("deliveries", []):
+                    del_rec = TransactionDelivery()
+                    for key in del_temp.__table__.columns.keys():
+                        if hasattr(del_temp, key):
+                            if key == "fk_transaction_head_id":
+                                setattr(del_rec, key, head.id)
+                            else:
+                                setattr(del_rec, key, getattr(del_temp, key))
+                    del_rec.id = uuid4()
+                    session.add(del_rec)
+                
+                # Kitchen Orders
+                for ko_temp in self.document_data.get("kitchen_orders", []):
+                    ko = TransactionKitchenOrder()
+                    for key in ko_temp.__table__.columns.keys():
+                        if hasattr(ko_temp, key):
+                            if key == "fk_transaction_head_id":
+                                setattr(ko, key, head.id)
+                            elif key == "fk_transaction_product_id" and getattr(ko_temp, key):
+                                # Map temp product ID to permanent product ID
+                                setattr(ko, key, product_id_map.get(getattr(ko_temp, key)))
+                            else:
+                                setattr(ko, key, getattr(ko_temp, key))
+                    ko.id = uuid4()
+                    session.add(ko)
+                
+                # Loyalty
+                for loy_temp in self.document_data.get("loyalty", []):
+                    loy = TransactionLoyalty()
+                    for key in loy_temp.__table__.columns.keys():
+                        if hasattr(loy_temp, key):
+                            if key == "fk_transaction_head_id":
+                                setattr(loy, key, head.id)
+                            else:
+                                setattr(loy, key, getattr(loy_temp, key))
+                    loy.id = uuid4()
+                    session.add(loy)
+                
+                # Notes
+                for note_temp in self.document_data.get("notes", []):
+                    note = TransactionNote()
+                    for key in note_temp.__table__.columns.keys():
+                        if hasattr(note_temp, key):
+                            if key == "fk_transaction_head_id":
+                                setattr(note, key, head.id)
+                            else:
+                                setattr(note, key, getattr(note_temp, key))
+                    note.id = uuid4()
+                    session.add(note)
+                
+                # Fiscal
+                if self.document_data.get("fiscal"):
+                    fiscal_temp = self.document_data["fiscal"]
+                    fiscal = TransactionFiscal()
+                    for key in fiscal_temp.__table__.columns.keys():
+                        if hasattr(fiscal_temp, key):
+                            if key == "fk_transaction_head_id":
+                                setattr(fiscal, key, head.id)
+                            else:
+                                setattr(fiscal, key, getattr(fiscal_temp, key))
+                    fiscal.id = uuid4()
+                    session.add(fiscal)
+                
+                # Refunds
+                for ref_temp in self.document_data.get("refunds", []):
+                    ref = TransactionRefund()
+                    for key in ref_temp.__table__.columns.keys():
+                        if hasattr(ref_temp, key):
+                            if key == "fk_transaction_head_id":
+                                setattr(ref, key, head.id)
+                            elif key == "fk_transaction_product_id" and getattr(ref_temp, key):
+                                # Map temp product ID to permanent product ID
+                                setattr(ref, key, product_id_map.get(getattr(ref_temp, key)))
+                            else:
+                                setattr(ref, key, getattr(ref_temp, key))
+                    ref.id = uuid4()
+                    session.add(ref)
+                
+                # Surcharges
+                for sur_temp in self.document_data.get("surcharges", []):
+                    sur = TransactionSurcharge()
+                    for key in sur_temp.__table__.columns.keys():
+                        if hasattr(sur_temp, key):
+                            if key == "fk_transaction_head_id":
+                                setattr(sur, key, head.id)
+                            else:
+                                setattr(sur, key, getattr(sur_temp, key))
+                    sur.id = uuid4()
+                    session.add(sur)
+                
+                # Taxes
+                for tax_temp in self.document_data.get("taxes", []):
+                    tax = TransactionTax()
+                    for key in tax_temp.__table__.columns.keys():
+                        if hasattr(tax_temp, key):
+                            if key == "fk_transaction_head_id":
+                                setattr(tax, key, head.id)
+                            elif key == "fk_transaction_product_id" and getattr(tax_temp, key):
+                                # Map temp product ID to permanent product ID
+                                setattr(tax, key, product_id_map.get(getattr(tax_temp, key)))
+                            else:
+                                setattr(tax, key, getattr(tax_temp, key))
+                    tax.id = uuid4()
+                    session.add(tax)
+                
+                # Tips
+                for tip_temp in self.document_data.get("tips", []):
+                    tip = TransactionTip()
+                    for key in tip_temp.__table__.columns.keys():
+                        if hasattr(tip_temp, key):
+                            if key == "fk_transaction_head_id":
+                                setattr(tip, key, head.id)
+                            elif key == "fk_transaction_payment_id" and getattr(tip_temp, key):
+                                # Map temp payment ID to permanent payment ID
+                                setattr(tip, key, payment_id_map.get(getattr(tip_temp, key)))
+                            else:
+                                setattr(tip, key, getattr(tip_temp, key))
+                    tip.id = uuid4()
+                    session.add(tip)
+                
+                session.commit()
+            
+            print(f"[DEBUG] Completed document: {head_temp.transaction_unique_id}")
+            
+            # Reset document_data
+            self.document_data = None
+            
+            return True
+            
+        except Exception as e:
+            print(f"[DEBUG] Error completing document: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+    
+    def set_document_pending(self, is_pending=True):
+        """
+        Set the current document as pending (suspended) or resume it.
+        
+        Args:
+            is_pending: True to suspend, False to resume
+        """
+        from data_layer.engine import Engine
+        
+        if not self.document_data or not self.document_data.get("head"):
+            print("[DEBUG] No document to set pending")
+            return False
+        
+        try:
+            head = self.document_data["head"]
+            head.is_pending = is_pending
+            
+            if is_pending:
+                head.transaction_status = TransactionStatus.PENDING.value
+            else:
+                head.transaction_status = TransactionStatus.ACTIVE.value
+            
+            # Save to database
+            with Engine().get_session() as session:
+                session.merge(head)
+                session.commit()
+            
+            print(f"[DEBUG] Document {'suspended' if is_pending else 'resumed'}: {head.transaction_unique_id}")
+            return True
+            
+        except Exception as e:
+            print(f"[DEBUG] Error setting document pending: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
     
     def populate_pos_data(self, progress_callback=None):
         """
