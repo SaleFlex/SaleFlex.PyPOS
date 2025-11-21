@@ -45,9 +45,14 @@ from data_layer.model.definition.transaction_total_temp import TransactionTotalT
 from data_layer.model.definition.transaction_discount import TransactionDiscount
 from data_layer.model.definition.transaction_discount_temp import TransactionDiscountTemp
 from data_layer.model.definition.closure import Closure
-from data_layer.model.definition.closure_total import ClosureTotal
 from data_layer.model.definition.closure_currency import ClosureCurrency
 from data_layer.model.definition.closure_payment_type_summary import ClosurePaymentTypeSummary
+from data_layer.model.definition.closure_cashier_summary import ClosureCashierSummary
+from data_layer.model.definition.closure_department_summary import ClosureDepartmentSummary
+from data_layer.model.definition.closure_discount_summary import ClosureDiscountSummary
+from data_layer.model.definition.closure_document_type_summary import ClosureDocumentTypeSummary
+from data_layer.model.definition.closure_tip_summary import ClosureTipSummary
+from data_layer.model.definition.closure_vat_summary import ClosureVATSummary
 from data_layer.model.definition.country import Country
 from data_layer.model.definition.city import City
 from data_layer.model.definition.district import District

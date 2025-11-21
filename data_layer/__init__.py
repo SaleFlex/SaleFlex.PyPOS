@@ -48,7 +48,6 @@ from data_layer.model import TransactionTotalTemp
 from data_layer.model import TransactionDiscount
 from data_layer.model import TransactionDiscountTemp
 from data_layer.model import Closure
-from data_layer.model import ClosureTotal
 from data_layer.model import ClosureCurrency
 
 # Database management functions moved to db_manager.py

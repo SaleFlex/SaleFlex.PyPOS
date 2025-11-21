@@ -22,7 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-from sqlalchemy import Column, Integer, BigInteger, Boolean, String, DateTime, Float, ForeignKey, UUID, Numeric
+from sqlalchemy import Column, Integer, BigInteger, Boolean, String, DateTime, Text, ForeignKey, UUID, Numeric
 from sqlalchemy.sql import func
 from uuid import uuid4
 
@@ -32,20 +32,20 @@ from data_layer.model.mixins import AuditMixin, SoftDeleteMixin
 
 
 class ClosurePaymentTypeSummary(Model, CRUD, AuditMixin, SoftDeleteMixin):
-    def __init__(self):
-        Model.__init__(self)
-        CRUD.__init__(self)
-
+    """Payment method breakdown - unchanged, already well structured."""
     __tablename__ = "closure_payment_type_summary"
 
     id = Column(UUID, primary_key=True, default=uuid4)
-    fk_closure_id = Column(BigInteger, ForeignKey("closure.id"), nullable=False)
-    fk_payment_type_id = Column(BigInteger, ForeignKey("payment_type.id"), nullable=False)
-    total_count = Column(Integer, nullable=False)
-    total_amount = Column(Numeric(precision=15, scale=4), nullable=False)
+    fk_closure_id = Column(UUID, ForeignKey("closure.id"), nullable=False, index=True)
+    fk_payment_type_id = Column(UUID, ForeignKey("payment_type.id"), nullable=False)
+    
+    total_count = Column(Integer, nullable=False, default=0)
+    total_amount = Column(Numeric(15, 4), nullable=False, default=0)
+    
+    # Modification tracking
     is_modified = Column(Boolean, nullable=False, default=False)
-    fk_cashier_modified_id = Column(BigInteger, ForeignKey("cashier.id"))
-    modified_description = Column(String(1000), nullable=True)
+    fk_cashier_modified_id = Column(UUID, ForeignKey("cashier.id"))
+    modified_description = Column(Text)
 
     def __repr__(self):
-        return f"<ClosurePaymentTypeSummary(total_count='{self.total_count}', total_amount='{self.total_amount}')>" 
+        return f"<ClosurePaymentTypeSummary(count='{self.total_count}', amount='{self.total_amount}')>"

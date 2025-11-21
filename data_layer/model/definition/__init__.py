@@ -6,7 +6,12 @@ from .city import City
 from .closure import Closure
 from .closure_currency import ClosureCurrency
 from .closure_payment_type_summary import ClosurePaymentTypeSummary
-from .closure_total import ClosureTotal
+from .closure_cashier_summary import ClosureCashierSummary
+from .closure_department_summary import ClosureDepartmentSummary
+from .closure_discount_summary import ClosureDiscountSummary
+from .closure_document_type_summary import ClosureDocumentTypeSummary
+from .closure_tip_summary import ClosureTipSummary
+from .closure_vat_summary import ClosureVATSummary
 from .country import Country
 from .currency import Currency
 from .currency_table import CurrencyTable
@@ -99,7 +104,12 @@ __all__ = [
     'Closure',
     'ClosureCurrency',
     'ClosurePaymentTypeSummary',
-    'ClosureTotal',
+    'ClosureCashierSummary',
+    'ClosureDepartmentSummary',
+    'ClosureDiscountSummary',
+    'ClosureDocumentTypeSummary',
+    'ClosureTipSummary',
+    'ClosureVATSummary',
     'Country',
     'Currency',
     'CurrencyTable',

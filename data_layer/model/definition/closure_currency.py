@@ -22,7 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-from sqlalchemy import Column, Integer, BigInteger, Boolean, String, DateTime, Float, ForeignKey, UUID, Numeric
+from sqlalchemy import Column, Integer, BigInteger, Boolean, String, DateTime, Text, ForeignKey, UUID, Numeric
 from sqlalchemy.sql import func
 from uuid import uuid4
 
@@ -32,20 +32,29 @@ from data_layer.model.mixins import AuditMixin, SoftDeleteMixin
 
 
 class ClosureCurrency(Model, CRUD, AuditMixin, SoftDeleteMixin):
-    def __init__(self):
-        Model.__init__(self)
-        CRUD.__init__(self)
-
+    """
+    Currency breakdown for multi-currency operations.
+    Fixed: Now has FK to currency table.
+    """
     __tablename__ = "closure_currency"
 
     id = Column(UUID, primary_key=True, default=uuid4)
-    fk_closure_id = Column(BigInteger, ForeignKey("closure.id"))
-    currency_code = Column(Integer, nullable=False)
-    currency_total = Column(Numeric(precision=15, scale=4), nullable=False)
-    currency_exchange_rate = Column(Float, nullable=False)
+    fk_closure_id = Column(UUID, ForeignKey("closure.id"), nullable=False, index=True)
+    fk_currency_id = Column(UUID, ForeignKey("currency.id"), nullable=False)
+    
+    # Amounts in this currency
+    currency_amount = Column(Numeric(15, 4), nullable=False)
+    
+    # Exchange Rate (to base currency)
+    exchange_rate = Column(Numeric(12, 6), nullable=False)
+    
+    # Converted amount (in base currency)
+    base_currency_amount = Column(Numeric(15, 4), nullable=False)
+    
+    # Modification tracking
     is_modified = Column(Boolean, nullable=False, default=False)
-    fk_cashier_modified_id = Column(BigInteger, ForeignKey("cashier.id"))
-    modified_description = Column(String(1000), nullable=True)
+    fk_cashier_modified_id = Column(UUID, ForeignKey("cashier.id"))
+    modified_description = Column(Text)
 
     def __repr__(self):
-        return f"<ClosureCurrency(currency_code='{self.currency_code}', currency_total='{self.currency_total}')>"
+        return f"<ClosureCurrency(closure='{self.fk_closure_id}', amount='{self.currency_amount}')>"

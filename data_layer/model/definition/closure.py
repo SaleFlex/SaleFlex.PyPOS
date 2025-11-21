@@ -22,90 +22,77 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-from sqlalchemy import Column, Integer, BigInteger, Boolean, String, DateTime, Float, ForeignKey, Date, UUID, Numeric
+from sqlalchemy import Column, Integer, BigInteger, Boolean, String, DateTime, Text, ForeignKey, Date, UUID, Numeric
 from sqlalchemy.sql import func
 
 from data_layer.model.crud_model import Model
 from data_layer.model.crud_model import CRUD
+from data_layer.model.mixins import AuditMixin, SoftDeleteMixin    
 
 from uuid import uuid4
 
 
-class Closure(Model, CRUD):
-    def __init__(self):
-        Model.__init__(self)
-        CRUD.__init__(self)
-
+class Closure(Model, CRUD, AuditMixin, SoftDeleteMixin):
+    """
+    Main closure record - stores high-level summary only.
+    Detailed breakdowns moved to separate summary tables.
+    """
     __tablename__ = "closure"
 
     id = Column(UUID, primary_key=True, default=uuid4)
-    closure_unique_id = Column(String(50), nullable=False, default=uuid4())
-    closure_number = Column(Integer, nullable=False)
-    pos_id = Column(Integer, nullable=False)
-    fk_store_id = Column(BigInteger, ForeignKey("store.id"))
-    closure_date = Column(Date, server_default=func.now(), nullable=False)
-    total_document_count = Column(Integer, nullable=False)
-    gross_total_amount = Column(Numeric(precision=15, scale=4), nullable=False)
-    gross_total_vat_amount = Column(Numeric(precision=15, scale=4), nullable=False)
-    daily_total_amount = Column(Numeric(precision=15, scale=4), nullable=False)
-    daily_total_vat_amount = Column(Numeric(precision=15, scale=4), nullable=False)
-    valid_receipt_count = Column(Integer, nullable=False)
-    valid_invoice_count = Column(Integer, nullable=False)
-    canceled_receipt_count = Column(Integer, nullable=False)
-    canceled_invoice_count = Column(Integer, nullable=False)
-    canceled_total_amount = Column(Numeric(precision=15, scale=4), nullable=False)
-    valid_receipt_total_amount = Column(Numeric(precision=15, scale=4), nullable=False)
-    valid_invoice_total_amount = Column(Numeric(precision=15, scale=4), nullable=False)
-    valid_receipt_vat_total_amount = Column(Numeric(precision=15, scale=4), nullable=False)
-    valid_invoice_vat_total_amount = Column(Numeric(precision=15, scale=4), nullable=False)
-    bonus_point_total_amount = Column(Numeric(precision=15, scale=4), nullable=False)
-    discount_total_amount = Column(Numeric(precision=15, scale=4), nullable=False)
-    waybill_count = Column(Integer, nullable=False)
-    canceled_waybill_count = Column(Integer, nullable=False)
-    waybill_total_amount = Column(Numeric(precision=15, scale=4), nullable=False)
-    canceled_waybill_total_amount = Column(Numeric(precision=15, scale=4), nullable=False)
-    return_count = Column(Integer, nullable=False)
-    canceled_return_count = Column(Integer, nullable=False)
-    return_total_amount = Column(Numeric(precision=15, scale=4), nullable=False)
-    canceled_return_total_amount = Column(Numeric(precision=15, scale=4), nullable=False)
-    diplomatic_invoice_count = Column(Integer, nullable=False)
-    canceled_diplomatic_invoice_count = Column(Integer, nullable=False)
-    diplomatic_invoice_total_amount = Column(Numeric(precision=15, scale=4), nullable=False)
-    canceled_diplomatic_invoice_total_amount = Column(Numeric(precision=15, scale=4), nullable=False)
-    electronic_receipt_count = Column(Integer, nullable=False)
-    canceled_electronic_receipt_count = Column(Integer, nullable=False)
-    electronic_receipt_total_amount = Column(Numeric(precision=15, scale=4), nullable=False)
-    canceled_electronic_receipt_total_amount = Column(Numeric(precision=15, scale=4), nullable=False)
-    electronic_invoice_count = Column(Integer, nullable=False)
-    canceled_electronic_invoice_count = Column(Integer, nullable=False)
-    electronic_invoice_total_amount = Column(Numeric(precision=15, scale=4), nullable=False)
-    canceled_electronic_invoice_total_amount = Column(Numeric(precision=15, scale=4), nullable=False)
-    electronic_corporate_invoice_count = Column(Integer, nullable=False)
-    canceled_electronic_corporate_invoice_count = Column(Integer, nullable=False)
-    electronic_corporate_invoice_total_amount = Column(Numeric(precision=15, scale=4), nullable=False)
-    canceled_electronic_corporate_invoice_total_amount = Column(Numeric(precision=15, scale=4), nullable=False)
-    electronic_individual_invoice_count = Column(Integer, nullable=False)
-    canceled_electronic_individual_invoice_count = Column(Integer, nullable=False)
-    electronic_individual_invoice_total_amount = Column(Numeric(precision=15, scale=4), nullable=False)
-    canceled_electronic_individual_invoice_total_amount = Column(Numeric(precision=15, scale=4), nullable=False)
-    expanse_count = Column(Integer, nullable=False)
-    canceled_expanse_count = Column(Integer, nullable=False)
-    expanse_total_amount = Column(Numeric(precision=15, scale=4), nullable=False)
-    canceled_expanse_total_amount = Column(Numeric(precision=15, scale=4), nullable=False)
-    paid_out_count = Column(Integer, nullable=False)
-    canceled_paid_out_count = Column(Integer, nullable=False)
-    paid_out_total_amount = Column(Numeric(precision=15, scale=4), nullable=False)
-    canceled_paid_out_total_amount = Column(Numeric(precision=15, scale=4), nullable=False)
-    paid_in_count = Column(Integer, nullable=False)
-    canceled_paid_in_count = Column(Integer, nullable=False)
-    paid_in_total_amount = Column(Numeric(precision=15, scale=4), nullable=False)
-    canceled_paid_in_total_amount = Column(Numeric(precision=15, scale=4), nullable=False)
-    description = Column(String(100))
+    closure_unique_id = Column(String(50), unique=True, nullable=False, index=True)
+    closure_number = Column(Integer, nullable=False)  # Daily sequence
+    
+    # Store & POS Info
+    fk_store_id = Column(UUID, ForeignKey("store.id"), nullable=False)
+    fk_pos_id = Column(UUID, ForeignKey("pos_settings.id"), nullable=False)
+    
+    # Closure Timing
+    closure_date = Column(Date, nullable=False, index=True)
+    closure_start_time = Column(DateTime, nullable=False)
+    closure_end_time = Column(DateTime, nullable=False)
+    
+    # Currency Info
+    fk_base_currency_id = Column(UUID, ForeignKey("currency.id"), nullable=False)
+    
+    # High-Level Totals (in base currency)
+    total_document_count = Column(Integer, nullable=False, default=0)
+    gross_sales_amount = Column(Numeric(15, 4), nullable=False, default=0)
+    net_sales_amount = Column(Numeric(15, 4), nullable=False, default=0)
+    total_tax_amount = Column(Numeric(15, 4), nullable=False, default=0)
+    total_discount_amount = Column(Numeric(15, 4), nullable=False, default=0)
+    total_tip_amount = Column(Numeric(15, 4), nullable=False, default=0)  # For restaurants
+    
+    # Transaction Counts
+    valid_transaction_count = Column(Integer, nullable=False, default=0)
+    canceled_transaction_count = Column(Integer, nullable=False, default=0)
+    return_transaction_count = Column(Integer, nullable=False, default=0)
+    
+    # Cash Management
+    opening_cash_amount = Column(Numeric(15, 4), nullable=False, default=0)
+    closing_cash_amount = Column(Numeric(15, 4), nullable=False, default=0)
+    expected_cash_amount = Column(Numeric(15, 4), nullable=False, default=0)
+    cash_difference = Column(Numeric(15, 4), nullable=False, default=0)
+    
+    # Paid In/Out
+    paid_in_count = Column(Integer, nullable=False, default=0)
+    paid_in_total = Column(Numeric(15, 4), nullable=False, default=0)
+    paid_out_count = Column(Integer, nullable=False, default=0)
+    paid_out_total = Column(Numeric(15, 4), nullable=False, default=0)
+    
+    # Status
     is_canceled = Column(Boolean, nullable=False, default=False)
     is_modified = Column(Boolean, nullable=False, default=False)
-    fk_cashier_modified_id = Column(BigInteger, ForeignKey("cashier.id"))
-    modified_description = Column(String(1000), nullable=True)
-    modified_at = Column(DateTime, server_default=func.now())
+    
+    # Employee Info
+    fk_cashier_opened_id = Column(UUID, ForeignKey("cashier.id"), nullable=False)
+    fk_cashier_closed_id = Column(UUID, ForeignKey("cashier.id"), nullable=False)
+    fk_cashier_modified_id = Column(UUID, ForeignKey("cashier.id"))
+    
+    # Notes
+    description = Column(Text)
+    modified_description = Column(Text)
 
     def __repr__(self):
-        return f"<Closure(closure_unique_id='{self.closure_unique_id}', closure_date='{self.closure_date}')>"
+        return f"<Closure(id='{self.closure_unique_id}', date='{self.closure_date}')>"
+
