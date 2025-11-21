@@ -40,8 +40,6 @@ class Settings:
             self.setting_data = tomllib.load(file_object)
             self.app = self.setting_data.get("app")
             self.database = self.setting_data.get("database")
-            self.main_display = self.setting_data.get("main_display")
-            self.customer_display = self.setting_data.get("customer_display")
             self.design_files_list = self.setting_data.get("static_files")
 
     @property
@@ -54,42 +52,6 @@ class Settings:
     def db_name(self):
         if self.database:
             return self.database.get("database_name")
-        return None
-
-    @property
-    def md_width(self):
-        if self.main_display:
-            return self.main_display.get("width")
-        return 1280
-
-    @property
-    def md_height(self):
-        if self.main_display:
-            return self.main_display.get("height")
-        return 640
-
-    @property
-    def cd_width(self):
-        if self.customer_display:
-            return self.customer_display.get("width")
-        return 1280
-
-    @property
-    def cd_height(self):
-        if self.customer_display:
-            return self.customer_display.get("height")
-        return 640
-
-    @property
-    def main_display_data(self):
-        if self.design_files_list["main_display"]:
-            return self.design_files_list["main_display"]
-        return None
-
-    @property
-    def customer_display_data(self):
-        if self.design_files_list["customer_display"]:
-            return self.design_files_list["customer_display"]
         return None
 
     @property
