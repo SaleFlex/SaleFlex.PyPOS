@@ -152,6 +152,7 @@ After logging in, you'll see the main menu with options for:
 
 - **Sales**: Process transactions and orders
 - **Closure**: End-of-day operations and cash drawer reconciliation
+- **ClosureCountrySpecific**: Country-specific closure data with template-based initialization
 - **Configuration**: System settings and customization
 - **Logout**: Exit current user session
 
@@ -1208,6 +1209,7 @@ SaleFlex.PyPOS uses a comprehensive database schema with over 80 models organize
 - **ClosurePaymentTypeSummary**: Payment method breakdown per closure
 - **ClosureTipSummary**: Tip tracking by payment method with distribution tracking (for restaurants)
 - **ClosureVATSummary**: Tax rate breakdown with taxable amounts, tax amounts, and exemptions
+- **ClosureCountrySpecific**: Country-specific closure data stored as JSON with template-based initialization. Supports all countries without creating separate models. Templates are stored in `static_files/closures/` directory and can be loaded automatically based on country code and optional state/province code. See [Country-Specific Closure Templates](#country-specific-closure-templates) section below for details.
 
 ### Form and UI Models
 
@@ -1218,6 +1220,58 @@ SaleFlex.PyPOS uses a comprehensive database schema with over 80 models organize
 - **ReceiptHeader**: Receipt header templates
 - **ReceiptFooter**: Receipt footer templates
 - **LabelValue**: Label/value pairs for translations and configuration
+
+### Country-Specific Closure Templates
+
+SaleFlex.PyPOS supports country-specific closure data through a flexible template system. Instead of creating separate models for each country, closure data is stored as JSON in the `ClosureCountrySpecific` model, with templates defining the structure for each country.
+
+#### Template System Overview
+
+- **Location**: Templates are stored in `static_files/closures/` directory
+- **Naming Convention**: 
+  - Country-level: `{country_code}.json` (e.g., `tr.json`, `usa.json`)
+  - State/Province-level: `{country_code}_{state_code}.json` (e.g., `usa_ca.json`, `usa_ny.json`)
+  - Default fallback: `default.json`
+- **Template Resolution**: System tries state-specific → country-specific → default template
+- **Auto-initialization**: Templates can be automatically loaded when creating closure records
+
+#### Available Templates
+
+- **tr.json**: Turkey (E-Fatura, E-İrsaliye, Diplomatic invoices, Tourist tax-free)
+- **usa.json**: United States (general)
+- **usa_ca.json**: California, USA (state tax, tip reporting, gift cards)
+- **usa_ny.json**: New York, USA
+- **usa_tx.json**: Texas, USA
+- **de.json**: Germany (VAT by rate, reverse charge, EU sales)
+- **fr.json**: France (VAT rates, EU sales)
+- **gb.json**: United Kingdom (VAT rates)
+- **jp.json**: Japan (Consumption tax, point programs)
+
+#### Usage Example
+
+```python
+from data_layer.model.definition.closure_country_specific import ClosureCountrySpecific
+
+# Create closure with template automatically loaded
+closure = ClosureCountrySpecific.create_from_template(
+    fk_closure_id=closure_id,
+    country_code='TR',
+    state_code=None  # Optional, for state-specific templates
+)
+
+# Access country-specific data
+data = closure.get_country_data()
+e_invoice_count = closure.get_field('electronic_invoice_count', 0)
+```
+
+#### GATE Integration
+
+When connected to SaleFlex.GATE, templates can be:
+- Downloaded from GATE for centralized management
+- Updated remotely without POS code changes
+- Validated before deployment
+
+For more details, see `static_files/closures/README.md`.
 
 ### Tax and Compliance Models
 

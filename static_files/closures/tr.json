@@ -1,0 +1,12 @@
+{
+	"electronic_invoice_count": 0,
+	"electronic_invoice_amount": 0,
+	"canceled_electronic_invoice_count": 0,
+	"electronic_waybill_count": 0,
+	"electronic_waybill_amount": 0,
+	"diplomatic_invoice_count": 0,
+	"diplomatic_invoice_amount": 0,
+	"tourist_tax_free_count": 0,
+	"tourist_tax_free_amount": 0
+}
+

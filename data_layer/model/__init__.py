@@ -53,6 +53,7 @@ from data_layer.model.definition.closure_discount_summary import ClosureDiscount
 from data_layer.model.definition.closure_document_type_summary import ClosureDocumentTypeSummary
 from data_layer.model.definition.closure_tip_summary import ClosureTipSummary
 from data_layer.model.definition.closure_vat_summary import ClosureVATSummary
+from data_layer.model.definition.closure_country_specific import ClosureCountrySpecific
 from data_layer.model.definition.country import Country
 from data_layer.model.definition.city import City
 from data_layer.model.definition.district import District

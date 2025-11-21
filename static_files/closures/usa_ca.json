@@ -1,0 +1,19 @@
+{
+	"state_tax_rate": 7.25,
+	"local_tax_enabled": true,
+	"special_rules": {
+		"food_tax_exempt": true,
+		"clothing_taxable": true,
+		"bottle_deposit": 0,
+		"cannabis_excise_tax": 0
+	},
+	"sales_tax_by_county": {},
+	"tip_reporting": {
+		"cash_tips": 0,
+		"credit_card_tips": 0,
+		"reported_tips": 0
+	},
+	"gift_card_sales": 0,
+	"gift_card_redemptions": 0
+}
+

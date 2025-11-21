@@ -1,0 +1,14 @@
+{
+	"consumption_tax": {
+		"standard_rate": 10.0,
+		"reduced_rate": 8.0,
+		"standard_amount": 0,
+		"standard_tax": 0,
+		"reduced_amount": 0,
+		"reduced_tax": 0
+	},
+	"point_program_sales": 0,
+	"gift_certificate_sales": 0,
+	"gift_certificate_redemptions": 0
+}
+

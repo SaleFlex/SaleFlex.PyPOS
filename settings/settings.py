@@ -42,7 +42,7 @@ class Settings:
             self.database = self.setting_data.get("database")
             self.main_display = self.setting_data.get("main_display")
             self.customer_display = self.setting_data.get("customer_display")
-            self.design_files_list = self.setting_data.get("design_files")
+            self.design_files_list = self.setting_data.get("static_files")
 
     @property
     def db_engine(self):
@@ -95,7 +95,7 @@ class Settings:
     @property
     def image_absolute_folder(self):
         project_path = os.path.dirname(os.path.abspath(sys.modules['__main__'].__file__))
-        image_path = os.path.join(project_path, 'design_files', 'images')
+        image_path = os.path.join(project_path, 'static_files', 'images')
         return image_path
 
     @property
@@ -147,6 +147,6 @@ class Settings:
             
             # Default icon path
             project_path = os.path.dirname(os.path.abspath(sys.modules['__main__'].__file__))
-            return os.path.join(project_path, "design_files", "images", "saleflex.ico")
+            return os.path.join(project_path, "static_files", "images", "saleflex.ico")
         except Exception:
             return ""

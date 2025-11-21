@@ -1,0 +1,18 @@
+{
+	"state_tax_rate": 4.0,
+	"local_tax_enabled": true,
+	"special_rules": {
+		"food_tax_exempt": true,
+		"clothing_taxable": false,
+		"clothing_exemption_threshold": 110.0
+	},
+	"sales_tax_by_county": {},
+	"tip_reporting": {
+		"cash_tips": 0,
+		"credit_card_tips": 0,
+		"reported_tips": 0
+	},
+	"gift_card_sales": 0,
+	"gift_card_redemptions": 0
+}
+

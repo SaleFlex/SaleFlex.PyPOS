@@ -1,0 +1,18 @@
+{
+	"vat_by_rate": {
+		"standard_rate": 20.0,
+		"reduced_rate": 5.5,
+		"super_reduced_rate": 2.1,
+		"standard_amount": 0,
+		"standard_vat": 0,
+		"reduced_amount": 0,
+		"reduced_vat": 0,
+		"super_reduced_amount": 0,
+		"super_reduced_vat": 0
+	},
+	"reverse_charge_count": 0,
+	"reverse_charge_amount": 0,
+	"intra_eu_sales": 0,
+	"extra_eu_sales": 0
+}
+

@@ -26,6 +26,7 @@ SaleFlex.PyPOS POS system is designed to streamline the sales process and improv
 - **Employee Management**: Track employee time, attendance, and performance
 - **Campaign & Promotion Management**: Flexible promotional campaigns with time-based, product-specific, and basket discounts
 - **Loyalty Programs**: Tiered membership rewards system with points earning, redemption, and customer segmentation
+- **Country-Specific Closure Templates**: Flexible template system for country-specific closure data (E-Fatura for Turkey, state tax for USA, VAT reporting for EU, etc.) stored as JSON templates in `static_files/closures/` directory
 - **Optimized Performance**: In-memory caching of reference data (`pos_data`) and product data (`product_data`) minimizes disk I/O, extending disk life for POS devices with limited write cycles. All product lookups, currency calculations, VAT rate lookups, button rendering, and sale operations use cached data instead of database queries
 
 ## Project Structure
@@ -55,7 +56,7 @@ SaleFlex.PyPOS/
 │   └── data/               # POS-specific data handling
 │
 ├── settings/               # Configuration management
-└── design_files/           # Design assets
+└── static_files/            # Static assets (images, closure templates)
 ```
 
 ## Business Applications
@@ -316,10 +317,10 @@ If you select "SALES", you will see a form as shown below:
 
 ### Localization & Compliance
 - [ ] **Multi-Language Support** - Internationalization (i18n)
-- [ ] **Currency Support** - Multi-currency handling
-- [ ] **Tax Compliance** - Country-specific tax regulations
+- [x] **Currency Support** - Multi-currency handling with exchange rate tracking
+- [x] **Tax Compliance** - Country-specific tax regulations with VAT/tax rate management
 - [ ] **Fiscal Printer Support** - Government-mandated receipt requirements
-- [ ] **Local Regulations** - Region-specific compliance features
+- [x] **Local Regulations** - Region-specific compliance features via `ClosureCountrySpecific` model with template-based initialization (supports Turkey E-Fatura, USA state taxes, EU VAT reporting, etc.)
 
 ## Contributing
 

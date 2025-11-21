@@ -12,6 +12,7 @@ from .closure_discount_summary import ClosureDiscountSummary
 from .closure_document_type_summary import ClosureDocumentTypeSummary
 from .closure_tip_summary import ClosureTipSummary
 from .closure_vat_summary import ClosureVATSummary
+from .closure_country_specific import ClosureCountrySpecific
 from .country import Country
 from .currency import Currency
 from .currency_table import CurrencyTable
@@ -110,6 +111,7 @@ __all__ = [
     'ClosureDocumentTypeSummary',
     'ClosureTipSummary',
     'ClosureVATSummary',
+    'ClosureCountrySpecific',
     'Country',
     'Currency',
     'CurrencyTable',

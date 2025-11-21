@@ -1,0 +1,15 @@
+{
+	"vat_by_rate": {
+		"standard_rate": 20.0,
+		"reduced_rate": 5.0,
+		"zero_rate": 0.0,
+		"standard_amount": 0,
+		"standard_vat": 0,
+		"reduced_amount": 0,
+		"reduced_vat": 0,
+		"zero_rate_amount": 0
+	},
+	"reverse_charge_count": 0,
+	"reverse_charge_amount": 0
+}
+
