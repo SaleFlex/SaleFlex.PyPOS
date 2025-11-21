@@ -905,7 +905,13 @@ The following product-related models are loaded into `product_data` dictionary a
 
 #### CurrentData Class
 
-The `CurrentData` class manages both caching systems:
+The `CurrentData` class manages both caching systems. The class uses a mixin pattern to organize functionality into focused components:
+
+- **DocumentManager**: Handles document/transaction operations (create, load, complete, suspend)
+- **CacheManager**: Manages POS and product data caching (populate, update, refresh)
+- **ClosureManager**: Manages closure operations (load, create, close)
+
+This modular structure improves code organization and maintainability while preserving all existing functionality through inheritance.
 
 ```python
 # pos_data is populated at application startup
@@ -1102,7 +1108,7 @@ These methods load all models from the database once and store them in their res
 
 ### Closure Management
 
-The `CurrentData` class also manages the current active closure through the `closure` attribute. Unlike `pos_data` and `product_data` which cache reference data, `closure` holds session-specific closure data that is actively updated during operations.
+The `CurrentData` class (via `ClosureManager` mixin) manages the current active closure through the `closure` attribute. Unlike `pos_data` and `product_data` which cache reference data, `closure` holds session-specific closure data that is actively updated during operations.
 
 **Closure Lifecycle:**
 1. **Application Startup**: The system loads the last open closure (where `closure_end_time` is None) or creates a new empty closure if none exists
@@ -1153,7 +1159,7 @@ SaleFlex.PyPOS implements a **transaction document management system** that hand
 
 ### Document Structure
 
-The `CurrentData` class manages two key document-related attributes:
+The `CurrentData` class (via `DocumentManager` mixin) manages two key document-related attributes:
 
 1. **`document_data`**: Dictionary containing the current active transaction being processed
 2. **`pending_documents_data`**: List of dictionaries containing suspended/pending transactions (used in restaurant mode for managing tables/orders)
