@@ -132,9 +132,11 @@ class BaseWindow(QMainWindow):
         
         # Get font name from design_data, default to "Verdana"
         font_name = design_data.get("font", "Verdana")
+        # Get font_auto_height setting from design_data, default to True
+        font_auto_height = design_data.get("font_auto_height", True)
         # Create button with empty text first, then set geometry, then set text
         # This ensures button dimensions are set before font adjustment
-        button = Button("", self, font_name=font_name)
+        button = Button("", self, font_name=font_name, font_auto_height=font_auto_height)
         button.setGeometry(design_data["location_x"], design_data["location_y"],
                            design_data["width"], design_data["height"])
 
@@ -215,10 +217,11 @@ class BaseWindow(QMainWindow):
                 import traceback
                 traceback.print_exc()
         
-        # Trigger font adjustment after button is fully created and sized for ALL buttons
+        # Trigger font adjustment after button is fully created and sized (only if font_auto_height is True)
         # Use QTimer to ensure button dimensions are set
-        from PySide6.QtCore import QTimer
-        QTimer.singleShot(0, lambda: button._adjust_font_size() if hasattr(button, '_adjust_font_size') else None)
+        if font_auto_height:
+            from PySide6.QtCore import QTimer
+            QTimer.singleShot(0, lambda: button._adjust_font_size() if hasattr(button, '_adjust_font_size') else None)
         
         print("="*80)
 

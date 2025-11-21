@@ -231,6 +231,8 @@ class DynamicFormRenderer:
                 design['function'] = control.form_control_function1 or 'NONE'
             # Add font information
             design['font'] = control.font or 'Verdana'
+            # Add font_auto_height setting
+            design['font_auto_height'] = control.font_auto_height if control.font_auto_height is not None else True
         
         elif control.type.lower() == 'combobox':
             design.update({

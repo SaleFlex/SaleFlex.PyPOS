@@ -27,10 +27,11 @@ from PySide6.QtGui import QFont, QFontMetrics
 
 
 class Button(QPushButton):
-    def __init__(self, *args, font_name="Verdana", **kwargs):
+    def __init__(self, *args, font_name="Verdana", font_auto_height=True, **kwargs):
         super().__init__(*args, **kwargs)
         self._base_font_size = 20
         self._font_name = font_name
+        self._font_auto_height = font_auto_height
         self.setFont(QFont(self._font_name, self._base_font_size))
         # Text wrapping is handled programmatically in _adjust_font_size()
         
@@ -40,11 +41,16 @@ class Button(QPushButton):
         self._original_text = text
         # Set text without triggering adjustment (to avoid recursion)
         QPushButton.setText(self, text)
-        # Adjust font size after text is set
-        self._adjust_font_size()
+        # Adjust font size after text is set (only if font_auto_height is True)
+        if self._font_auto_height:
+            self._adjust_font_size()
     
     def _adjust_font_size(self):
         """Automatically adjust font size to fit button dimensions"""
+        # Only adjust if font_auto_height is enabled
+        if not self._font_auto_height:
+            return
+        
         if not hasattr(self, '_original_text') or not self._original_text:
             return
         
