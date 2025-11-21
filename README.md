@@ -40,26 +40,110 @@ SaleFlex.PyPOS/
 ├── requirements.txt         # Python dependencies
 ├── settings.toml           # Application configuration
 ├── db.sqlite3              # Default SQLite database
+├── PyPOS_GUIDE.md          # Quick reference guide (redirects to docs/)
+│
+├── docs/                   # Comprehensive documentation
+│   ├── README.md           # Documentation index
+│   └── *.md                # Topic-specific documentation files
 │
 ├── data_layer/             # Database & ORM Layer
 │   ├── engine.py           # Database engine configuration
-│   ├── model/              # Data models and CRUD operations
-│   │   ├── crud_model.py   # Base CRUD operations
-│   │   └── definition/     # Entity definitions
-│   └── migrations/         # Database schema migrations
+│   ├── db_initializer.py   # Database initialization
+│   ├── db_manager.py       # Database management utilities
+│   ├── db_utils.py         # Database helper functions
+│   │
+│   ├── auto_save/          # Auto-save functionality
+│   │   ├── auto_save_model.py
+│   │   ├── auto_save_dict.py
+│   │   └── auto_save_descriptor.py
+│   │
+│   ├── db_init_data/       # Initial data seeding
+│   │   ├── cashier.py
+│   │   ├── country.py
+│   │   ├── currency.py
+│   │   ├── product.py
+│   │   └── ...             # Other initialization modules
+│   │
+│   ├── enums/              # Enumeration definitions
+│   │   ├── control_name.py
+│   │   ├── control_type.py
+│   │   ├── event_name.py
+│   │   └── form_name.py
+│   │
+│   └── model/              # Data models and CRUD operations
+│       ├── crud_model.py   # Base CRUD operations
+│       ├── mixins.py       # Model mixins
+│       └── definition/     # Entity definitions (80+ models)
 │
 ├── user_interface/         # UI Components
 │   ├── window/             # Application windows and dialogs
+│   │   ├── base_window.py
+│   │   └── dynamic_dialog.py
+│   │
 │   ├── control/            # Custom UI controls
+│   │   ├── button.py
+│   │   ├── textbox.py
+│   │   ├── combobox.py
+│   │   ├── label.py
+│   │   ├── datagrid.py
+│   │   ├── toolbar.py
+│   │   ├── statusbar.py
+│   │   ├── amount_table/   # Amount table control
+│   │   ├── numpad/         # Numeric pad control
+│   │   ├── payment_list/   # Payment list control
+│   │   ├── sale_list/      # Sale list control
+│   │   ├── transaction_status/  # Transaction status display
+│   │   └── virtual_keyboard/    # Virtual keyboard component
+│   │
+│   ├── form/               # Form definitions
+│   │   ├── about_form.py
+│   │   └── message_form.py
+│   │
 │   ├── render/             # Dynamic form rendering (database-driven)
+│   │   └── dynamic_renderer.py
+│   │
 │   └── manager/            # UI management logic
+│       └── interface.py
 │
 ├── pos/                    # Core POS Business Logic
-│   ├── manager/            # Application management
-│   └── data/               # POS-specific data handling
+│   ├── data/               # POS-specific data types
+│   │   ├── document_type.py
+│   │   ├── document_state.py
+│   │   ├── payment_type.py
+│   │   └── discount_type.py
+│   │
+│   ├── hardware/           # Hardware integration
+│   │   └── device_info.py  # Device information detection
+│   │
+│   └── manager/            # Application management
+│       ├── application.py  # Main application class
+│       ├── current_data.py # Current session data
+│       ├── current_status.py
+│       ├── cache_manager.py      # Data caching
+│       ├── closure_manager.py    # Closure management
+│       ├── document_manager.py   # Document lifecycle
+│       ├── event_handler.py      # Event handling
+│       └── event/          # Event handlers
+│           ├── sale.py
+│           ├── payment.py
+│           ├── closure.py
+│           ├── general.py
+│           └── ...
 │
 ├── settings/               # Configuration management
-└── static_files/            # Static assets (images, closure templates)
+│   └── settings.py
+│
+├── static_files/           # Static assets
+│   ├── closures/           # Country-specific closure templates
+│   │   ├── tr.json
+│   │   ├── usa.json
+│   │   ├── usa_ca.json
+│   │   └── ...
+│   └── images/             # Image assets
+│       ├── saleflex.ico
+│       └── ...
+│
+└── test_*.py               # Test scripts
 ```
 
 ## Business Applications
