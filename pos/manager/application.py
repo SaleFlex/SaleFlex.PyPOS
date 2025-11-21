@@ -154,6 +154,11 @@ class Application(CurrentStatus, CurrentData, EventHandler):
         about.update_message("Loading currency settings...")
         self.app.processEvents()
         self.load_current_currency_from_pos_data()
+        
+        # Load open closure (or create empty one if none exists)
+        about.update_message("Loading closure data...")
+        self.app.processEvents()
+        self.load_open_closure()
 
         # Finalize and dispose the AboutForm
         about.update_message("Initialization complete.")

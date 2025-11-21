@@ -30,6 +30,16 @@ from data_layer.model import (
     CashierWorkBreak,
     CashierWorkSession,
     City,
+    Closure,
+    ClosureCashierSummary,
+    ClosureCountrySpecific,
+    ClosureCurrency,
+    ClosureDepartmentSummary,
+    ClosureDiscountSummary,
+    ClosureDocumentTypeSummary,
+    ClosurePaymentTypeSummary,
+    ClosureTipSummary,
+    ClosureVATSummary,
     Country,
     CountryRegion,
     Currency,
@@ -100,11 +110,29 @@ class CurrentData:
         pos_data: Dictionary of cached reference data models (populated at startup)
         pos_settings: POS settings object (cached reference from pos_data)
         current_currency: Current currency sign (e.g., "GBP", "USD")
+        closure: Dictionary containing current open closure data with all summaries:
+            - closure: Closure instance (main closure record)
+            - cashier_summaries: List[ClosureCashierSummary]
+            - country_specific: ClosureCountrySpecific or None
+            - currencies: List[ClosureCurrency]
+            - department_summaries: List[ClosureDepartmentSummary]
+            - discount_summaries: List[ClosureDiscountSummary]
+            - document_type_summaries: List[ClosureDocumentTypeSummary]
+            - payment_type_summaries: List[ClosurePaymentTypeSummary]
+            - tip_summaries: List[ClosureTipSummary]
+            - vat_summaries: List[ClosureVATSummary]
     
     Methods:
         populate_pos_data: Load all reference data models into pos_data cache
+        populate_product_data: Load all product-related models into product_data cache
         update_pos_data_cache: Update cache when a model instance is modified
         refresh_pos_data_model: Reload a specific model's data from database
+        update_product_data_cache: Update product_data cache when a model instance is modified
+        refresh_product_data_model: Reload a specific product model's data from database
+        load_open_closure: Load the last open closure from database or create empty one
+        create_empty_closure: Create a new empty closure with all summary structures
+        close_closure: Close the current open closure and create a new empty one
+        _load_closure_data: Internal method to load all closure data into self.closure
     """
     
     def __init__(self):
@@ -145,6 +173,24 @@ class CurrentData:
         # Cached product-related data loaded at startup (after DB init)
         # Example keys: "Product", "ProductBarcode", "DepartmentMainGroup", ...
         self.product_data = {}
+        
+        # Current active closure data (open closure until closed)
+        # Dictionary structure:
+        # {
+        #     "closure": Closure instance (main closure record),
+        #     "cashier_summaries": List[ClosureCashierSummary],
+        #     "country_specific": ClosureCountrySpecific or None,
+        #     "currencies": List[ClosureCurrency],
+        #     "department_summaries": List[ClosureDepartmentSummary],
+        #     "discount_summaries": List[ClosureDiscountSummary],
+        #     "document_type_summaries": List[ClosureDocumentTypeSummary],
+        #     "payment_type_summaries": List[ClosurePaymentTypeSummary],
+        #     "tip_summaries": List[ClosureTipSummary],
+        #     "vat_summaries": List[ClosureVATSummary]
+        # }
+        # Will be populated at application startup with the last open closure
+        # (closure_end_time is None) or a new empty closure if none exists
+        self.closure = None
     
     def populate_pos_data(self, progress_callback=None):
         """
@@ -447,5 +493,307 @@ class CurrentData:
             print(f"[DEBUG] Refreshed {model_name} in product_data cache: {len(self.product_data[model_name])} records")
         except Exception as e:
             print(f"[DEBUG] Error refreshing {model_name} in product_data cache: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    def load_open_closure(self):
+        """
+        Load the last open closure (closure_end_time is None) from database.
+        
+        If an open closure exists, it will be loaded with all its summary data.
+        If no open closure exists, a new empty closure will be created.
+        
+        This method should be called at application startup after database initialization
+        and after pos_data/product_data are populated.
+        """
+        from datetime import date, datetime
+        from data_layer.engine import Engine
+        
+        try:
+            # Query for the last open closure (closure_end_time is None)
+            with Engine().get_session() as session:
+                open_closure = session.query(Closure).filter(
+                    Closure.closure_end_time.is_(None),
+                    Closure.is_deleted == False
+                ).order_by(
+                    Closure.closure_start_time.desc()
+                ).first()
+                
+                if open_closure:
+                    # Load closure with all summary data
+                    self._load_closure_data(open_closure.id)
+                    print(f"[DEBUG] Loaded open closure: {open_closure.closure_unique_id}")
+                else:
+                    # No open closure exists, create a new empty one
+                    print("[DEBUG] No open closure found, creating new empty closure")
+                    self.create_empty_closure()
+        except Exception as e:
+            print(f"[DEBUG] Error loading open closure: {e}")
+            import traceback
+            traceback.print_exc()
+            # On error, try to create a new empty closure
+            try:
+                self.create_empty_closure()
+            except Exception as e2:
+                print(f"[DEBUG] Error creating empty closure: {e2}")
+                import traceback
+                traceback.print_exc()
+    
+    def _load_closure_data(self, closure_id):
+        """
+        Load all closure data (main record + all summaries) into self.closure dictionary.
+        
+        Args:
+            closure_id: UUID of the closure to load
+        """
+        from data_layer.engine import Engine
+        
+        try:
+            with Engine().get_session() as session:
+                # Load main closure record
+                closure = session.query(Closure).filter_by(id=closure_id).first()
+                if not closure:
+                    print(f"[DEBUG] Closure not found: {closure_id}")
+                    return
+                
+                # Initialize closure dictionary
+                self.closure = {
+                    "closure": closure,
+                    "cashier_summaries": [],
+                    "country_specific": None,
+                    "currencies": [],
+                    "department_summaries": [],
+                    "discount_summaries": [],
+                    "document_type_summaries": [],
+                    "payment_type_summaries": [],
+                    "tip_summaries": [],
+                    "vat_summaries": []
+                }
+                
+                # Load all summary records
+                self.closure["cashier_summaries"] = session.query(ClosureCashierSummary).filter_by(
+                    fk_closure_id=closure_id, is_deleted=False
+                ).all()
+                
+                self.closure["country_specific"] = session.query(ClosureCountrySpecific).filter_by(
+                    fk_closure_id=closure_id, is_deleted=False
+                ).first()
+                
+                self.closure["currencies"] = session.query(ClosureCurrency).filter_by(
+                    fk_closure_id=closure_id, is_deleted=False
+                ).all()
+                
+                self.closure["department_summaries"] = session.query(ClosureDepartmentSummary).filter_by(
+                    fk_closure_id=closure_id, is_deleted=False
+                ).all()
+                
+                self.closure["discount_summaries"] = session.query(ClosureDiscountSummary).filter_by(
+                    fk_closure_id=closure_id, is_deleted=False
+                ).all()
+                
+                self.closure["document_type_summaries"] = session.query(ClosureDocumentTypeSummary).filter_by(
+                    fk_closure_id=closure_id, is_deleted=False
+                ).all()
+                
+                self.closure["payment_type_summaries"] = session.query(ClosurePaymentTypeSummary).filter_by(
+                    fk_closure_id=closure_id, is_deleted=False
+                ).all()
+                
+                self.closure["tip_summaries"] = session.query(ClosureTipSummary).filter_by(
+                    fk_closure_id=closure_id, is_deleted=False
+                ).all()
+                
+                self.closure["vat_summaries"] = session.query(ClosureVATSummary).filter_by(
+                    fk_closure_id=closure_id, is_deleted=False
+                ).all()
+                
+                print(f"[DEBUG] Loaded closure data: {len(self.closure['cashier_summaries'])} cashiers, "
+                      f"{len(self.closure['currencies'])} currencies, "
+                      f"{len(self.closure['department_summaries'])} departments")
+        except Exception as e:
+            print(f"[DEBUG] Error loading closure data: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    def create_empty_closure(self):
+        """
+        Create a new empty closure with all summary structures initialized to empty.
+        
+        The closure will have:
+        - closure_date: Today's date
+        - closure_start_time: Current datetime
+        - closure_end_time: None (open closure)
+        - All other fields set to default/zero values
+        
+        This method requires:
+        - pos_settings to be loaded (for fk_pos_id and fk_store_id)
+        - product_data to contain Currency (for fk_base_currency_id)
+        
+        Note: If cashier_data is not set, the closure will be created but fk_cashier_opened_id
+        will need to be set later (e.g., after login). For now, we'll use the first cashier
+        from pos_data as a fallback, or leave it unset if no cashiers exist.
+        """
+        from datetime import date, datetime
+        from uuid import uuid4
+        from data_layer.engine import Engine
+        
+        try:
+            # Validate required data
+            if not self.pos_settings:
+                print("[DEBUG] Cannot create closure: pos_settings not loaded")
+                return
+            
+            # Get base currency from pos_settings
+            base_currency_id = None
+            if self.pos_settings.fk_current_currency_id:
+                base_currency_id = self.pos_settings.fk_current_currency_id
+            else:
+                # Fallback: get first currency from product_data
+                currencies = self.product_data.get("Currency", [])
+                if currencies:
+                    base_currency_id = currencies[0].id
+                else:
+                    print("[DEBUG] Cannot create closure: no currency found")
+                    return
+            
+            # Get cashier ID (use current cashier if logged in, otherwise use first cashier as fallback)
+            cashier_id = None
+            if self.cashier_data:
+                cashier_id = self.cashier_data.id
+            else:
+                # Fallback: get first cashier from pos_data
+                cashiers = self.pos_data.get("Cashier", [])
+                if cashiers:
+                    cashier_id = cashiers[0].id
+                    print(f"[DEBUG] Using fallback cashier for closure: {cashier_id}")
+                else:
+                    print("[DEBUG] Warning: No cashier available, closure will be created without cashier")
+                    # Note: fk_cashier_opened_id is nullable=False, so we need a cashier
+                    # In production, you might want to create a system cashier or handle this differently
+                    return
+            
+            # Get next closure number (daily sequence)
+            today = date.today()
+            with Engine().get_session() as session:
+                # Find the highest closure_number for today
+                max_closure = session.query(Closure).filter(
+                    Closure.closure_date == today,
+                    Closure.is_deleted == False
+                ).order_by(Closure.closure_number.desc()).first()
+                
+                next_closure_number = 1
+                if max_closure:
+                    next_closure_number = max_closure.closure_number + 1
+                
+                # Create unique ID
+                closure_unique_id = f"{today.strftime('%Y%m%d')}-{next_closure_number:04d}"
+                
+                # Create new closure record
+                new_closure = Closure()
+                new_closure.id = uuid4()
+                new_closure.closure_unique_id = closure_unique_id
+                new_closure.closure_number = next_closure_number
+                new_closure.fk_store_id = self.pos_settings.fk_store_id
+                new_closure.fk_pos_id = self.pos_settings.id
+                new_closure.closure_date = today
+                new_closure.closure_start_time = datetime.now()
+                new_closure.closure_end_time = None  # Open closure
+                new_closure.fk_base_currency_id = base_currency_id
+                new_closure.fk_cashier_opened_id = cashier_id
+                new_closure.fk_cashier_closed_id = cashier_id  # Will be updated when closed
+                
+                # All numeric fields default to 0 (handled by model defaults)
+                
+                # Save to database
+                session.add(new_closure)
+                session.commit()
+                
+                # Load the closure data into self.closure
+                self._load_closure_data(new_closure.id)
+                
+                print(f"[DEBUG] Created new empty closure: {closure_unique_id}")
+        except Exception as e:
+            print(f"[DEBUG] Error creating empty closure: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    def close_closure(self, closing_cash_amount=None, description=None):
+        """
+        Close the current open closure.
+        
+        This method:
+        1. Sets closure_end_time to current datetime
+        2. Sets fk_cashier_closed_id to current cashier
+        3. Updates closing_cash_amount if provided
+        4. Saves all closure data to database
+        5. Creates a new empty closure
+        
+        Args:
+            closing_cash_amount: Optional closing cash amount (if None, uses expected_cash_amount)
+            description: Optional description/notes for the closure
+        """
+        from datetime import datetime
+        from data_layer.engine import Engine
+        
+        if not self.closure or not self.closure.get("closure"):
+            print("[DEBUG] No open closure to close")
+            return
+        
+        if not self.cashier_data:
+            print("[DEBUG] Cannot close closure: cashier_data not set (user not logged in)")
+            return
+        
+        try:
+            closure = self.closure["closure"]
+            
+            # Update closure with closing information
+            closure.closure_end_time = datetime.now()
+            closure.fk_cashier_closed_id = self.cashier_data.id
+            
+            if closing_cash_amount is not None:
+                closure.closing_cash_amount = closing_cash_amount
+                # Calculate cash difference
+                closure.cash_difference = closing_cash_amount - closure.expected_cash_amount
+            
+            if description:
+                closure.description = description
+            
+            # Save closure and all summaries to database
+            with Engine().get_session() as session:
+                # Merge closure (it might have been modified)
+                session.merge(closure)
+                
+                # Save all summaries
+                for summary_list_name in [
+                    "cashier_summaries", "currencies", "department_summaries",
+                    "discount_summaries", "document_type_summaries",
+                    "payment_type_summaries", "tip_summaries", "vat_summaries"
+                ]:
+                    summaries = self.closure.get(summary_list_name, [])
+                    for summary in summaries:
+                        if summary.id:  # Existing record
+                            session.merge(summary)
+                        else:  # New record
+                            summary.fk_closure_id = closure.id
+                            session.add(summary)
+                
+                # Save country_specific if exists
+                if self.closure.get("country_specific"):
+                    country_specific = self.closure["country_specific"]
+                    if country_specific.id:  # Existing record
+                        session.merge(country_specific)
+                    else:  # New record
+                        country_specific.fk_closure_id = closure.id
+                        session.add(country_specific)
+                
+                session.commit()
+            
+            print(f"[DEBUG] Closed closure: {closure.closure_unique_id}")
+            
+            # Create new empty closure
+            self.create_empty_closure()
+            
+        except Exception as e:
+            print(f"[DEBUG] Error closing closure: {e}")
             import traceback
             traceback.print_exc()

@@ -50,7 +50,7 @@ class Closure(Model, CRUD, AuditMixin, SoftDeleteMixin):
     # Closure Timing
     closure_date = Column(Date, nullable=False, index=True)
     closure_start_time = Column(DateTime, nullable=False)
-    closure_end_time = Column(DateTime, nullable=False)
+    closure_end_time = Column(DateTime, nullable=True)  # None for open closures
     
     # Currency Info
     fk_base_currency_id = Column(UUID, ForeignKey("currency.id"), nullable=False)

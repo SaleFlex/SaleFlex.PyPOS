@@ -933,6 +933,20 @@ self.product_data = {
 # Special cached references
 self.pos_settings = pos_data["PosSettings"][0]  # First PosSettings record
 self.current_currency = "GBP"  # Loaded from PosSettings
+
+# Current active closure (session data, not cached reference data)
+self.closure = {
+    "closure": Closure instance,
+    "cashier_summaries": [...],
+    "country_specific": ClosureCountrySpecific or None,
+    "currencies": [...],
+    "department_summaries": [...],
+    "discount_summaries": [...],
+    "document_type_summaries": [...],
+    "payment_type_summaries": [...],
+    "tip_summaries": [...],
+    "vat_summaries": [...]
+}
 ```
 
 #### Accessing Cached Data
@@ -1081,6 +1095,49 @@ self.populate_product_data(progress_callback=about.update_message)
 
 These methods load all models from the database once and store them in their respective dictionaries (`pos_data` and `product_data`).
 
+### Closure Management
+
+The `CurrentData` class also manages the current active closure through the `closure` attribute. Unlike `pos_data` and `product_data` which cache reference data, `closure` holds session-specific closure data that is actively updated during operations.
+
+**Closure Lifecycle:**
+1. **Application Startup**: The system loads the last open closure (where `closure_end_time` is None) or creates a new empty closure if none exists
+2. **During Operations**: Closure data is updated in memory as transactions occur
+3. **Closure Completion**: When a closure is closed, `closure_end_time` is set, all data is saved to the database, and a new empty closure is automatically created
+
+**Closure Structure:**
+```python
+# Access current closure
+closure = self.closure["closure"]  # Main Closure record
+
+# Access summaries
+cashier_summaries = self.closure["cashier_summaries"]
+currencies = self.closure["currencies"]
+department_summaries = self.closure["department_summaries"]
+# ... etc
+```
+
+**Closure Methods:**
+- `load_open_closure()`: Loads the last open closure from database or creates empty one
+- `create_empty_closure()`: Creates a new empty closure with all summary structures initialized
+- `close_closure()`: Closes current closure, saves to database, and creates new empty closure
+
+**Usage Example:**
+```python
+# Closure is automatically loaded at application startup
+# Access current closure data
+if self.closure and self.closure.get("closure"):
+    closure = self.closure["closure"]
+    print(f"Current closure: {closure.closure_unique_id}")
+    print(f"Start time: {closure.closure_start_time}")
+    print(f"End time: {closure.closure_end_time}")  # None if open
+
+# Close current closure
+self.close_closure(
+    closing_cash_amount=1500.00,
+    description="End of day closure"
+)
+```
+
 ---
 
 ## Database Models Overview
@@ -1202,7 +1259,7 @@ SaleFlex.PyPOS uses a comprehensive database schema with over 80 models organize
 
 ### Closure and End-of-Day Models
 
-- **Closure**: End-of-day closure records with cash reconciliation and high-level totals
+- **Closure**: End-of-day closure records with cash reconciliation and high-level totals. The `closure_end_time` field is nullable (None for open closures), allowing the system to track active closures until they are closed.
 - **ClosureCashierSummary**: Cashier performance tracking per closure (transactions, sales, voids, hours worked)
 - **ClosureCurrency**: Currency breakdown for multi-currency operations with exchange rates
 - **ClosureDepartmentSummary**: Department/category breakdown with gross, net, tax, and discount amounts
