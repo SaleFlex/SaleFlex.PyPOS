@@ -44,7 +44,7 @@ class TransactionDiscount(Model, CRUD, AuditMixin, SoftDeleteMixin):
     fk_transaction_payment_id = Column(UUID, ForeignKey("transaction_payment.id"), nullable=True)
     fk_transaction_total_id = Column(UUID, ForeignKey("transaction_total.id"), nullable=True)
     line_no = Column(Integer, nullable=False)
-    discount_type = Column(String(50), nullable=False)
+    discount_type = Column(String(50), nullable=False) # TODO: Add ForeignKey("discount_type.id") when discount_type table is created
     discount_amount = Column(Numeric(precision=15, scale=4), nullable=False)
     discount_rate = Column(Numeric(precision=2, scale=2), nullable=True)
     discount_code = Column(String(15), nullable=True)
