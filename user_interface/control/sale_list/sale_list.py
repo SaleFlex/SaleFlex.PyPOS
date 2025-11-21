@@ -128,18 +128,18 @@ class ItemActionPopup(QDialog):
         # Create horizontal layout for action buttons
         button_layout = QHBoxLayout()
         
-        # Create REPEAT button - increases item quantity by 1
+        # Create REPEAT button - repeats the selected row
         self.repeat_button = QPushButton("REPEAT")
         self.repeat_button.setStyleSheet(f"""
             QPushButton {{
-                background-color: #{(background_color + 0x222222) & 0xFFFFFF:06x};
-                color: #{foreground_color:06x};
+                background-color: #4a90e2;
+                color: #ffffff;
                 padding: 8px 16px;
-                border: 1px solid #{foreground_color:06x};
+                border: 1px solid #357abd;
                 font-weight: bold;
             }}
             QPushButton:hover {{
-                background-color: #{(background_color + 0x444444) & 0xFFFFFF:06x};
+                background-color: #5ba0f2;
             }}
         """)
         button_layout.addWidget(self.repeat_button)
@@ -264,9 +264,8 @@ class SaleList(QWidget):
         
         # Create the main table widget with comprehensive column structure
         self.table_widget = QTableWidget(self)
-        self.table_widget.setColumnCount(9)
+        self.table_widget.setColumnCount(8)
         self.table_widget.setHorizontalHeaderLabels([
-            "Row #",        # Sequential row number
             "Ref ID",       # Database reference ID (hidden from display)
             "Type",         # Transaction type (PLU, DEPARTMENT, etc.)
             "Transaction",  # Transaction description (Sale, Return, etc.)
@@ -278,15 +277,14 @@ class SaleList(QWidget):
         ])
         
         # Define column indices as constants for maintainable code
-        self.COL_ROW_NUMBER = 0        # Row numbering column
-        self.COL_REFERENCE_ID = 1      # Database reference column
-        self.COL_TRANSACTION_TYPE = 2  # Transaction type column
-        self.COL_TRANSACTION = 3       # Transaction name column
-        self.COL_NAME_OF_PRODUCT = 4   # Product name column
-        self.COL_UNIT_QUANTITY = 5     # Quantity display column
-        self.COL_UNIT = 6              # Unit type column
-        self.COL_PRICE = 7             # Unit price column
-        self.COL_TOTAL_AMOUNT = 8      # Total amount column
+        self.COL_REFERENCE_ID = 0      # Database reference column
+        self.COL_TRANSACTION_TYPE = 1  # Transaction type column
+        self.COL_TRANSACTION = 2       # Transaction name column
+        self.COL_NAME_OF_PRODUCT = 3   # Product name column
+        self.COL_UNIT_QUANTITY = 4     # Quantity display column
+        self.COL_UNIT = 5              # Unit type column
+        self.COL_PRICE = 6             # Unit price column
+        self.COL_TOTAL_AMOUNT = 7      # Total amount column
         
         # Hide Ref ID column from display (kept in data for background operations)
         self.table_widget.setColumnHidden(self.COL_REFERENCE_ID, True)
@@ -295,7 +293,6 @@ class SaleList(QWidget):
         header = self.table_widget.horizontalHeader()
         
         # Set fixed widths for small columns (must be set before resize mode)
-        self.table_widget.setColumnWidth(self.COL_ROW_NUMBER, 50)        # Row # - small
         self.table_widget.setColumnWidth(self.COL_TRANSACTION_TYPE, 60)   # Type - small
         self.table_widget.setColumnWidth(self.COL_TRANSACTION, 80)       # Transaction - medium-small
         self.table_widget.setColumnWidth(self.COL_UNIT_QUANTITY, 70)     # Unit Qty - medium-small
@@ -304,7 +301,6 @@ class SaleList(QWidget):
         self.table_widget.setColumnWidth(self.COL_TOTAL_AMOUNT, 90)       # Total - medium
         
         # Set resize modes: Fixed for small/medium columns
-        header.setSectionResizeMode(self.COL_ROW_NUMBER, QHeaderView.Fixed)
         header.setSectionResizeMode(self.COL_TRANSACTION_TYPE, QHeaderView.Fixed)
         header.setSectionResizeMode(self.COL_TRANSACTION, QHeaderView.Fixed)
         header.setSectionResizeMode(self.COL_UNIT_QUANTITY, QHeaderView.Fixed)
@@ -409,18 +405,16 @@ class SaleList(QWidget):
         popup = ItemActionPopup(self, product_name, self.background_color, self.foreground_color)
         result = popup.exec()
         
-        # Notify external event handler if one is registered and an action was selected
-        if result == QDialog.Accepted and self.event_func and popup.action:
-            self.event_func(selected_row, popup.action)
-            
         # Process the selected action internally
         if result == QDialog.Accepted and popup.action:
             if popup.action == "DELETE":
+                # DELETE: Cancel transaction with strikethrough (soft delete)
                 self.delete_transaction(selected_row)
             elif popup.action == "CANCEL":
-                # Cancel button just closes the popup - no further action required
+                # CANCEL: Just close the popup - no further action required
                 pass
             elif popup.action == "REPEAT":
+                # REPEAT: Add a duplicate row with the same quantity
                 self.repeat_transaction(selected_row)
             
     def add_product(self, product_name, quantity, unit_price, **kwargs):
@@ -482,17 +476,12 @@ class SaleList(QWidget):
             bool: True if the item was added successfully, False if an error occurred
         """
         try:
-            # Automatically assign the next sequential row number
+            # Automatically assign the next sequential row number (for internal tracking)
             if len(self.custom_sales_data_list) == 0:
                 custom_sales_data.row_number = 1  # First row starts at 1
             else:
-                # Calculate next row number based on the last table entry
-                last_row_item = self.table_widget.item(self.table_widget.rowCount() - 1, self.COL_ROW_NUMBER)
-                if last_row_item:
-                    custom_sales_data.row_number = int(last_row_item.text()) + 1
-                else:
-                    # Fallback to data list length + 1
-                    custom_sales_data.row_number = len(self.custom_sales_data_list) + 1
+                # Fallback to data list length + 1
+                custom_sales_data.row_number = len(self.custom_sales_data_list) + 1
             
             # Store the sales data in our internal list for later reference
             self.custom_sales_data_list.append(custom_sales_data)
@@ -502,8 +491,6 @@ class SaleList(QWidget):
             self.table_widget.insertRow(row_index)
             
             # Populate all table columns with data from the SalesData object
-            self.table_widget.setItem(row_index, self.COL_ROW_NUMBER, 
-                                    QTableWidgetItem(str(custom_sales_data.row_number)))
             self.table_widget.setItem(row_index, self.COL_REFERENCE_ID, 
                                     QTableWidgetItem(str(custom_sales_data.reference_id)))
             self.table_widget.setItem(row_index, self.COL_TRANSACTION_TYPE, 
@@ -839,22 +826,21 @@ class SaleList(QWidget):
             if row_index < 0 or row_index >= self.table_widget.rowCount():
                 return False
             
-            # Get row number to cancel all related rows
-            row_number_item = self.table_widget.item(row_index, self.COL_ROW_NUMBER)
-            if not row_number_item:
+            # Get row number from data to cancel all related rows
+            if row_index >= len(self.custom_sales_data_list):
                 return False
                 
-            row_number = int(row_number_item.text())
+            row_data = self.custom_sales_data_list[row_index]
+            row_number = row_data.row_number
             
             # Cancel all rows with the same row number
             for row in range(self.table_widget.rowCount()):
-                current_row_item = self.table_widget.item(row, self.COL_ROW_NUMBER)
-                if current_row_item and int(current_row_item.text()) == row_number:
-                    self._apply_canceled_style(row)
-                    
-                    # Mark as canceled in data
-                    if row < len(self.custom_sales_data_list):
-                        self.custom_sales_data_list[row].is_canceled = True
+                if row < len(self.custom_sales_data_list):
+                    current_row_data = self.custom_sales_data_list[row]
+                    if current_row_data.row_number == row_number:
+                        self._apply_canceled_style(row)
+                        # Mark as canceled in data
+                        current_row_data.is_canceled = True
             
             return True
             
@@ -864,21 +850,22 @@ class SaleList(QWidget):
     
     def repeat_transaction(self, row_index: int) -> bool:
         """
-        Increase the quantity of a product row by 1.
+        Repeat a transaction by adding a duplicate row with the same quantity.
         
         This method implements the "repeat" functionality by:
-        1. Incrementing the product quantity by 1
-        2. Recalculating the total amount (quantity × unit price)
-        3. Updating the table display with new values
+        1. Getting the sales data from the selected row
+        2. Creating a new SalesData object with the same properties
+        3. Adding it as a new row to the table
         4. Refreshing all subtotal calculations
         
         Only works on product rows (PLU/DEPARTMENT) that are not canceled.
+        If a row has 5 items, repeating it will add another row with 5 items.
         
         Args:
             row_index: Index of the row to repeat
             
         Returns:
-            bool: True if quantity was successfully increased, False if row is invalid,
+            bool: True if transaction was successfully repeated, False if row is invalid,
                   not a product, or already canceled
         """
         try:
@@ -887,10 +874,10 @@ class SaleList(QWidget):
                 return False
             
             # Get the sales data for this row
-            if row_index < len(self.custom_sales_data_list):
-                current_data = self.custom_sales_data_list[row_index]
-            else:
+            if row_index >= len(self.custom_sales_data_list):
                 return False
+                
+            current_data = self.custom_sales_data_list[row_index]
             
             # Only allow repeat on actual product rows
             if current_data.transaction_type not in ["PLU", "DEPARTMENT"]:
@@ -900,36 +887,37 @@ class SaleList(QWidget):
             if current_data.is_canceled:
                 return False
             
-            # Increment quantity by 1
-            current_data.quantity += 1.0
+            # Create a new SalesData object with the same properties
+            new_sales_data = SalesData()
+            new_sales_data.reference_id = current_data.reference_id
+            new_sales_data.transaction_type = current_data.transaction_type
+            new_sales_data.transaction = current_data.transaction
+            new_sales_data.name_of_product = current_data.name_of_product
+            new_sales_data.barcode = current_data.barcode
+            new_sales_data.plu_no = current_data.plu_no
+            new_sales_data.department_no = current_data.department_no
+            new_sales_data.id = current_data.id
+            new_sales_data.quantity = current_data.quantity  # Same quantity
+            new_sales_data.unit_quantity = current_data.unit_quantity
+            new_sales_data.unit = current_data.unit
+            new_sales_data.price = current_data.price
+            new_sales_data.total_amount = current_data.total_amount  # Same total
+            new_sales_data.is_canceled = False
+            new_sales_data.discount_surcharge_datamodel_list = current_data.discount_surcharge_datamodel_list
             
-            # Recalculate total amount based on new quantity
-            current_data.total_amount = current_data.quantity * current_data.price
+            # Add the new row using the existing add method
+            success = self.add_sale_with_data(new_sales_data)
             
-            # Format quantity display appropriately
-            if current_data.transaction_type == "PLU" and current_data.quantity < 1.0:
-                # Show decimal quantities with 3 decimal places for weights
-                current_data.unit_quantity = f"{current_data.quantity:.3f}"
-            else:
-                # Show whole numbers or decimals as appropriate
-                current_data.unit_quantity = str(int(current_data.quantity) if current_data.quantity.is_integer() else current_data.quantity)
+            if success:
+                # Recalculate subtotals since a new product was added
+                self.update_subtotals()
             
-            # Update the table display with recalculated values
-            self.table_widget.setItem(row_index, self.COL_UNIT_QUANTITY, 
-                                    QTableWidgetItem(current_data.unit_quantity))
-            self.table_widget.setItem(row_index, self.COL_TOTAL_AMOUNT, 
-                                    QTableWidgetItem(f"{current_data.total_amount:.2f}"))
-            
-            # Recalculate subtotals since product total changed
-            self.update_subtotals()
-            
-            # Force table refresh to ensure changes are visible
-            self.table_widget.update()
-            
-            return True
+            return success
             
         except Exception as e:
             print(f"Error repeating transaction: {e}")
+            import traceback
+            traceback.print_exc()
             return False
     
     def error_correction(self, row_index: int) -> bool:
