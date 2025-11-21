@@ -1199,10 +1199,15 @@ SaleFlex.PyPOS uses a comprehensive database schema with over 80 models organize
 
 ### Closure and End-of-Day Models
 
-- **Closure**: End-of-day closure records with cash reconciliation
-- **ClosureTotal**: Closure totals summary
-- **ClosurePaymentTypeSummary**: Payment type summaries per closure
-- **ClosureCurrency**: Currency reconciliation per closure
+- **Closure**: End-of-day closure records with cash reconciliation and high-level totals
+- **ClosureCashierSummary**: Cashier performance tracking per closure (transactions, sales, voids, hours worked)
+- **ClosureCurrency**: Currency breakdown for multi-currency operations with exchange rates
+- **ClosureDepartmentSummary**: Department/category breakdown with gross, net, tax, and discount amounts
+- **ClosureDiscountSummary**: Discount breakdown by type with count, amount, and affected amount
+- **ClosureDocumentTypeSummary**: Document type tracking (receipt, invoice, etc.) with valid and canceled counts
+- **ClosurePaymentTypeSummary**: Payment method breakdown per closure
+- **ClosureTipSummary**: Tip tracking by payment method with distribution tracking (for restaurants)
+- **ClosureVATSummary**: Tax rate breakdown with taxable amounts, tax amounts, and exemptions
 
 ### Form and UI Models
 
