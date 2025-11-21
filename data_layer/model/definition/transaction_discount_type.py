@@ -22,7 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-from sqlalchemy import Column, Integer, BigInteger, Boolean, String, DateTime, Float, ForeignKey, UUID, Numeric
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, UUID
 from sqlalchemy.sql import func
 from uuid import uuid4
 
@@ -31,24 +31,24 @@ from data_layer.model.crud_model import CRUD
 from data_layer.model.mixins import AuditMixin, SoftDeleteMixin
 
 
-class TransactionDiscount(Model, CRUD, AuditMixin, SoftDeleteMixin):
-    def __init__(self):
+class TransactionDiscountType(Model, CRUD, AuditMixin, SoftDeleteMixin):
+    def __init__(self, code=None, name=None, display_name=None, description=None):
         Model.__init__(self)
         CRUD.__init__(self)
 
-    __tablename__ = "transaction_discount"
+        self.code = code
+        self.name = name
+        self.display_name = display_name
+        self.description = description
+
+    __tablename__ = "transaction_discount_type"
 
     id = Column(UUID, primary_key=True, default=uuid4)
-    fk_transaction_head_id = Column(UUID, ForeignKey("transaction_head.id"))
-    fk_transaction_product_id = Column(UUID, ForeignKey("transaction_product.id"), nullable=True)
-    fk_transaction_payment_id = Column(UUID, ForeignKey("transaction_payment.id"), nullable=True)
-    fk_transaction_total_id = Column(UUID, ForeignKey("transaction_total.id"), nullable=True)
-    line_no = Column(Integer, nullable=False)
-    fk_discount_type_id = Column(UUID, ForeignKey("transaction_discount_type.id"), nullable=False)
-    discount_amount = Column(Numeric(precision=15, scale=4), nullable=False)
-    discount_rate = Column(Numeric(precision=2, scale=2), nullable=True)
-    discount_code = Column(String(15), nullable=True)
-    is_cancel = Column(Boolean, nullable=False, default=False)
+    code = Column(String(50), nullable=False, unique=True)
+    name = Column(String(50), nullable=False)
+    display_name = Column(String(50), nullable=True)
+    description = Column(String(150), nullable=True)
 
     def __repr__(self):
-        return f"<TransactionDiscount(fk_discount_type_id='{self.fk_discount_type_id}', discount_amount='{self.discount_amount}')>"
+        return f"<TransactionDiscountType(code='{self.code}', name='{self.name}', display_name='{self.display_name}')>"
+

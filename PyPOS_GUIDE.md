@@ -1194,7 +1194,8 @@ SaleFlex.PyPOS uses a comprehensive database schema with over 80 models organize
 - **TransactionPaymentTemp**: Temporary payment records
 - **TransactionTax**: Tax calculations per transaction
 - **TransactionTaxTemp**: Temporary tax calculations
-- **TransactionDiscount**: Discounts applied to transactions
+- **TransactionDiscountType**: Discount type definitions (NONE, PERSONAL, MANAGER, CUSTOMER_SATISFACTION, PRODUCT)
+- **TransactionDiscount**: Discounts applied to transactions (linked to TransactionDiscountType via foreign key)
 - **TransactionDiscountTemp**: Temporary discount records
 - **TransactionSurcharge**: Surcharges applied to transactions
 - **TransactionSurchargeTemp**: Temporary surcharge records
@@ -1419,19 +1420,20 @@ The `insert_initial_data()` function in `db_init_data/__init__.py` orchestrates 
 16. **Product Variants** (`_insert_product_variants`): Creates product variations
 17. **Product Attributes** (`_insert_product_attributes`): Inserts product attribute definitions
 18. **Product Barcodes** (`_insert_product_barcodes`): Associates barcodes with products
-19. **Transaction Document Types** (`_insert_transaction_document_types`): Creates document types (Sale, Return, etc.)
-20. **Transaction Sequences** (`_insert_transaction_sequences`): Sets up transaction numbering sequences
-21. **Product Barcode Masks** (`_insert_product_barcode_masks`): Defines barcode format rules
-22. **Default Forms** (`_insert_default_forms`): Creates LOGIN and MAIN_MENU forms
-23. **Form Controls** (`_insert_form_controls`): Populates forms with controls (buttons, textboxes, etc.)
-24. **Label Values** (`_insert_label_values`): Inserts translation labels and configuration values
-25. **Cashier Performance Targets** (`_insert_cashier_performance_targets`): Sets up performance targets
-26. **Virtual Keyboard Settings** (`_insert_virtual_keyboard_settings`): Creates default keyboard theme
-27. **Alternative Keyboard Themes** (`_insert_alternative_keyboard_themes`): Adds additional keyboard themes
-28. **Campaigns** (`_insert_campaigns`): Creates sample promotional campaigns
-29. **Loyalty Programs** (`_insert_loyalty`): Sets up loyalty program with tiers
-30. **Customer Segments** (`_insert_customer_segments`): Creates default customer segments
-31. **POS Settings** (`_insert_pos_settings`): Configures system-wide POS settings including device serial number (generated from MAC address and disk serial), operating system information, default country (United Kingdom), default currency (GBP), customer display settings (INTERNAL), barcode reader port (PS/2), backend connection settings (127.0.0.1:5000), and backend type (GATE)
+19. **Transaction Discount Types** (`_insert_transaction_discount_types`): Creates discount type definitions (NONE, PERSONAL, MANAGER, CUSTOMER_SATISFACTION, PRODUCT)
+20. **Transaction Document Types** (`_insert_transaction_document_types`): Creates document types (Sale, Return, etc.)
+21. **Transaction Sequences** (`_insert_transaction_sequences`): Sets up transaction numbering sequences
+22. **Product Barcode Masks** (`_insert_product_barcode_masks`): Defines barcode format rules
+23. **Default Forms** (`_insert_default_forms`): Creates LOGIN and MAIN_MENU forms
+24. **Form Controls** (`_insert_form_controls`): Populates forms with controls (buttons, textboxes, etc.)
+25. **Label Values** (`_insert_label_values`): Inserts translation labels and configuration values
+26. **Cashier Performance Targets** (`_insert_cashier_performance_targets`): Sets up performance targets
+27. **Virtual Keyboard Settings** (`_insert_virtual_keyboard_settings`): Creates default keyboard theme
+28. **Alternative Keyboard Themes** (`_insert_alternative_keyboard_themes`): Adds additional keyboard themes
+29. **Campaigns** (`_insert_campaigns`): Creates sample promotional campaigns
+30. **Loyalty Programs** (`_insert_loyalty`): Sets up loyalty program with tiers
+31. **Customer Segments** (`_insert_customer_segments`): Creates default customer segments
+32. **POS Settings** (`_insert_pos_settings`): Configures system-wide POS settings including device serial number (generated from MAC address and disk serial), operating system information, default country (United Kingdom), default currency (GBP), customer display settings (INTERNAL), barcode reader port (PS/2), backend connection settings (127.0.0.1:5000), and backend type (GATE)
 
 ### Function Details
 
@@ -1482,6 +1484,14 @@ Inserts sample products covering various categories:
 - Different VAT rates
 - Various units (PCS, KG)
 - Links to departments, manufacturers, and warehouses
+
+#### `_insert_transaction_discount_types(session)`
+Inserts default transaction discount types:
+- **NONE**: No discount applied
+- **PERSONAL**: Personal discount for customer
+- **MANAGER**: Manager approved discount
+- **CUSTOMER_SATISFACTION**: Discount for customer satisfaction
+- **PRODUCT**: Product-specific discount
 
 #### `_insert_default_forms(session, cashier_id)`
 Creates essential forms:

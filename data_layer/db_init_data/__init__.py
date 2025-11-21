@@ -19,6 +19,7 @@ from data_layer.db_init_data.product_barcode_mask import _insert_product_barcode
 from data_layer.db_init_data.product_manufacturer import _insert_product_manufacturers
 from data_layer.db_init_data.product_unit import _insert_product_units
 from data_layer.db_init_data.store import _insert_default_store
+from data_layer.db_init_data.transaction_discount_type import _insert_transaction_discount_types
 from data_layer.db_init_data.transaction_document_type import _insert_transaction_document_types
 from data_layer.db_init_data.transaction_sequence import _insert_transaction_sequences
 from data_layer.db_init_data.vat import _insert_vat_rates
@@ -91,6 +92,9 @@ def insert_initial_data(engine: Engine):
 
             # Insert sample product barcodes
             _insert_product_barcodes(session, admin_cashier.id)
+
+            # Insert transaction discount types
+            _insert_transaction_discount_types(session)
 
             # Insert transaction document types
             _insert_transaction_document_types(session)

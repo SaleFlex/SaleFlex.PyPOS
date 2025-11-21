@@ -39,6 +39,7 @@ from .transaction_delivery import TransactionDelivery
 from .transaction_delivery_temp import TransactionDeliveryTemp
 from .transaction_discount import TransactionDiscount
 from .transaction_discount_temp import TransactionDiscountTemp
+from .transaction_discount_type import TransactionDiscountType
 from .transaction_document_type import TransactionDocumentType
 from .transaction_fiscal import TransactionFiscal
 from .transaction_fiscal_temp import TransactionFiscalTemp
@@ -139,6 +140,7 @@ __all__ = [
     'TransactionDeliveryTemp',
     'TransactionDiscount',
     'TransactionDiscountTemp',
+    'TransactionDiscountType',
     'TransactionDocumentType',
     'TransactionFiscal',
     'TransactionFiscalTemp',
