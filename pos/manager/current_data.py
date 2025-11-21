@@ -103,6 +103,7 @@ from data_layer.model import (
     WarehouseStockMovement,
 )
 from data_layer.model.definition.transaction_status import TransactionStatus, TransactionType
+from data_layer.auto_save import AutoSaveModel, AutoSaveDict, AutoSaveDescriptor
 
 
 class CurrentData:
@@ -187,71 +188,223 @@ class CurrentData:
           reference data to reduce disk I/O during runtime
         - pos_settings: Loaded from pos_data after database initialization (cached)
         - current_currency: Loaded from PosSettings after database initialization
+        
+        Note: During initialization, _skip_autosave flag is set to True to allow
+        direct assignment to private attributes without triggering database saves.
         """
-        # Information about the currently logged-in cashier
-        # Contains user details, permissions, and authentication status
-        self.cashier_data = None
+        # Enable skip autosave during initialization
+        self._skip_autosave = True
         
-        # Current transaction or document being processed
-        # Dictionary structure containing all transaction temp models:
-        # {
-        #     "head": TransactionHeadTemp instance (main transaction header),
-        #     "products": List[TransactionProductTemp],
-        #     "payments": List[TransactionPaymentTemp],
-        #     "discounts": List[TransactionDiscountTemp],
-        #     "totals": List[TransactionTotalTemp],
-        #     "deliveries": List[TransactionDeliveryTemp],
-        #     "kitchen_orders": List[TransactionKitchenOrderTemp],
-        #     "loyalty": List[TransactionLoyaltyTemp],
-        #     "notes": List[TransactionNoteTemp],
-        #     "fiscal": TransactionFiscalTemp or None,
-        #     "refunds": List[TransactionRefundTemp],
-        #     "surcharges": List[TransactionSurchargeTemp],
-        #     "taxes": List[TransactionTaxTemp],
-        #     "tips": List[TransactionTipTemp]
-        # }
-        # Will be populated when starting a new transaction or loading an incomplete one
-        self.document_data = None
+        # Initialize private attributes directly (no database save during init)
+        self._cashier_data = None
+        self._document_data = None
+        self._pending_documents_data = []
+        self._pos_data = {}
+        self._pos_settings = None
+        self._current_currency = None
+        self._product_data = {}
+        self._closure = None
         
-        # List of pending documents (is_pending = True)
-        # Each item is a dictionary with the same structure as document_data
-        # Used in restaurant mode for managing suspended orders/tables
-        # Will be populated at application startup with all pending transactions
-        self.pending_documents_data = []
-
-        # Cached reference data loaded at startup (after DB init)
-        # Example keys: "Cashier", "City", "Country", ...
-        self.pos_data = {}
+        # Disable skip autosave after initialization
+        self._skip_autosave = False
+    
+    # Save callback functions for each attribute
+    def _save_cashier_data(self, value):
+        """Save cashier_data to database"""
+        if not value:
+            return True
         
-        # POS settings object (cached to avoid repeated database reads)
-        # Will be populated from pos_data after database initialization
-        self.pos_settings = None
+        # Use CRUD.save() method which handles lazy engine initialization
+        if hasattr(value, 'save'):
+            return value.save()
+        return True
+    
+    def _save_document_data(self, value):
+        """Save document_data (all temp models) to database"""
+        if not value:
+            return True
         
-        # Current currency sign (e.g., "GBP", "USD")
-        # Will be loaded from PosSettings after database initialization
-        self.current_currency = None
+        # Unwrap if it's an AutoSaveDict
+        if isinstance(value, AutoSaveDict):
+            unwrapped = value.unwrap()
+        elif isinstance(value, dict):
+            unwrapped = value
+        else:
+            return True
         
-        # Cached product-related data loaded at startup (after DB init)
-        # Example keys: "Product", "ProductBarcode", "DepartmentMainGroup", ...
-        self.product_data = {}
+        try:
+            # Save head using CRUD.save()
+            head = unwrapped.get("head")
+            if head:
+                # Unwrap if it's an AutoSaveModel
+                if isinstance(head, AutoSaveModel):
+                    head = head.unwrap()
+                if hasattr(head, 'save'):
+                    head.save()
+            
+            # Save all related temp models using CRUD.save()
+            for model_list_name in ["products", "payments", "discounts", "totals", 
+                                   "deliveries", "kitchen_orders", "loyalty", "notes",
+                                   "refunds", "surcharges", "taxes", "tips"]:
+                models = unwrapped.get(model_list_name, [])
+                for model in models:
+                    if model:
+                        # Unwrap if it's an AutoSaveModel
+                        if isinstance(model, AutoSaveModel):
+                            model = model.unwrap()
+                        if hasattr(model, 'save'):
+                            model.save()
+            
+            # Save fiscal if exists using CRUD.save()
+            fiscal = unwrapped.get("fiscal")
+            if fiscal:
+                # Unwrap if it's an AutoSaveModel
+                if isinstance(fiscal, AutoSaveModel):
+                    fiscal = fiscal.unwrap()
+                if hasattr(fiscal, 'save'):
+                    fiscal.save()
+            
+            return True
+        except Exception as e:
+            print(f"[DEBUG] Error saving document_data: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+    
+    def _save_pending_documents_data(self, value):
+        """Save pending_documents_data to database"""
+        if not isinstance(value, list):
+            return True
         
-        # Current active closure data (open closure until closed)
-        # Dictionary structure:
-        # {
-        #     "closure": Closure instance (main closure record),
-        #     "cashier_summaries": List[ClosureCashierSummary],
-        #     "country_specific": ClosureCountrySpecific or None,
-        #     "currencies": List[ClosureCurrency],
-        #     "department_summaries": List[ClosureDepartmentSummary],
-        #     "discount_summaries": List[ClosureDiscountSummary],
-        #     "document_type_summaries": List[ClosureDocumentTypeSummary],
-        #     "payment_type_summaries": List[ClosurePaymentTypeSummary],
-        #     "tip_summaries": List[ClosureTipSummary],
-        #     "vat_summaries": List[ClosureVATSummary]
-        # }
-        # Will be populated at application startup with the last open closure
-        # (closure_end_time is None) or a new empty closure if none exists
-        self.closure = None
+        # Each pending document is saved individually via document_data save logic
+        # This is mainly for consistency, but pending documents are typically
+        # saved when they are created/modified, not when the list changes
+        return True
+    
+    def _save_pos_data(self, value):
+        """Save pos_data dictionary to database"""
+        if not isinstance(value, dict):
+            return True
+        
+        try:
+            # Save all models in pos_data using CRUD.save()
+            for model_list in value.values():
+                if isinstance(model_list, list):
+                    for model in model_list:
+                        if model and hasattr(model, 'save'):
+                            model.save()
+            return True
+        except Exception as e:
+            print(f"[DEBUG] Error saving pos_data: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+    
+    def _save_pos_settings(self, value):
+        """Save pos_settings to database"""
+        if not value:
+            return True
+        
+        # Use CRUD.save() method which handles lazy engine initialization
+        if hasattr(value, 'save'):
+            return value.save()
+        return True
+    
+    def _save_product_data(self, value):
+        """Save product_data dictionary to database"""
+        if not isinstance(value, dict):
+            return True
+        
+        try:
+            # Save all models in product_data using CRUD.save()
+            for model_list in value.values():
+                if isinstance(model_list, list):
+                    for model in model_list:
+                        if model and hasattr(model, 'save'):
+                            model.save()
+            return True
+        except Exception as e:
+            print(f"[DEBUG] Error saving product_data: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+    
+    def _save_closure(self, value):
+        """Save closure dictionary to database"""
+        if not value:
+            return True
+        
+        # Unwrap if it's an AutoSaveDict
+        if isinstance(value, AutoSaveDict):
+            unwrapped = value.unwrap()
+        elif isinstance(value, dict):
+            unwrapped = value
+        else:
+            return True
+        
+        try:
+            # Save main closure record using CRUD.save()
+            closure = unwrapped.get("closure")
+            if closure:
+                # Unwrap if it's an AutoSaveModel
+                if isinstance(closure, AutoSaveModel):
+                    closure = closure.unwrap()
+                if hasattr(closure, 'save'):
+                    closure.save()
+            
+            # Save all summaries using CRUD.save() or CRUD.create()
+            for summary_list_name in [
+                "cashier_summaries", "currencies", "department_summaries",
+                "discount_summaries", "document_type_summaries",
+                "payment_type_summaries", "tip_summaries", "vat_summaries"
+            ]:
+                summaries = unwrapped.get(summary_list_name, [])
+                for summary in summaries:
+                    if summary:
+                        # Unwrap if it's an AutoSaveModel
+                        if isinstance(summary, AutoSaveModel):
+                            summary = summary.unwrap()
+                        # Set foreign key if new record
+                        if not summary.id and closure:
+                            closure_id = closure.id if not isinstance(closure, AutoSaveModel) else closure.unwrap().id
+                            summary.fk_closure_id = closure_id
+                        # Save using CRUD methods
+                        if summary.id and hasattr(summary, 'save'):
+                            summary.save()
+                        elif not summary.id and hasattr(summary, 'create'):
+                            summary.create()
+            
+            # Save country_specific if exists using CRUD.save() or CRUD.create()
+            country_specific = unwrapped.get("country_specific")
+            if country_specific:
+                # Unwrap if it's an AutoSaveModel
+                if isinstance(country_specific, AutoSaveModel):
+                    country_specific = country_specific.unwrap()
+                # Set foreign key if new record
+                if not country_specific.id and closure:
+                    closure_id = closure.id if not isinstance(closure, AutoSaveModel) else closure.unwrap().id
+                    country_specific.fk_closure_id = closure_id
+                # Save using CRUD methods
+                if country_specific.id and hasattr(country_specific, 'save'):
+                    country_specific.save()
+                elif not country_specific.id and hasattr(country_specific, 'create'):
+                    country_specific.create()
+            
+            return True
+        except Exception as e:
+            print(f"[DEBUG] Error saving closure: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+    
+    # Property definitions with auto-save descriptors
+    cashier_data = AutoSaveDescriptor('_cashier_data', lambda obj, val: obj._save_cashier_data(val))
+    document_data = AutoSaveDescriptor('_document_data', lambda obj, val: obj._save_document_data(val))
+    pending_documents_data = AutoSaveDescriptor('_pending_documents_data', lambda obj, val: obj._save_pending_documents_data(val))
+    pos_data = AutoSaveDescriptor('_pos_data', lambda obj, val: obj._save_pos_data(val))
+    pos_settings = AutoSaveDescriptor('_pos_settings', lambda obj, val: obj._save_pos_settings(val))
+    product_data = AutoSaveDescriptor('_product_data', lambda obj, val: obj._save_product_data(val))
+    closure = AutoSaveDescriptor('_closure', lambda obj, val: obj._save_closure(val))
     
     def create_empty_document(self):
         """
@@ -271,7 +424,6 @@ class CurrentData:
         """
         from datetime import datetime
         from uuid import uuid4
-        from data_layer.engine import Engine
         
         try:
             # Validate required data
@@ -377,6 +529,8 @@ class CurrentData:
         from data_layer.engine import Engine
         
         try:
+            # Use Engine for complex query with multiple conditions and ordering
+            # CRUD.filter_by() doesn't support complex queries yet
             with Engine().get_session() as session:
                 # Find the last incomplete transaction
                 incomplete_head = session.query(TransactionHeadTemp).filter(
@@ -393,7 +547,7 @@ class CurrentData:
                     return False
                 
                 # Load all related temp models
-                self._load_document_data(incomplete_head.id, session)
+                self._load_document_data(incomplete_head.id)
                 
                 print(f"[DEBUG] Loaded incomplete document: {incomplete_head.transaction_unique_id}")
                 return True
@@ -418,6 +572,8 @@ class CurrentData:
         try:
             self.pending_documents_data = []
             
+            # Use Engine for complex query with ordering
+            # CRUD.filter_by() doesn't support ordering yet
             with Engine().get_session() as session:
                 # Find all pending transactions
                 pending_heads = session.query(TransactionHeadTemp).filter(
@@ -429,7 +585,7 @@ class CurrentData:
                 
                 for head in pending_heads:
                     # Load document data for this pending transaction
-                    doc_data = self._load_document_data_dict(head.id, session)
+                    doc_data = self._load_document_data_dict(head.id)
                     if doc_data:
                         self.pending_documents_data.append(doc_data)
                 
@@ -441,64 +597,64 @@ class CurrentData:
             traceback.print_exc()
             self.pending_documents_data = []
     
-    def _load_document_data(self, head_id, session):
+    def _load_document_data(self, head_id):
         """
         Load all transaction temp models for a given transaction head ID.
         Populates self.document_data with the loaded data.
         
         Args:
             head_id: UUID of the TransactionHeadTemp
-            session: SQLAlchemy session
         """
         try:
-            # Load head
-            head = session.query(TransactionHeadTemp).filter_by(id=head_id).first()
+            # Load head using CRUD.get_by_id()
+            head = TransactionHeadTemp.get_by_id(head_id)
             if not head:
                 print(f"[DEBUG] Transaction head not found: {head_id}")
                 return
             
+            # Load related models using CRUD.filter_by()
             # Initialize document_data structure
             self.document_data = {
                 "head": head,
-                "products": session.query(TransactionProductTemp).filter_by(
+                "products": TransactionProductTemp.filter_by(
                     fk_transaction_head_id=head_id, is_deleted=False
-                ).all(),
-                "payments": session.query(TransactionPaymentTemp).filter_by(
+                ),
+                "payments": TransactionPaymentTemp.filter_by(
                     fk_transaction_head_id=head_id, is_deleted=False
-                ).all(),
-                "discounts": session.query(TransactionDiscountTemp).filter_by(
+                ),
+                "discounts": TransactionDiscountTemp.filter_by(
                     fk_transaction_head_id=head_id, is_deleted=False
-                ).all(),
-                "totals": session.query(TransactionTotalTemp).filter_by(
+                ),
+                "totals": TransactionTotalTemp.filter_by(
                     fk_transaction_head_id=head_id, is_deleted=False
-                ).all(),
-                "deliveries": session.query(TransactionDeliveryTemp).filter_by(
+                ),
+                "deliveries": TransactionDeliveryTemp.filter_by(
                     fk_transaction_head_id=head_id, is_deleted=False
-                ).all(),
-                "kitchen_orders": session.query(TransactionKitchenOrderTemp).filter_by(
+                ),
+                "kitchen_orders": TransactionKitchenOrderTemp.filter_by(
                     fk_transaction_head_id=head_id, is_deleted=False
-                ).all(),
-                "loyalty": session.query(TransactionLoyaltyTemp).filter_by(
+                ),
+                "loyalty": TransactionLoyaltyTemp.filter_by(
                     fk_transaction_head_id=head_id, is_deleted=False
-                ).all(),
-                "notes": session.query(TransactionNoteTemp).filter_by(
+                ),
+                "notes": TransactionNoteTemp.filter_by(
                     fk_transaction_head_id=head_id, is_deleted=False
-                ).all(),
-                "fiscal": session.query(TransactionFiscalTemp).filter_by(
+                ),
+                "fiscal": TransactionFiscalTemp.find_first(
                     fk_transaction_head_id=head_id, is_deleted=False
-                ).first(),
-                "refunds": session.query(TransactionRefundTemp).filter_by(
+                ),
+                "refunds": TransactionRefundTemp.filter_by(
                     fk_transaction_head_id=head_id, is_deleted=False
-                ).all(),
-                "surcharges": session.query(TransactionSurchargeTemp).filter_by(
+                ),
+                "surcharges": TransactionSurchargeTemp.filter_by(
                     fk_transaction_head_id=head_id, is_deleted=False
-                ).all(),
-                "taxes": session.query(TransactionTaxTemp).filter_by(
+                ),
+                "taxes": TransactionTaxTemp.filter_by(
                     fk_transaction_head_id=head_id, is_deleted=False
-                ).all(),
-                "tips": session.query(TransactionTipTemp).filter_by(
+                ),
+                "tips": TransactionTipTemp.filter_by(
                     fk_transaction_head_id=head_id, is_deleted=False
-                ).all()
+                )
             }
             
         except Exception as e:
@@ -506,66 +662,66 @@ class CurrentData:
             import traceback
             traceback.print_exc()
     
-    def _load_document_data_dict(self, head_id, session):
+    def _load_document_data_dict(self, head_id):
         """
         Load all transaction temp models for a given transaction head ID.
         Returns a dictionary with the loaded data (does not modify self.document_data).
         
         Args:
             head_id: UUID of the TransactionHeadTemp
-            session: SQLAlchemy session
             
         Returns:
             Dictionary with document data structure or None if head not found
         """
         try:
-            # Load head
-            head = session.query(TransactionHeadTemp).filter_by(id=head_id).first()
+            # Load head using CRUD.get_by_id()
+            head = TransactionHeadTemp.get_by_id(head_id)
             if not head:
                 return None
             
+            # Load related models using CRUD.filter_by()
             # Return document data dictionary
             return {
                 "head": head,
-                "products": session.query(TransactionProductTemp).filter_by(
+                "products": TransactionProductTemp.filter_by(
                     fk_transaction_head_id=head_id, is_deleted=False
-                ).all(),
-                "payments": session.query(TransactionPaymentTemp).filter_by(
+                ),
+                "payments": TransactionPaymentTemp.filter_by(
                     fk_transaction_head_id=head_id, is_deleted=False
-                ).all(),
-                "discounts": session.query(TransactionDiscountTemp).filter_by(
+                ),
+                "discounts": TransactionDiscountTemp.filter_by(
                     fk_transaction_head_id=head_id, is_deleted=False
-                ).all(),
-                "totals": session.query(TransactionTotalTemp).filter_by(
+                ),
+                "totals": TransactionTotalTemp.filter_by(
                     fk_transaction_head_id=head_id, is_deleted=False
-                ).all(),
-                "deliveries": session.query(TransactionDeliveryTemp).filter_by(
+                ),
+                "deliveries": TransactionDeliveryTemp.filter_by(
                     fk_transaction_head_id=head_id, is_deleted=False
-                ).all(),
-                "kitchen_orders": session.query(TransactionKitchenOrderTemp).filter_by(
+                ),
+                "kitchen_orders": TransactionKitchenOrderTemp.filter_by(
                     fk_transaction_head_id=head_id, is_deleted=False
-                ).all(),
-                "loyalty": session.query(TransactionLoyaltyTemp).filter_by(
+                ),
+                "loyalty": TransactionLoyaltyTemp.filter_by(
                     fk_transaction_head_id=head_id, is_deleted=False
-                ).all(),
-                "notes": session.query(TransactionNoteTemp).filter_by(
+                ),
+                "notes": TransactionNoteTemp.filter_by(
                     fk_transaction_head_id=head_id, is_deleted=False
-                ).all(),
-                "fiscal": session.query(TransactionFiscalTemp).filter_by(
+                ),
+                "fiscal": TransactionFiscalTemp.find_first(
                     fk_transaction_head_id=head_id, is_deleted=False
-                ).first(),
-                "refunds": session.query(TransactionRefundTemp).filter_by(
+                ),
+                "refunds": TransactionRefundTemp.filter_by(
                     fk_transaction_head_id=head_id, is_deleted=False
-                ).all(),
-                "surcharges": session.query(TransactionSurchargeTemp).filter_by(
+                ),
+                "surcharges": TransactionSurchargeTemp.filter_by(
                     fk_transaction_head_id=head_id, is_deleted=False
-                ).all(),
-                "taxes": session.query(TransactionTaxTemp).filter_by(
+                ),
+                "taxes": TransactionTaxTemp.filter_by(
                     fk_transaction_head_id=head_id, is_deleted=False
-                ).all(),
-                "tips": session.query(TransactionTipTemp).filter_by(
+                ),
+                "tips": TransactionTipTemp.filter_by(
                     fk_transaction_head_id=head_id, is_deleted=False
-                ).all()
+                )
             }
             
         except Exception as e:
@@ -600,7 +756,10 @@ class CurrentData:
             return False
         
         try:
+            # Unwrap if it's an AutoSaveModel
             head_temp = self.document_data["head"]
+            if isinstance(head_temp, AutoSaveModel):
+                head_temp = head_temp.unwrap()
             
             # Update head_temp status
             if is_cancel:
@@ -613,212 +772,261 @@ class CurrentData:
             
             head_temp.is_closed = True
             
-            with Engine().get_session() as session:
-                # Save updated head_temp
-                session.merge(head_temp)
-                
-                # Copy head_temp to TransactionHead
-                head = TransactionHead()
-                # Copy all fields from head_temp
-                for key in head_temp.__table__.columns.keys():
-                    if hasattr(head_temp, key):
-                        setattr(head, key, getattr(head_temp, key))
-                head.id = uuid4()  # New ID for permanent record
-                
-                session.add(head)
-                session.flush()  # Get the new head.id
-                
-                # Copy all related temp models to permanent models
-                # Store mapping of temp IDs to permanent IDs for foreign key updates
-                product_id_map = {}  # temp_id -> permanent_id
-                payment_id_map = {}  # temp_id -> permanent_id
-                total_id_map = {}    # temp_id -> permanent_id
-                
-                # Products
-                for prod_temp in self.document_data.get("products", []):
-                    prod = TransactionProduct()
-                    temp_id = prod_temp.id
-                    for key in prod_temp.__table__.columns.keys():
-                        if hasattr(prod_temp, key):
-                            if key == "fk_transaction_head_id":
-                                setattr(prod, key, head.id)
-                            else:
-                                setattr(prod, key, getattr(prod_temp, key))
-                    prod.id = uuid4()
-                    product_id_map[temp_id] = prod.id
-                    session.add(prod)
-                
-                # Payments
-                for pay_temp in self.document_data.get("payments", []):
-                    pay = TransactionPayment()
-                    temp_id = pay_temp.id
-                    for key in pay_temp.__table__.columns.keys():
-                        if hasattr(pay_temp, key):
-                            if key == "fk_transaction_head_id":
-                                setattr(pay, key, head.id)
-                            else:
-                                setattr(pay, key, getattr(pay_temp, key))
-                    pay.id = uuid4()
-                    payment_id_map[temp_id] = pay.id
-                    session.add(pay)
-                
-                # Totals
-                for total_temp in self.document_data.get("totals", []):
-                    total = TransactionTotal()
-                    temp_id = total_temp.id
-                    for key in total_temp.__table__.columns.keys():
-                        if hasattr(total_temp, key):
-                            if key == "fk_transaction_head_id":
-                                setattr(total, key, head.id)
-                            else:
-                                setattr(total, key, getattr(total_temp, key))
-                    total.id = uuid4()
-                    total_id_map[temp_id] = total.id
-                    session.add(total)
-                
-                # Discounts
-                for disc_temp in self.document_data.get("discounts", []):
-                    disc = TransactionDiscount()
-                    for key in disc_temp.__table__.columns.keys():
-                        if hasattr(disc_temp, key):
-                            if key == "fk_transaction_head_id":
-                                setattr(disc, key, head.id)
-                            elif key == "fk_transaction_product_id" and getattr(disc_temp, key):
-                                # Map temp product ID to permanent product ID
-                                setattr(disc, key, product_id_map.get(getattr(disc_temp, key)))
-                            elif key == "fk_transaction_payment_id" and getattr(disc_temp, key):
-                                # Map temp payment ID to permanent payment ID
-                                setattr(disc, key, payment_id_map.get(getattr(disc_temp, key)))
-                            elif key == "fk_transaction_total_id" and getattr(disc_temp, key):
-                                # Map temp total ID to permanent total ID
-                                setattr(disc, key, total_id_map.get(getattr(disc_temp, key)))
-                            else:
-                                setattr(disc, key, getattr(disc_temp, key))
-                    disc.id = uuid4()
-                    session.add(disc)
-                
-                # Deliveries
-                for del_temp in self.document_data.get("deliveries", []):
-                    del_rec = TransactionDelivery()
-                    for key in del_temp.__table__.columns.keys():
-                        if hasattr(del_temp, key):
-                            if key == "fk_transaction_head_id":
-                                setattr(del_rec, key, head.id)
-                            else:
-                                setattr(del_rec, key, getattr(del_temp, key))
-                    del_rec.id = uuid4()
-                    session.add(del_rec)
-                
-                # Kitchen Orders
-                for ko_temp in self.document_data.get("kitchen_orders", []):
-                    ko = TransactionKitchenOrder()
-                    for key in ko_temp.__table__.columns.keys():
-                        if hasattr(ko_temp, key):
-                            if key == "fk_transaction_head_id":
-                                setattr(ko, key, head.id)
-                            elif key == "fk_transaction_product_id" and getattr(ko_temp, key):
-                                # Map temp product ID to permanent product ID
-                                setattr(ko, key, product_id_map.get(getattr(ko_temp, key)))
-                            else:
-                                setattr(ko, key, getattr(ko_temp, key))
-                    ko.id = uuid4()
-                    session.add(ko)
-                
-                # Loyalty
-                for loy_temp in self.document_data.get("loyalty", []):
-                    loy = TransactionLoyalty()
-                    for key in loy_temp.__table__.columns.keys():
-                        if hasattr(loy_temp, key):
-                            if key == "fk_transaction_head_id":
-                                setattr(loy, key, head.id)
-                            else:
-                                setattr(loy, key, getattr(loy_temp, key))
-                    loy.id = uuid4()
-                    session.add(loy)
-                
-                # Notes
-                for note_temp in self.document_data.get("notes", []):
-                    note = TransactionNote()
-                    for key in note_temp.__table__.columns.keys():
-                        if hasattr(note_temp, key):
-                            if key == "fk_transaction_head_id":
-                                setattr(note, key, head.id)
-                            else:
-                                setattr(note, key, getattr(note_temp, key))
-                    note.id = uuid4()
-                    session.add(note)
-                
-                # Fiscal
-                if self.document_data.get("fiscal"):
-                    fiscal_temp = self.document_data["fiscal"]
-                    fiscal = TransactionFiscal()
-                    for key in fiscal_temp.__table__.columns.keys():
-                        if hasattr(fiscal_temp, key):
-                            if key == "fk_transaction_head_id":
-                                setattr(fiscal, key, head.id)
-                            else:
-                                setattr(fiscal, key, getattr(fiscal_temp, key))
-                    fiscal.id = uuid4()
-                    session.add(fiscal)
-                
-                # Refunds
-                for ref_temp in self.document_data.get("refunds", []):
-                    ref = TransactionRefund()
-                    for key in ref_temp.__table__.columns.keys():
-                        if hasattr(ref_temp, key):
-                            if key == "fk_transaction_head_id":
-                                setattr(ref, key, head.id)
-                            elif key == "fk_transaction_product_id" and getattr(ref_temp, key):
-                                # Map temp product ID to permanent product ID
-                                setattr(ref, key, product_id_map.get(getattr(ref_temp, key)))
-                            else:
-                                setattr(ref, key, getattr(ref_temp, key))
-                    ref.id = uuid4()
-                    session.add(ref)
-                
-                # Surcharges
-                for sur_temp in self.document_data.get("surcharges", []):
-                    sur = TransactionSurcharge()
-                    for key in sur_temp.__table__.columns.keys():
-                        if hasattr(sur_temp, key):
-                            if key == "fk_transaction_head_id":
-                                setattr(sur, key, head.id)
-                            else:
-                                setattr(sur, key, getattr(sur_temp, key))
-                    sur.id = uuid4()
-                    session.add(sur)
-                
-                # Taxes
-                for tax_temp in self.document_data.get("taxes", []):
-                    tax = TransactionTax()
-                    for key in tax_temp.__table__.columns.keys():
-                        if hasattr(tax_temp, key):
-                            if key == "fk_transaction_head_id":
-                                setattr(tax, key, head.id)
-                            elif key == "fk_transaction_product_id" and getattr(tax_temp, key):
-                                # Map temp product ID to permanent product ID
-                                setattr(tax, key, product_id_map.get(getattr(tax_temp, key)))
-                            else:
-                                setattr(tax, key, getattr(tax_temp, key))
-                    tax.id = uuid4()
-                    session.add(tax)
-                
-                # Tips
-                for tip_temp in self.document_data.get("tips", []):
-                    tip = TransactionTip()
-                    for key in tip_temp.__table__.columns.keys():
-                        if hasattr(tip_temp, key):
-                            if key == "fk_transaction_head_id":
-                                setattr(tip, key, head.id)
-                            elif key == "fk_transaction_payment_id" and getattr(tip_temp, key):
-                                # Map temp payment ID to permanent payment ID
-                                setattr(tip, key, payment_id_map.get(getattr(tip_temp, key)))
-                            else:
-                                setattr(tip, key, getattr(tip_temp, key))
-                    tip.id = uuid4()
-                    session.add(tip)
-                
-                session.commit()
+            # Save updated head_temp using CRUD.save()
+            head_temp.save()
+            
+            # Copy head_temp to TransactionHead
+            head = TransactionHead()
+            # Copy all fields from head_temp
+            for key in head_temp.__table__.columns.keys():
+                if hasattr(head_temp, key):
+                    setattr(head, key, getattr(head_temp, key))
+            head.id = uuid4()  # New ID for permanent record
+            
+            # Create permanent head using CRUD.create()
+            head.create()
+            
+            # Copy all related temp models to permanent models
+            # Store mapping of temp IDs to permanent IDs for foreign key updates
+            product_id_map = {}  # temp_id -> permanent_id
+            payment_id_map = {}  # temp_id -> permanent_id
+            total_id_map = {}    # temp_id -> permanent_id
+            
+            # Products
+            for prod_temp in self.document_data.get("products", []):
+                # Unwrap if it's an AutoSaveModel
+                if isinstance(prod_temp, AutoSaveModel):
+                    prod_temp = prod_temp.unwrap()
+                prod = TransactionProduct()
+                temp_id = prod_temp.id
+                for key in prod_temp.__table__.columns.keys():
+                    if hasattr(prod_temp, key):
+                        if key == "fk_transaction_head_id":
+                            setattr(prod, key, head.id)
+                        else:
+                            setattr(prod, key, getattr(prod_temp, key))
+                prod.id = uuid4()
+                product_id_map[temp_id] = prod.id
+                # Create using CRUD.create()
+                prod.create()
+            
+            # Payments
+            for pay_temp in self.document_data.get("payments", []):
+                # Unwrap if it's an AutoSaveModel
+                if isinstance(pay_temp, AutoSaveModel):
+                    pay_temp = pay_temp.unwrap()
+                pay = TransactionPayment()
+                temp_id = pay_temp.id
+                for key in pay_temp.__table__.columns.keys():
+                    if hasattr(pay_temp, key):
+                        if key == "fk_transaction_head_id":
+                            setattr(pay, key, head.id)
+                        else:
+                            setattr(pay, key, getattr(pay_temp, key))
+                pay.id = uuid4()
+                payment_id_map[temp_id] = pay.id
+                # Create using CRUD.create()
+                pay.create()
+            
+            # Totals
+            for total_temp in self.document_data.get("totals", []):
+                # Unwrap if it's an AutoSaveModel
+                if isinstance(total_temp, AutoSaveModel):
+                    total_temp = total_temp.unwrap()
+                total = TransactionTotal()
+                temp_id = total_temp.id
+                for key in total_temp.__table__.columns.keys():
+                    if hasattr(total_temp, key):
+                        if key == "fk_transaction_head_id":
+                            setattr(total, key, head.id)
+                        else:
+                            setattr(total, key, getattr(total_temp, key))
+                total.id = uuid4()
+                total_id_map[temp_id] = total.id
+                # Create using CRUD.create()
+                total.create()
+            
+            # Discounts
+            for disc_temp in self.document_data.get("discounts", []):
+                # Unwrap if it's an AutoSaveModel
+                if isinstance(disc_temp, AutoSaveModel):
+                    disc_temp = disc_temp.unwrap()
+                disc = TransactionDiscount()
+                for key in disc_temp.__table__.columns.keys():
+                    if hasattr(disc_temp, key):
+                        if key == "fk_transaction_head_id":
+                            setattr(disc, key, head.id)
+                        elif key == "fk_transaction_product_id" and getattr(disc_temp, key):
+                            # Map temp product ID to permanent product ID
+                            setattr(disc, key, product_id_map.get(getattr(disc_temp, key)))
+                        elif key == "fk_transaction_payment_id" and getattr(disc_temp, key):
+                            # Map temp payment ID to permanent payment ID
+                            setattr(disc, key, payment_id_map.get(getattr(disc_temp, key)))
+                        elif key == "fk_transaction_total_id" and getattr(disc_temp, key):
+                            # Map temp total ID to permanent total ID
+                            setattr(disc, key, total_id_map.get(getattr(disc_temp, key)))
+                        else:
+                            setattr(disc, key, getattr(disc_temp, key))
+                disc.id = uuid4()
+                # Create using CRUD.create()
+                disc.create()
+            
+            # Deliveries
+            for del_temp in self.document_data.get("deliveries", []):
+                # Unwrap if it's an AutoSaveModel
+                if isinstance(del_temp, AutoSaveModel):
+                    del_temp = del_temp.unwrap()
+                del_rec = TransactionDelivery()
+                for key in del_temp.__table__.columns.keys():
+                    if hasattr(del_temp, key):
+                        if key == "fk_transaction_head_id":
+                            setattr(del_rec, key, head.id)
+                        else:
+                            setattr(del_rec, key, getattr(del_temp, key))
+                del_rec.id = uuid4()
+                # Create using CRUD.create()
+                del_rec.create()
+            
+            # Kitchen Orders
+            for ko_temp in self.document_data.get("kitchen_orders", []):
+                # Unwrap if it's an AutoSaveModel
+                if isinstance(ko_temp, AutoSaveModel):
+                    ko_temp = ko_temp.unwrap()
+                ko = TransactionKitchenOrder()
+                for key in ko_temp.__table__.columns.keys():
+                    if hasattr(ko_temp, key):
+                        if key == "fk_transaction_head_id":
+                            setattr(ko, key, head.id)
+                        elif key == "fk_transaction_product_id" and getattr(ko_temp, key):
+                            # Map temp product ID to permanent product ID
+                            setattr(ko, key, product_id_map.get(getattr(ko_temp, key)))
+                        else:
+                            setattr(ko, key, getattr(ko_temp, key))
+                ko.id = uuid4()
+                # Create using CRUD.create()
+                ko.create()
+            
+            # Loyalty
+            for loy_temp in self.document_data.get("loyalty", []):
+                # Unwrap if it's an AutoSaveModel
+                if isinstance(loy_temp, AutoSaveModel):
+                    loy_temp = loy_temp.unwrap()
+                loy = TransactionLoyalty()
+                for key in loy_temp.__table__.columns.keys():
+                    if hasattr(loy_temp, key):
+                        if key == "fk_transaction_head_id":
+                            setattr(loy, key, head.id)
+                        else:
+                            setattr(loy, key, getattr(loy_temp, key))
+                loy.id = uuid4()
+                # Create using CRUD.create()
+                loy.create()
+            
+            # Notes
+            for note_temp in self.document_data.get("notes", []):
+                # Unwrap if it's an AutoSaveModel
+                if isinstance(note_temp, AutoSaveModel):
+                    note_temp = note_temp.unwrap()
+                note = TransactionNote()
+                for key in note_temp.__table__.columns.keys():
+                    if hasattr(note_temp, key):
+                        if key == "fk_transaction_head_id":
+                            setattr(note, key, head.id)
+                        else:
+                            setattr(note, key, getattr(note_temp, key))
+                note.id = uuid4()
+                # Create using CRUD.create()
+                note.create()
+            
+            # Fiscal
+            if self.document_data.get("fiscal"):
+                fiscal_temp = self.document_data["fiscal"]
+                # Unwrap if it's an AutoSaveModel
+                if isinstance(fiscal_temp, AutoSaveModel):
+                    fiscal_temp = fiscal_temp.unwrap()
+                fiscal = TransactionFiscal()
+                for key in fiscal_temp.__table__.columns.keys():
+                    if hasattr(fiscal_temp, key):
+                        if key == "fk_transaction_head_id":
+                            setattr(fiscal, key, head.id)
+                        else:
+                            setattr(fiscal, key, getattr(fiscal_temp, key))
+                fiscal.id = uuid4()
+                # Create using CRUD.create()
+                fiscal.create()
+            
+            # Refunds
+            for ref_temp in self.document_data.get("refunds", []):
+                # Unwrap if it's an AutoSaveModel
+                if isinstance(ref_temp, AutoSaveModel):
+                    ref_temp = ref_temp.unwrap()
+                ref = TransactionRefund()
+                for key in ref_temp.__table__.columns.keys():
+                    if hasattr(ref_temp, key):
+                        if key == "fk_transaction_head_id":
+                            setattr(ref, key, head.id)
+                        elif key == "fk_transaction_product_id" and getattr(ref_temp, key):
+                            # Map temp product ID to permanent product ID
+                            setattr(ref, key, product_id_map.get(getattr(ref_temp, key)))
+                        else:
+                            setattr(ref, key, getattr(ref_temp, key))
+                ref.id = uuid4()
+                # Create using CRUD.create()
+                ref.create()
+            
+            # Surcharges
+            for sur_temp in self.document_data.get("surcharges", []):
+                # Unwrap if it's an AutoSaveModel
+                if isinstance(sur_temp, AutoSaveModel):
+                    sur_temp = sur_temp.unwrap()
+                sur = TransactionSurcharge()
+                for key in sur_temp.__table__.columns.keys():
+                    if hasattr(sur_temp, key):
+                        if key == "fk_transaction_head_id":
+                            setattr(sur, key, head.id)
+                        else:
+                            setattr(sur, key, getattr(sur_temp, key))
+                sur.id = uuid4()
+                # Create using CRUD.create()
+                sur.create()
+            
+            # Taxes
+            for tax_temp in self.document_data.get("taxes", []):
+                # Unwrap if it's an AutoSaveModel
+                if isinstance(tax_temp, AutoSaveModel):
+                    tax_temp = tax_temp.unwrap()
+                tax = TransactionTax()
+                for key in tax_temp.__table__.columns.keys():
+                    if hasattr(tax_temp, key):
+                        if key == "fk_transaction_head_id":
+                            setattr(tax, key, head.id)
+                        elif key == "fk_transaction_product_id" and getattr(tax_temp, key):
+                            # Map temp product ID to permanent product ID
+                            setattr(tax, key, product_id_map.get(getattr(tax_temp, key)))
+                        else:
+                            setattr(tax, key, getattr(tax_temp, key))
+                tax.id = uuid4()
+                # Create using CRUD.create()
+                tax.create()
+            
+            # Tips
+            for tip_temp in self.document_data.get("tips", []):
+                # Unwrap if it's an AutoSaveModel
+                if isinstance(tip_temp, AutoSaveModel):
+                    tip_temp = tip_temp.unwrap()
+                tip = TransactionTip()
+                for key in tip_temp.__table__.columns.keys():
+                    if hasattr(tip_temp, key):
+                        if key == "fk_transaction_head_id":
+                            setattr(tip, key, head.id)
+                        elif key == "fk_transaction_payment_id" and getattr(tip_temp, key):
+                            # Map temp payment ID to permanent payment ID
+                            setattr(tip, key, payment_id_map.get(getattr(tip_temp, key)))
+                        else:
+                            setattr(tip, key, getattr(tip_temp, key))
+                tip.id = uuid4()
+                # Create using CRUD.create()
+                tip.create()
             
             print(f"[DEBUG] Completed document: {head_temp.transaction_unique_id}")
             
@@ -848,17 +1056,24 @@ class CurrentData:
         
         try:
             head = self.document_data["head"]
-            head.is_pending = is_pending
-            
-            if is_pending:
-                head.transaction_status = TransactionStatus.PENDING.value
+            # Unwrap if it's an AutoSaveModel (AutoSaveModel will handle the save automatically)
+            if isinstance(head, AutoSaveModel):
+                head.is_pending = is_pending
+                if is_pending:
+                    head.transaction_status = TransactionStatus.PENDING.value
+                else:
+                    head.transaction_status = TransactionStatus.ACTIVE.value
+                # AutoSaveModel automatically saves on attribute change
             else:
-                head.transaction_status = TransactionStatus.ACTIVE.value
-            
-            # Save to database
-            with Engine().get_session() as session:
-                session.merge(head)
-                session.commit()
+                # Fallback: manual save if not wrapped
+                head.is_pending = is_pending
+                if is_pending:
+                    head.transaction_status = TransactionStatus.PENDING.value
+                else:
+                    head.transaction_status = TransactionStatus.ACTIVE.value
+                # Save to database using CRUD.save()
+                if hasattr(head, 'save'):
+                    head.save()
             
             print(f"[DEBUG] Document {'suspended' if is_pending else 'resumed'}: {head.transaction_unique_id}")
             return True
@@ -1229,70 +1444,67 @@ class CurrentData:
         Args:
             closure_id: UUID of the closure to load
         """
-        from data_layer.engine import Engine
-        
         try:
-            with Engine().get_session() as session:
-                # Load main closure record
-                closure = session.query(Closure).filter_by(id=closure_id).first()
-                if not closure:
-                    print(f"[DEBUG] Closure not found: {closure_id}")
-                    return
-                
-                # Initialize closure dictionary
-                self.closure = {
-                    "closure": closure,
-                    "cashier_summaries": [],
-                    "country_specific": None,
-                    "currencies": [],
-                    "department_summaries": [],
-                    "discount_summaries": [],
-                    "document_type_summaries": [],
-                    "payment_type_summaries": [],
-                    "tip_summaries": [],
-                    "vat_summaries": []
-                }
-                
-                # Load all summary records
-                self.closure["cashier_summaries"] = session.query(ClosureCashierSummary).filter_by(
-                    fk_closure_id=closure_id, is_deleted=False
-                ).all()
-                
-                self.closure["country_specific"] = session.query(ClosureCountrySpecific).filter_by(
-                    fk_closure_id=closure_id, is_deleted=False
-                ).first()
-                
-                self.closure["currencies"] = session.query(ClosureCurrency).filter_by(
-                    fk_closure_id=closure_id, is_deleted=False
-                ).all()
-                
-                self.closure["department_summaries"] = session.query(ClosureDepartmentSummary).filter_by(
-                    fk_closure_id=closure_id, is_deleted=False
-                ).all()
-                
-                self.closure["discount_summaries"] = session.query(ClosureDiscountSummary).filter_by(
-                    fk_closure_id=closure_id, is_deleted=False
-                ).all()
-                
-                self.closure["document_type_summaries"] = session.query(ClosureDocumentTypeSummary).filter_by(
-                    fk_closure_id=closure_id, is_deleted=False
-                ).all()
-                
-                self.closure["payment_type_summaries"] = session.query(ClosurePaymentTypeSummary).filter_by(
-                    fk_closure_id=closure_id, is_deleted=False
-                ).all()
-                
-                self.closure["tip_summaries"] = session.query(ClosureTipSummary).filter_by(
-                    fk_closure_id=closure_id, is_deleted=False
-                ).all()
-                
-                self.closure["vat_summaries"] = session.query(ClosureVATSummary).filter_by(
-                    fk_closure_id=closure_id, is_deleted=False
-                ).all()
-                
-                print(f"[DEBUG] Loaded closure data: {len(self.closure['cashier_summaries'])} cashiers, "
-                      f"{len(self.closure['currencies'])} currencies, "
-                      f"{len(self.closure['department_summaries'])} departments")
+            # Load main closure record using CRUD.get_by_id()
+            closure = Closure.get_by_id(closure_id)
+            if not closure:
+                print(f"[DEBUG] Closure not found: {closure_id}")
+                return
+            
+            # Initialize closure dictionary
+            self.closure = {
+                "closure": closure,
+                "cashier_summaries": [],
+                "country_specific": None,
+                "currencies": [],
+                "department_summaries": [],
+                "discount_summaries": [],
+                "document_type_summaries": [],
+                "payment_type_summaries": [],
+                "tip_summaries": [],
+                "vat_summaries": []
+            }
+            
+            # Load all summary records using CRUD.filter_by() and find_first()
+            self.closure["cashier_summaries"] = ClosureCashierSummary.filter_by(
+                fk_closure_id=closure_id, is_deleted=False
+            )
+            
+            self.closure["country_specific"] = ClosureCountrySpecific.find_first(
+                fk_closure_id=closure_id, is_deleted=False
+            )
+            
+            self.closure["currencies"] = ClosureCurrency.filter_by(
+                fk_closure_id=closure_id, is_deleted=False
+            )
+            
+            self.closure["department_summaries"] = ClosureDepartmentSummary.filter_by(
+                fk_closure_id=closure_id, is_deleted=False
+            )
+            
+            self.closure["discount_summaries"] = ClosureDiscountSummary.filter_by(
+                fk_closure_id=closure_id, is_deleted=False
+            )
+            
+            self.closure["document_type_summaries"] = ClosureDocumentTypeSummary.filter_by(
+                fk_closure_id=closure_id, is_deleted=False
+            )
+            
+            self.closure["payment_type_summaries"] = ClosurePaymentTypeSummary.filter_by(
+                fk_closure_id=closure_id, is_deleted=False
+            )
+            
+            self.closure["tip_summaries"] = ClosureTipSummary.filter_by(
+                fk_closure_id=closure_id, is_deleted=False
+            )
+            
+            self.closure["vat_summaries"] = ClosureVATSummary.filter_by(
+                fk_closure_id=closure_id, is_deleted=False
+            )
+            
+            print(f"[DEBUG] Loaded closure data: {len(self.closure['cashier_summaries'])} cashiers, "
+                  f"{len(self.closure['currencies'])} currencies, "
+                  f"{len(self.closure['department_summaries'])} departments")
         except Exception as e:
             print(f"[DEBUG] Error loading closure data: {e}")
             import traceback
@@ -1368,44 +1580,46 @@ class CurrentData:
             
             # Get next closure number (daily sequence)
             today = date.today()
+            
+            # Find the highest closure_number for today using Engine for complex query
+            # CRUD.filter_by() doesn't support date comparison and ordering yet
+            from data_layer.engine import Engine
             with Engine().get_session() as session:
-                # Find the highest closure_number for today
                 max_closure = session.query(Closure).filter(
                     Closure.closure_date == today,
                     Closure.is_deleted == False
                 ).order_by(Closure.closure_number.desc()).first()
-                
-                next_closure_number = 1
-                if max_closure:
-                    next_closure_number = max_closure.closure_number + 1
-                
-                # Create unique ID
-                closure_unique_id = f"{today.strftime('%Y%m%d')}-{next_closure_number:04d}"
-                
-                # Create new closure record
-                new_closure = Closure()
-                new_closure.id = uuid4()
-                new_closure.closure_unique_id = closure_unique_id
-                new_closure.closure_number = next_closure_number
-                new_closure.fk_store_id = store_id
-                new_closure.fk_pos_id = self.pos_settings.id
-                new_closure.closure_date = today
-                new_closure.closure_start_time = datetime.now()
-                new_closure.closure_end_time = None  # Open closure
-                new_closure.fk_base_currency_id = base_currency_id
-                new_closure.fk_cashier_opened_id = cashier_id
-                new_closure.fk_cashier_closed_id = cashier_id  # Will be updated when closed
-                
-                # All numeric fields default to 0 (handled by model defaults)
-                
-                # Save to database
-                session.add(new_closure)
-                session.commit()
-                
-                # Load the closure data into self.closure
-                self._load_closure_data(new_closure.id)
-                
-                print(f"[DEBUG] Created new empty closure: {closure_unique_id}")
+            
+            next_closure_number = 1
+            if max_closure:
+                next_closure_number = max_closure.closure_number + 1
+            
+            # Create unique ID
+            closure_unique_id = f"{today.strftime('%Y%m%d')}-{next_closure_number:04d}"
+            
+            # Create new closure record
+            new_closure = Closure()
+            new_closure.id = uuid4()
+            new_closure.closure_unique_id = closure_unique_id
+            new_closure.closure_number = next_closure_number
+            new_closure.fk_store_id = store_id
+            new_closure.fk_pos_id = self.pos_settings.id
+            new_closure.closure_date = today
+            new_closure.closure_start_time = datetime.now()
+            new_closure.closure_end_time = None  # Open closure
+            new_closure.fk_base_currency_id = base_currency_id
+            new_closure.fk_cashier_opened_id = cashier_id
+            new_closure.fk_cashier_closed_id = cashier_id  # Will be updated when closed
+            
+            # All numeric fields default to 0 (handled by model defaults)
+            
+            # Save to database using CRUD.create()
+            new_closure.create()
+            
+            # Load the closure data into self.closure
+            self._load_closure_data(new_closure.id)
+            
+            print(f"[DEBUG] Created new empty closure: {closure_unique_id}")
         except Exception as e:
             print(f"[DEBUG] Error creating empty closure: {e}")
             import traceback
@@ -1439,8 +1653,11 @@ class CurrentData:
         
         try:
             closure = self.closure["closure"]
+            # Unwrap if it's an AutoSaveModel (AutoSaveModel will handle the save automatically)
+            closure_unwrapped = closure.unwrap() if isinstance(closure, AutoSaveModel) else closure
             
             # Update closure with closing information
+            # Use the wrapped version so AutoSaveModel can intercept and save
             closure.closure_end_time = datetime.now()
             closure.fk_cashier_closed_id = self.cashier_data.id
             
@@ -1452,35 +1669,43 @@ class CurrentData:
             if description:
                 closure.description = description
             
-            # Save closure and all summaries to database
-            with Engine().get_session() as session:
-                # Merge closure (it might have been modified)
-                session.merge(closure)
-                
-                # Save all summaries
-                for summary_list_name in [
-                    "cashier_summaries", "currencies", "department_summaries",
-                    "discount_summaries", "document_type_summaries",
-                    "payment_type_summaries", "tip_summaries", "vat_summaries"
-                ]:
-                    summaries = self.closure.get(summary_list_name, [])
-                    for summary in summaries:
-                        if summary.id:  # Existing record
-                            session.merge(summary)
-                        else:  # New record
-                            summary.fk_closure_id = closure.id
-                            session.add(summary)
-                
-                # Save country_specific if exists
-                if self.closure.get("country_specific"):
-                    country_specific = self.closure["country_specific"]
-                    if country_specific.id:  # Existing record
-                        session.merge(country_specific)
-                    else:  # New record
-                        country_specific.fk_closure_id = closure.id
-                        session.add(country_specific)
-                
-                session.commit()
+            # Save closure using CRUD.save() (AutoSaveModel already saved it, but we ensure it's saved)
+            if hasattr(closure_unwrapped, 'save'):
+                closure_unwrapped.save()
+            
+            # Save all summaries using CRUD.save() or CRUD.create()
+            for summary_list_name in [
+                "cashier_summaries", "currencies", "department_summaries",
+                "discount_summaries", "document_type_summaries",
+                "payment_type_summaries", "tip_summaries", "vat_summaries"
+            ]:
+                summaries = self.closure.get(summary_list_name, [])
+                for summary in summaries:
+                    # Unwrap if it's an AutoSaveModel
+                    if isinstance(summary, AutoSaveModel):
+                        summary = summary.unwrap()
+                    if not summary.id:  # New record
+                        summary.fk_closure_id = closure.id if not isinstance(closure, AutoSaveModel) else closure.unwrap().id
+                    # Save using CRUD methods
+                    if summary.id and hasattr(summary, 'save'):
+                        summary.save()
+                    elif not summary.id and hasattr(summary, 'create'):
+                        summary.create()
+            
+            # Save country_specific if exists using CRUD.save() or CRUD.create()
+            if self.closure.get("country_specific"):
+                country_specific = self.closure["country_specific"]
+                # Unwrap if it's an AutoSaveModel
+                if isinstance(country_specific, AutoSaveModel):
+                    country_specific = country_specific.unwrap()
+                if not country_specific.id:  # New record
+                    closure_id = closure.id if not isinstance(closure, AutoSaveModel) else closure.unwrap().id
+                    country_specific.fk_closure_id = closure_id
+                # Save using CRUD methods
+                if country_specific.id and hasattr(country_specific, 'save'):
+                    country_specific.save()
+                elif not country_specific.id and hasattr(country_specific, 'create'):
+                    country_specific.create()
             
             print(f"[DEBUG] Closed closure: {closure.closure_unique_id}")
             

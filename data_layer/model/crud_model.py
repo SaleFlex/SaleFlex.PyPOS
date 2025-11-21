@@ -42,36 +42,55 @@ class CRUD:
     
     def __init__(self):
         self._engine = Engine()
+    
+    def _get_engine(self):
+        """
+        Get engine instance, creating it if it doesn't exist.
+        This allows models loaded from database (where __init__ wasn't called) to work.
+        """
+        if not hasattr(self, '_engine') or self._engine is None:
+            self._engine = Engine()
+        return self._engine
 
     # CREATE Operations
     def save(self) -> bool:
         """
-        Saves record to database, inserts if new, updates if exists
+        Saves record to database, inserts if new, updates if exists.
+        Works even if model was loaded from database (lazy engine initialization).
         """
         try:
-            with self._engine.get_session() as session:
+            engine = self._get_engine()
+            with engine.get_session() as session:
                 # If no ID, assign a new UUID (for UUID-enabled models)
                 if hasattr(self, 'id') and self.id is None:
                     self.id = uuid4()
                 
                 session.merge(self)  # merge handles both insert and update
+                session.commit()
                 return True
         except SQLAlchemyError as e:
             print(f"Save operation error: {e}")
+            import traceback
+            traceback.print_exc()
             return False
 
     def create(self) -> bool:
         """
-        Creates a new record
+        Creates a new record.
+        Works even if model was loaded from database (lazy engine initialization).
         """
         try:
-            with self._engine.get_session() as session:
+            engine = self._get_engine()
+            with engine.get_session() as session:
                 if hasattr(self, 'id') and self.id is None:
                     self.id = uuid4()
                 session.add(self)
+                session.commit()
                 return True
         except SQLAlchemyError as e:
             print(f"Create operation error: {e}")
+            import traceback
+            traceback.print_exc()
             return False
 
     # READ Operations
@@ -200,10 +219,12 @@ class CRUD:
     # UPDATE Operations
     def update(self, **kwargs) -> bool:
         """
-        Updates current record
+        Updates current record.
+        Works even if model was loaded from database (lazy engine initialization).
         """
         try:
-            with self._engine.get_session() as session:
+            engine = self._get_engine()
+            with engine.get_session() as session:
                 # Update current object
                 for key, value in kwargs.items():
                     if hasattr(self, key):
@@ -214,9 +235,12 @@ class CRUD:
                     self.updated_at = func.now()
                 
                 session.merge(self)
+                session.commit()
                 return True
         except SQLAlchemyError as e:
             print(f"Update operation error: {e}")
+            import traceback
+            traceback.print_exc()
             return False
 
     @classmethod
@@ -240,10 +264,12 @@ class CRUD:
     # DELETE Operations
     def delete(self, soft_delete: bool = True) -> bool:
         """
-        Deletes record (soft delete or hard delete)
+        Deletes record (soft delete or hard delete).
+        Works even if model was loaded from database (lazy engine initialization).
         """
         try:
-            with self._engine.get_session() as session:
+            engine = self._get_engine()
+            with engine.get_session() as session:
                 if soft_delete and hasattr(self, 'is_deleted'):
                     # Soft delete
                     self.is_deleted = True
@@ -253,9 +279,12 @@ class CRUD:
                 else:
                     # Hard delete
                     session.delete(self)
+                session.commit()
                 return True
         except SQLAlchemyError as e:
             print(f"Delete operation error: {e}")
+            import traceback
+            traceback.print_exc()
             return False
 
     @classmethod
@@ -319,12 +348,16 @@ class CRUD:
 
     def refresh(self) -> bool:
         """
-        Reloads current data from database
+        Reloads current data from database.
+        Works even if model was loaded from database (lazy engine initialization).
         """
         try:
-            with self._engine.get_session() as session:
+            engine = self._get_engine()
+            with engine.get_session() as session:
                 session.refresh(self)
                 return True
         except SQLAlchemyError as e:
             print(f"Refresh operation error: {e}")
+            import traceback
+            traceback.print_exc()
             return False
