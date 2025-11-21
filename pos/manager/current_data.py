@@ -31,6 +31,7 @@ from data_layer.model import (
     CashierWorkSession,
     City,
     Country,
+    CountryRegion,
     Currency,
     CurrencyTable,
     DepartmentMainGroup,
@@ -79,7 +80,7 @@ class CurrentData:
     Key Features:
     - pos_data: Dictionary containing all reference data models (Cashier, CashierPerformanceMetrics,
       CashierPerformanceTarget, CashierTransactionMetrics, CashierWorkBreak, CashierWorkSession,
-      City, Country, District, Form, FormControl, LabelValue, PaymentType, PosSettings,
+      City, Country, CountryRegion, District, Form, FormControl, LabelValue, PaymentType, PosSettings,
       PosVirtualKeyboard, ReceiptFooter, ReceiptHeader, Store, Table) loaded once at
       application startup to avoid repeated database reads
     - product_data: Dictionary containing product-related models (Currency, CurrencyTable, Vat,
@@ -162,6 +163,7 @@ class CurrentData:
         - CashierWorkSession: Cashier work session records
         - City: City master data
         - Country: Country master data
+        - CountryRegion: Sub-country regions (states, provinces, special economic zones)
         - District: District/region master data
         - Form: Dynamic form definitions
         - FormControl: Form controls (buttons, textboxes, etc.)
@@ -187,6 +189,7 @@ class CurrentData:
             CashierWorkSession,
             City,
             Country,
+            CountryRegion,
             District,
             Form,
             FormControl,

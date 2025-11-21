@@ -560,7 +560,7 @@ control.form_transition_mode = "MODAL"  # Correct (uppercase)
 
 ### Performance Tips
 
-1. **In-Memory Data Caching**: All reference data (Cashier, CashierPerformanceMetrics, CashierPerformanceTarget, CashierTransactionMetrics, CashierWorkBreak, CashierWorkSession, City, Country, District, Form, FormControl, LabelValue, PaymentType, PosSettings, PosVirtualKeyboard, ReceiptFooter, ReceiptHeader, Store, Table, etc.) is loaded once at application startup into `pos_data` dictionary. This minimizes disk I/O and improves performance, especially important for POS devices with limited disk write cycles.
+1. **In-Memory Data Caching**: All reference data (Cashier, CashierPerformanceMetrics, CashierPerformanceTarget, CashierTransactionMetrics, CashierWorkBreak, CashierWorkSession, City, Country, CountryRegion, District, Form, FormControl, LabelValue, PaymentType, PosSettings, PosVirtualKeyboard, ReceiptFooter, ReceiptHeader, Store, Table, etc.) is loaded once at application startup into `pos_data` dictionary. This minimizes disk I/O and improves performance, especially important for POS devices with limited disk write cycles.
 2. **Product Data Caching**: All product-related models (Currency, CurrencyTable, Vat, Product, ProductBarcode, DepartmentMainGroup, DepartmentSubGroup, Warehouse, etc.) are loaded once at application startup into `product_data` dictionary. Sale operations, button rendering, product lookups, currency calculations, and VAT rate lookups use cached data instead of database queries.
 3. **RAM Management**: Consider a cache system for frequently used forms instead of `REPLACE`
 4. **Database Queries**: Forms, controls, and products are loaded into cache dictionaries at application startup - no repeated database reads during runtime
@@ -861,6 +861,7 @@ The following reference data models are loaded into `pos_data` dictionary at sta
 - **CashierWorkSession**: Cashier work session records
 - **City**: City master data
 - **Country**: Country master data
+- **CountryRegion**: Sub-country regions (states, provinces, special economic zones)
 - **District**: District/region master data
 - **Form**: Dynamic form definitions
 - **FormControl**: Form controls (buttons, textboxes, etc.)
@@ -1094,8 +1095,8 @@ SaleFlex.PyPOS uses a comprehensive database schema with over 80 models organize
 - **Table**: Restaurant table management for table service operations
 
 #### Location and Geography
-- **Country**: Country master data with ISO codes and names
-- **CountryRegion**: Sub-country regions (states, provinces, special economic zones) with ISO 3166-2 codes. Supports region-specific closure templates and compliance tracking. Pre-populated with 80+ regions (US states, Canadian provinces, German states, French regions)
+- **Country**: Country master data with ISO 3166-1 compliant fields (`iso_alpha2`, `iso_alpha3`, `iso_numeric`) for standardized country identification
+- **CountryRegion**: Sub-country regions (states, provinces, special economic zones) with ISO 3166-2 codes (`iso_3166_2` field). Supports region-specific closure templates and compliance tracking. Pre-populated with 80+ regions (US states, Canadian provinces, German states, French regions)
 - **City**: City master data linked to countries
 - **District**: District/region master data linked to cities
 
@@ -1228,7 +1229,8 @@ The `CountryRegion` model tracks sub-country regions (states, provinces, special
 
 #### Features
 - **Region Types**: Supports states, provinces, territories, regions, districts, free zones, and special economic zones
-- **ISO 3166-2 Codes**: Each region includes ISO 3166-2 code (e.g., US-CA, CA-ON, DE-BY)
+- **ISO 3166-2 Codes**: Each region includes ISO 3166-2 code in `iso_3166_2` field (e.g., US-CA, CA-ON, DE-BY)
+- **Standardized Fields**: Uses ISO-compliant field names (`iso_3166_2` for full code, `region_code` for subdivision code, `name` for region name)
 - **Special Requirements Flag**: Marks regions with special tax/compliance requirements
 - **Metadata Support**: JSON field for storing additional region-specific data (tax rates, time zones, etc.)
 - **Template Integration**: Region codes are used for template file naming (e.g., `usa_ca.json`)
@@ -1393,10 +1395,10 @@ Creates the default store with:
 
 #### `_insert_countries(session)`
 Inserts comprehensive country master data including:
-- ISO country codes
-- Country names in multiple languages
-- Numeric codes
-- Phone country codes
+- ISO 3166-1 alpha-2 codes (`iso_alpha2`: 2-letter codes like "US", "TR", "CA")
+- ISO 3166-1 alpha-3 codes (`iso_alpha3`: 3-letter codes like "USA", "TUR", "CAN")
+- ISO 3166-1 numeric codes (`iso_numeric`: 3-digit codes like 840, 792, 124)
+- Country names
 
 #### `_insert_country_regions(session, admin_cashier_id)`
 Inserts sub-country regions for countries with regional variations:
@@ -1404,7 +1406,7 @@ Inserts sub-country regions for countries with regional variations:
 - **Canada**: 10 provinces + 3 territories (Ontario, British Columbia, Quebec, etc.)
 - **Germany**: 16 states/Länder (Bavaria, Baden-Württemberg, Berlin, etc.)
 - **France**: 13 regions (Île-de-France, Provence-Alpes-Côte d'Azur, etc.)
-- Each region includes: region_code, region_name, ISO 3166-2 code, region_type
+- Each region includes: `region_code` (subdivision code), `name` (region name), `iso_3166_2` (full ISO 3166-2 code), `region_type`
 - Total: 80+ regions pre-populated
 
 #### `_insert_currencies(session)`
