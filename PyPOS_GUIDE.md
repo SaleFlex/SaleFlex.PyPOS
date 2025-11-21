@@ -1148,7 +1148,7 @@ SaleFlex.PyPOS uses a comprehensive database schema with over 80 models organize
 
 #### User and Store Management
 - **Cashier**: User accounts for POS operators with authentication, permissions, and personal information
-- **Store**: Store/outlet information including hardware configuration, system settings, and business details
+- **Store**: Store/outlet information including address, contact details, manager and technician information, and business details. Note: Hardware configuration and POS system settings are managed through the `PosSettings` model, not the Store model.
 - **Table**: Restaurant table management for table service operations
 
 #### Location and Geography
@@ -1405,7 +1405,7 @@ The `insert_initial_data()` function in `db_init_data/__init__.py` orchestrates 
 1. **Admin Cashier** (`_insert_admin_cashier`): Creates default administrator user (username: admin, password: admin)
 2. **Countries** (`_insert_countries`): Inserts world countries with ISO codes
 3. **Country Regions** (`_insert_country_regions`): Inserts 80+ sub-country regions (US states, Canadian provinces, German states, French regions) with ISO 3166-2 codes
-4. **Default Store** (`_insert_default_store`): Creates default store with system information (MAC address, OS version, serial number)
+4. **Default Store** (`_insert_default_store`): Creates default store with basic business information, address fields, and contact details. Note: System information (MAC address, OS version, serial number) and hardware settings are managed through `PosSettings` model.
 5. **Cities** (`_insert_cities`): Inserts city master data
 6. **Districts** (`_insert_districts`): Inserts district/region data
 7. **Warehouses** (`_insert_warehouses`): Creates default warehouses (Main, Backroom, Sales Floor, etc.)
@@ -1447,10 +1447,14 @@ Creates the default administrator cashier account:
 
 #### `_insert_default_store(session)`
 Creates the default store with:
-- System information (MAC address, OS version, hostname)
-- Generated serial number
-- Default hardware settings (printers, displays, scales)
-- Links to default country (United Kingdom)
+- Basic business information (brand name, company name, description)
+- Address fields (street, district, postal code, city, country)
+- Contact information (phone, email, fax)
+- Manager and technician contact details (can be set later)
+- Links to default country (United Kingdom) and city (if available)
+- Active status flag
+
+**Note:** System information (MAC address, OS version, serial number) and hardware settings (printers, displays, scales, barcode readers) are managed through the `PosSettings` model, not the Store model.
 
 #### `_insert_countries(session)`
 Inserts comprehensive country master data including:

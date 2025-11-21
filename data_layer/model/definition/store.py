@@ -22,8 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-from sqlalchemy import Column, BigInteger, String, Boolean, DateTime, UUID, Integer, ForeignKey
-from sqlalchemy.sql import func
+from sqlalchemy import Column, String, UUID, Boolean, ForeignKey
 from uuid import uuid4
 
 from data_layer.model.crud_model import Model
@@ -32,104 +31,80 @@ from data_layer.model.mixins import AuditMixin, SoftDeleteMixin
 
 
 class Store(Model, CRUD, AuditMixin, SoftDeleteMixin):
-    def __init__(self, name=None, brand_name=None, company_name=None,
-                 web_page_url=None, description=None, serial_number=None,
-                 model=None, operating_system_version=None, owner_national_id_number=None,
-                 owner_tax_id_number=None, owner_mersis_id_number=None,
-                 owner_commercial_record_no=None, owner_registration_number=None,
-                 mac_address=None, cashier_screen_type=None, customer_screen_type=None,
-                 customer_display_type=None, customer_display_port=None,
-                 receipt_printer_type=None, receipt_printer_port_name=None,
-                 invoice_printer_type=None, invoice_printer_port_name=None,
-                 scale_type=None, scale_port_name=None, barcode_reader_port=None,
-                 server_ip1=None, server_port1=None, server_ip2=None, server_port2=None,
-                 force_to_work_online=False, fk_default_country_id=None):
+    def __init__(self, brand_name=None, company_name=None,
+                 web_page_url=None, description=None,
+                 street=None, block_no=None, district=None, postal_code=None,
+                 fk_city_id=None, fk_country_id=None,
+                 phone_number=None, email=None, fax=None,
+                 manager_name=None, manager_contact_number=None,
+                 technician_name=None, technician_contact_number=None,
+                 is_active=True):
         Model.__init__(self)
         CRUD.__init__(self)
 
-        self.name = name
         self.brand_name = brand_name
         self.company_name = company_name
         self.web_page_url = web_page_url
         self.description = description
-        self.serial_number = serial_number
-        self.model = model
-        self.operating_system_version = operating_system_version
-        self.owner_national_id_number = owner_national_id_number
-        self.owner_tax_id_number = owner_tax_id_number
-        self.owner_mersis_id_number = owner_mersis_id_number
-        self.owner_commercial_record_no = owner_commercial_record_no
-        self.owner_registration_number = owner_registration_number
-        self.mac_address = mac_address
-        self.cashier_screen_type = cashier_screen_type
-        self.customer_screen_type = customer_screen_type
-        self.customer_display_type = customer_display_type
-        self.customer_display_port = customer_display_port
-        self.receipt_printer_type = receipt_printer_type
-        self.receipt_printer_port_name = receipt_printer_port_name
-        self.invoice_printer_type = invoice_printer_type
-        self.invoice_printer_port_name = invoice_printer_port_name
-        self.scale_type = scale_type
-        self.scale_port_name = scale_port_name
-        self.barcode_reader_port = barcode_reader_port
-        self.server_ip1 = server_ip1
-        self.server_port1 = server_port1
-        self.server_ip2 = server_ip2
-        self.server_port2 = server_port2
-        self.force_to_work_online = force_to_work_online
-        self.fk_default_country_id = fk_default_country_id
+        
+        # Address fields
+        self.street = street
+        self.block_no = block_no
+        self.district = district
+        self.postal_code = postal_code
+        self.fk_city_id = fk_city_id
+        self.fk_country_id = fk_country_id
+        
+        # Contact information
+        self.phone_number = phone_number
+        self.email = email
+        self.fax = fax
+        
+        # Manager information
+        self.manager_name = manager_name
+        self.manager_contact_number = manager_contact_number
+        
+        # Technician information
+        self.technician_name = technician_name
+        self.technician_contact_number = technician_contact_number
+        
+        # Status
+        self.is_active = is_active
 
     __tablename__ = "store"
 
     id = Column(UUID, primary_key=True, default=uuid4)
-    name = Column(String(250), nullable=False)
+    
+    # Basic information
     brand_name = Column(String(50), nullable=True)
     company_name = Column(String(50), nullable=True)
     web_page_url = Column(String(250), nullable=True)
     description = Column(String(100), nullable=True)
     
-    # Hardware and system information
-    serial_number = Column(String(100), nullable=True)
-    model = Column(String(100), nullable=True)
-    operating_system_version = Column(String(100), nullable=True)
-    mac_address = Column(String(17), nullable=True)  # MAC address format: XX:XX:XX:XX:XX:XX
+    # Address fields
+    street = Column(String(150), nullable=True)
+    block_no = Column(String(20), nullable=True)
+    district = Column(String(100), nullable=True)
+    postal_code = Column(String(20), nullable=True)
+    fk_city_id = Column(UUID, ForeignKey('city.id'), nullable=True)
+    fk_country_id = Column(UUID, ForeignKey('country.id'), nullable=True)
     
-    # Owner information
-    owner_national_id_number = Column(String(20), nullable=True)
-    owner_tax_id_number = Column(String(20), nullable=True)
-    owner_mersis_id_number = Column(String(20), nullable=True)
-    owner_commercial_record_no = Column(String(50), nullable=True)
-    owner_registration_number = Column(String(50), nullable=True)
+    # Contact information
+    phone_number = Column(String(20), nullable=True)
+    email = Column(String(100), nullable=True)
+    fax = Column(String(20), nullable=True)
     
-    # Screen and display settings
-    cashier_screen_type = Column(String(50), nullable=True)
-    customer_screen_type = Column(String(50), nullable=True)
-    customer_display_type = Column(String(50), nullable=True)
-    customer_display_port = Column(String(50), nullable=True)
+    # Manager information
+    manager_name = Column(String(100), nullable=True)
+    manager_contact_number = Column(String(20), nullable=True)
     
-    # Printer settings
-    receipt_printer_type = Column(String(50), nullable=True)
-    receipt_printer_port_name = Column(String(50), nullable=True)
-    invoice_printer_type = Column(String(50), nullable=True)
-    invoice_printer_port_name = Column(String(50), nullable=True)
+    # Technician information
+    technician_name = Column(String(100), nullable=True)
+    technician_contact_number = Column(String(20), nullable=True)
     
-    # Scale settings
-    scale_type = Column(String(50), nullable=True)
-    scale_port_name = Column(String(50), nullable=True)
-    
-    # Barcode reader settings
-    barcode_reader_port = Column(String(50), nullable=True)
-    
-    # Server settings
-    server_ip1 = Column(String(15), nullable=True)  # IPv4 address
-    server_port1 = Column(String(10), nullable=True)
-    server_ip2 = Column(String(15), nullable=True)  # IPv4 address
-    server_port2 = Column(String(10), nullable=True)
-    
-    # System settings
-    force_to_work_online = Column(Boolean, nullable=False, default=False)
-    fk_default_country_id = Column(UUID, ForeignKey('country.id'), nullable=True)
+    # Status
+    is_active = Column(Boolean, nullable=False, default=True)
     
     def __repr__(self):
-        return f"<Store(name='{self.name}', brand_name='{self.brand_name}', company_name='{self.company_name}', serial_number='{self.serial_number}')>"
+        return f"<Store(brand_name='{self.brand_name}', company_name='{self.company_name}', is_active={self.is_active})>"
 
