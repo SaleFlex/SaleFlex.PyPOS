@@ -64,6 +64,9 @@ from data_layer.model import (
     ReceiptHeader,
     Store,
     Table,
+    TransactionDiscountType,
+    TransactionDocumentType,
+    TransactionSequence,
     Vat,
     Warehouse,
     WarehouseLocation,
@@ -221,6 +224,9 @@ class CurrentData:
         - ReceiptHeader: Receipt header templates
         - Store: Store/outlet information
         - Table: Restaurant table management
+        - TransactionDiscountType: Transaction discount type definitions
+        - TransactionDocumentType: Transaction document type definitions
+        - TransactionSequence: Transaction sequence number generators
         
         Args:
             progress_callback: Optional callback function(message: str) to report progress
@@ -247,6 +253,9 @@ class CurrentData:
             ReceiptHeader,
             Store,
             Table,
+            TransactionDiscountType,
+            TransactionDocumentType,
+            TransactionSequence,
         ]
         
         # Load each model into pos_data dictionary

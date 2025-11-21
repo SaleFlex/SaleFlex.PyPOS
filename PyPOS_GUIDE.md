@@ -560,7 +560,7 @@ control.form_transition_mode = "MODAL"  # Correct (uppercase)
 
 ### Performance Tips
 
-1. **In-Memory Data Caching**: All reference data (Cashier, CashierPerformanceMetrics, CashierPerformanceTarget, CashierTransactionMetrics, CashierWorkBreak, CashierWorkSession, City, Country, CountryRegion, District, Form, FormControl, LabelValue, PaymentType, PosSettings, PosVirtualKeyboard, ReceiptFooter, ReceiptHeader, Store, Table, etc.) is loaded once at application startup into `pos_data` dictionary. This minimizes disk I/O and improves performance, especially important for POS devices with limited disk write cycles.
+1. **In-Memory Data Caching**: All reference data (Cashier, CashierPerformanceMetrics, CashierPerformanceTarget, CashierTransactionMetrics, CashierWorkBreak, CashierWorkSession, City, Country, CountryRegion, District, Form, FormControl, LabelValue, PaymentType, PosSettings, PosVirtualKeyboard, ReceiptFooter, ReceiptHeader, Store, Table, TransactionDiscountType, TransactionDocumentType, TransactionSequence, etc.) is loaded once at application startup into `pos_data` dictionary. This minimizes disk I/O and improves performance, especially important for POS devices with limited disk write cycles.
 2. **Product Data Caching**: All product-related models (Currency, CurrencyTable, Vat, Product, ProductBarcode, DepartmentMainGroup, DepartmentSubGroup, Warehouse, etc.) are loaded once at application startup into `product_data` dictionary. Sale operations, button rendering, product lookups, currency calculations, and VAT rate lookups use cached data instead of database queries.
 3. **RAM Management**: Consider a cache system for frequently used forms instead of `REPLACE`
 4. **Database Queries**: Forms, controls, and products are loaded into cache dictionaries at application startup - no repeated database reads during runtime
@@ -873,6 +873,9 @@ The following reference data models are loaded into `pos_data` dictionary at sta
 - **ReceiptHeader**: Receipt header templates
 - **Store**: Store/outlet information
 - **Table**: Restaurant table management
+- **TransactionDiscountType**: Transaction discount type definitions
+- **TransactionDocumentType**: Transaction document type definitions
+- **TransactionSequence**: Transaction sequence number generators
 
 ### Product Data Cache (`product_data`)
 
