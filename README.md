@@ -27,6 +27,7 @@ SaleFlex.PyPOS POS system is designed to streamline the sales process and improv
 - **Campaign & Promotion Management**: Flexible promotional campaigns with time-based, product-specific, and basket discounts
 - **Loyalty Programs**: Tiered membership rewards system with points earning, redemption, and customer segmentation
 - **Country-Specific Closure Templates**: Flexible template system for country-specific closure data (E-Fatura for Turkey, state tax for USA, VAT reporting for EU, etc.) stored as JSON templates in `static_files/closures/` directory
+- **Region Support**: `CountryRegion` model tracks sub-country regions (states, provinces, special economic zones) with 80+ pre-populated regions for region-specific closure templates and compliance
 - **Optimized Performance**: In-memory caching of reference data (`pos_data`) and product data (`product_data`) minimizes disk I/O, extending disk life for POS devices with limited write cycles. All product lookups, currency calculations, VAT rate lookups, button rendering, and sale operations use cached data instead of database queries
 
 ## Project Structure
@@ -321,6 +322,7 @@ If you select "SALES", you will see a form as shown below:
 - [x] **Tax Compliance** - Country-specific tax regulations with VAT/tax rate management
 - [ ] **Fiscal Printer Support** - Government-mandated receipt requirements
 - [x] **Local Regulations** - Region-specific compliance features via `ClosureCountrySpecific` model with template-based initialization (supports Turkey E-Fatura, USA state taxes, EU VAT reporting, etc.)
+- [x] **Region Management** - `CountryRegion` model for tracking states/provinces/special zones with 80+ pre-populated regions (US states, CA provinces, DE states, FR regions) and integration with closure templates
 
 ## Contributing
 

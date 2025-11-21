@@ -154,6 +154,10 @@ class ClosureCountrySpecific(Model, CRUD, AuditMixin, SoftDeleteMixin):
     # ISO 3166-1 alpha-2 country code (e.g., "TR", "US", "DE")
     country_code = Column(String(2), nullable=False, index=True)
     
+    # Foreign key to country_region (optional, for region-specific closures)
+    # Used for states, provinces, special economic zones, etc.
+    fk_region_id = Column(UUID, ForeignKey("country_region.id"), nullable=True, index=True)
+    
     # Country-specific data stored as JSON
     # This allows flexible schema per country without creating separate tables
     country_data_json = Column(Text, nullable=False, default='{}')
@@ -246,13 +250,14 @@ class ClosureCountrySpecific(Model, CRUD, AuditMixin, SoftDeleteMixin):
     # Template loading methods
     
     @staticmethod
-    def _get_template_path(country_code, state_code=None):
+    def _get_template_path(country_code, region_code=None, state_code=None):
         """
         Get the path to the closure template file.
         
         Args:
             country_code: ISO 3166-1 alpha-2 country code (e.g., "TR", "US")
-            state_code: Optional state/province code (e.g., "CA", "NY") for countries with states
+            region_code: Optional region code (e.g., "CA", "NY") - preferred method
+            state_code: Optional state/province code (e.g., "CA", "NY") - deprecated, use region_code
             
         Returns:
             Path to template file, or None if not found
@@ -260,11 +265,14 @@ class ClosureCountrySpecific(Model, CRUD, AuditMixin, SoftDeleteMixin):
         # Get project root directory
         project_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
         
-        # Try state-specific template first (e.g., usa_ca.json)
-        if state_code:
-            state_template = os.path.join(project_path, 'static_files', 'closures', f"{country_code.lower()}_{state_code.lower()}.json")
-            if os.path.exists(state_template):
-                return state_template
+        # Use region_code if provided, otherwise fall back to state_code (for backward compatibility)
+        code_to_use = region_code or state_code
+        
+        # Try region/state-specific template first (e.g., usa_ca.json)
+        if code_to_use:
+            region_template = os.path.join(project_path, 'static_files', 'closures', f"{country_code.lower()}_{code_to_use.lower()}.json")
+            if os.path.exists(region_template):
+                return region_template
         
         # Try country-specific template (e.g., tr.json, usa.json)
         country_template = os.path.join(project_path, 'static_files', 'closures', f"{country_code.lower()}.json")
@@ -279,18 +287,19 @@ class ClosureCountrySpecific(Model, CRUD, AuditMixin, SoftDeleteMixin):
         return None
     
     @staticmethod
-    def load_template(country_code, state_code=None):
+    def load_template(country_code, region_code=None, state_code=None):
         """
-        Load closure template for a specific country/state.
+        Load closure template for a specific country/region.
         
         Args:
             country_code: ISO 3166-1 alpha-2 country code (e.g., "TR", "US")
-            state_code: Optional state/province code (e.g., "CA", "NY")
+            region_code: Optional region code (e.g., "CA", "NY") - preferred method
+            state_code: Optional state/province code (e.g., "CA", "NY") - deprecated, use region_code
             
         Returns:
             Dictionary with template data, or empty dict if template not found
         """
-        template_path = ClosureCountrySpecific._get_template_path(country_code, state_code)
+        template_path = ClosureCountrySpecific._get_template_path(country_code, region_code, state_code)
         
         if not template_path or not os.path.exists(template_path):
             return {}
@@ -304,30 +313,44 @@ class ClosureCountrySpecific(Model, CRUD, AuditMixin, SoftDeleteMixin):
             # Log error in production, but return empty dict for now
             return {}
     
-    def load_template_for_country(self, state_code=None):
+    def load_template_for_country(self, region_code=None, state_code=None):
         """
         Load template for this instance's country code.
         
         Args:
-            state_code: Optional state/province code
+            region_code: Optional region code - preferred method
+            state_code: Optional state/province code - deprecated, use region_code
             
         Returns:
             Dictionary with template data
         """
-        return self.load_template(self.country_code, state_code)
+        # If fk_region_id is set, try to get region_code from database
+        if self.fk_region_id and not region_code:
+            try:
+                from data_layer.model.definition.country_region import CountryRegion
+                from data_layer.engine import Engine
+                with Engine().get_session() as session:
+                    region = session.query(CountryRegion).filter_by(id=self.fk_region_id).first()
+                    if region:
+                        region_code = region.region_code
+            except Exception:
+                pass  # Fall back to provided parameters
+        
+        return self.load_template(self.country_code, region_code, state_code)
     
-    def initialize_from_template(self, state_code=None, merge_with_existing=False):
+    def initialize_from_template(self, region_code=None, state_code=None, merge_with_existing=False):
         """
         Initialize country_data_json from template file.
         
         Args:
-            state_code: Optional state/province code
+            region_code: Optional region code - preferred method
+            state_code: Optional state/province code - deprecated, use region_code
             merge_with_existing: If True, merge template with existing data; if False, replace
             
         Returns:
             True if template was loaded successfully, False otherwise
         """
-        template_data = self.load_template_for_country(state_code)
+        template_data = self.load_template_for_country(region_code, state_code)
         
         if not template_data:
             return False
@@ -344,14 +367,16 @@ class ClosureCountrySpecific(Model, CRUD, AuditMixin, SoftDeleteMixin):
         return True
     
     @classmethod
-    def create_from_template(cls, fk_closure_id, country_code, state_code=None):
+    def create_from_template(cls, fk_closure_id, country_code, region_code=None, state_code=None, fk_region_id=None):
         """
         Create a new ClosureCountrySpecific instance initialized from template.
         
         Args:
             fk_closure_id: Foreign key to closure.id
             country_code: ISO 3166-1 alpha-2 country code
-            state_code: Optional state/province code
+            region_code: Optional region code - preferred method
+            state_code: Optional state/province code - deprecated, use region_code
+            fk_region_id: Optional foreign key to country_region.id
             
         Returns:
             New ClosureCountrySpecific instance with template data loaded
@@ -359,6 +384,20 @@ class ClosureCountrySpecific(Model, CRUD, AuditMixin, SoftDeleteMixin):
         instance = cls()
         instance.fk_closure_id = fk_closure_id
         instance.country_code = country_code.upper()
-        instance.initialize_from_template(state_code, merge_with_existing=False)
+        instance.fk_region_id = fk_region_id
+        
+        # If fk_region_id is provided, get region_code from database
+        if fk_region_id and not region_code:
+            try:
+                from data_layer.model.definition.country_region import CountryRegion
+                from data_layer.engine import Engine
+                with Engine().get_session() as session:
+                    region = session.query(CountryRegion).filter_by(id=fk_region_id).first()
+                    if region:
+                        region_code = region.region_code
+            except Exception:
+                pass
+        
+        instance.initialize_from_template(region_code, state_code, merge_with_existing=False)
         return instance
 

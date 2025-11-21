@@ -1095,6 +1095,7 @@ SaleFlex.PyPOS uses a comprehensive database schema with over 80 models organize
 
 #### Location and Geography
 - **Country**: Country master data with ISO codes and names
+- **CountryRegion**: Sub-country regions (states, provinces, special economic zones) with ISO 3166-2 codes. Supports region-specific closure templates and compliance tracking. Pre-populated with 80+ regions (US states, Canadian provinces, German states, French regions)
 - **City**: City master data linked to countries
 - **District**: District/region master data linked to cities
 
@@ -1209,7 +1210,7 @@ SaleFlex.PyPOS uses a comprehensive database schema with over 80 models organize
 - **ClosurePaymentTypeSummary**: Payment method breakdown per closure
 - **ClosureTipSummary**: Tip tracking by payment method with distribution tracking (for restaurants)
 - **ClosureVATSummary**: Tax rate breakdown with taxable amounts, tax amounts, and exemptions
-- **ClosureCountrySpecific**: Country-specific closure data stored as JSON with template-based initialization. Supports all countries without creating separate models. Templates are stored in `static_files/closures/` directory and can be loaded automatically based on country code and optional state/province code. See [Country-Specific Closure Templates](#country-specific-closure-templates) section below for details.
+- **ClosureCountrySpecific**: Country-specific closure data stored as JSON with template-based initialization. Supports all countries without creating separate models. Templates are stored in `static_files/closures/` directory and can be loaded automatically based on country code and optional region code. Linked to `CountryRegion` model via `fk_region_id` for region-specific closures (e.g., `usa_ca.json` for California). See [Country-Specific Closure Templates](#country-specific-closure-templates) section below for details.
 
 ### Form and UI Models
 
@@ -1221,19 +1222,56 @@ SaleFlex.PyPOS uses a comprehensive database schema with over 80 models organize
 - **ReceiptFooter**: Receipt footer templates
 - **LabelValue**: Label/value pairs for translations and configuration
 
+### Country Region Model
+
+The `CountryRegion` model tracks sub-country regions (states, provinces, special economic zones) that have different tax rates, regulations, or compliance requirements. This enables region-specific closure templates and better compliance tracking.
+
+#### Features
+- **Region Types**: Supports states, provinces, territories, regions, districts, free zones, and special economic zones
+- **ISO 3166-2 Codes**: Each region includes ISO 3166-2 code (e.g., US-CA, CA-ON, DE-BY)
+- **Special Requirements Flag**: Marks regions with special tax/compliance requirements
+- **Metadata Support**: JSON field for storing additional region-specific data (tax rates, time zones, etc.)
+- **Template Integration**: Region codes are used for template file naming (e.g., `usa_ca.json`)
+
+#### Pre-populated Regions
+- **United States**: 50 states + DC (80+ regions total)
+- **Canada**: 10 provinces + 3 territories
+- **Germany**: 16 states (Länder)
+- **France**: 13 regions
+
+#### Usage Example
+
+```python
+from data_layer.model.definition.country_region import CountryRegion
+
+# Get California region
+california = session.query(CountryRegion).filter_by(
+    region_code='CA',
+    fk_country_id=usa_id
+).first()
+
+# Use in closure
+closure = ClosureCountrySpecific.create_from_template(
+    fk_closure_id=closure_id,
+    country_code='US',
+    fk_region_id=california.id  # Automatically loads usa_ca.json template
+)
+```
+
 ### Country-Specific Closure Templates
 
-SaleFlex.PyPOS supports country-specific closure data through a flexible template system. Instead of creating separate models for each country, closure data is stored as JSON in the `ClosureCountrySpecific` model, with templates defining the structure for each country.
+SaleFlex.PyPOS supports country-specific closure data through a flexible template system. Instead of creating separate models for each country, closure data is stored as JSON in the `ClosureCountrySpecific` model, with templates defining the structure for each country. Regions are tracked via the `CountryRegion` model for region-specific templates.
 
 #### Template System Overview
 
 - **Location**: Templates are stored in `static_files/closures/` directory
 - **Naming Convention**: 
   - Country-level: `{country_code}.json` (e.g., `tr.json`, `usa.json`)
-  - State/Province-level: `{country_code}_{state_code}.json` (e.g., `usa_ca.json`, `usa_ny.json`)
+  - Region-level: `{country_code}_{region_code}.json` (e.g., `usa_ca.json`, `usa_ny.json`, `ca_on.json`)
   - Default fallback: `default.json`
-- **Template Resolution**: System tries state-specific → country-specific → default template
+- **Template Resolution**: System tries region-specific → country-specific → default template
 - **Auto-initialization**: Templates can be automatically loaded when creating closure records
+- **Region Support**: Uses `CountryRegion` model for region-specific templates. Region codes are automatically resolved from `fk_region_id` or can be provided directly via `region_code` parameter
 
 #### Available Templates
 
@@ -1256,7 +1294,15 @@ from data_layer.model.definition.closure_country_specific import ClosureCountryS
 closure = ClosureCountrySpecific.create_from_template(
     fk_closure_id=closure_id,
     country_code='TR',
-    state_code=None  # Optional, for state-specific templates
+    region_code=None  # Optional, for region-specific templates (e.g., 'CA' for California)
+)
+
+# Or using CountryRegion foreign key
+region = session.query(CountryRegion).filter_by(region_code='CA', fk_country_id=usa_id).first()
+closure = ClosureCountrySpecific.create_from_template(
+    fk_closure_id=closure_id,
+    country_code='US',
+    fk_region_id=region.id  # Automatically resolves region_code='CA'
 )
 
 # Access country-specific data
@@ -1298,34 +1344,35 @@ The `insert_initial_data()` function in `db_init_data/__init__.py` orchestrates 
 
 1. **Admin Cashier** (`_insert_admin_cashier`): Creates default administrator user (username: admin, password: admin)
 2. **Countries** (`_insert_countries`): Inserts world countries with ISO codes
-3. **Default Store** (`_insert_default_store`): Creates default store with system information (MAC address, OS version, serial number)
-4. **Cities** (`_insert_cities`): Inserts city master data
-5. **Districts** (`_insert_districts`): Inserts district/region data
-6. **Warehouses** (`_insert_warehouses`): Creates default warehouses (Main, Backroom, Sales Floor, etc.)
-7. **Currencies** (`_insert_currencies`): Inserts major world currencies (USD, EUR, GBP, etc.)
-8. **Currency Table** (`_insert_currency_table`): Sets up currency exchange rates
-9. **Payment Types** (`_insert_payment_types`): Creates payment methods (Cash, Credit Card, Debit Card, etc.)
-10. **VAT Rates** (`_insert_vat_rates`): Inserts default VAT/tax rates (0%, 5%, 20%, etc.)
-11. **Product Units** (`_insert_product_units`): Creates measurement units (PCS, KG, L, M, etc.)
-12. **Product Manufacturers** (`_insert_product_manufacturers`): Inserts sample manufacturer data
-13. **Department Groups** (`_insert_department_groups`): Creates product category structure (main groups and sub-groups)
-14. **Products** (`_insert_products`): Inserts sample products for testing
-15. **Product Variants** (`_insert_product_variants`): Creates product variations
-16. **Product Attributes** (`_insert_product_attributes`): Inserts product attribute definitions
-17. **Product Barcodes** (`_insert_product_barcodes`): Associates barcodes with products
-18. **Transaction Document Types** (`_insert_transaction_document_types`): Creates document types (Sale, Return, etc.)
-19. **Transaction Sequences** (`_insert_transaction_sequences`): Sets up transaction numbering sequences
-20. **Product Barcode Masks** (`_insert_product_barcode_masks`): Defines barcode format rules
-21. **Default Forms** (`_insert_default_forms`): Creates LOGIN and MAIN_MENU forms
-22. **Form Controls** (`_insert_form_controls`): Populates forms with controls (buttons, textboxes, etc.)
-23. **Label Values** (`_insert_label_values`): Inserts translation labels and configuration values
-24. **Cashier Performance Targets** (`_insert_cashier_performance_targets`): Sets up performance targets
-25. **Virtual Keyboard Settings** (`_insert_virtual_keyboard_settings`): Creates default keyboard theme
-26. **Alternative Keyboard Themes** (`_insert_alternative_keyboard_themes`): Adds additional keyboard themes
-27. **Campaigns** (`_insert_campaigns`): Creates sample promotional campaigns
-28. **Loyalty Programs** (`_insert_loyalty`): Sets up loyalty program with tiers
-29. **Customer Segments** (`_insert_customer_segments`): Creates default customer segments
-30. **POS Settings** (`_insert_pos_settings`): Configures system-wide POS settings including device serial number (generated from MAC address and disk serial), operating system information, default country (United Kingdom), default currency (GBP), customer display settings (INTERNAL), barcode reader port (PS/2), backend connection settings (127.0.0.1:5000), and backend type (GATE)
+3. **Country Regions** (`_insert_country_regions`): Inserts 80+ sub-country regions (US states, Canadian provinces, German states, French regions) with ISO 3166-2 codes
+4. **Default Store** (`_insert_default_store`): Creates default store with system information (MAC address, OS version, serial number)
+5. **Cities** (`_insert_cities`): Inserts city master data
+6. **Districts** (`_insert_districts`): Inserts district/region data
+7. **Warehouses** (`_insert_warehouses`): Creates default warehouses (Main, Backroom, Sales Floor, etc.)
+8. **Currencies** (`_insert_currencies`): Inserts major world currencies (USD, EUR, GBP, etc.)
+9. **Currency Table** (`_insert_currency_table`): Sets up currency exchange rates
+10. **Payment Types** (`_insert_payment_types`): Creates payment methods (Cash, Credit Card, Debit Card, etc.)
+11. **VAT Rates** (`_insert_vat_rates`): Inserts default VAT/tax rates (0%, 5%, 20%, etc.)
+12. **Product Units** (`_insert_product_units`): Creates measurement units (PCS, KG, L, M, etc.)
+13. **Product Manufacturers** (`_insert_product_manufacturers`): Inserts sample manufacturer data
+14. **Department Groups** (`_insert_department_groups`): Creates product category structure (main groups and sub-groups)
+15. **Products** (`_insert_products`): Inserts sample products for testing
+16. **Product Variants** (`_insert_product_variants`): Creates product variations
+17. **Product Attributes** (`_insert_product_attributes`): Inserts product attribute definitions
+18. **Product Barcodes** (`_insert_product_barcodes`): Associates barcodes with products
+19. **Transaction Document Types** (`_insert_transaction_document_types`): Creates document types (Sale, Return, etc.)
+20. **Transaction Sequences** (`_insert_transaction_sequences`): Sets up transaction numbering sequences
+21. **Product Barcode Masks** (`_insert_product_barcode_masks`): Defines barcode format rules
+22. **Default Forms** (`_insert_default_forms`): Creates LOGIN and MAIN_MENU forms
+23. **Form Controls** (`_insert_form_controls`): Populates forms with controls (buttons, textboxes, etc.)
+24. **Label Values** (`_insert_label_values`): Inserts translation labels and configuration values
+25. **Cashier Performance Targets** (`_insert_cashier_performance_targets`): Sets up performance targets
+26. **Virtual Keyboard Settings** (`_insert_virtual_keyboard_settings`): Creates default keyboard theme
+27. **Alternative Keyboard Themes** (`_insert_alternative_keyboard_themes`): Adds additional keyboard themes
+28. **Campaigns** (`_insert_campaigns`): Creates sample promotional campaigns
+29. **Loyalty Programs** (`_insert_loyalty`): Sets up loyalty program with tiers
+30. **Customer Segments** (`_insert_customer_segments`): Creates default customer segments
+31. **POS Settings** (`_insert_pos_settings`): Configures system-wide POS settings including device serial number (generated from MAC address and disk serial), operating system information, default country (United Kingdom), default currency (GBP), customer display settings (INTERNAL), barcode reader port (PS/2), backend connection settings (127.0.0.1:5000), and backend type (GATE)
 
 ### Function Details
 
@@ -1350,6 +1397,15 @@ Inserts comprehensive country master data including:
 - Country names in multiple languages
 - Numeric codes
 - Phone country codes
+
+#### `_insert_country_regions(session, admin_cashier_id)`
+Inserts sub-country regions for countries with regional variations:
+- **United States**: 50 states + DC (California, New York, Texas marked with special requirements)
+- **Canada**: 10 provinces + 3 territories (Ontario, British Columbia, Quebec, etc.)
+- **Germany**: 16 states/Länder (Bavaria, Baden-Württemberg, Berlin, etc.)
+- **France**: 13 regions (Île-de-France, Provence-Alpes-Côte d'Azur, etc.)
+- Each region includes: region_code, region_name, ISO 3166-2 code, region_type
+- Total: 80+ regions pre-populated
 
 #### `_insert_currencies(session)`
 Inserts major world currencies:

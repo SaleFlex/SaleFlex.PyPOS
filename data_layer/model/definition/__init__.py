@@ -14,6 +14,7 @@ from .closure_tip_summary import ClosureTipSummary
 from .closure_vat_summary import ClosureVATSummary
 from .closure_country_specific import ClosureCountrySpecific
 from .country import Country
+from .country_region import CountryRegion
 from .currency import Currency
 from .currency_table import CurrencyTable
 from .customer import Customer
@@ -113,6 +114,7 @@ __all__ = [
     'ClosureVATSummary',
     'ClosureCountrySpecific',
     'Country',
+    'CountryRegion',
     'Currency',
     'CurrencyTable',
     'Customer',

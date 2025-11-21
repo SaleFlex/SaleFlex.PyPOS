@@ -4,6 +4,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from data_layer.db_init_data.cashier import _insert_admin_cashier
 from data_layer.db_init_data.city import _insert_cities
 from data_layer.db_init_data.country import _insert_countries
+from data_layer.db_init_data.country_region import _insert_country_regions
 from data_layer.db_init_data.currency import _insert_currencies
 from data_layer.db_init_data.currency_table import _insert_currency_table
 from data_layer.db_init_data.department_group import _insert_department_groups
@@ -42,6 +43,9 @@ def insert_initial_data(engine: Engine):
 
             # Insert countries (must be before store because of foreign key)
             _insert_countries(session)
+            
+            # Insert country regions (must be after countries, before store)
+            _insert_country_regions(session, admin_cashier.id)
 
             # Insert default store
             _insert_default_store(session)

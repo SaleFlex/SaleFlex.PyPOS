@@ -55,6 +55,7 @@ from data_layer.model.definition.closure_tip_summary import ClosureTipSummary
 from data_layer.model.definition.closure_vat_summary import ClosureVATSummary
 from data_layer.model.definition.closure_country_specific import ClosureCountrySpecific
 from data_layer.model.definition.country import Country
+from data_layer.model.definition.country_region import CountryRegion
 from data_layer.model.definition.city import City
 from data_layer.model.definition.district import District
 from data_layer.model.definition.currency import Currency
