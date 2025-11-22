@@ -8,6 +8,8 @@ The caching system is divided into two main categories:
 1. **POS Reference Data** (`pos_data`): System configuration and reference data
 2. **Product Data** (`product_data`): Product-related models used in sales operations
 
+**Note**: In addition to caching, SaleFlex.PyPOS implements an **auto-save system** using descriptor pattern and wrapper classes (AutoSaveModel, AutoSaveDict, AutoSaveDescriptor) located in `data_layer/auto_save/`. This system automatically persists model changes to the database when attributes are modified, ensuring data integrity without manual save operations.
+
 ## POS Reference Data Cache (`pos_data`)
 
 The following reference data models are loaded into `pos_data` dictionary at startup:

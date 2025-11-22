@@ -30,5 +30,5 @@
 ---
 
 **Last Updated:** 2025-01-27  
-**Version:** 1.0.0b2  
+**Version:** 1.0.0b3  
 **License:** MIT

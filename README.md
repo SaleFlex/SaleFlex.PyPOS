@@ -1,5 +1,5 @@
 > **Under development. The project is not working properly yet.**
-> **Current Version: 1.0.0b1 (Beta)**
+> **Current Version: 1.0.0b3 (Beta)**
 
 ![Python 3.13](https://img.shields.io/badge/python-%3E=_3.13-success.svg)
 ![PySide6](https://img.shields.io/badge/PySide6-6.10.0-blue.svg)
@@ -30,7 +30,19 @@ SaleFlex.PyPOS POS system is designed to streamline the sales process and improv
 - **Region Support**: `CountryRegion` model tracks sub-country regions (states, provinces, special economic zones) with ISO 3166-2 compliant fields. Includes 80+ pre-populated regions for region-specific closure templates and compliance
 - **Active Closure Management**: Session-based closure tracking system that automatically loads open closures at startup and manages closure lifecycle (open → active → closed). Closure data is maintained in memory during operations and saved to database when closed
 - **Document Management System**: Complete transaction lifecycle management with temporary models during processing and automatic conversion to permanent models upon completion. Automatically updates document data during sales operations (PLU and department sales). Supports document suspension/resumption for restaurant mode (table/order management) and automatic recovery of incomplete transactions at startup. Automatically restores sale screen UI controls (sale_list, amount_table, payment_list) when entering sale screen with ACTIVE transaction status, enabling seamless resumption of incomplete transactions
+- **Auto-Save Functionality**: Automatic database persistence system using descriptor pattern and wrapper classes. Model instances and dictionaries are automatically saved to the database when attributes are modified, ensuring data integrity and reducing manual save operations. Supports nested model wrapping and skip flags for batch operations
 - **Optimized Performance**: In-memory caching of reference data (`pos_data`) and product data (`product_data`) minimizes disk I/O, extending disk life for POS devices with limited write cycles. All product lookups, currency calculations, VAT rate lookups, button rendering, and sale operations use cached data instead of database queries
+
+## Architecture Overview
+
+SaleFlex.PyPOS follows a layered architecture pattern with clear separation of concerns:
+
+- **Application Layer** (`pos/manager/application.py`): Main application class implementing Singleton pattern, combining CurrentStatus, CurrentData, and EventHandler
+- **Business Logic Layer** (`pos/service/`): Service classes (VatService, SaleService, PaymentService) for centralized business operations
+- **Event Handling Layer** (`pos/manager/event/`): 9 specialized event handler classes for modular event processing
+- **Data Access Layer** (`data_layer/model/`): 98+ SQLAlchemy models with CRUD operations and auto-save functionality
+- **UI Layer** (`user_interface/`): PySide6-based UI components with dynamic form rendering
+- **Caching Layer** (`pos/manager/cache_manager.py`): In-memory caching for reference and product data
 
 ## Project Structure
 
@@ -67,13 +79,14 @@ SaleFlex.PyPOS/
 │   ├── enums/              # Enumeration definitions
 │   │   ├── control_name.py
 │   │   ├── control_type.py
+│   │   ├── custom_control_type_name.py
 │   │   ├── event_name.py
 │   │   └── form_name.py
 │   │
 │   └── model/              # Data models and CRUD operations
 │       ├── crud_model.py   # Base CRUD operations
 │       ├── mixins.py       # Model mixins
-│       └── definition/     # Entity definitions (80+ models)
+│       └── definition/     # Entity definitions (98+ models)
 │
 ├── user_interface/         # UI Components
 │   ├── window/             # Application windows and dialogs
@@ -127,13 +140,17 @@ SaleFlex.PyPOS/
 │       ├── cache_manager.py      # Data caching
 │       ├── closure_manager.py    # Closure management
 │       ├── document_manager.py   # Document lifecycle
-│       ├── event_handler.py      # Event handling
-│       └── event/          # Event handlers
-│           ├── sale.py
-│           ├── payment.py
-│           ├── closure.py
-│           ├── general.py
-│           └── ...
+│       ├── event_handler.py      # Event handling (combines all event handlers)
+│       └── event/          # Event handlers (9 specialized event handler classes)
+│           ├── general.py        # GeneralEvent: Login, logout, exit, navigation
+│           ├── sale.py           # SaleEvent: Sales transaction and product events
+│           ├── payment.py        # PaymentEvent: Payment processing events
+│           ├── closure.py        # ClosureEvent: End-of-day closure operations
+│           ├── configuration.py  # ConfigurationEvent: Settings and configuration
+│           ├── service.py        # ServiceEvent: Service-related operations
+│           ├── report.py         # ReportEvent: Report generation and viewing
+│           ├── hardware.py       # HardwareEvent: Hardware device operations
+│           └── warehouse.py      # WarehouseEvent: Warehouse and inventory operations
 │
 ├── settings/               # Configuration management
 │   └── settings.py
@@ -147,8 +164,6 @@ SaleFlex.PyPOS/
 │   └── images/             # Image assets
 │       ├── saleflex.ico
 │       └── ...
-│
-└── test_*.py               # Test scripts
 ```
 
 ## Business Applications
@@ -259,13 +274,37 @@ If you select "SALES", you will see a form as shown below:
 - The application uses SQLite by default, stored in `db.sqlite3`
 - Device information (serial number, OS) is automatically detected and stored on first initialization
 
+### Database Models Overview
+
+The application includes **98+ database models** organized into logical categories:
+
+- **Core System**: Cashier, Store, Table, Country, CountryRegion, City, District
+- **Currency & Payment**: Currency, CurrencyTable, PaymentType, ClosureCurrency
+- **Product Management**: Product, ProductVariant, ProductAttribute, ProductBarcode, ProductUnit, ProductManufacturer, DepartmentMainGroup, DepartmentSubGroup
+- **Transaction Models**: TransactionHead/HeadTemp, TransactionProduct/ProductTemp, TransactionPayment/PaymentTemp, TransactionDiscount/DiscountTemp, TransactionTax/TaxTemp, TransactionTip/TipTemp, TransactionDepartment/DepartmentTemp, TransactionDelivery/DeliveryTemp, TransactionNote/NoteTemp, TransactionRefund/RefundTemp, TransactionSurcharge/SurchargeTemp, TransactionFiscal/FiscalTemp, TransactionKitchenOrder/KitchenOrderTemp, TransactionLoyalty/LoyaltyTemp, TransactionChange/ChangeTemp, TransactionVoid, TransactionLog, TransactionSequence, TransactionDocumentType, TransactionDiscountType, TransactionStatus
+- **Warehouse Management**: Warehouse, WarehouseLocation, WarehouseProductStock, WarehouseStockMovement, WarehouseStockAdjustment
+- **Customer Management**: Customer, CustomerSegment, CustomerSegmentMember
+- **Campaign & Promotion**: CampaignType, Campaign, CampaignRule, CampaignProduct, CampaignUsage, Coupon, CouponUsage
+- **Loyalty Programs**: LoyaltyProgram, LoyaltyTier, CustomerLoyalty, LoyaltyPointTransaction
+- **Cashier Performance**: CashierWorkSession, CashierWorkBreak, CashierPerformanceMetrics, CashierPerformanceTarget, CashierTransactionMetrics
+- **Closure & Reporting**: Closure, ClosureCashierSummary, ClosureCurrency, ClosureDepartmentSummary, ClosureDiscountSummary, ClosureDocumentTypeSummary, ClosurePaymentTypeSummary, ClosureTipSummary, ClosureVATSummary, ClosureCountrySpecific
+- **Form & UI**: Form, FormControl, PosSettings, PosVirtualKeyboard, ReceiptHeader, ReceiptFooter, LabelValue
+
+All models support:
+- **UUID Primary Keys**: Unique identifiers for all records
+- **CRUD Operations**: Base CRUD class provides create, read, update, delete operations
+- **Audit Trails**: Created/updated timestamps and user tracking
+- **Soft Delete**: Records can be marked as deleted without physical removal
+- **Auto-Save**: Automatic database persistence when attributes are modified
+
 ## Development Roadmap
 
 ### Core Infrastructure
 - [x] **Project Structure** - Basic application framework
-- [x] **Database Layer** - SQLAlchemy ORM integration
-- [x] **Database Structure** - POS data layer structure
+- [x] **Database Layer** - SQLAlchemy ORM integration with 98+ models
+- [x] **Database Structure** - POS data layer structure with comprehensive model definitions
 - [x] **UI Foundation** - PySide6 interface framework
+- [x] **Auto-Save System** - Automatic database persistence with descriptor pattern
 - [ ] **Configuration Management** - Advanced settings system
 - [ ] **Logging & Monitoring** - Comprehensive logging and error tracking
 
@@ -274,6 +313,8 @@ If you select "SALES", you will see a form as shown below:
 - [x] **Document Management System** - Transaction lifecycle management with temp/permanent models, pending documents, and restaurant mode support
 - [x] **Service Layer Architecture** - Business logic services (VatService, SaleService, PaymentService) for centralized calculations and operations
 - [x] **Payment Processing System** - Multi-payment method processing with button name parsing, change calculation, and automatic document completion
+- [x] **Event Handler System** - Comprehensive event handling with 9 specialized event handler classes (GeneralEvent, SaleEvent, PaymentEvent, ClosureEvent, ConfigurationEvent, ServiceEvent, ReportEvent, HardwareEvent, WarehouseEvent) for modular and maintainable code organization
+- [x] **Auto-Save System** - Automatic database persistence using descriptor pattern and wrapper classes (AutoSaveModel, AutoSaveDict, AutoSaveDescriptor) for seamless data integrity
 - [ ] **SPU/PLU Management** - Product and pricing management
 - [ ] **Customer Module** - Customer relationship management
 - [ ] **Printer Module** - Receipt and invoice printing
@@ -398,6 +439,7 @@ If you select "SALES", you will see a form as shown below:
 - [x] **In-Memory Data Caching** - Reference data (`pos_data`) and product data (`product_data`) loaded once at startup to minimize disk I/O
 - [x] **Product Data Cache** - All product-related models (including Currency, CurrencyTable, and Vat) cached in memory for fast sale operations, currency calculations, VAT lookups, and button rendering
 - [x] **Active Closure Management** - Current closure data maintained in session memory (`CurrentData.closure`) with automatic loading at startup and lifecycle management (open → active → closed)
+- [x] **Auto-Save Optimization** - Automatic database persistence reduces manual save operations and ensures data integrity without performance overhead
 - [ ] **Database Optimization** - Query optimization and indexing
 - [ ] **External Caching Layer** - Redis/Memcached integration (optional)
 - [ ] **Load Testing** - Performance testing under high load
@@ -418,6 +460,20 @@ If you select "SALES", you will see a form as shown below:
 - [x] **Local Regulations** - Region-specific compliance features via `ClosureCountrySpecific` model with template-based initialization (supports Turkey E-Fatura, USA state taxes, EU VAT reporting, etc.)
 - [x] **Region Management** - `CountryRegion` model for tracking states/provinces/special zones with ISO 3166-2 compliant fields. Includes 80+ pre-populated regions (US states, CA provinces, DE states, FR regions) and integration with closure templates
 - [x] **ISO 3166 Compliance** - Country and region models use ISO 3166-1 (alpha-2, alpha-3, numeric) and ISO 3166-2 (subdivision codes) standard field names for international compatibility
+
+## Documentation
+
+Comprehensive documentation is available in the `docs/` directory:
+
+- **[Documentation Index](docs/README.md)** - Complete guide organized by topic
+- **[Installation Guide](docs/03-installation.md)** - Detailed setup instructions
+- **[Dynamic Forms System](docs/06-dynamic-forms.md)** - Database-driven UI system
+- **[Virtual Keyboard](docs/07-virtual-keyboard.md)** - Virtual keyboard configuration
+- **[Data Caching](docs/08-data-caching.md)** - Caching strategy and implementation
+- **[Document Management](docs/09-document-management.md)** - Transaction lifecycle management
+- **[Database Models](docs/10-database-models.md)** - Complete model reference
+- **[Service Layer](docs/14-service-layer.md)** - Business logic services architecture
+- **[Troubleshooting](docs/12-troubleshooting.md)** - Common issues and solutions
 
 ## Contributing
 

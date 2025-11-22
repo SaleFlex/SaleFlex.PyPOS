@@ -1,6 +1,6 @@
 # Database Models Overview
 
-SaleFlex.PyPOS uses a comprehensive database schema with over 80 models organized into logical categories. All models inherit from base classes that provide CRUD operations, audit trails, and soft delete functionality.
+SaleFlex.PyPOS uses a comprehensive database schema with 98+ models organized into logical categories. All models inherit from base classes that provide CRUD operations, audit trails, soft delete functionality, and auto-save capabilities.
 
 ## Core System Models
 
@@ -250,6 +250,7 @@ All models include:
 - **Audit Fields**: Created/updated timestamps and user tracking
 - **Soft Delete**: Records are marked as deleted rather than physically removed
 - **CRUD Operations**: Standard create, read, update, delete methods
+- **Auto-Save Functionality**: Automatic database persistence using descriptor pattern and wrapper classes (AutoSaveModel, AutoSaveDict, AutoSaveDescriptor) for seamless data integrity
 - **Server Synchronization**: Support for multi-store synchronization via `fk_server_id`
 
 ---

@@ -385,12 +385,13 @@ control.form_transition_mode = "MODAL"  # Correct (uppercase)
 
 1. **In-Memory Data Caching**: All reference data (Cashier, CashierPerformanceMetrics, CashierPerformanceTarget, CashierTransactionMetrics, CashierWorkBreak, CashierWorkSession, City, Country, CountryRegion, District, Form, FormControl, LabelValue, PaymentType, PosSettings, PosVirtualKeyboard, ReceiptFooter, ReceiptHeader, Store, Table, TransactionDiscountType, TransactionDocumentType, TransactionSequence, etc.) is loaded once at application startup into `pos_data` dictionary. This minimizes disk I/O and improves performance, especially important for POS devices with limited disk write cycles.
 2. **Product Data Caching**: All product-related models (Currency, CurrencyTable, Vat, Product, ProductBarcode, DepartmentMainGroup, DepartmentSubGroup, Warehouse, etc.) are loaded once at application startup into `product_data` dictionary. Sale operations, button rendering, product lookups, currency calculations, and VAT rate lookups use cached data instead of database queries.
-3. **RAM Management**: Consider a cache system for frequently used forms instead of `REPLACE`
-4. **Database Queries**: Forms, controls, and products are loaded into cache dictionaries at application startup - no repeated database reads during runtime
-5. **Cache Synchronization**: When reference data is modified (e.g., new cashier created), the cache is automatically updated via `update_pos_data_cache()` method. When product data is modified, use `update_product_data_cache()` method.
-6. **Modal Dialog Cleanup**: Modal dialogs are automatically cleaned up (no memory leaks)
-7. **Login Performance**: Login operations use cached `pos_data` instead of database queries, significantly reducing disk I/O
-8. **Sale Performance**: All sale operations (PLU code lookup, barcode lookup, department lookup) use cached `product_data`, eliminating database queries during transactions
+3. **Auto-Save Optimization**: The auto-save system (AutoSaveModel, AutoSaveDict, AutoSaveDescriptor) automatically persists model changes to the database without manual save operations, ensuring data integrity while maintaining performance.
+4. **RAM Management**: Consider a cache system for frequently used forms instead of `REPLACE`
+5. **Database Queries**: Forms, controls, and products are loaded into cache dictionaries at application startup - no repeated database reads during runtime
+6. **Cache Synchronization**: When reference data is modified (e.g., new cashier created), the cache is automatically updated via `update_pos_data_cache()` method. When product data is modified, use `update_product_data_cache()` method.
+7. **Modal Dialog Cleanup**: Modal dialogs are automatically cleaned up (no memory leaks)
+8. **Login Performance**: Login operations use cached `pos_data` instead of database queries, significantly reducing disk I/O
+9. **Sale Performance**: All sale operations (PLU code lookup, barcode lookup, department lookup) use cached `product_data`, eliminating database queries during transactions
 
 ## Future Enhancements
 

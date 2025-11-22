@@ -94,7 +94,7 @@ During sales operations, the `document_data` is automatically updated:
 - **Customer Assignment**: Automatically assigns a default walk-in customer if not set
 - **Batch Number**: Automatically set to match `closure_number`
 
-All temp models are automatically saved to the database when created during sales operations.
+All temp models are automatically saved to the database when created during sales operations. This automatic persistence is handled by the auto-save system using descriptor pattern and wrapper classes (AutoSaveModel, AutoSaveDict, AutoSaveDescriptor) located in `data_layer/auto_save/`, ensuring data integrity without manual save operations.
 
 ### 2. Document Loading
 
