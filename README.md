@@ -115,6 +115,10 @@ SaleFlex.PyPOS/
 │   ├── hardware/           # Hardware integration
 │   │   └── device_info.py  # Device information detection
 │   │
+│   ├── service/            # Business logic services
+│   │   ├── vat_service.py   # VAT calculation service
+│   │   └── sale_service.py  # Sale processing service
+│   │
 │   └── manager/            # Application management
 │       ├── application.py  # Main application class
 │       ├── current_data.py # Current session data
@@ -267,6 +271,7 @@ If you select "SALES", you will see a form as shown below:
 ### POS Core Modules
 - [x] **POS Manager Module** - Central business logic and transaction handling with document management system
 - [x] **Document Management System** - Transaction lifecycle management with temp/permanent models, pending documents, and restaurant mode support
+- [x] **Service Layer Architecture** - Business logic services (VatService, SaleService) for centralized calculations and operations
 - [ ] **SPU/PLU Management** - Product and pricing management
 - [ ] **Customer Module** - Customer relationship management
 - [ ] **Payment Module** - Multi-payment method processing

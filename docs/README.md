@@ -15,6 +15,7 @@
 11. [Database Initialization Functions](11-database-initialization.md)
 12. [Troubleshooting](12-troubleshooting.md)
 13. [Support and Resources](13-support.md)
+14. [Service Layer Architecture](14-service-layer.md)
 
 ---
 
