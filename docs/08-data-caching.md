@@ -233,6 +233,27 @@ products = [p for p in self.product_data.get("Product", [])
 barcodes = [b for b in self.product_data.get("ProductBarcode", [])
             if b.barcode == barcode
             and not (hasattr(b, 'is_deleted') and b.is_deleted)]
+```
+
+**Quantity Input from NumPad:**
+
+When using `SALE_PLU_CODE` or `SALE_PLU_BARCODE` functions, the system automatically reads quantity from the NumPad if available:
+
+```python
+# In _sale_plu_code() or _sale_plu_barcode() methods:
+# 1. Check NumPad for quantity input
+numpad = current_window.findChildren(NumPad)[0] if current_window.findChildren(NumPad) else None
+if numpad:
+    numpad_text = numpad.get_text()
+    if numpad_text and numpad_text.strip():
+        quantity = float(numpad_text)  # Use NumPad value as quantity
+    # NumPad is automatically cleared after use
+```
+
+**Benefits:**
+- Fast quantity entry without separate quantity input step
+- Improved user experience for bulk sales
+- Automatic NumPad cleanup prevents accidental re-use
 
 # Department lookup (SALE_DEPARTMENT)
 departments = [d for d in self.product_data.get("DepartmentMainGroup", [])

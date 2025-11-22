@@ -19,13 +19,30 @@ The NumPad interface allows for quick numeric input:
 3. "Clear" will reset the entire input
 4. "Enter" confirms your entry
 
+### Quantity Input for PLU Sales
+
+When selling products by PLU code or barcode, you can specify the quantity using the NumPad:
+
+1. **Enter quantity**: Type the desired quantity (e.g., "2" for 2 items) on the NumPad
+2. **Select product**: Click the PLU code or barcode button for the product
+3. **Automatic processing**: The system will add the specified quantity of that product to the sale
+4. **Auto-clear**: After the sale, the NumPad is automatically cleared for the next entry
+
+**Example:**
+- Enter "3" on the NumPad
+- Click a product button (PLU code or barcode)
+- Result: 3 units of that product are added to the sale list
+
+**Note:** If no quantity is entered (NumPad is empty), the default quantity of 1 is used.
+
 ## Processing a Sale
 
 1. From the main menu, select "Sales"
 2. Scan products using a barcode scanner or enter item codes manually using the NumPad
-3. Adjust quantities as needed
-4. When all items are added, complete the transaction
-5. Print a receipt for the customer
+3. **For multiple quantities**: Enter quantity on NumPad, then click the product button
+4. Adjust quantities as needed
+5. When all items are added, complete the transaction
+6. Print a receipt for the customer
 
 ---
 
