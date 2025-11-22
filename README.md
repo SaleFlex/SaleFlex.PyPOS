@@ -238,7 +238,7 @@ SaleFlex.PyPOS integrates seamlessly with **[SaleFlex.GATE](https://github.com/S
 
 After running the application, you will see the login screen:
 
-![Login Screen](sample_login.jpg)
+![Login Screen](static_files/images/sample_login.jpg)
 
 **Default Login Credentials:**
 - **Username**: `admin`
@@ -246,11 +246,11 @@ After running the application, you will see the login screen:
 
 After successful login, you will be redirected to the main menu:
 
-![Main Menu](sample_main_menu.jpg)
+![Main Menu](static_files/images/sample_main_menu.jpg)
 
 If you select "SALES", you will see a form as shown below:
 
-![Sale Form](sample_sale_form.jpg)
+![Sale Form](static_files/images/sample_sale_form.jpg)
 
 ### Configuration
 - Edit `settings.toml` to configure database connections and basic application settings
