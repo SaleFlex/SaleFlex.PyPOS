@@ -868,8 +868,8 @@ def _insert_form_controls(session: Session, cashier_id: str):
         FormControl(
             fk_form_id=sale_form.id,
             fk_parent_id=None,
-            name="SUB_TOTAL",
-            form_control_function1=EventName.NONE.value,
+            name="SUBTOTAL",
+            form_control_function1=EventName.SUBTOTAL.value,
             form_control_function2=None,
             type_no=1,
             type="BUTTON",
