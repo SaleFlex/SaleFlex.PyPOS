@@ -64,10 +64,8 @@ class SaleEvent:
         """
         try:
             from datetime import datetime
-            from data_layer.model import TransactionProductTemp, TransactionDepartmentTemp, Vat
             from data_layer.model.definition.transaction_status import TransactionStatus
-            from decimal import Decimal
-            from data_layer.model import DepartmentMainGroup, DepartmentSubGroup
+            from pos.service import SaleService
             
             if not self.document_data or not self.document_data.get("head"):
                 print("[UPDATE_DOCUMENT_DATA] No document_data or head found")
@@ -136,54 +134,38 @@ class SaleEvent:
             if line_no is None:
                 line_no = len(self.document_data.get("products", [])) + len(self.document_data.get("departments", [])) + 1
             
-            # Calculate totals
-            total_price = float(quantity) * float(unit_price)
-            vat_rate = 0.0
-            total_vat = 0.0
+            # Import services
+            from pos.service import SaleService
             
+            # Calculate totals using SaleService
             if sale_type in ["PLU_CODE", "PLU_BARCODE"]:
                 # PLU sale - create TransactionProductTemp
                 if not product:
                     print("[UPDATE_DOCUMENT_DATA] Product required for PLU sale")
                     return False
                 
-                # Get department from product
-                dept_main_group_id = product.fk_department_main_group_id
-                dept_sub_group_id = product.fk_department_sub_group_id
+                # Calculate sale using SaleService
+                currency_sign = self.current_currency if hasattr(self, 'current_currency') and self.current_currency else None
+                sale_calc = SaleService.calculate_plu_sale(
+                    quantity=quantity,
+                    unit_price=unit_price,
+                    product=product,
+                    product_data=self.product_data,
+                    currency_sign=currency_sign
+                )
                 
-                # Get VAT rate from department
-                dept_main_groups = self.product_data.get("DepartmentMainGroup", [])
-                dept_main_group = next((d for d in dept_main_groups if d.id == dept_main_group_id), None)
-                
-                if dept_main_group and dept_main_group.fk_vat_id:
-                    vats = self.product_data.get("Vat", [])
-                    vat = next((v for v in vats if v.id == dept_main_group.fk_vat_id), None)
-                    if vat:
-                        vat_rate = float(vat.rate)
-                
-                # Calculate VAT: total_vat = (total_price * (vat_rate / (100 + vat_rate)))
-                if vat_rate > 0:
-                    total_vat = total_price * (vat_rate / (100 + vat_rate))
-                
-                # Create TransactionProductTemp
-                product_temp = TransactionProductTemp()
-                product_temp.fk_transaction_head_id = head.id
-                product_temp.line_no = line_no
-                product_temp.fk_department_main_group_id = dept_main_group_id
-                product_temp.fk_department_sub_group_id = dept_sub_group_id
-                product_temp.fk_product_id = product.id
-                product_temp.product_code = product.code
-                product_temp.product_name = product.short_name if product.short_name else product.name
-                product_temp.product_description = product.description
-                product_temp.vat_rate = Decimal(str(vat_rate))
-                product_temp.unit_price = Decimal(str(unit_price))
-                product_temp.quantity = Decimal(str(quantity))
-                product_temp.total_price = Decimal(str(total_price))
-                product_temp.total_vat = Decimal(str(total_vat))
-                
-                # Set product_barcode_id if provided
-                if sale_type == "PLU_BARCODE" and product_barcode:
-                    product_temp.fk_product_barcode_id = product_barcode.id
+                # Create TransactionProductTemp using SaleService
+                product_temp = SaleService.create_transaction_product_temp(
+                    head_id=head.id,
+                    line_no=line_no,
+                    product=product,
+                    quantity=quantity,
+                    unit_price=unit_price,
+                    total_price=sale_calc["total_price"],
+                    vat_rate=sale_calc["vat_rate"],
+                    total_vat=sale_calc["total_vat"],
+                    product_barcode=product_barcode if sale_type == "PLU_BARCODE" else None
+                )
                 
                 # Add to document_data
                 if "products" not in self.document_data:
@@ -206,69 +188,33 @@ class SaleEvent:
                     print("[UPDATE_DOCUMENT_DATA] Department required for department sale")
                     return False
                 
-                # Determine if department is main or sub group
-                dept_main_group = None
-                dept_sub_group = None
+                # Calculate department sale using SaleService
+                currency_sign = self.current_currency if hasattr(self, 'current_currency') and self.current_currency else None
+                dept_calc = SaleService.calculate_department_sale(
+                    quantity=quantity,
+                    unit_price=unit_price,
+                    department=department,
+                    department_no=department_no,
+                    product_data=self.product_data,
+                    currency_sign=currency_sign
+                )
                 
-                if isinstance(department, DepartmentMainGroup):
-                    dept_main_group = department
-                elif isinstance(department, DepartmentSubGroup):
-                    dept_sub_group = department
-                    # Find main group from sub group
-                    # First try main_group_id if it exists
-                    if hasattr(department, 'main_group_id') and department.main_group_id:
-                        dept_main_groups = self.product_data.get("DepartmentMainGroup", [])
-                        dept_main_group = next((d for d in dept_main_groups if d.id == department.main_group_id), None)
-                    
-                    # If main_group_id didn't work, try to find by department_no logic
-                    if not dept_main_group and department_no:
-                        if department_no > 99:
-                            # For sub groups > 99, extract first digit(s) to find main group
-                            # For example: 101 -> main group 1, 201 -> main group 2
-                            main_group_code = str(department_no)[0]  # First digit
-                            dept_main_groups = self.product_data.get("DepartmentMainGroup", [])
-                            dept_main_group = next((d for d in dept_main_groups if d.code == main_group_code), None)
-                        
-                        # If still not found, use first main group as fallback
-                        if not dept_main_group:
-                            dept_main_groups = self.product_data.get("DepartmentMainGroup", [])
-                            if dept_main_groups:
-                                dept_main_group = dept_main_groups[0]  # Fallback to first main group
-                
-                if not dept_main_group:
+                if not dept_calc["dept_main_group"]:
                     print("[UPDATE_DOCUMENT_DATA] Could not determine department main group")
                     return False
                 
-                # Get VAT rate from department main group
-                if dept_main_group.fk_vat_id:
-                    vats = self.product_data.get("Vat", [])
-                    vat = next((v for v in vats if v.id == dept_main_group.fk_vat_id), None)
-                    if vat:
-                        vat_rate = float(vat.rate)
-                
-                # Calculate VAT: total_department_vat = (total_department * (vat_rate / (100 + vat_rate)))
-                total_department = total_price
-                if vat_rate > 0:
-                    total_vat = total_department * (vat_rate / (100 + vat_rate))
-                
-                # Create TransactionDepartmentTemp
-                dept_temp = TransactionDepartmentTemp()
-                dept_temp.fk_transaction_head_id = head.id
-                dept_temp.line_no = line_no
-                dept_temp.fk_department_main_group_id = dept_main_group.id
-                dept_temp.vat_rate = Decimal(str(vat_rate))
-                dept_temp.total_department = Decimal(str(total_department))
-                dept_temp.total_department_vat = Decimal(str(total_vat))
-                
-                # Set fk_department_sub_group_id if department_no > 99 or if we have a sub group
-                if dept_sub_group:
-                    dept_temp.fk_department_sub_group_id = dept_sub_group.id
-                elif department_no and department_no > 99:
-                    # Find department_sub_group
-                    dept_sub_groups = self.product_data.get("DepartmentSubGroup", [])
-                    dept_sub_group = next((d for d in dept_sub_groups if d.code == str(department_no)), None)
-                    if dept_sub_group:
-                        dept_temp.fk_department_sub_group_id = dept_sub_group.id
+                # Create TransactionDepartmentTemp using SaleService
+                dept_temp = SaleService.create_transaction_department_temp(
+                    head_id=head.id,
+                    line_no=line_no,
+                    dept_main_group=dept_calc["dept_main_group"],
+                    dept_sub_group=dept_calc["dept_sub_group"],
+                    total_department=dept_calc["total_department"],
+                    vat_rate=dept_calc["vat_rate"],
+                    total_department_vat=dept_calc["total_department_vat"],
+                    department_no=department_no,
+                    product_data=self.product_data
+                )
                 
                 # Add to document_data
                 if "departments" not in self.document_data:
@@ -285,25 +231,10 @@ class SaleEvent:
                     import traceback
                     traceback.print_exc()
             
-            # Update TransactionHeadTemp totals
-            # Sum all products and departments
-            total_amount = Decimal('0')
-            total_vat_amount = Decimal('0')
-            
-            for prod in self.document_data.get("products", []):
-                if hasattr(prod, 'total_price'):
-                    total_amount += Decimal(str(prod.total_price))
-                if hasattr(prod, 'total_vat'):
-                    total_vat_amount += Decimal(str(prod.total_vat))
-            
-            for dept in self.document_data.get("departments", []):
-                if hasattr(dept, 'total_department'):
-                    total_amount += Decimal(str(dept.total_department))
-                if hasattr(dept, 'total_department_vat'):
-                    total_vat_amount += Decimal(str(dept.total_department_vat))
-            
-            head.total_amount = total_amount
-            head.total_vat_amount = total_vat_amount
+            # Update TransactionHeadTemp totals using SaleService
+            totals = SaleService.calculate_document_totals(self.document_data)
+            head.total_amount = totals["total_amount"]
+            head.total_vat_amount = totals["total_vat_amount"]
             
             # Save document_data (AutoSaveDescriptor will handle saving)
             self.document_data = self.document_data
