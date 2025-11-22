@@ -624,6 +624,42 @@ class GeneralEvent:
             return True
         return False
 
+    def _update_sale_screen_controls(self):
+        """
+        Update sale screen controls (sale_list, amount_table, payment_list) 
+        from document_data when transaction_status is ACTIVE.
+        
+        This method delegates to SaleService for the actual update logic.
+        
+        Returns:
+            bool: True if update successful, False otherwise
+        """
+        try:
+            # Check if document_data exists
+            if not self.document_data:
+                print("[UPDATE_SALE_SCREEN] No document_data found")
+                return False
+            
+            # Get window reference
+            window = self.interface.window
+            if not window:
+                print("[UPDATE_SALE_SCREEN] Window not found")
+                return False
+            
+            # Delegate to SaleService
+            from pos.service.sale_service import SaleService
+            return SaleService.update_sale_screen_controls(
+                window=window,
+                document_data=self.document_data,
+                pos_data=self.pos_data if hasattr(self, 'pos_data') else None
+            )
+            
+        except Exception as e:
+            print(f"[UPDATE_SALE_SCREEN] Error updating sale screen controls: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+
     # ==================== MAIN NAVIGATION EVENTS ====================
 
     def _sales_form(self):
@@ -634,7 +670,8 @@ class GeneralEvent:
         are processed. Requires valid authentication.
         
         Creates a new empty document if one doesn't exist or loads
-        incomplete document from database.
+        incomplete document from database. After form is redrawn,
+        updates controls if transaction_status is ACTIVE.
         
         Returns:
             bool: True if navigation successful, False if not authenticated
@@ -652,7 +689,14 @@ class GeneralEvent:
                         print("[SALES_FORM] Failed to create empty document")
                         # Continue anyway - form will open but transaction won't work
             
+            # Redraw the form
             self.interface.redraw(form_name=FormName.SALE.name)
+            
+            # Update controls if transaction_status is ACTIVE
+            # Use QTimer to ensure controls are created before updating
+            from PySide6.QtCore import QTimer
+            QTimer.singleShot(100, self._update_sale_screen_controls)
+            
             return True
         else:
             self._logout()

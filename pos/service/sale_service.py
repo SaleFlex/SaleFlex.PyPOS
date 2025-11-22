@@ -347,4 +347,306 @@ class SaleService:
             "total_amount": total_amount,
             "total_vat_amount": total_vat_amount
         }
+    
+    @staticmethod
+    def update_sale_list_from_document(sale_list, document_data: Dict[str, Any], 
+                                       pos_data: Optional[Dict[str, Any]] = None):
+        """
+        Update sale_list control with products and departments from document_data.
+        Items are added in line_no order.
+        
+        Args:
+            sale_list: SaleList control instance
+            document_data: Dictionary containing transaction temp models
+            pos_data: Optional POS data cache dictionary (for department names)
+        """
+        try:
+            from data_layer.auto_save import AutoSaveModel
+            
+            # Clear existing items
+            sale_list.clear_products()
+            
+            # Get products and departments
+            products = document_data.get("products", [])
+            departments = document_data.get("departments", [])
+            discounts = document_data.get("discounts", [])
+            
+            # Create a combined list with line_no for sorting
+            items_to_add = []
+            
+            # Add products
+            for prod in products:
+                if isinstance(prod, AutoSaveModel):
+                    prod = prod.unwrap()
+                
+                # Skip canceled products
+                if hasattr(prod, 'is_cancel') and prod.is_cancel:
+                    continue
+                
+                items_to_add.append({
+                    'type': 'product',
+                    'line_no': prod.line_no,
+                    'data': prod
+                })
+            
+            # Add departments
+            for dept in departments:
+                if isinstance(dept, AutoSaveModel):
+                    dept = dept.unwrap()
+                
+                # Skip canceled departments
+                if hasattr(dept, 'is_cancel') and dept.is_cancel:
+                    continue
+                
+                items_to_add.append({
+                    'type': 'department',
+                    'line_no': dept.line_no,
+                    'data': dept
+                })
+            
+            # Sort by line_no
+            items_to_add.sort(key=lambda x: x['line_no'])
+            
+            # Add items to sale_list in order
+            for item in items_to_add:
+                if item['type'] == 'product':
+                    prod = item['data']
+                    # Create SalesData object
+                    from user_interface.control.sale_list.sale_list import SalesData
+                    sales_data = SalesData()
+                    sales_data.reference_id = str(prod.id) if hasattr(prod, 'id') else 0
+                    sales_data.transaction_type = "PLU"
+                    sales_data.transaction = "Sale"
+                    sales_data.name_of_product = prod.product_name or ""
+                    sales_data.barcode = ""
+                    sales_data.plu_no = prod.product_code or ""
+                    sales_data.department_no = 0
+                    sales_data.id = str(prod.fk_product_id) if hasattr(prod, 'fk_product_id') and prod.fk_product_id else 0
+                    sales_data.quantity = float(prod.quantity) if hasattr(prod, 'quantity') else 0.0
+                    sales_data.unit_quantity = str(sales_data.quantity)
+                    sales_data.unit = 1
+                    sales_data.price = float(prod.unit_price) if hasattr(prod, 'unit_price') else 0.0
+                    sales_data.total_amount = float(prod.total_price) if hasattr(prod, 'total_price') else 0.0
+                    sales_data.is_canceled = False
+                    
+                    sale_list.add_sale_with_data(sales_data)
+                    
+                elif item['type'] == 'department':
+                    dept = item['data']
+                    # For departments, we need to get department name from pos_data
+                    dept_name = "Department Sale"
+                    if pos_data:
+                        dept_main_groups = pos_data.get("DepartmentMainGroup", [])
+                        for dmg in dept_main_groups:
+                            if dmg.id == dept.fk_department_main_group_id:
+                                dept_name = dmg.name or "Department Sale"
+                                break
+                    
+                    # Create SalesData object
+                    from user_interface.control.sale_list.sale_list import SalesData
+                    sales_data = SalesData()
+                    sales_data.reference_id = str(dept.id) if hasattr(dept, 'id') else 0
+                    sales_data.transaction_type = "DEPARTMENT"
+                    sales_data.transaction = "Sale"
+                    sales_data.name_of_product = dept_name
+                    sales_data.barcode = ""
+                    sales_data.plu_no = ""
+                    sales_data.department_no = 0
+                    sales_data.id = 0
+                    sales_data.quantity = 1.0
+                    sales_data.unit_quantity = "1"
+                    sales_data.unit = 1
+                    sales_data.price = float(dept.total_department) if hasattr(dept, 'total_department') else 0.0
+                    sales_data.total_amount = float(dept.total_department) if hasattr(dept, 'total_department') else 0.0
+                    sales_data.is_canceled = False
+                    
+                    sale_list.add_sale_with_data(sales_data)
+            
+            # Add discounts if any
+            for disc in discounts:
+                if isinstance(disc, AutoSaveModel):
+                    disc = disc.unwrap()
+                
+                # Skip canceled discounts
+                if hasattr(disc, 'is_cancel') and disc.is_cancel:
+                    continue
+                
+                discount_amount = float(disc.discount_amount) if hasattr(disc, 'discount_amount') else 0.0
+                if discount_amount > 0:
+                    # Find associated product name if available
+                    product_name = ""
+                    if disc.fk_transaction_product_id:
+                        for prod in products:
+                            if isinstance(prod, AutoSaveModel):
+                                prod = prod.unwrap()
+                            if prod.id == disc.fk_transaction_product_id:
+                                product_name = prod.product_name or ""
+                                break
+                    
+                    if disc.discount_rate:
+                        # Percentage discount
+                        discount_rate = float(disc.discount_rate) if hasattr(disc, 'discount_rate') else 0.0
+                        sale_list.add_discount_by_percent_line(discount_rate, discount_amount, product_name)
+                    else:
+                        # Amount discount
+                        sale_list.add_discount_by_amount_line(discount_amount, product_name)
+            
+            print(f"[SaleService.update_sale_list] Added {len(items_to_add)} items to sale_list")
+            
+        except Exception as e:
+            print(f"[SaleService.update_sale_list] Error updating sale_list: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    @staticmethod
+    def update_amount_table_from_document(amount_table, head):
+        """
+        Update amount_table control with totals from TransactionHeadTemp.
+        
+        Args:
+            amount_table: AmountTable control instance
+            head: TransactionHeadTemp instance (may be wrapped in AutoSaveModel)
+        """
+        try:
+            from decimal import Decimal
+            from data_layer.auto_save import AutoSaveModel
+            
+            # Unwrap if it's an AutoSaveModel
+            if isinstance(head, AutoSaveModel):
+                head = head.unwrap()
+            
+            # Update totals from head
+            total_amount = Decimal(str(head.total_amount)) if hasattr(head, 'total_amount') else Decimal('0')
+            discount_amount = Decimal(str(head.total_discount_amount)) if hasattr(head, 'total_discount_amount') else Decimal('0')
+            payment_amount = Decimal(str(head.total_payment_amount)) if hasattr(head, 'total_payment_amount') else Decimal('0')
+            
+            # Set values
+            amount_table.receipt_total_price = total_amount
+            amount_table.discount_total_amount = discount_amount
+            amount_table.receipt_total_payment = payment_amount
+            
+            print(f"[SaleService.update_amount_table] Updated totals: total={total_amount}, discount={discount_amount}, payment={payment_amount}")
+            
+        except Exception as e:
+            print(f"[SaleService.update_amount_table] Error updating amount_table: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    @staticmethod
+    def update_payment_list_from_document(payment_list, document_data: Dict[str, Any]):
+        """
+        Update payment_list control with payments from document_data.
+        Payments are added in line_no order.
+        
+        Args:
+            payment_list: PaymentList control instance
+            document_data: Dictionary containing transaction temp models
+        """
+        try:
+            from data_layer.auto_save import AutoSaveModel
+            
+            # Clear existing payments
+            payment_list.clear_payments()
+            
+            # Get payments
+            payments = document_data.get("payments", [])
+            
+            # Sort by line_no
+            sorted_payments = sorted(payments, key=lambda p: p.line_no if hasattr(p, 'line_no') else 0)
+            
+            # Add payments to payment_list
+            for pay in sorted_payments:
+                if isinstance(pay, AutoSaveModel):
+                    pay = pay.unwrap()
+                
+                # Skip canceled payments
+                if hasattr(pay, 'is_cancel') and pay.is_cancel:
+                    continue
+                
+                payment_type = pay.payment_type if hasattr(pay, 'payment_type') else ""
+                payment_amount = float(pay.payment_total) if hasattr(pay, 'payment_total') else 0.0
+                currency_code = pay.currency_code if hasattr(pay, 'currency_code') else ""
+                exchange_rate = float(pay.currency_exchange_rate) if hasattr(pay, 'currency_exchange_rate') else 1.0
+                payment_id = str(pay.id) if hasattr(pay, 'id') else 0
+                
+                payment_list.add_payment(
+                    payment_type=payment_type,
+                    amount=payment_amount,
+                    currency=currency_code,
+                    rate=exchange_rate,
+                    payment_id=payment_id
+                )
+            
+            print(f"[SaleService.update_payment_list] Added {len(sorted_payments)} payments to payment_list")
+            
+        except Exception as e:
+            print(f"[SaleService.update_payment_list] Error updating payment_list: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    @staticmethod
+    def update_sale_screen_controls(window, document_data: Dict[str, Any], 
+                                   pos_data: Optional[Dict[str, Any]] = None):
+        """
+        Update all sale screen controls (sale_list, amount_table, payment_list) 
+        from document_data when transaction_status is ACTIVE.
+        
+        This method orchestrates the update of all UI controls for the sale screen.
+        It checks if transaction_status is ACTIVE before updating.
+        
+        Args:
+            window: Window instance containing sale_list, amount_table, payment_list controls
+            document_data: Dictionary containing transaction temp models (may be wrapped in AutoSaveDict)
+            pos_data: Optional POS data cache dictionary (for department names)
+        
+        Returns:
+            bool: True if update successful, False otherwise
+        """
+        try:
+            from data_layer.auto_save import AutoSaveDict, AutoSaveModel
+            from data_layer.model.definition.transaction_status import TransactionStatus
+            
+            # Unwrap if it's an AutoSaveDict
+            if isinstance(document_data, AutoSaveDict):
+                unwrapped_data = document_data.unwrap()
+            else:
+                unwrapped_data = document_data
+            
+            # Get head and check transaction_status
+            head = unwrapped_data.get("head")
+            if not head:
+                print("[SaleService.update_sale_screen_controls] No head found in document_data")
+                return False
+            
+            # Unwrap if it's an AutoSaveModel
+            if isinstance(head, AutoSaveModel):
+                head = head.unwrap()
+            
+            # Check transaction_status - only update if ACTIVE
+            if head.transaction_status != TransactionStatus.ACTIVE.value:
+                print(f"[SaleService.update_sale_screen_controls] Transaction status is '{head.transaction_status}', not ACTIVE. Skipping update.")
+                return False
+            
+            print("[SaleService.update_sale_screen_controls] Updating sale screen controls for ACTIVE transaction...")
+            
+            # Update sale_list with products and departments
+            if hasattr(window, 'sale_list') and window.sale_list:
+                SaleService.update_sale_list_from_document(window.sale_list, unwrapped_data, pos_data)
+            
+            # Update amount_table with totals
+            if hasattr(window, 'amount_table') and window.amount_table:
+                SaleService.update_amount_table_from_document(window.amount_table, head)
+            
+            # Update payment_list with payments
+            if hasattr(window, 'payment_list') and window.payment_list:
+                SaleService.update_payment_list_from_document(window.payment_list, unwrapped_data)
+            
+            print("[SaleService.update_sale_screen_controls] ✓ Sale screen controls updated successfully")
+            return True
+            
+        except Exception as e:
+            print(f"[SaleService.update_sale_screen_controls] Error updating sale screen controls: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
 
