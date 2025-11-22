@@ -43,8 +43,8 @@ from data_layer.model import TransactionProduct
 from data_layer.model import TransactionProductTemp
 from data_layer.model import TransactionPayment
 from data_layer.model import TransactionPaymentTemp
-from data_layer.model import TransactionTotal
-from data_layer.model import TransactionTotalTemp
+from data_layer.model import TransactionDepartment
+from data_layer.model import TransactionDepartmentTemp
 from data_layer.model import TransactionDiscount
 from data_layer.model import TransactionDiscountTemp
 from data_layer.model import Closure

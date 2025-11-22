@@ -65,8 +65,8 @@ from .transaction_tax import TransactionTax
 from .transaction_tax_temp import TransactionTaxTemp
 from .transaction_tip import TransactionTip
 from .transaction_tip_temp import TransactionTipTemp
-from .transaction_total import TransactionTotal
-from .transaction_total_temp import TransactionTotalTemp
+from .transaction_department import TransactionDepartment
+from .transaction_department_temp import TransactionDepartmentTemp
 from .transaction_void import TransactionVoid
 from .vat import Vat
 # Warehouse Management Models
@@ -166,8 +166,8 @@ __all__ = [
     'TransactionTaxTemp',
     'TransactionTip',
     'TransactionTipTemp',
-    'TransactionTotal',
-    'TransactionTotalTemp',
+    'TransactionDepartment',
+    'TransactionDepartmentTemp',
     'TransactionVoid',
     'Vat',
     # Warehouse Management Models

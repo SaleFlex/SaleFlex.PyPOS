@@ -174,7 +174,7 @@ class CurrentData(DocumentManager, CacheManager, ClosureManager):
                     head.save()
             
             # Save all related temp models using CRUD.save()
-            for model_list_name in ["products", "payments", "discounts", "totals", 
+            for model_list_name in ["products", "payments", "discounts", "departments", 
                                    "deliveries", "kitchen_orders", "loyalty", "notes",
                                    "refunds", "surcharges", "taxes", "tips"]:
                 models = unwrapped.get(model_list_name, [])

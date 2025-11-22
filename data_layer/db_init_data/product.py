@@ -31,6 +31,9 @@ def _insert_products(session, admin_cashier_id: str):
     if not product_exists:
         # Get required foreign key references
         vat_0_percent = session.query(Vat).filter_by(no=1).first()  # %0 VAT
+        vat_1_percent = session.query(Vat).filter_by(no=2).first()  # %1 VAT
+        vat_10_percent = session.query(Vat).filter_by(no=3).first()  # %10 VAT
+        vat_20_percent = session.query(Vat).filter_by(no=4).first()  # %20 VAT
         default_manufacturer = session.query(ProductManufacturer).first()
         default_store = session.query(Store).first()
         

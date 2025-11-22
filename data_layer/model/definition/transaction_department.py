@@ -31,19 +31,22 @@ from data_layer.model.crud_model import CRUD
 from data_layer.model.mixins import AuditMixin, SoftDeleteMixin
 
 
-class TransactionTotalTemp(Model, CRUD, AuditMixin, SoftDeleteMixin):
+class TransactionDepartment(Model, CRUD, AuditMixin, SoftDeleteMixin):
     def __init__(self):
         Model.__init__(self)
         CRUD.__init__(self)
 
-    __tablename__ = "transaction_total_temp"
+    __tablename__ = "transaction_department"
 
     id = Column(UUID, primary_key=True, default=uuid4)
-    fk_transaction_head_id = Column(UUID, ForeignKey("transaction_head_temp.id"))
+    fk_transaction_head_id = Column(UUID, ForeignKey("transaction_head.id"))
     line_no = Column(Integer, nullable=False)
     fk_department_main_group_id = Column(UUID, ForeignKey("department_main_group.id"), nullable=False)
+    fk_department_sub_group_id = Column(UUID, ForeignKey("department_sub_group.id"), nullable=True)
+    vat_rate = Column(Numeric(precision=5, scale=2), nullable=False)
     total_department = Column(Numeric(precision=15, scale=4), nullable=False)
     total_department_vat = Column(Numeric(precision=15, scale=4), nullable=False)
 
     def __repr__(self):
-        return f"<TransactionTotalTemp(total_department='{self.total_department}', total_department_vat='{self.total_department_vat}')>"
+        return f"<TransactionDepartment(total_department='{self.total_department}', total_department_vat='{self.total_department_vat}')>"
+

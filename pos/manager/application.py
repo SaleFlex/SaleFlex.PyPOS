@@ -155,6 +155,9 @@ class Application(CurrentStatus, CurrentData, EventHandler):
         self.app.processEvents()
         self.load_current_currency_from_pos_data()
         
+        # Load working currency to CurrentStatus.current_currency
+        self.load_working_currency_to_current_status()
+        
         # Load open closure (or create empty one if none exists)
         about.update_message("Loading closure data...")
         self.app.processEvents()
@@ -221,6 +224,64 @@ class Application(CurrentStatus, CurrentData, EventHandler):
                     print("✓ No POS settings found, defaulting to GBP")
         except Exception as e:
             print(f"Error loading current currency: {e}")
+            import traceback
+            traceback.print_exc()
+            # Default to GBP on error
+            self.current_currency = "GBP"
+    
+    def load_working_currency_to_current_status(self):
+        """
+        Load the working currency sign from PosSettings.working_currency to CurrentStatus.current_currency.
+        
+        This method loads the currency sign from the cached pos_settings attribute,
+        which is more efficient than querying the database directly. The currency
+        sign is stored in CurrentStatus.current_currency.
+        """
+        try:
+            from data_layer.model import Currency
+            
+            # Use cached pos_settings (already loaded in memory, avoids database read)
+            if self.pos_settings:
+                settings = self.pos_settings
+                if settings.fk_working_currency_id:
+                    # Get currency from product_data (already loaded in memory)
+                    all_currencies = self.product_data.get("Currency", [])
+                    currency = next((c for c in all_currencies if c.id == settings.fk_working_currency_id), None)
+                    
+                    if currency and currency.sign:
+                        self.current_currency = currency.sign
+                        print(f"✓ Working currency loaded to CurrentStatus: {self.current_currency}")
+                    else:
+                        # Default to GBP if currency not found
+                        self.current_currency = "GBP"
+                        print("✓ Currency not found, defaulting to GBP")
+                else:
+                    # Default to GBP if not set
+                    self.current_currency = "GBP"
+                    print("✓ Working currency not set, defaulting to GBP")
+            else:
+                # Fallback: try pos_data if pos_settings not cached
+                pos_settings = self.pos_data.get("PosSettings", [])
+                if pos_settings and len(pos_settings) > 0:
+                    settings = pos_settings[0]
+                    if settings.fk_working_currency_id:
+                        all_currencies = self.product_data.get("Currency", [])
+                        currency = next((c for c in all_currencies if c.id == settings.fk_working_currency_id), None)
+                        if currency and currency.sign:
+                            self.current_currency = currency.sign
+                            print(f"✓ Working currency loaded to CurrentStatus: {self.current_currency}")
+                        else:
+                            self.current_currency = "GBP"
+                            print("✓ Currency not found, defaulting to GBP")
+                    else:
+                        self.current_currency = "GBP"
+                        print("✓ Working currency not set, defaulting to GBP")
+                else:
+                    # Default to GBP if no settings found
+                    self.current_currency = "GBP"
+                    print("✓ No POS settings found, defaulting to GBP")
+        except Exception as e:
+            print(f"Error loading working currency: {e}")
             import traceback
             traceback.print_exc()
             # Default to GBP on error

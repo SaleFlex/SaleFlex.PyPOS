@@ -31,15 +31,24 @@ def _insert_department_groups(session, admin_cashier_id: int):
     if not main_group_exists:
         # First get VAT IDs by their no values
         vat_0_percent = session.query(Vat).filter_by(no=1).first()  # %0 VAT
-        vat_20_percent = session.query(Vat).filter_by(no=3).first()  # %20 VAT
+        vat_1_percent = session.query(Vat).filter_by(no=2).first()  # %1 VAT
+        vat_10_percent = session.query(Vat).filter_by(no=3).first()  # %10 VAT
+        vat_20_percent = session.query(Vat).filter_by(no=4).first()  # %20 VAT
 
         main_groups = [
+            {
+                "code": "1",
+                "name": "BAKERY",
+                "description": "Baked Goods department",
+                "max_price": 5.0,
+                "vat_id": vat_0_percent.id if vat_0_percent else None
+            },
             {
                 "code": "1",
                 "name": "FOOD",
                 "description": "Food products department",
                 "max_price": 100.0,
-                "vat_id": vat_0_percent.id if vat_0_percent else None
+                "vat_id": vat_1_percent.id if vat_1_percent else None
             },
             {
                 "code": "2",

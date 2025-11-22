@@ -79,6 +79,9 @@ class CurrentStatus:
         self.__document_state = DocumentState.NONE
         self.__document_type = DocumentType.FISCAL_RECEIPT
         self.__document_result = DocumentResult.NONE
+        
+        # Current currency - will be loaded from PosSettings.working_currency
+        self.__current_currency = None
     
     def load_startup_form(self):
         """
@@ -319,3 +322,23 @@ class CurrentStatus:
         if self.__form_history:
             return self.__form_history.pop()
         return None
+    
+    @property
+    def current_currency(self):
+        """
+        Get the current working currency sign.
+        
+        Returns:
+            str or None: The currency sign (e.g., "GBP", "USD") or None if not set
+        """
+        return self.__current_currency
+    
+    @current_currency.setter
+    def current_currency(self, value):
+        """
+        Set the current working currency sign.
+        
+        Args:
+            value (str): The currency sign to set (e.g., "GBP", "USD")
+        """
+        self.__current_currency = value

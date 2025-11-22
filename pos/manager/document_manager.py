@@ -33,8 +33,8 @@ from data_layer.model import (
     TransactionPaymentTemp,
     TransactionDiscount,
     TransactionDiscountTemp,
-    TransactionTotal,
-    TransactionTotalTemp,
+    TransactionDepartment,
+    TransactionDepartmentTemp,
     TransactionDelivery,
     TransactionDeliveryTemp,
     TransactionKitchenOrder,
@@ -127,6 +127,9 @@ class DocumentManager:
                     receipt_number = seq.value
                     break
             
+            # batch_number is the same as closure_number
+            batch_number = closure_number
+            
             # Get store_id from pos_data["Store"]
             store_id = None
             stores = self.pos_data.get("Store", [])
@@ -134,6 +137,49 @@ class DocumentManager:
                 store_id = stores[0].id
             else:
                 print("[DEBUG] Cannot create document: no store found in pos_data")
+                return None
+            
+            # Get customer_id - try to find "Walk-in Customer" or use first customer, or create default
+            customer_id = None
+            from data_layer.model import Customer
+            from data_layer.engine import Engine
+            
+            # Try to find "Walk-in Customer" or "Anonymous Customer"
+            with Engine().get_session() as session:
+                walk_in_customer = session.query(Customer).filter(
+                    Customer.name.ilike("%walk-in%") | Customer.name.ilike("%anonymous%"),
+                    Customer.is_deleted == False
+                ).first()
+                
+                if walk_in_customer:
+                    customer_id = walk_in_customer.id
+                    print(f"[DEBUG] Using walk-in customer: {walk_in_customer.name}")
+                else:
+                    # Try to get first customer
+                    first_customer = session.query(Customer).filter(
+                        Customer.is_deleted == False
+                    ).first()
+                    
+                    if first_customer:
+                        customer_id = first_customer.id
+                        print(f"[DEBUG] Using first customer: {first_customer.name}")
+                    else:
+                        # Create default walk-in customer
+                        default_customer = Customer(
+                            name="Walk-in",
+                            last_name="Customer",
+                            description="Default walk-in customer for POS transactions"
+                        )
+                        # Set audit fields if cashier_data exists
+                        if hasattr(self, 'cashier_data') and self.cashier_data:
+                            default_customer.fk_cashier_create_id = self.cashier_data.id
+                            default_customer.fk_cashier_update_id = self.cashier_data.id
+                        default_customer.create()
+                        customer_id = default_customer.id
+                        print(f"[DEBUG] Created default walk-in customer: {customer_id}")
+            
+            if not customer_id:
+                print("[DEBUG] Cannot create document: failed to get or create customer")
                 return None
             
             # Get pos_id from pos_settings (use pos_no_in_store as pos_id is Integer)
@@ -152,8 +198,10 @@ class DocumentManager:
             head.transaction_type = transaction_type
             head.transaction_status = TransactionStatus.DRAFT.value
             head.fk_store_id = store_id
+            head.fk_customer_id = customer_id
             head.closure_number = closure_number
             head.receipt_number = receipt_number
+            head.batch_number = batch_number
             head.is_closed = False
             head.is_pending = False
             head.is_cancel = False
@@ -164,7 +212,7 @@ class DocumentManager:
                 "products": [],
                 "payments": [],
                 "discounts": [],
-                "totals": [],
+                "departments": [],
                 "deliveries": [],
                 "kitchen_orders": [],
                 "loyalty": [],
@@ -337,7 +385,7 @@ class DocumentManager:
                 "discounts": TransactionDiscountTemp.filter_by(
                     fk_transaction_head_id=head_id, is_deleted=False
                 ),
-                "totals": TransactionTotalTemp.filter_by(
+                "departments": TransactionDepartmentTemp.filter_by(
                     fk_transaction_head_id=head_id, is_deleted=False
                 ),
                 "deliveries": TransactionDeliveryTemp.filter_by(
@@ -404,7 +452,7 @@ class DocumentManager:
                 "discounts": TransactionDiscountTemp.filter_by(
                     fk_transaction_head_id=head_id, is_deleted=False
                 ),
-                "totals": TransactionTotalTemp.filter_by(
+                "departments": TransactionDepartmentTemp.filter_by(
                     fk_transaction_head_id=head_id, is_deleted=False
                 ),
                 "deliveries": TransactionDeliveryTemp.filter_by(
@@ -536,23 +584,23 @@ class DocumentManager:
                 # Create using CRUD.create()
                 pay.create()
             
-            # Totals
-            for total_temp in self.document_data.get("totals", []):
+            # Departments
+            for dept_temp in self.document_data.get("departments", []):
                 # Unwrap if it's an AutoSaveModel
-                if isinstance(total_temp, AutoSaveModel):
-                    total_temp = total_temp.unwrap()
-                total = TransactionTotal()
-                temp_id = total_temp.id
-                for key in total_temp.__table__.columns.keys():
-                    if hasattr(total_temp, key):
+                if isinstance(dept_temp, AutoSaveModel):
+                    dept_temp = dept_temp.unwrap()
+                dept = TransactionDepartment()
+                temp_id = dept_temp.id
+                for key in dept_temp.__table__.columns.keys():
+                    if hasattr(dept_temp, key):
                         if key == "fk_transaction_head_id":
-                            setattr(total, key, head.id)
+                            setattr(dept, key, head.id)
                         else:
-                            setattr(total, key, getattr(total_temp, key))
-                total.id = uuid4()
-                total_id_map[temp_id] = total.id
+                            setattr(dept, key, getattr(dept_temp, key))
+                dept.id = uuid4()
+                total_id_map[temp_id] = dept.id
                 # Create using CRUD.create()
-                total.create()
+                dept.create()
             
             # Discounts
             for disc_temp in self.document_data.get("discounts", []):
@@ -570,9 +618,13 @@ class DocumentManager:
                         elif key == "fk_transaction_payment_id" and getattr(disc_temp, key):
                             # Map temp payment ID to permanent payment ID
                             setattr(disc, key, payment_id_map.get(getattr(disc_temp, key)))
-                        elif key == "fk_transaction_total_id" and getattr(disc_temp, key):
-                            # Map temp total ID to permanent total ID
+                        elif key == "fk_transaction_department_id" and getattr(disc_temp, key):
+                            # Map temp department ID to permanent department ID
                             setattr(disc, key, total_id_map.get(getattr(disc_temp, key)))
+                        elif key == "fk_transaction_total_id":  # Handle old field name for backward compatibility
+                            # Map to new field name
+                            if getattr(disc_temp, key):
+                                setattr(disc, "fk_transaction_department_id", total_id_map.get(getattr(disc_temp, key)))
                         else:
                             setattr(disc, key, getattr(disc_temp, key))
                 disc.id = uuid4()

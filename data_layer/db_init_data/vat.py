@@ -30,9 +30,10 @@ def _insert_vat_rates(session, admin_cashier_id: int):
     vat_exists = session.query(Vat).first()
     if not vat_exists:
         vat_rates = [
-            {"name": "%0", "no": 1, "rate": 0, "description": "Zero VAT Rate (0%)"},
-            {"name": "%5", "no": 2, "rate": 5, "description": "Reduced VAT Rate (5%)"},
-            {"name": "%20", "no": 3, "rate": 20, "description": "Standard VAT Rate (20%)"}
+            {"name": "%0", "no": 1, "rate": 1.00, "description": "Zero VAT Rate (0%)"},
+            {"name": "%1", "no": 2, "rate": 1.00, "description": "First VAT Rate (1%)"},
+            {"name": "%10", "no": 3, "rate": 5.00, "description": "Reduced VAT Rate (5%)"},
+            {"name": "%20", "no": 4, "rate": 20.00, "description": "Standard VAT Rate (20%)"}
         ]
 
         for vat_data in vat_rates:

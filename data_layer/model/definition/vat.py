@@ -22,7 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-from sqlalchemy import Column, Integer, BigInteger, Boolean, String, DateTime, Float, ForeignKey, UUID
+from sqlalchemy import Column, Integer, BigInteger, Boolean, String, DateTime, Float, ForeignKey, UUID, Numeric
 from sqlalchemy.sql import func
 from uuid import uuid4
 
@@ -46,7 +46,7 @@ class Vat(Model, CRUD, AuditMixin, SoftDeleteMixin):
     id = Column(UUID, primary_key=True, default=uuid4)
     name = Column(String(50), nullable=False)
     no = Column(Integer, nullable=False)
-    rate = Column(Integer, nullable=False)
+    rate = Column(Numeric(precision=5, scale=2), nullable=False)
     description = Column(String(100))
 
     def __repr__(self):

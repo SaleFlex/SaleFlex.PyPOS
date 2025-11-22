@@ -66,7 +66,7 @@ class TransactionHeadTemp(Model, CRUD, AuditMixin, SoftDeleteMixin):
     transaction_status = Column(String(50), nullable=False, default=TransactionStatus.ACTIVE.value, index=True)
 
     # Customer & location
-    fk_customer_id = Column(UUID, ForeignKey("customer.id"), index=True)
+    fk_customer_id = Column(UUID, ForeignKey("customer.id"), nullable=False, index=True)
     fk_table_id = Column(UUID, ForeignKey("table.id"), nullable=True)
     fk_store_id = Column(UUID, ForeignKey("store.id"), nullable=False)
 

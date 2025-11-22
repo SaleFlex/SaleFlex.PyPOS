@@ -42,7 +42,7 @@ class TransactionDiscountTemp(Model, CRUD, AuditMixin, SoftDeleteMixin):
     fk_transaction_head_id = Column(UUID, ForeignKey("transaction_head_temp.id"))
     fk_transaction_product_id = Column(UUID, ForeignKey("transaction_product_temp.id"), nullable=True)
     fk_transaction_payment_id = Column(UUID, ForeignKey("transaction_payment_temp.id"), nullable=True)
-    fk_transaction_total_id = Column(UUID, ForeignKey("transaction_total_temp.id"), nullable=True)
+    fk_transaction_department_id = Column(UUID, ForeignKey("transaction_department_temp.id"), nullable=True)
     line_no = Column(Integer, nullable=False)
     discount_type = Column(String(50), nullable=False)
     discount_amount = Column(Numeric(precision=15, scale=4), nullable=False)

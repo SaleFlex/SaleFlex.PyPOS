@@ -40,8 +40,8 @@ from data_layer.model.definition.transaction_product import TransactionProduct
 from data_layer.model.definition.transaction_product_temp import TransactionProductTemp
 from data_layer.model.definition.transaction_payment import TransactionPayment
 from data_layer.model.definition.transaction_payment_temp import TransactionPaymentTemp
-from data_layer.model.definition.transaction_total import TransactionTotal
-from data_layer.model.definition.transaction_total_temp import TransactionTotalTemp
+from data_layer.model.definition.transaction_department import TransactionDepartment
+from data_layer.model.definition.transaction_department_temp import TransactionDepartmentTemp
 from data_layer.model.definition.transaction_discount import TransactionDiscount
 from data_layer.model.definition.transaction_discount_temp import TransactionDiscountTemp
 from data_layer.model.definition.transaction_discount_type import TransactionDiscountType

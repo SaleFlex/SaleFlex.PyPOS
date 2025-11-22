@@ -33,7 +33,7 @@ from data_layer.model.mixins import AuditMixin, SoftDeleteMixin
 
 class PosSettings(Model, CRUD, AuditMixin, SoftDeleteMixin):
     def __init__(self, pos_no_in_store=None, name=None, owner_national_id=None, owner_tax_id=None, 
-                 mac_address=None, force_to_work_online=None, fk_current_currency_id=None, **kwargs):
+                 mac_address=None, force_to_work_online=None, fk_current_currency_id=None, fk_working_currency_id=None, **kwargs):
         Model.__init__(self)
         CRUD.__init__(self)
 
@@ -47,6 +47,8 @@ class PosSettings(Model, CRUD, AuditMixin, SoftDeleteMixin):
             self.force_to_work_online = force_to_work_online
         if fk_current_currency_id is not None:
             self.fk_current_currency_id = fk_current_currency_id
+        if fk_working_currency_id is not None:
+            self.fk_working_currency_id = fk_working_currency_id
         
         # Handle any additional kwargs (for audit fields, etc.)
         for key, value in kwargs.items():
@@ -82,6 +84,7 @@ class PosSettings(Model, CRUD, AuditMixin, SoftDeleteMixin):
     plu_update_no = Column(Integer, nullable=False, default=0)
     fk_default_country_id = Column(UUID, ForeignKey("country.id"), nullable=True)
     fk_current_currency_id = Column(UUID, ForeignKey("currency.id"), nullable=True)  # Foreign key to Currency
+    fk_working_currency_id = Column(UUID, ForeignKey("currency.id"), nullable=True)  # Foreign key to Currency (working currency)
 
     def __repr__(self):
         return f"<PosSettings(name='{self.name}', pos_no_in_store={self.pos_no_in_store}, mac_address='{self.mac_address}')>" 

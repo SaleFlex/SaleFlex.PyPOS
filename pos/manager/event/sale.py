@@ -40,6 +40,283 @@ class SaleEvent:
     refresh the display as needed.
     """
     
+    def _update_document_data_for_sale(self, sale_type, product=None, department=None, 
+                                       quantity=1.0, unit_price=0.0, product_barcode=None, 
+                                       department_no=None, line_no=None):
+        """
+        Update document_data with sale information.
+        
+        This method updates TransactionHeadTemp and creates TransactionProductTemp or
+        TransactionDepartmentTemp records based on the sale type.
+        
+        Args:
+            sale_type: "PLU_CODE", "PLU_BARCODE", or "DEPARTMENT"
+            product: Product object (for PLU sales)
+            department: DepartmentMainGroup or DepartmentSubGroup object (for department sales)
+            quantity: Quantity sold
+            unit_price: Unit price
+            product_barcode: ProductBarcode object (for PLU_BARCODE sales)
+            department_no: Department number (for department sales)
+            line_no: Line number in sale list (row number)
+        
+        Returns:
+            bool: True if update successful, False otherwise
+        """
+        try:
+            from datetime import datetime
+            from data_layer.model import TransactionProductTemp, TransactionDepartmentTemp, Vat
+            from data_layer.model.definition.transaction_status import TransactionStatus
+            from decimal import Decimal
+            from data_layer.model import DepartmentMainGroup, DepartmentSubGroup
+            
+            if not self.document_data or not self.document_data.get("head"):
+                print("[UPDATE_DOCUMENT_DATA] No document_data or head found")
+                return False
+            
+            head = self.document_data["head"]
+            
+            # Ensure fk_customer_id is set (should be set in create_empty_document, but check anyway)
+            if not head.fk_customer_id:
+                from data_layer.model import Customer
+                from data_layer.engine import Engine
+                
+                # Try to find or create default customer
+                with Engine().get_session() as session:
+                    walk_in_customer = session.query(Customer).filter(
+                        Customer.name.ilike("%walk-in%") | Customer.name.ilike("%anonymous%"),
+                        Customer.is_deleted == False
+                    ).first()
+                    
+                    if walk_in_customer:
+                        head.fk_customer_id = walk_in_customer.id
+                    else:
+                        first_customer = session.query(Customer).filter(
+                            Customer.is_deleted == False
+                        ).first()
+                        
+                        if first_customer:
+                            head.fk_customer_id = first_customer.id
+                        else:
+                            # Create default customer
+                            default_customer = Customer(
+                                name="Walk-in",
+                                last_name="Customer",
+                                description="Default walk-in customer for POS transactions"
+                            )
+                            if hasattr(self, 'cashier_data') and self.cashier_data:
+                                default_customer.fk_cashier_create_id = self.cashier_data.id
+                                default_customer.fk_cashier_update_id = self.cashier_data.id
+                            default_customer.create()
+                            head.fk_customer_id = default_customer.id
+            
+            # Update TransactionHeadTemp fields
+            # Set transaction_date_time if empty
+            if not head.transaction_date_time:
+                head.transaction_date_time = datetime.now()
+            
+            # Update transaction_status from DRAFT to ACTIVE if still DRAFT
+            if head.transaction_status == TransactionStatus.DRAFT.value:
+                head.transaction_status = TransactionStatus.ACTIVE.value
+            
+            # Get closure_number from closure
+            if self.closure and self.closure.get("closure"):
+                closure = self.closure["closure"]
+                if closure and closure.closure_number:
+                    head.closure_number = closure.closure_number
+            
+            # Set base_currency from CurrentStatus.current_currency
+            if hasattr(self, 'current_currency') and self.current_currency:
+                head.base_currency = self.current_currency
+            
+            # Set order_source and order_channel
+            head.order_source = "in_store"
+            head.order_channel = "cashier"
+            
+            # Calculate line_no if not provided (use current products/departments count)
+            if line_no is None:
+                line_no = len(self.document_data.get("products", [])) + len(self.document_data.get("departments", [])) + 1
+            
+            # Calculate totals
+            total_price = float(quantity) * float(unit_price)
+            vat_rate = 0.0
+            total_vat = 0.0
+            
+            if sale_type in ["PLU_CODE", "PLU_BARCODE"]:
+                # PLU sale - create TransactionProductTemp
+                if not product:
+                    print("[UPDATE_DOCUMENT_DATA] Product required for PLU sale")
+                    return False
+                
+                # Get department from product
+                dept_main_group_id = product.fk_department_main_group_id
+                dept_sub_group_id = product.fk_department_sub_group_id
+                
+                # Get VAT rate from department
+                dept_main_groups = self.product_data.get("DepartmentMainGroup", [])
+                dept_main_group = next((d for d in dept_main_groups if d.id == dept_main_group_id), None)
+                
+                if dept_main_group and dept_main_group.fk_vat_id:
+                    vats = self.product_data.get("Vat", [])
+                    vat = next((v for v in vats if v.id == dept_main_group.fk_vat_id), None)
+                    if vat:
+                        vat_rate = float(vat.rate)
+                
+                # Calculate VAT: total_vat = (total_price * (vat_rate / (100 + vat_rate)))
+                if vat_rate > 0:
+                    total_vat = total_price * (vat_rate / (100 + vat_rate))
+                
+                # Create TransactionProductTemp
+                product_temp = TransactionProductTemp()
+                product_temp.fk_transaction_head_id = head.id
+                product_temp.line_no = line_no
+                product_temp.fk_department_main_group_id = dept_main_group_id
+                product_temp.fk_department_sub_group_id = dept_sub_group_id
+                product_temp.fk_product_id = product.id
+                product_temp.product_code = product.code
+                product_temp.product_name = product.short_name if product.short_name else product.name
+                product_temp.product_description = product.description
+                product_temp.vat_rate = Decimal(str(vat_rate))
+                product_temp.unit_price = Decimal(str(unit_price))
+                product_temp.quantity = Decimal(str(quantity))
+                product_temp.total_price = Decimal(str(total_price))
+                product_temp.total_vat = Decimal(str(total_vat))
+                
+                # Set product_barcode_id if provided
+                if sale_type == "PLU_BARCODE" and product_barcode:
+                    product_temp.fk_product_barcode_id = product_barcode.id
+                
+                # Add to document_data
+                if "products" not in self.document_data:
+                    self.document_data["products"] = []
+                self.document_data["products"].append(product_temp)
+                
+                # Manually save the product temp model to database
+                # AutoSaveDict doesn't trigger save on list.append(), so we need to save manually
+                try:
+                    product_temp.save()
+                    print(f"[UPDATE_DOCUMENT_DATA] ✓ Saved TransactionProductTemp to database")
+                except Exception as e:
+                    print(f"[UPDATE_DOCUMENT_DATA] Error saving TransactionProductTemp: {e}")
+                    import traceback
+                    traceback.print_exc()
+                
+            elif sale_type == "DEPARTMENT":
+                # Department sale - create TransactionDepartmentTemp
+                if not department:
+                    print("[UPDATE_DOCUMENT_DATA] Department required for department sale")
+                    return False
+                
+                # Determine if department is main or sub group
+                dept_main_group = None
+                dept_sub_group = None
+                
+                if isinstance(department, DepartmentMainGroup):
+                    dept_main_group = department
+                elif isinstance(department, DepartmentSubGroup):
+                    dept_sub_group = department
+                    # Find main group from sub group
+                    # First try main_group_id if it exists
+                    if hasattr(department, 'main_group_id') and department.main_group_id:
+                        dept_main_groups = self.product_data.get("DepartmentMainGroup", [])
+                        dept_main_group = next((d for d in dept_main_groups if d.id == department.main_group_id), None)
+                    
+                    # If main_group_id didn't work, try to find by department_no logic
+                    if not dept_main_group and department_no:
+                        if department_no > 99:
+                            # For sub groups > 99, extract first digit(s) to find main group
+                            # For example: 101 -> main group 1, 201 -> main group 2
+                            main_group_code = str(department_no)[0]  # First digit
+                            dept_main_groups = self.product_data.get("DepartmentMainGroup", [])
+                            dept_main_group = next((d for d in dept_main_groups if d.code == main_group_code), None)
+                        
+                        # If still not found, use first main group as fallback
+                        if not dept_main_group:
+                            dept_main_groups = self.product_data.get("DepartmentMainGroup", [])
+                            if dept_main_groups:
+                                dept_main_group = dept_main_groups[0]  # Fallback to first main group
+                
+                if not dept_main_group:
+                    print("[UPDATE_DOCUMENT_DATA] Could not determine department main group")
+                    return False
+                
+                # Get VAT rate from department main group
+                if dept_main_group.fk_vat_id:
+                    vats = self.product_data.get("Vat", [])
+                    vat = next((v for v in vats if v.id == dept_main_group.fk_vat_id), None)
+                    if vat:
+                        vat_rate = float(vat.rate)
+                
+                # Calculate VAT: total_department_vat = (total_department * (vat_rate / (100 + vat_rate)))
+                total_department = total_price
+                if vat_rate > 0:
+                    total_vat = total_department * (vat_rate / (100 + vat_rate))
+                
+                # Create TransactionDepartmentTemp
+                dept_temp = TransactionDepartmentTemp()
+                dept_temp.fk_transaction_head_id = head.id
+                dept_temp.line_no = line_no
+                dept_temp.fk_department_main_group_id = dept_main_group.id
+                dept_temp.vat_rate = Decimal(str(vat_rate))
+                dept_temp.total_department = Decimal(str(total_department))
+                dept_temp.total_department_vat = Decimal(str(total_vat))
+                
+                # Set fk_department_sub_group_id if department_no > 99 or if we have a sub group
+                if dept_sub_group:
+                    dept_temp.fk_department_sub_group_id = dept_sub_group.id
+                elif department_no and department_no > 99:
+                    # Find department_sub_group
+                    dept_sub_groups = self.product_data.get("DepartmentSubGroup", [])
+                    dept_sub_group = next((d for d in dept_sub_groups if d.code == str(department_no)), None)
+                    if dept_sub_group:
+                        dept_temp.fk_department_sub_group_id = dept_sub_group.id
+                
+                # Add to document_data
+                if "departments" not in self.document_data:
+                    self.document_data["departments"] = []
+                self.document_data["departments"].append(dept_temp)
+                
+                # Manually save the department temp model to database
+                # AutoSaveDict doesn't trigger save on list.append(), so we need to save manually
+                try:
+                    dept_temp.save()
+                    print(f"[UPDATE_DOCUMENT_DATA] ✓ Saved TransactionDepartmentTemp to database")
+                except Exception as e:
+                    print(f"[UPDATE_DOCUMENT_DATA] Error saving TransactionDepartmentTemp: {e}")
+                    import traceback
+                    traceback.print_exc()
+            
+            # Update TransactionHeadTemp totals
+            # Sum all products and departments
+            total_amount = Decimal('0')
+            total_vat_amount = Decimal('0')
+            
+            for prod in self.document_data.get("products", []):
+                if hasattr(prod, 'total_price'):
+                    total_amount += Decimal(str(prod.total_price))
+                if hasattr(prod, 'total_vat'):
+                    total_vat_amount += Decimal(str(prod.total_vat))
+            
+            for dept in self.document_data.get("departments", []):
+                if hasattr(dept, 'total_department'):
+                    total_amount += Decimal(str(dept.total_department))
+                if hasattr(dept, 'total_department_vat'):
+                    total_vat_amount += Decimal(str(dept.total_department_vat))
+            
+            head.total_amount = total_amount
+            head.total_vat_amount = total_vat_amount
+            
+            # Save document_data (AutoSaveDescriptor will handle saving)
+            self.document_data = self.document_data
+            
+            print(f"[UPDATE_DOCUMENT_DATA] ✓ Updated document_data for {sale_type} sale")
+            return True
+            
+        except Exception as e:
+            print(f"[UPDATE_DOCUMENT_DATA] Error updating document_data: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+    
     # ==================== DEPARTMENT SALES EVENTS ====================
     
     def _sale_department(self, button=None):
@@ -298,6 +575,18 @@ class SaleEvent:
             if success:
                 print(f"[SALE_DEPARTMENT] ✓ Successfully added department '{department_name}' to sale list")
                 
+                # Update document_data
+                # Get line_no from sale_list
+                line_no = len(sale_list.custom_sales_data_list)
+                self._update_document_data_for_sale(
+                    sale_type="DEPARTMENT",
+                    department=department,
+                    quantity=quantity,
+                    unit_price=price,
+                    department_no=department_no,
+                    line_no=line_no
+                )
+                
                 # Clear numpad after successful sale
                 numpad.set_text("")
                 print(f"[SALE_DEPARTMENT] Cleared numpad")
@@ -481,6 +770,17 @@ class SaleEvent:
             if success:
                 print(f"[SALE_PLU_CODE] ✓ Successfully added product '{product_name}' to sale list")
                 
+                # Update document_data
+                # Get line_no from sale_list
+                line_no = len(sale_list.custom_sales_data_list)
+                self._update_document_data_for_sale(
+                    sale_type="PLU_CODE",
+                    product=product,
+                    quantity=quantity,
+                    unit_price=sale_price,
+                    line_no=line_no
+                )
+                
                 # Update button text to show product short_name
                 button.setText(product_name)
                 print(f"[SALE_PLU_CODE] Updated button text to: '{product_name}'")
@@ -642,6 +942,18 @@ class SaleEvent:
             
             if success:
                 print(f"[SALE_PLU_BARCODE] ✓ Successfully added product '{product_name}' to sale list")
+                
+                # Update document_data
+                # Get line_no from sale_list
+                line_no = len(sale_list.custom_sales_data_list)
+                self._update_document_data_for_sale(
+                    sale_type="PLU_BARCODE",
+                    product=product,
+                    quantity=quantity,
+                    unit_price=sale_price,
+                    product_barcode=product_barcode,
+                    line_no=line_no
+                )
                 
                 # Update button text to show product short_name
                 button.setText(product_name)

@@ -87,6 +87,7 @@ def _insert_pos_settings(session, admin_cashier_id, gbp_currency=None):
         mac_address="BC091B5FBEB9",  # Default value
         force_to_work_online=True,  # Default value
         fk_current_currency_id=gbp_currency_id,  # Foreign key to Currency (GBP)
+        fk_working_currency_id=gbp_currency_id,  # Foreign key to Currency (GBP) - working currency
         fk_default_country_id=uk_country_id,  # Foreign key to Country (United Kingdom)
         fk_cashier_create_id=admin_cashier_id,  # AuditMixin field
         fk_cashier_update_id=admin_cashier_id   # AuditMixin field
