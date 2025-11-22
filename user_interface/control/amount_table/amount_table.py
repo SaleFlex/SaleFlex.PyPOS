@@ -257,17 +257,24 @@ class AmountTable(QWidget):
     @receipt_total_price.setter
     def receipt_total_price(self, value: Decimal):
         """
-        Set the total receipt price and update related fields.
+        Set the total receipt price (Sales Amount) and update related fields.
+        
+        Net Amount = Sales Amount - Discount Amount
+        Balance = Net Amount - Payment Amount
         
         Args:
-            value: The total price to set
+            value: The total sales amount to set
         """
         self._set_amount_value(self.SALES_AMOUNT_ROW, value)
-        self._set_amount_value(self.NET_AMOUNT_ROW, value)  # Net amount equals sales amount
         
-        # Update balance (total - payment)
+        # Calculate Net Amount = Sales Amount - Discount Amount
+        discount_amount = self._get_amount_value(self.DISCOUNT_AMOUNT_ROW)
+        net_amount = value - discount_amount
+        self._set_amount_value(self.NET_AMOUNT_ROW, net_amount)
+        
+        # Update balance (net amount - payment)
         payment_amount = self._get_amount_value(self.PAYMENT_AMOUNT_ROW)
-        balance = value - payment_amount
+        balance = net_amount - payment_amount
         self._set_amount_value(self.BALANCE_AMOUNT_ROW, balance)
         
         # Update custom customer form if available
@@ -290,14 +297,16 @@ class AmountTable(QWidget):
         """
         Set the total payment amount and update balance.
         
+        Balance = Net Amount - Payment Amount
+        
         Args:
             value: The payment amount to set
         """
         self._set_amount_value(self.PAYMENT_AMOUNT_ROW, value)
         
-        # Update balance (total - payment)
-        total_amount = self._get_amount_value(self.NET_AMOUNT_ROW)
-        balance = total_amount - value
+        # Update balance (net amount - payment)
+        net_amount = self._get_amount_value(self.NET_AMOUNT_ROW)
+        balance = net_amount - value
         self._set_amount_value(self.BALANCE_AMOUNT_ROW, balance)
         
         # Update custom customer form if available
@@ -318,12 +327,25 @@ class AmountTable(QWidget):
     @discount_total_amount.setter
     def discount_total_amount(self, value: Decimal):
         """
-        Set the total discount amount.
+        Set the total discount amount and update Net Amount and Balance.
+        
+        Net Amount = Sales Amount - Discount Amount
+        Balance = Net Amount - Payment Amount
         
         Args:
             value: The discount amount to set
         """
         self._set_amount_value(self.DISCOUNT_AMOUNT_ROW, value)
+        
+        # Calculate Net Amount = Sales Amount - Discount Amount
+        sales_amount = self._get_amount_value(self.SALES_AMOUNT_ROW)
+        net_amount = sales_amount - value
+        self._set_amount_value(self.NET_AMOUNT_ROW, net_amount)
+        
+        # Update balance (net amount - payment)
+        payment_amount = self._get_amount_value(self.PAYMENT_AMOUNT_ROW)
+        balance = net_amount - payment_amount
+        self._set_amount_value(self.BALANCE_AMOUNT_ROW, balance)
         
         # Update custom customer form if available
         custom_form = self._get_custom_customer_form()

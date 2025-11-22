@@ -90,8 +90,8 @@ class SaleEvent:
         """
         Update document_data with sale information.
         
-        This method updates TransactionHeadTemp and creates TransactionProductTemp or
-        TransactionDepartmentTemp records based on the sale type.
+        This method delegates to SaleService.add_sale_to_document for the actual
+        business logic, keeping the event handler focused on UI coordination.
         
         Args:
             sale_type: "PLU_CODE", "PLU_BARCODE", or "DEPARTMENT"
@@ -107,184 +107,41 @@ class SaleEvent:
             bool: True if update successful, False otherwise
         """
         try:
-            from datetime import datetime
-            from data_layer.model.definition.transaction_status import TransactionStatus
             from pos.service import SaleService
             
             if not self.document_data or not self.document_data.get("head"):
                 print("[UPDATE_DOCUMENT_DATA] No document_data or head found")
                 return False
             
-            head = self.document_data["head"]
+            # Get current currency
+            current_currency = self.current_currency if hasattr(self, 'current_currency') and self.current_currency else None
             
-            # Ensure fk_customer_id is set (should be set in create_empty_document, but check anyway)
-            if not head.fk_customer_id:
-                from data_layer.model import Customer
-                from data_layer.engine import Engine
-                
-                # Try to find or create default customer
-                with Engine().get_session() as session:
-                    walk_in_customer = session.query(Customer).filter(
-                        Customer.name.ilike("%walk-in%") | Customer.name.ilike("%anonymous%"),
-                        Customer.is_deleted == False
-                    ).first()
-                    
-                    if walk_in_customer:
-                        head.fk_customer_id = walk_in_customer.id
-                    else:
-                        first_customer = session.query(Customer).filter(
-                            Customer.is_deleted == False
-                        ).first()
-                        
-                        if first_customer:
-                            head.fk_customer_id = first_customer.id
-                        else:
-                            # Create default customer
-                            default_customer = Customer(
-                                name="Walk-in",
-                                last_name="Customer",
-                                description="Default walk-in customer for POS transactions"
-                            )
-                            if hasattr(self, 'cashier_data') and self.cashier_data:
-                                default_customer.fk_cashier_create_id = self.cashier_data.id
-                                default_customer.fk_cashier_update_id = self.cashier_data.id
-                            default_customer.create()
-                            head.fk_customer_id = default_customer.id
+            # Get cashier data
+            cashier_data = self.cashier_data if hasattr(self, 'cashier_data') and self.cashier_data else None
             
-            # Update TransactionHeadTemp fields
-            # Set transaction_date_time if empty
-            if not head.transaction_date_time:
-                head.transaction_date_time = datetime.now()
+            # Delegate to SaleService
+            success = SaleService.add_sale_to_document(
+                document_data=self.document_data,
+                sale_type=sale_type,
+                product=product,
+                department=department,
+                quantity=quantity,
+                unit_price=unit_price,
+                product_barcode=product_barcode,
+                department_no=department_no,
+                line_no=line_no,
+                product_data=self.product_data,
+                current_currency=current_currency,
+                closure=self.closure if hasattr(self, 'closure') else None,
+                cashier_data=cashier_data
+            )
             
-            # Update transaction_status from DRAFT to ACTIVE if still DRAFT
-            if head.transaction_status == TransactionStatus.DRAFT.value:
-                head.transaction_status = TransactionStatus.ACTIVE.value
+            if success:
+                # Save document_data (AutoSaveDescriptor will handle saving)
+                self.document_data = self.document_data
+                print(f"[UPDATE_DOCUMENT_DATA] ✓ Updated document_data for {sale_type} sale")
             
-            # Get closure_number from closure
-            if self.closure and self.closure.get("closure"):
-                closure = self.closure["closure"]
-                if closure and closure.closure_number:
-                    head.closure_number = closure.closure_number
-            
-            # Set base_currency from CurrentStatus.current_currency
-            if hasattr(self, 'current_currency') and self.current_currency:
-                head.base_currency = self.current_currency
-            
-            # Set order_source and order_channel
-            head.order_source = "in_store"
-            head.order_channel = "cashier"
-            
-            # Calculate line_no if not provided (use current products/departments count)
-            if line_no is None:
-                line_no = len(self.document_data.get("products", [])) + len(self.document_data.get("departments", [])) + 1
-            
-            # Import services
-            from pos.service import SaleService
-            
-            # Calculate totals using SaleService
-            if sale_type in ["PLU_CODE", "PLU_BARCODE"]:
-                # PLU sale - create TransactionProductTemp
-                if not product:
-                    print("[UPDATE_DOCUMENT_DATA] Product required for PLU sale")
-                    return False
-                
-                # Calculate sale using SaleService
-                currency_sign = self.current_currency if hasattr(self, 'current_currency') and self.current_currency else None
-                sale_calc = SaleService.calculate_plu_sale(
-                    quantity=quantity,
-                    unit_price=unit_price,
-                    product=product,
-                    product_data=self.product_data,
-                    currency_sign=currency_sign
-                )
-                
-                # Create TransactionProductTemp using SaleService
-                product_temp = SaleService.create_transaction_product_temp(
-                    head_id=head.id,
-                    line_no=line_no,
-                    product=product,
-                    quantity=quantity,
-                    unit_price=unit_price,
-                    total_price=sale_calc["total_price"],
-                    vat_rate=sale_calc["vat_rate"],
-                    total_vat=sale_calc["total_vat"],
-                    product_barcode=product_barcode if sale_type == "PLU_BARCODE" else None
-                )
-                
-                # Add to document_data
-                if "products" not in self.document_data:
-                    self.document_data["products"] = []
-                self.document_data["products"].append(product_temp)
-                
-                # Manually save the product temp model to database
-                # AutoSaveDict doesn't trigger save on list.append(), so we need to save manually
-                try:
-                    product_temp.save()
-                    print(f"[UPDATE_DOCUMENT_DATA] ✓ Saved TransactionProductTemp to database")
-                except Exception as e:
-                    print(f"[UPDATE_DOCUMENT_DATA] Error saving TransactionProductTemp: {e}")
-                    import traceback
-                    traceback.print_exc()
-                
-            elif sale_type == "DEPARTMENT":
-                # Department sale - create TransactionDepartmentTemp
-                if not department:
-                    print("[UPDATE_DOCUMENT_DATA] Department required for department sale")
-                    return False
-                
-                # Calculate department sale using SaleService
-                currency_sign = self.current_currency if hasattr(self, 'current_currency') and self.current_currency else None
-                dept_calc = SaleService.calculate_department_sale(
-                    quantity=quantity,
-                    unit_price=unit_price,
-                    department=department,
-                    department_no=department_no,
-                    product_data=self.product_data,
-                    currency_sign=currency_sign
-                )
-                
-                if not dept_calc["dept_main_group"]:
-                    print("[UPDATE_DOCUMENT_DATA] Could not determine department main group")
-                    return False
-                
-                # Create TransactionDepartmentTemp using SaleService
-                dept_temp = SaleService.create_transaction_department_temp(
-                    head_id=head.id,
-                    line_no=line_no,
-                    dept_main_group=dept_calc["dept_main_group"],
-                    dept_sub_group=dept_calc["dept_sub_group"],
-                    total_department=dept_calc["total_department"],
-                    vat_rate=dept_calc["vat_rate"],
-                    total_department_vat=dept_calc["total_department_vat"],
-                    department_no=department_no,
-                    product_data=self.product_data
-                )
-                
-                # Add to document_data
-                if "departments" not in self.document_data:
-                    self.document_data["departments"] = []
-                self.document_data["departments"].append(dept_temp)
-                
-                # Manually save the department temp model to database
-                # AutoSaveDict doesn't trigger save on list.append(), so we need to save manually
-                try:
-                    dept_temp.save()
-                    print(f"[UPDATE_DOCUMENT_DATA] ✓ Saved TransactionDepartmentTemp to database")
-                except Exception as e:
-                    print(f"[UPDATE_DOCUMENT_DATA] Error saving TransactionDepartmentTemp: {e}")
-                    import traceback
-                    traceback.print_exc()
-            
-            # Update TransactionHeadTemp totals using SaleService
-            totals = SaleService.calculate_document_totals(self.document_data)
-            head.total_amount = totals["total_amount"]
-            head.total_vat_amount = totals["total_vat_amount"]
-            
-            # Save document_data (AutoSaveDescriptor will handle saving)
-            self.document_data = self.document_data
-            
-            print(f"[UPDATE_DOCUMENT_DATA] ✓ Updated document_data for {sale_type} sale")
-            return True
+            return success
             
         except Exception as e:
             print(f"[UPDATE_DOCUMENT_DATA] Error updating document_data: {e}")
@@ -560,6 +417,16 @@ class SaleEvent:
                     line_no=line_no
                 )
                 
+                # Update amount_table with new totals
+                if hasattr(current_window, 'amount_table') and current_window.amount_table:
+                    from pos.service import SaleService
+                    if self.document_data and self.document_data.get("head"):
+                        SaleService.update_amount_table_from_document(
+                            current_window.amount_table,
+                            self.document_data["head"]
+                        )
+                        print(f"[SALE_DEPARTMENT] ✓ Updated amount_table")
+                
                 # Clear numpad after successful sale
                 numpad.set_text("")
                 print(f"[SALE_DEPARTMENT] Cleared numpad")
@@ -752,6 +619,16 @@ class SaleEvent:
                     line_no=line_no
                 )
                 
+                # Update amount_table with new totals
+                if hasattr(current_window, 'amount_table') and current_window.amount_table:
+                    from pos.service import SaleService
+                    if self.document_data and self.document_data.get("head"):
+                        SaleService.update_amount_table_from_document(
+                            current_window.amount_table,
+                            self.document_data["head"]
+                        )
+                        print(f"[SALE_PLU_CODE] ✓ Updated amount_table")
+                
                 # Update button text to show product short_name
                 button.setText(product_name)
                 print(f"[SALE_PLU_CODE] Updated button text to: '{product_name}'")
@@ -930,6 +807,16 @@ class SaleEvent:
                     product_barcode=product_barcode,
                     line_no=line_no
                 )
+                
+                # Update amount_table with new totals
+                if hasattr(current_window, 'amount_table') and current_window.amount_table:
+                    from pos.service import SaleService
+                    if self.document_data and self.document_data.get("head"):
+                        SaleService.update_amount_table_from_document(
+                            current_window.amount_table,
+                            self.document_data["head"]
+                        )
+                        print(f"[SALE_PLU_BARCODE] ✓ Updated amount_table")
                 
                 # Update button text to show product short_name
                 button.setText(product_name)
