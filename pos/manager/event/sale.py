@@ -402,26 +402,58 @@ class SaleEvent:
             # Find sale_list widget in the current window
             # Button's parent should be BaseWindow
             current_window = button.parent() if button else None
+            
+            if not current_window:
+                print("[SALE_PLU_CODE] Button has no parent window")
+                return False
+            
             sale_list = None
             
-            if current_window:
-                # Check if window has sale_list attribute (set in _create_sale_list)
-                if hasattr(current_window, 'sale_list'):
-                    sale_list = current_window.sale_list
-                else:
-                    # Fallback: Search for SaleList widget in window's children
-                    for child in current_window.children():
-                        if isinstance(child, SaleList):
-                            sale_list = child
-                            break
+            # Check if window has sale_list attribute (set in _create_sale_list)
+            if hasattr(current_window, 'sale_list'):
+                sale_list = current_window.sale_list
+            else:
+                # Fallback: Search for SaleList widget using findChildren (searches nested widgets too)
+                sale_lists = current_window.findChildren(SaleList)
+                if sale_lists:
+                    sale_list = sale_lists[0]
             
             if not sale_list:
                 print("[SALE_PLU_CODE] SaleList widget not found in current window")
                 return False
             
+            # Get quantity from numpad if available
+            quantity = 1.0  # Default quantity
+            numpad = None
+            
+            # Search for NumPad widget using findChildren (searches nested widgets too)
+            from user_interface.control.numpad.numpad import NumPad
+            numpads = current_window.findChildren(NumPad)
+            if numpads:
+                numpad = numpads[0]
+            
+            if numpad:
+                numpad_text = numpad.get_text()
+                print(f"[SALE_PLU_CODE] NumPad text: '{numpad_text}'")
+                
+                if numpad_text and numpad_text.strip():
+                    try:
+                        # Try to convert numpad text to quantity (as integer or float)
+                        quantity_value = float(numpad_text)
+                        if quantity_value > 0:
+                            quantity = quantity_value
+                            print(f"[SALE_PLU_CODE] Using quantity from numpad: {quantity}")
+                        else:
+                            print(f"[SALE_PLU_CODE] NumPad value '{quantity_value}' is not positive, using default quantity 1.0")
+                    except ValueError:
+                        print(f"[SALE_PLU_CODE] NumPad text '{numpad_text}' is not a valid number, using default quantity 1.0")
+                    finally:
+                        # Always clear numpad after attempting to read quantity (whether valid or not)
+                        numpad.set_text("")
+                        print(f"[SALE_PLU_CODE] Cleared numpad")
+            
             # Add product to sale list
             product_name = product.short_name if product.short_name else product.name
-            quantity = 1.0  # Default quantity
             
             success = sale_list.add_product(
                 product_name=product_name,
@@ -532,26 +564,58 @@ class SaleEvent:
             # Find sale_list widget in the current window
             # Button's parent should be BaseWindow
             current_window = button.parent() if button else None
+            
+            if not current_window:
+                print("[SALE_PLU_BARCODE] Button has no parent window")
+                return False
+            
             sale_list = None
             
-            if current_window:
-                # Check if window has sale_list attribute (set in _create_sale_list)
-                if hasattr(current_window, 'sale_list'):
-                    sale_list = current_window.sale_list
-                else:
-                    # Fallback: Search for SaleList widget in window's children
-                    for child in current_window.children():
-                        if isinstance(child, SaleList):
-                            sale_list = child
-                            break
+            # Check if window has sale_list attribute (set in _create_sale_list)
+            if hasattr(current_window, 'sale_list'):
+                sale_list = current_window.sale_list
+            else:
+                # Fallback: Search for SaleList widget using findChildren (searches nested widgets too)
+                sale_lists = current_window.findChildren(SaleList)
+                if sale_lists:
+                    sale_list = sale_lists[0]
             
             if not sale_list:
                 print("[SALE_PLU_BARCODE] SaleList widget not found in current window")
                 return False
             
+            # Get quantity from numpad if available
+            quantity = 1.0  # Default quantity
+            numpad = None
+            
+            # Search for NumPad widget using findChildren (searches nested widgets too)
+            from user_interface.control.numpad.numpad import NumPad
+            numpads = current_window.findChildren(NumPad)
+            if numpads:
+                numpad = numpads[0]
+            
+            if numpad:
+                numpad_text = numpad.get_text()
+                print(f"[SALE_PLU_BARCODE] NumPad text: '{numpad_text}'")
+                
+                if numpad_text and numpad_text.strip():
+                    try:
+                        # Try to convert numpad text to quantity (as integer or float)
+                        quantity_value = float(numpad_text)
+                        if quantity_value > 0:
+                            quantity = quantity_value
+                            print(f"[SALE_PLU_BARCODE] Using quantity from numpad: {quantity}")
+                        else:
+                            print(f"[SALE_PLU_BARCODE] NumPad value '{quantity_value}' is not positive, using default quantity 1.0")
+                    except ValueError:
+                        print(f"[SALE_PLU_BARCODE] NumPad text '{numpad_text}' is not a valid number, using default quantity 1.0")
+                    finally:
+                        # Always clear numpad after attempting to read quantity (whether valid or not)
+                        numpad.set_text("")
+                        print(f"[SALE_PLU_BARCODE] Cleared numpad")
+            
             # Add product to sale list
             product_name = product.short_name if product.short_name else product.name
-            quantity = 1.0  # Default quantity
             
             success = sale_list.add_product(
                 product_name=product_name,
