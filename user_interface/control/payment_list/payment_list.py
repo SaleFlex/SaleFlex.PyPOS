@@ -62,7 +62,7 @@ class PaymentList(QWidget):
     currency conversion, and interactive payment management.
     
     Key Features:
-    - Multi-column table display (Payment Type, Amount, Currency, Rate, Total)
+    - Two-column table display (Description, Amount)
     - Customizable styling with background and foreground colors
     - Event-driven architecture with configurable event handlers
     - Internal data storage for payment records
@@ -126,11 +126,20 @@ class PaymentList(QWidget):
         
         # Create the primary data display table
         self.table_widget = QTableWidget(self)
-        self.table_widget.setColumnCount(5)
-        self.table_widget.setHorizontalHeaderLabels(["Payment Type", "Amount", "Currency", "Rate", "Total"])
+        self.table_widget.setColumnCount(2)
+        self.table_widget.setHorizontalHeaderLabels(["Description", "Amount"])
         
         # Configure table behavior and interaction properties
-        self.table_widget.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        # Set column widths: Description 65%, Amount 35%
+        header = self.table_widget.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.Fixed)
+        header.setSectionResizeMode(1, QHeaderView.Fixed)
+        
+        # Calculate column widths based on widget width
+        # Account for borders and spacing (approximately 20 pixels)
+        available_width = width - 20
+        self.table_widget.setColumnWidth(0, int(available_width * 0.65))
+        self.table_widget.setColumnWidth(1, int(available_width * 0.35))
         self.table_widget.setSelectionBehavior(QTableWidget.SelectRows)
         self.table_widget.setEditTriggers(QTableWidget.NoEditTriggers)  # Read-only table
         
@@ -150,6 +159,13 @@ class PaymentList(QWidget):
         # Enable alternating row colors for better visual distinction
         self.table_widget.setAlternatingRowColors(True)
         
+        # Calculate lighter background color for selected rows
+        # Extract RGB components and make them lighter
+        r = min(0xFF, ((background_color >> 16) & 0xFF) + 0x40)
+        g = min(0xFF, ((background_color >> 8) & 0xFF) + 0x40)
+        b = min(0xFF, (background_color & 0xFF) + 0x40)
+        selected_bg_color = (r << 16) | (g << 8) | b
+        
         # Apply comprehensive CSS styling for consistent appearance
         self.table_widget.setStyleSheet(f"""
             QTableWidget {{
@@ -168,7 +184,8 @@ class PaymentList(QWidget):
                 padding: 4px;
             }}
             QTableWidget::item:selected {{
-                background-color: #{(background_color + 0x222222) & 0xFFFFFF:06x};
+                background-color: #{selected_bg_color:06x};
+                color: #{foreground_color:06x};
             }}
         """)
         
@@ -177,6 +194,26 @@ class PaymentList(QWidget):
         
         # Integrate the table into the main widget layout
         self.layout.addWidget(self.table_widget)
+    
+    def resizeEvent(self, event):
+        """
+        Handle widget resize events to maintain column width ratios.
+        
+        When the widget is resized, this method recalculates column widths
+        to maintain the 65%/35% ratio for Description/Amount columns.
+        
+        Args:
+            event: QResizeEvent containing the new size information
+        """
+        super().resizeEvent(event)
+        if self.table_widget:
+            # Get current widget width
+            current_width = self.width()
+            # Account for borders and spacing (approximately 20 pixels)
+            available_width = current_width - 20
+            if available_width > 0:
+                self.table_widget.setColumnWidth(0, int(available_width * 0.65))
+                self.table_widget.setColumnWidth(1, int(available_width * 0.35))
     
     # Control Interface Properties (ICustomControl equivalent)
     @property
@@ -380,19 +417,19 @@ class PaymentList(QWidget):
         )
         self._payment_data_list.append(payment_data)
         
+        # Create description: payment_type (currency)
+        if currency:
+            description = f"{payment_type} ({currency})"
+        else:
+            description = payment_type
+        
         # Create table display items with proper formatting
-        payment_type_item = QTableWidgetItem(payment_type)
-        amount_item = QTableWidgetItem(f"{amount_float:.2f}")
-        currency_item = QTableWidgetItem(currency)
-        rate_item = QTableWidgetItem(f"{rate_float:.4f}")
-        total_item = QTableWidgetItem(f"{total:.2f}")
+        description_item = QTableWidgetItem(description)
+        amount_item = QTableWidgetItem(f"{total:.2f}")
         
         # Populate the table row with formatted data
-        self.table_widget.setItem(row_position, 0, payment_type_item)
+        self.table_widget.setItem(row_position, 0, description_item)
         self.table_widget.setItem(row_position, 1, amount_item)
-        self.table_widget.setItem(row_position, 2, currency_item)
-        self.table_widget.setItem(row_position, 3, rate_item)
-        self.table_widget.setItem(row_position, 4, total_item)
         
         # Auto-select the newly added row and ensure it's visible
         self.table_widget.selectRow(row_position)
