@@ -40,6 +40,50 @@ class SaleEvent:
     refresh the display as needed.
     """
     
+    def _ensure_document_open(self):
+        """
+        Ensure that document_data exists and is open (not closed).
+        
+        This method checks if document_data exists and is in an open state.
+        If document_data is None or the document is closed/completed, 
+        it creates a new empty document.
+        
+        Returns:
+            bool: True if document is open (or was successfully created), False otherwise
+        """
+        from data_layer.model.definition.transaction_status import TransactionStatus
+        
+        # Check if document_data exists
+        if not self.document_data:
+            print("[ENSURE_DOCUMENT_OPEN] document_data is None, creating empty document...")
+            if not self.create_empty_document():
+                print("[ENSURE_DOCUMENT_OPEN] Failed to create empty document")
+                return False
+            return True
+        
+        # Check if document has a head
+        if not self.document_data.get("head"):
+            print("[ENSURE_DOCUMENT_OPEN] document_data has no head, creating empty document...")
+            if not self.create_empty_document():
+                print("[ENSURE_DOCUMENT_OPEN] Failed to create empty document")
+                return False
+            return True
+        
+        # Check if document is closed or completed
+        head = self.document_data["head"]
+        is_closed = getattr(head, 'is_closed', False)
+        transaction_status = getattr(head, 'transaction_status', None)
+        
+        if is_closed or transaction_status == TransactionStatus.COMPLETED.value:
+            print(f"[ENSURE_DOCUMENT_OPEN] Document is closed (is_closed={is_closed}, status={transaction_status}), creating new empty document...")
+            if not self.create_empty_document():
+                print("[ENSURE_DOCUMENT_OPEN] Failed to create empty document")
+                return False
+            return True
+        
+        # Document is open and ready
+        return True
+    
     def _update_document_data_for_sale(self, sale_type, product=None, department=None, 
                                        quantity=1.0, unit_price=0.0, product_barcode=None, 
                                        department_no=None, line_no=None):
@@ -276,12 +320,10 @@ class SaleEvent:
             self._logout()
             return False
         
-        # Ensure document_data exists - create if not present
-        if not self.document_data:
-            print("[SALE_DEPARTMENT] document_data is None, creating empty document...")
-            if not self.create_empty_document():
-                print("[SALE_DEPARTMENT] Failed to create empty document")
-                return False
+        # Ensure document is open (create new if None or closed)
+        if not self._ensure_document_open():
+            print("[SALE_DEPARTMENT] Failed to ensure document is open")
+            return False
         
         try:
             # Get button control name
@@ -580,12 +622,10 @@ class SaleEvent:
             self._logout()
             return False
         
-        # Ensure document_data exists - create if not present
-        if not self.document_data:
-            print("[SALE_PLU_CODE] document_data is None, creating empty document...")
-            if not self.create_empty_document():
-                print("[SALE_PLU_CODE] Failed to create empty document")
-                return False
+        # Ensure document is open (create new if None or closed)
+        if not self._ensure_document_open():
+            print("[SALE_PLU_CODE] Failed to ensure document is open")
+            return False
         
         try:
             # Get button control name
@@ -747,6 +787,11 @@ class SaleEvent:
         """
         if not self.login_succeed:
             self._logout()
+            return False
+        
+        # Ensure document is open (create new if None or closed)
+        if not self._ensure_document_open():
+            print("[SALE_PLU_BARCODE] Failed to ensure document is open")
             return False
         
         try:
