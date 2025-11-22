@@ -8,6 +8,7 @@ and reusability.
 
 from pos.service.vat_service import VatService
 from pos.service.sale_service import SaleService
+from pos.service.payment_service import PaymentService
 
-__all__ = ['VatService', 'SaleService']
+__all__ = ['VatService', 'SaleService', 'PaymentService']
 

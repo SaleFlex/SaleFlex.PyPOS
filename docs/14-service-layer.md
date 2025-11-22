@@ -12,7 +12,8 @@ The service layer is located in the `pos/service/` directory and contains busine
 pos/service/
 ├── __init__.py          # Service layer exports
 ├── vat_service.py       # VAT calculation service
-└── sale_service.py      # Sale processing service
+├── sale_service.py      # Sale processing service
+└── payment_service.py   # Payment processing service
 ```
 
 ## Available Services
@@ -196,6 +197,81 @@ SaleService.update_payment_list_from_document(
 - **`update_amount_table_from_document(amount_table, head)`**: Update amount_table control with totals from TransactionHeadTemp
 - **`update_payment_list_from_document(payment_list, document_data)`**: Update payment_list control with payments ordered by line_no
 
+### PaymentService
+
+The `PaymentService` provides business logic for processing payments, calculating change, and managing document completion.
+
+#### Key Features
+
+- **Payment Processing**: Handles multiple payment types (CASH, CREDIT, CHECK, EXCHANGE, PREPAID, CHARGE_SALE, OTHER)
+- **Button Name Parsing**: Supports payment button naming conventions:
+  - `PAYMENT` prefix: Pays remaining balance
+  - `CASH` prefix: Pays specific amount (number after CASH divided by 100)
+- **Change Calculation**: Automatically calculates and records change when payment exceeds transaction total
+- **Document Completion**: Checks if document is fully paid and handles completion process
+- **Closure Updates**: Updates closure totals when document is completed
+- **Safe Decimal Conversion**: Handles None values and invalid formats gracefully
+
+#### Payment Button Naming Conventions
+
+Payment buttons can be named with special prefixes to control payment behavior:
+
+- **`PAYMENT*`**: When button name starts with "PAYMENT", it pays the entire remaining balance
+- **`CASH*`**: When button name starts with "CASH", the number after "CASH" (divided by 100) is the payment amount
+  - Example: `CASH1000` = 10.00 (1000 / 100)
+  - Example: `CASH5000` = 50.00 (5000 / 100)
+
+#### Payment Type Behavior
+
+Different payment types handle amount limits differently:
+
+- **CASH_PAYMENT, CHECK_PAYMENT, EXCHANGE_PAYMENT**: Use exact button amount
+- **CREDIT_PAYMENT, PREPAID_PAYMENT, CHARGE_SALE_PAYMENT, OTHER_PAYMENT**: Limit payment to remaining balance (min(button_amount, remaining_balance))
+
+#### Usage Examples
+
+```python
+from pos.service import PaymentService
+
+# Process a payment
+success, payment_temp, error_message = PaymentService.process_payment(
+    document_data=document_data,
+    payment_type="CASH_PAYMENT",
+    button_name="CASH1000"  # Pays 10.00
+)
+
+# Calculate change amount
+change_amount = PaymentService.calculate_change(document_data)
+
+# Record change if positive
+success, change_temp, error_message = PaymentService.record_change(document_data)
+
+# Check if document is complete
+is_complete = PaymentService.is_document_complete(document_data)
+
+# Mark document as complete
+if is_complete:
+    PaymentService.mark_document_complete(document_data)
+    
+    # Update closure
+    PaymentService.update_closure_for_completion(closure, document_data)
+    
+    # Copy temp models to permanent
+    PaymentService.copy_temp_to_permanent(document_data)
+```
+
+#### Methods
+
+- **`process_payment(document_data, payment_type, button_name="")`**: Process a payment and create TransactionPaymentTemp record
+- **`calculate_payment_amount(button_name, remaining_amount, payment_type)`**: Calculate payment amount based on button name
+- **`calculate_change(document_data)`**: Calculate change amount (total_payment_amount - total_amount)
+- **`record_change(document_data)`**: Record change amount in TransactionChangeTemp if positive
+- **`is_document_complete(document_data)`**: Check if document is fully paid (total_amount = total_payment_amount - total_change_amount)
+- **`mark_document_complete(document_data)`**: Mark document as complete by updating transaction status
+- **`update_closure_for_completion(closure, document_data)`**: Update closure with transaction totals
+- **`copy_temp_to_permanent(document_data)`**: Copy all temp models to permanent models
+- **`_safe_decimal(value)`**: Safely convert value to Decimal (handles None, string, int, float, Decimal)
+
 ## Integration with Event Handlers
 
 Event handlers in `pos/manager/event/` use services to perform business operations:
@@ -264,7 +340,6 @@ def _update_sale_screen_controls(self):
 ## Future Services
 
 Additional services may be added for:
-- Payment processing
 - Discount calculations
 - Inventory management
 - Customer management
@@ -272,8 +347,8 @@ Additional services may be added for:
 
 ---
 
-**Last Updated:** 2025-01-27  
-**Version:** 1.0.0b2
+**Last Updated:** 2025-01-28  
+**Version:** 1.0.0b3
 
 ## Sale Screen UI Restoration
 

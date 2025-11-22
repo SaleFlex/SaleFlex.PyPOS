@@ -50,6 +50,8 @@ SaleFlex.PyPOS uses a comprehensive database schema with over 80 models organize
 - **TransactionProductTemp**: Temporary transaction line items
 - **TransactionPayment**: Payment records for transactions
 - **TransactionPaymentTemp**: Temporary payment records
+- **TransactionChange**: Change records for overpayments
+- **TransactionChangeTemp**: Temporary change records
 - **TransactionTax**: Tax calculations per transaction
 - **TransactionTaxTemp**: Temporary tax calculations
 - **TransactionDiscountType**: Discount type definitions (NONE, PERSONAL, MANAGER, CUSTOMER_SATISFACTION, PRODUCT)

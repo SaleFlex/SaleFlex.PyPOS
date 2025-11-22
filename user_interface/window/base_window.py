@@ -161,9 +161,12 @@ class BaseWindow(QMainWindow):
         if event_handler:
             print(f"✓ Connecting button '{design_data.get('caption')}' to event handler: {event_handler.__name__}")
             
-            # Special handling for SALE_PLU_CODE, SALE_PLU_BARCODE, and SALE_DEPARTMENT: pass button object to handler
+            # Special handling for sale and payment events: pass button object to handler
             # Use default parameter to avoid closure issues
-            if function_name in ["SALE_PLU_CODE", "SALE_PLU_BARCODE", "SALE_DEPARTMENT"]:
+            payment_events = ["CASH_PAYMENT", "CREDIT_PAYMENT", "CHECK_PAYMENT", "EXCHANGE_PAYMENT", 
+                             "PREPAID_PAYMENT", "CHARGE_SALE_PAYMENT", "OTHER_PAYMENT", "CHANGE_PAYMENT"]
+            sale_events = ["SALE_PLU_CODE", "SALE_PLU_BARCODE", "SALE_DEPARTMENT"] 
+            if function_name in sale_events or function_name in payment_events:
                 button.clicked.connect(lambda checked=False, btn=button: event_handler(btn))
             else:
                 button.clicked.connect(event_handler)

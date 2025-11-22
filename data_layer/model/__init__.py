@@ -90,6 +90,8 @@ from data_layer.model.definition.transaction_tax import TransactionTax
 from data_layer.model.definition.transaction_tax_temp import TransactionTaxTemp
 from data_layer.model.definition.transaction_tip import TransactionTip
 from data_layer.model.definition.transaction_tip_temp import TransactionTipTemp
+from data_layer.model.definition.transaction_change import TransactionChange
+from data_layer.model.definition.transaction_change_temp import TransactionChangeTemp
 from data_layer.model.definition.transaction_status import TransactionStatus
 from data_layer.model.definition.warehouse import Warehouse
 from data_layer.model.definition.warehouse_location import WarehouseLocation

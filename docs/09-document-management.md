@@ -30,7 +30,8 @@ self.document_data = {
     "refunds": List[TransactionRefundTemp],
     "surcharges": List[TransactionSurchargeTemp],
     "taxes": List[TransactionTaxTemp],
-    "tips": List[TransactionTipTemp]
+    "tips": List[TransactionTipTemp],
+    "changes": List[TransactionChangeTemp]  # Change records for overpayments
 }
 ```
 
@@ -77,14 +78,19 @@ This allows users to resume incomplete transactions seamlessly when navigating b
 During sales operations, the `document_data` is automatically updated:
 - **PLU Sales** (SALE_PLU_CODE, SALE_PLU_BARCODE): Automatically creates `TransactionProductTemp` records with product details, VAT calculations, and pricing
 - **Department Sales** (SALE_DEPARTMENT): Automatically creates `TransactionDepartmentTemp` records with department information, VAT rates, and totals
+- **Payment Processing**: Automatically creates `TransactionPaymentTemp` records when payment buttons are clicked, updates `total_payment_amount`, and calculates change
+- **Change Recording**: Automatically creates `TransactionChangeTemp` records when payment exceeds transaction total
 - **Transaction Head Updates**: Automatically updates `TransactionHeadTemp` fields including:
   - `transaction_date_time`: Set to current time if empty
-  - `transaction_status`: Changed from `DRAFT` to `ACTIVE` when first item is added
+  - `transaction_status`: Changed from `DRAFT` to `ACTIVE` when first item is added, `COMPLETED` when fully paid
   - `closure_number`: Set from active closure
   - `base_currency`: Set from `CurrentStatus.current_currency`
   - `order_source`: Set to "in_store"
   - `order_channel`: Set to "cashier"
   - `total_amount` and `total_vat_amount`: Automatically calculated from products and departments
+  - `total_payment_amount`: Updated with each payment
+  - `total_change_amount`: Updated when change is recorded
+  - `is_closed`: Set to `True` when document is completed
 - **Customer Assignment**: Automatically assigns a default walk-in customer if not set
 - **Batch Number**: Automatically set to match `closure_number`
 
@@ -159,10 +165,32 @@ self.complete_document(is_cancel=True, cancel_reason="Customer cancelled")
    - `TransactionProductTemp` → `TransactionProduct`
    - `TransactionDepartmentTemp` → `TransactionDepartment`
    - `TransactionPaymentTemp` → `TransactionPayment`
+   - `TransactionChangeTemp` → `TransactionChange`
    - And all other related temp models
 3. Updates foreign keys correctly (maps temp IDs to permanent IDs)
-4. Saves everything to database
-5. Resets `document_data` to `None`
+4. Updates closure totals:
+   - `total_document_count`: Incremented
+   - `gross_sales_amount`: Added transaction total
+   - `net_sales_amount`: Added (total - VAT)
+   - `total_tax_amount`: Added VAT amount
+   - `total_discount_amount`: Added discount amount
+   - `total_tip_amount`: Added tip amount
+   - `valid_transaction_count`: Incremented
+   - `closing_cash_amount`: Added cash payments total
+   - `paid_in_count`: Added payment count
+   - `paid_in_total`: Added total payment amount
+5. Increments receipt number sequence (`TransactionSequence` where `name="ReceiptNumber"`)
+6. Saves everything to database
+7. Clears UI controls (PaymentList, AmountTable, SaleList)
+8. Resets `document_data` to `None`
+
+**Automatic Document Completion:**
+Documents are automatically completed when fully paid. The completion check happens after each payment:
+- **Condition**: `total_amount = total_payment_amount - total_change_amount`
+- If condition is met, document is automatically marked as COMPLETED and closed
+- Change is automatically calculated and recorded if payment exceeds total
+- UI controls are automatically cleared after completion
+- New empty document is ready for next transaction
 
 ## Usage Examples
 
@@ -181,16 +209,33 @@ product.unit_price = 10.00
 # ... set other fields
 document["products"].append(product)
 
-# Add payment
-payment = TransactionPaymentTemp()
-payment.fk_transaction_head_id = document["head"].id
-payment.payment_type = "cash"
-payment.payment_total = 20.00
-# ... set other fields
-document["payments"].append(payment)
+# Process payment using PaymentService
+from pos.service import PaymentService
 
-# Complete transaction
-self.complete_document()
+success, payment_temp, error = PaymentService.process_payment(
+    document_data=document_data,
+    payment_type="CASH_PAYMENT",
+    button_name="CASH2000"  # Pays 20.00 (2000 / 100)
+)
+
+# If payment exceeds total, change is automatically calculated
+change_amount = PaymentService.calculate_change(document_data)
+if change_amount > 0:
+    PaymentService.record_change(document_data)
+
+# Check if document is complete (automatically checked after payment)
+if PaymentService.is_document_complete(document_data):
+    # Mark as complete
+    PaymentService.mark_document_complete(document_data)
+    
+    # Update closure
+    PaymentService.update_closure_for_completion(closure, document_data)
+    
+    # Copy to permanent models
+    PaymentService.copy_temp_to_permanent(document_data)
+    
+    # Clear UI controls (automatically done)
+    # Reset document_data (automatically done)
 ```
 
 ### Example 2: Restaurant Table Order (Suspend/Resume)
@@ -365,6 +410,70 @@ self.complete_document(
     is_cancel=True,
     cancel_reason="Customer requested cancellation"
 )
+```
+
+### Payment Processing
+
+Payment processing is handled through `PaymentService` and payment event handlers. The system supports multiple payment types and automatic change calculation.
+
+**Payment Types:**
+- `CASH_PAYMENT`: Cash payment
+- `CREDIT_PAYMENT`: Credit card payment
+- `CHECK_PAYMENT`: Check payment
+- `EXCHANGE_PAYMENT`: Exchange/trade-in payment
+- `PREPAID_PAYMENT`: Prepaid card payment
+- `CHARGE_SALE_PAYMENT`: Charge sale (house account)
+- `OTHER_PAYMENT`: Other payment methods
+- `CHANGE_PAYMENT`: Calculate and record change
+
+**Payment Button Naming Conventions:**
+- Buttons starting with `PAYMENT`: Pay remaining balance
+- Buttons starting with `CASH`: Pay specific amount (number after CASH divided by 100)
+  - Example: `CASH1000` = 10.00 payment (1000 / 100)
+  - Example: `CASH5000` = 50.00 payment (5000 / 100)
+
+**Payment Amount Behavior:**
+- **CASH_PAYMENT, CHECK_PAYMENT, EXCHANGE_PAYMENT**: Use exact button amount
+- **CREDIT_PAYMENT, PREPAID_PAYMENT, CHARGE_SALE_PAYMENT, OTHER_PAYMENT**: Limit to remaining balance (min(button_amount, remaining_balance))
+
+**Payment Flow:**
+1. User clicks payment button
+2. Payment amount is calculated based on button name and payment type
+3. `TransactionPaymentTemp` record is created and saved
+4. `TransactionHeadTemp.total_payment_amount` is updated
+5. UI controls (PaymentList, AmountTable) are updated
+6. Change is automatically calculated if payment exceeds total
+7. Change is recorded in `TransactionChangeTemp` if positive
+8. Document completion is checked automatically
+9. If complete (`total_amount = total_payment_amount - total_change_amount`):
+   - Document is marked as COMPLETED
+   - Closure totals are updated
+   - Receipt number is incremented
+   - Temp models are copied to permanent models
+   - UI controls are cleared
+   - `document_data` is reset
+
+**Example:**
+```python
+from pos.service import PaymentService
+
+# Process cash payment with button name CASH1000 (pays 10.00)
+success, payment_temp, error = PaymentService.process_payment(
+    document_data=document_data,
+    payment_type="CASH_PAYMENT",
+    button_name="CASH1000"
+)
+
+# Calculate and record change if needed
+change_amount = PaymentService.calculate_change(document_data)
+if change_amount > 0:
+    PaymentService.record_change(document_data)
+
+# Check if document is complete (automatically done after payment)
+if PaymentService.is_document_complete(document_data):
+    PaymentService.mark_document_complete(document_data)
+    PaymentService.update_closure_for_completion(closure, document_data)
+    PaymentService.copy_temp_to_permanent(document_data)
 ```
 
 ### `set_document_pending(is_pending=True)`

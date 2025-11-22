@@ -22,6 +22,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
+from decimal import Decimal
+from data_layer.enums.event_name import EventName
+from pos.service.payment_service import PaymentService
+
 
 class PaymentEvent:
     """
@@ -85,7 +89,7 @@ class PaymentEvent:
     
     # ==================== CASH PAYMENT EVENTS ====================
     
-    def _cash_payment(self, key=None):
+    def _cash_payment(self, button=None, key=None):
         """
         Handle cash payment processing.
         
@@ -93,7 +97,7 @@ class PaymentEvent:
         Handles cash drawer opening and change dispensing.
         
         Process:
-        1. Get cash amount tendered from input
+        1. Get cash amount tendered from input or button name
         2. Validate amount is sufficient for transaction total
         3. Calculate change due
         4. Open cash drawer
@@ -101,6 +105,7 @@ class PaymentEvent:
         6. Print receipt if required
         
         Parameters:
+            button: Optional button object with control_name and form_control_function1
             key: Optional parameter from numpad input
         
         Returns:
@@ -109,17 +114,12 @@ class PaymentEvent:
         if not self.login_succeed:
             self._logout()
             return False
-            
-        # TODO: Implement cash payment processing
-        if key is not None:
-            print(f"Cash payment - key pressed: {key}")
-        else:
-            print("Cash payment - functionality to be implemented")
-        return False
+        
+        return self._process_payment(EventName.CASH_PAYMENT.value, button)
     
     # ==================== ELECTRONIC PAYMENT EVENTS ====================
     
-    def _credit_payment(self, key=None):
+    def _credit_payment(self, button=None, key=None):
         """
         Handle credit card payment processing.
         
@@ -135,6 +135,7 @@ class PaymentEvent:
         6. Print receipt with signature line if required
         
         Parameters:
+            button: Optional button object with control_name and form_control_function1
             key: Optional parameter from numpad input
         
         Returns:
@@ -143,15 +144,10 @@ class PaymentEvent:
         if not self.login_succeed:
             self._logout()
             return False
-            
-        # TODO: Implement credit card payment processing
-        if key is not None:
-            print(f"Credit payment - key pressed: {key}")
-        else:
-            print("Credit payment - functionality to be implemented")
-        return False
+        
+        return self._process_payment(EventName.CREDIT_PAYMENT.value, button)
     
-    def _check_payment(self, key=None):
+    def _check_payment(self, button=None, key=None):
         """
         Handle check payment processing.
         
@@ -167,6 +163,7 @@ class PaymentEvent:
         6. Store check information for deposit
         
         Parameters:
+            button: Optional button object with control_name and form_control_function1
             key: Optional parameter from numpad input
         
         Returns:
@@ -175,22 +172,20 @@ class PaymentEvent:
         if not self.login_succeed:
             self._logout()
             return False
-            
-        # TODO: Implement check payment processing
-        if key is not None:
-            print(f"Check payment - key pressed: {key}")
-        else:
-            print("Check payment - functionality to be implemented")
-        return False
+        
+        return self._process_payment(EventName.CHECK_PAYMENT.value, button)
     
     # ==================== ALTERNATIVE PAYMENT EVENTS ====================
     
-    def _exchange_payment(self):
+    def _exchange_payment(self, button=None):
         """
         Handle exchange/trade-in payment processing.
         
         Processes payments where goods are exchanged for other goods
         or applied as credit toward purchase.
+        
+        Parameters:
+            button: Optional button object with control_name and form_control_function1
         
         Returns:
             bool: True if exchange payment processed successfully, False otherwise
@@ -198,12 +193,10 @@ class PaymentEvent:
         if not self.login_succeed:
             self._logout()
             return False
-            
-        # TODO: Implement exchange payment processing
-        print("Exchange payment - functionality to be implemented")
-        return False
+        
+        return self._process_payment(EventName.EXCHANGE_PAYMENT.value, button)
     
-    def _prepaid_payment(self, key=None):
+    def _prepaid_payment(self, button=None, key=None):
         """
         Handle prepaid card or voucher payment processing.
         
@@ -218,6 +211,7 @@ class PaymentEvent:
         5. Update card balance and transaction records
         
         Parameters:
+            button: Optional button object with control_name and form_control_function1
             key: Optional parameter from numpad input
         
         Returns:
@@ -226,20 +220,18 @@ class PaymentEvent:
         if not self.login_succeed:
             self._logout()
             return False
-            
-        # TODO: Implement prepaid payment processing
-        if key is not None:
-            print(f"Prepaid payment - key pressed: {key}")
-        else:
-            print("Prepaid payment - functionality to be implemented")
-        return False
+        
+        return self._process_payment(EventName.PREPAID_PAYMENT.value, button)
     
-    def _charge_sale_payment(self):
+    def _charge_sale_payment(self, button=None):
         """
         Handle charge sale payment processing.
         
         Processes payments where amount is charged to customer account
         for later billing (house accounts, corporate accounts).
+        
+        Parameters:
+            button: Optional button object with control_name and form_control_function1
         
         Returns:
             bool: True if charge sale processed successfully, False otherwise
@@ -247,12 +239,10 @@ class PaymentEvent:
         if not self.login_succeed:
             self._logout()
             return False
-            
-        # TODO: Implement charge sale payment processing
-        print("Charge sale payment - functionality to be implemented")
-        return False
+        
+        return self._process_payment(EventName.CHARGE_SALE_PAYMENT.value, button)
     
-    def _other_payment(self, key=None):
+    def _other_payment(self, button=None, key=None):
         """
         Handle other/miscellaneous payment methods.
         
@@ -260,6 +250,7 @@ class PaymentEvent:
         standard payment types (mobile payments, digital wallets, etc.).
         
         Parameters:
+            button: Optional button object with control_name and form_control_function1
             key: Optional parameter from numpad input
         
         Returns:
@@ -268,13 +259,263 @@ class PaymentEvent:
         if not self.login_succeed:
             self._logout()
             return False
+        
+        return self._process_payment(EventName.OTHER_PAYMENT.value, button)
+    
+    def _change_payment(self, button=None):
+        """
+        Handle change payment calculation and recording.
+        
+        Calculates change amount when payment exceeds transaction total
+        and records it in TransactionChangeTemp.
+        
+        Parameters:
+            button: Optional button object (name not important for this event)
+        
+        Returns:
+            bool: True if change payment processed successfully, False otherwise
+        """
+        if not self.login_succeed:
+            self._logout()
+            return False
+        
+        if not self.document_data or not self.document_data.get("head"):
+            print("[PAYMENT] No active document for change calculation")
+            return False
+        
+        try:
+            # Use PaymentService to record change
+            success, change_temp, error_message = PaymentService.record_change(self.document_data)
             
-        # TODO: Implement other payment method processing
-        if key is not None:
-            print(f"Other payment - key pressed: {key}")
-        else:
-            print("Other payment - functionality to be implemented")
-        return False
+            if success:
+                print(f"[PAYMENT] Change recorded: {change_temp.change_amount} {change_temp.currency}")
+            else:
+                print(f"[PAYMENT] {error_message}")
+            
+            # Check if document is complete
+            self._check_and_complete_document()
+            
+            return success
+            
+        except Exception as e:
+            print(f"[PAYMENT] Error processing change payment: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+    
+    def _process_payment(self, payment_type, button=None):
+        """
+        Process a payment based on payment type and button information.
+        
+        Handles payment button name parsing:
+        - PAYMENT prefix: Pay remaining balance
+        - CASH prefix: Pay specific amount (number after CASH divided by 100)
+        
+        Parameters:
+            payment_type: Payment type string (CASH_PAYMENT, CREDIT_PAYMENT, etc.)
+            button: Optional button object with control_name attribute
+        
+        Returns:
+            bool: True if payment processed successfully, False otherwise
+        """
+        if not self.document_data or not self.document_data.get("head"):
+            print("[PAYMENT] No active document")
+            return False
+        
+        try:
+            # Get button name if button is provided
+            button_name = ""
+            if button and hasattr(button, 'control_name'):
+                button_name = button.control_name or ""
+            
+            # Use PaymentService to process payment
+            success, payment_temp, error_message = PaymentService.process_payment(
+                self.document_data, payment_type, button_name
+            )
+            
+            if not success:
+                print(f"[PAYMENT] {error_message}")
+                return False
+            
+            # Update UI controls
+            self._update_payment_ui(payment_type, payment_temp.payment_total)
+            
+            print(f"[PAYMENT] Payment recorded: {payment_temp.payment_total} {payment_temp.currency_code} ({payment_type})")
+            
+            # Check if change is needed (payment exceeds total)
+            change_amount = PaymentService.calculate_change(self.document_data)
+            if change_amount > 0:
+                print(f"[PAYMENT] Change needed: {change_amount}")
+                # Record change automatically
+                change_success, change_temp, change_error = PaymentService.record_change(self.document_data)
+                if change_success:
+                    print(f"[PAYMENT] Change recorded: {change_temp.change_amount} {change_temp.currency}")
+                else:
+                    print(f"[PAYMENT] Error recording change: {change_error}")
+            
+            # Check if document is complete and complete it if so
+            self._check_and_complete_document()
+            
+            return True
+            
+        except Exception as e:
+            print(f"[PAYMENT] Error processing payment: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+    
+    def _update_payment_ui(self, payment_type, payment_amount):
+        """
+        Update PaymentList and AmountTable UI controls after payment.
+        
+        Parameters:
+            payment_type: Payment type string
+            payment_amount: Payment amount as Decimal
+        """
+        try:
+            # Get current window
+            window = self.interface.window if hasattr(self, 'interface') else None
+            if not window:
+                return
+            
+            # Update PaymentList if it exists
+            if hasattr(window, 'payment_list') and window.payment_list:
+                payment_list = window.payment_list
+                # Get currency from document
+                currency = "GBP"
+                if self.document_data and self.document_data.get("head"):
+                    currency = self.document_data["head"].base_currency or "GBP"
+                
+                # Add payment to list
+                payment_list.add_payment(
+                    payment_type=payment_type,
+                    amount=float(payment_amount),
+                    currency=currency,
+                    rate=1.0,
+                    payment_id=len(payment_list._payment_data_list)
+                )
+            
+            # Update AmountTable if it exists
+            if hasattr(window, 'amount_table') and window.amount_table:
+                amount_table = window.amount_table
+                if self.document_data and self.document_data.get("head"):
+                    head_temp = self.document_data["head"]
+                    
+                    # Update payment amount
+                    from decimal import Decimal
+                    amount_table.receipt_total_payment = Decimal(str(head_temp.total_payment_amount))
+                    
+                    # Update balance
+                    remaining = Decimal(str(head_temp.total_amount)) - Decimal(str(head_temp.total_payment_amount))
+                    amount_table._set_amount_value(amount_table.BALANCE_AMOUNT_ROW, remaining)
+                    
+        except Exception as e:
+            print(f"[PAYMENT] Error updating UI: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    def _check_and_complete_document(self):
+        """
+        Check if document is fully paid and complete it if so.
+        
+        Document is complete when:
+        total_amount = total_payment_amount - total_change_amount
+        """
+        if not self.document_data or not self.document_data.get("head"):
+            return False
+        
+        try:
+            # Use PaymentService to check if document is complete
+            if not PaymentService.is_document_complete(self.document_data):
+                return False
+            
+            # Mark document as complete
+            if not PaymentService.mark_document_complete(self.document_data):
+                return False
+            
+            # Update closure
+            if self.closure:
+                PaymentService.update_closure_for_completion(self.closure, self.document_data)
+            
+            # Increment receipt number
+            self._increment_receipt_number()
+            
+            # Copy temp models to permanent models
+            PaymentService.copy_temp_to_permanent(self.document_data)
+            
+            # Reset document_data
+            self.document_data = None
+            
+            # Clear UI controls
+            self._clear_sale_screen_controls()
+            
+            print("[PAYMENT] Document completed successfully")
+            return True
+            
+        except Exception as e:
+            print(f"[PAYMENT] Error checking document completion: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+    
+    def _clear_sale_screen_controls(self):
+        """
+        Clear all sale screen UI controls after document completion.
+        
+        Clears PaymentList, AmountTable, and SaleList controls.
+        """
+        try:
+            # Get current window
+            window = self.interface.window if hasattr(self, 'interface') else None
+            if not window:
+                return
+            
+            # Clear PaymentList if it exists
+            if hasattr(window, 'payment_list') and window.payment_list:
+                window.payment_list.clear_payments()
+                print("[PAYMENT] PaymentList cleared")
+            
+            # Clear AmountTable if it exists
+            if hasattr(window, 'amount_table') and window.amount_table:
+                window.amount_table.clear()
+                print("[PAYMENT] AmountTable cleared")
+            
+            # Clear SaleList if it exists
+            if hasattr(window, 'sale_list') and window.sale_list:
+                window.sale_list.clear_products()
+                print("[PAYMENT] SaleList cleared")
+                
+        except Exception as e:
+            print(f"[PAYMENT] Error clearing sale screen controls: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    def _increment_receipt_number(self):
+        """Increment receipt number sequence."""
+        try:
+            if not self.pos_data or "TransactionSequence" not in self.pos_data:
+                print("[PAYMENT] TransactionSequence not found in pos_data")
+                return
+            
+            sequences = self.pos_data["TransactionSequence"]
+            receipt_seq = None
+            
+            for seq in sequences:
+                if seq.name == "ReceiptNumber":
+                    receipt_seq = seq
+                    break
+            
+            if receipt_seq:
+                receipt_seq.value += 1
+                receipt_seq.save()
+                print(f"[PAYMENT] Receipt number incremented to: {receipt_seq.value}")
+            else:
+                print("[PAYMENT] ReceiptNumber sequence not found")
+                
+        except Exception as e:
+            print(f"[PAYMENT] Error incrementing receipt number: {e}")
+            import traceback
+            traceback.print_exc()
     
     # ==================== PAYMENT MANAGEMENT EVENTS ====================
     

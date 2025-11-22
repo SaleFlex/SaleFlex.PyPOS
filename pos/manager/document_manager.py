@@ -53,6 +53,8 @@ from data_layer.model import (
     TransactionTaxTemp,
     TransactionTip,
     TransactionTipTemp,
+    TransactionChange,
+    TransactionChangeTemp,
 )
 from data_layer.model.definition.transaction_status import TransactionStatus, TransactionType
 from data_layer.auto_save import AutoSaveModel
@@ -221,7 +223,8 @@ class DocumentManager:
                 "refunds": [],
                 "surcharges": [],
                 "taxes": [],
-                "tips": []
+                "tips": [],
+                "changes": []
             }
             
             print(f"[DEBUG] Created new empty document: {transaction_unique_id}")
@@ -480,6 +483,9 @@ class DocumentManager:
                     fk_transaction_head_id=head_id, is_deleted=False
                 ),
                 "tips": TransactionTipTemp.filter_by(
+                    fk_transaction_head_id=head_id, is_deleted=False
+                ),
+                "changes": TransactionChangeTemp.filter_by(
                     fk_transaction_head_id=head_id, is_deleted=False
                 )
             }
