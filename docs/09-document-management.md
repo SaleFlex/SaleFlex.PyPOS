@@ -65,6 +65,14 @@ Documents are automatically created in the following scenarios:
 
 This ensures that document information (document_type, transaction_type, receipt_number) is always available for display in the status bar and for transaction processing.
 
+**Automatic UI Restoration:**
+When entering the sale screen, if `document_data` contains an ACTIVE transaction (`transaction_status = ACTIVE`), the system automatically restores the transaction state by updating UI controls:
+- **sale_list**: Products and departments are loaded from `TransactionProductTemp` and `TransactionDepartmentTemp`, ordered by `line_no`
+- **amount_table**: Totals are restored from `TransactionHeadTemp` (total_amount, total_discount_amount, total_payment_amount)
+- **payment_list**: Payments are loaded from `TransactionPaymentTemp`, ordered by `line_no`
+
+This allows users to resume incomplete transactions seamlessly when navigating back to the sale screen or after application restart.
+
 **Automatic Document Data Updates:**
 During sales operations, the `document_data` is automatically updated:
 - **PLU Sales** (SALE_PLU_CODE, SALE_PLU_BARCODE): Automatically creates `TransactionProductTemp` records with product details, VAT calculations, and pricing
@@ -238,6 +246,7 @@ self._navigate_after_login()
 ```python
 # In _sales_form() method
 # Document is automatically created if none exists
+# UI controls are automatically restored if transaction is ACTIVE
 
 if self.login_succeed:
     # Ensure document_data exists
@@ -247,6 +256,31 @@ if self.login_succeed:
     
     self.current_form_type = FormName.SALE
     self.interface.redraw(form_name=FormName.SALE.name)
+    
+    # UI controls are automatically restored if transaction_status is ACTIVE
+    # This happens via SaleService.update_sale_screen_controls()
+```
+
+### Example 5: Automatic UI Restoration on Sale Screen Entry
+
+```python
+# When entering sale screen with ACTIVE transaction
+# The system automatically restores UI state
+
+# After form is redrawn, SaleService updates controls:
+from pos.service import SaleService
+
+# This is called automatically in _sales_form()
+SaleService.update_sale_screen_controls(
+    window=window,
+    document_data=self.document_data,
+    pos_data=self.pos_data
+)
+
+# Results:
+# - sale_list shows all products and departments in line_no order
+# - amount_table displays current totals
+# - payment_list shows all payments in line_no order
 ```
 
 ## Document Status Flags

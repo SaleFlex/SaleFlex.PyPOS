@@ -151,6 +151,35 @@ totals = SaleService.calculate_document_totals(document_data)
 #     "total_amount": Decimal('100.00'),
 #     "total_vat_amount": Decimal('15.25')
 # }
+
+# Update sale screen controls from document_data
+# This is automatically called when entering sale screen with ACTIVE transaction
+SaleService.update_sale_screen_controls(
+    window=window_instance,
+    document_data=document_data,
+    pos_data=pos_data  # Optional: for department names
+)
+# Updates:
+# - sale_list: Products and departments ordered by line_no
+# - amount_table: Totals from transaction head
+# - payment_list: Payments ordered by line_no
+
+# Update individual controls
+SaleService.update_sale_list_from_document(
+    sale_list=sale_list_control,
+    document_data=document_data,
+    pos_data=pos_data
+)
+
+SaleService.update_amount_table_from_document(
+    amount_table=amount_table_control,
+    head=transaction_head_temp
+)
+
+SaleService.update_payment_list_from_document(
+    payment_list=payment_list_control,
+    document_data=document_data
+)
 ```
 
 #### Methods
@@ -162,6 +191,10 @@ totals = SaleService.calculate_document_totals(document_data)
 - **`calculate_document_totals(document_data)`**: Calculate total amounts for a document
 - **`get_vat_rate_for_product(product, product_data)`**: Get VAT rate for a product
 - **`get_vat_rate_for_department(department, department_no, product_data)`**: Get VAT rate for a department
+- **`update_sale_screen_controls(window, document_data, pos_data=None)`**: Update all sale screen UI controls from document_data (orchestrator method)
+- **`update_sale_list_from_document(sale_list, document_data, pos_data=None)`**: Update sale_list control with products and departments ordered by line_no
+- **`update_amount_table_from_document(amount_table, head)`**: Update amount_table control with totals from TransactionHeadTemp
+- **`update_payment_list_from_document(payment_list, document_data)`**: Update payment_list control with payments ordered by line_no
 
 ## Integration with Event Handlers
 
@@ -186,6 +219,30 @@ def _update_document_data_for_sale(self, sale_type, ...):
     
     # Calculate totals
     totals = SaleService.calculate_document_totals(self.document_data)
+
+# In general.py event handler - when entering sale screen
+def _sales_form(self):
+    # Ensure document_data exists
+    if not self.document_data:
+        if not self.load_incomplete_document():
+            self.create_empty_document()
+    
+    # Redraw form
+    self.interface.redraw(form_name=FormName.SALE.name)
+    
+    # Automatically restore UI controls if transaction is ACTIVE
+    # Uses QTimer to ensure controls are created before updating
+    from PySide6.QtCore import QTimer
+    QTimer.singleShot(100, self._update_sale_screen_controls)
+
+def _update_sale_screen_controls(self):
+    # Delegate to SaleService
+    from pos.service import SaleService
+    SaleService.update_sale_screen_controls(
+        window=self.interface.window,
+        document_data=self.document_data,
+        pos_data=self.pos_data
+    )
 ```
 
 ## Benefits of Service Layer
@@ -217,4 +274,38 @@ Additional services may be added for:
 
 **Last Updated:** 2025-01-27  
 **Version:** 1.0.0b2
+
+## Sale Screen UI Restoration
+
+The `SaleService` includes methods for restoring the sale screen UI state from `document_data` when entering the sale screen with an ACTIVE transaction. This feature enables seamless resumption of incomplete transactions.
+
+### Key Features
+
+- **Automatic Restoration**: UI controls are automatically updated when entering sale screen with ACTIVE transaction
+- **Line Number Ordering**: Products, departments, and payments are loaded in `line_no` order
+- **Canceled Item Filtering**: Canceled items (`is_cancel=True`) are automatically filtered out
+- **Discount Support**: Both percentage and amount-based discounts are restored
+- **Service Layer Integration**: All UI update logic is centralized in `SaleService` for better separation of concerns
+
+### Restoration Process
+
+When `update_sale_screen_controls()` is called:
+
+1. **Checks Transaction Status**: Only updates if `transaction_status = ACTIVE`
+2. **Updates sale_list**: 
+   - Loads products from `TransactionProductTemp` ordered by `line_no`
+   - Loads departments from `TransactionDepartmentTemp` ordered by `line_no`
+   - Adds discounts (percentage or amount-based)
+   - Filters out canceled items
+3. **Updates amount_table**: 
+   - Restores `total_amount` from `TransactionHeadTemp`
+   - Restores `total_discount_amount`
+   - Restores `total_payment_amount`
+4. **Updates payment_list**: 
+   - Loads payments from `TransactionPaymentTemp` ordered by `line_no`
+   - Filters out canceled payments
+
+### Usage
+
+This functionality is automatically triggered when entering the sale screen (`_sales_form()` method). The restoration happens after the form is redrawn using a `QTimer` to ensure controls are created before updating.
 
