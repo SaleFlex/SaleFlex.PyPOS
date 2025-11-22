@@ -441,8 +441,10 @@ class BaseWindow(QMainWindow):
         self.addToolBar(tools)
 
     def _create_status_bar(self):
-        statusbar = StatusBar()
+        statusbar = StatusBar(app=self.app)
         self.setStatusBar(statusbar)
+        # Store reference for manual updates
+        self.statusbar = statusbar
 
     def _create_datagrid(self, design_data):
         """

@@ -68,6 +68,13 @@ class SaleEvent:
             self._logout()
             return False
         
+        # Ensure document_data exists - create if not present
+        if not self.document_data:
+            print("[SALE_DEPARTMENT] document_data is None, creating empty document...")
+            if not self.create_empty_document():
+                print("[SALE_DEPARTMENT] Failed to create empty document")
+                return False
+        
         try:
             # Get button control name
             if button is None or not hasattr(button, 'control_name'):
@@ -352,6 +359,13 @@ class SaleEvent:
         if not self.login_succeed:
             self._logout()
             return False
+        
+        # Ensure document_data exists - create if not present
+        if not self.document_data:
+            print("[SALE_PLU_CODE] document_data is None, creating empty document...")
+            if not self.create_empty_document():
+                print("[SALE_PLU_CODE] Failed to create empty document")
+                return False
         
         try:
             # Get button control name

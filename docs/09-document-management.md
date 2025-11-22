@@ -46,24 +46,35 @@ document = self.create_empty_document()
 ```
 
 **Default Values:**
-- `document_type`: First `TransactionDocumentType` record from database
-- `transaction_type`: `TransactionType.SALE`
+- `document_type`: From `CurrentStatus.document_type` property (converted from `DocumentType` enum to string)
+- `transaction_type`: Mapped from `CurrentStatus.document_type` property (e.g., `DocumentType.RETURN_SLIP` → `TransactionType.RETURN`, default: `TransactionType.SALE`)
 - `transaction_status`: `TransactionStatus.DRAFT`
-- `closure_number`: Value from `TransactionSequence` where `name="ClosureNumber"`
-- `receipt_number`: Value from `TransactionSequence` where `name="ReceiptNumber"`
+- `closure_number`: Value from `TransactionSequence` where `name="ClosureNumber"` (from `pos_data` cache)
+- `receipt_number`: Value from `TransactionSequence` where `name="ReceiptNumber"` (from `pos_data` cache)
 - `fk_store_id`: First `Store` record from `pos_data`
 - `pos_id`: `pos_no_in_store` from `PosSettings`
 - `is_closed`: `False`
 - `is_pending`: `False`
 - `is_cancel`: `False`
 
+**Automatic Document Creation:**
+Documents are automatically created in the following scenarios:
+- **After Login**: When a cashier successfully logs in, the system attempts to load an incomplete document. If none exists, a new empty document is created.
+- **When Opening Sale Form**: When navigating to the sale form, if no document exists, the system loads incomplete document or creates a new one.
+- **When Adding First Product**: If a product is added and no document exists, a new document is automatically created.
+
+This ensures that document information (document_type, transaction_type, receipt_number) is always available for display in the status bar and for transaction processing.
+
 ### 2. Document Loading
 
 **Incomplete Documents:**
-At application startup, the system automatically loads any incomplete transaction:
+The system automatically attempts to load incomplete documents in the following scenarios:
+- After successful login
+- When opening the sale form
+- At application startup (if implemented)
 
 ```python
-# Automatically called at startup
+# Automatically called after login and when opening sale form
 self.load_incomplete_document()
 ```
 
@@ -71,6 +82,8 @@ An incomplete document is one where:
 - `is_closed = False`
 - `is_pending = False`
 - `is_cancel = False`
+
+If no incomplete document is found, a new empty document is automatically created.
 
 **Pending Documents:**
 All pending documents (suspended transactions) are loaded at startup:
@@ -182,21 +195,40 @@ self.set_document_pending(is_pending=False)
 self.complete_document()
 ```
 
-### Example 3: Loading Incomplete Document at Startup
+### Example 3: Automatic Document Creation After Login
 
 ```python
-# In Application.__init__()
-# After loading pos_data and product_data
+# In _login() method after successful authentication
+# Document is automatically created if none exists
 
-# Load incomplete document if exists
-if self.load_incomplete_document():
-    print(f"Resumed transaction: {self.document_data['head'].transaction_unique_id}")
-else:
-    print("No incomplete transaction found")
+# Login successful - set cashier_data
+self.cashier_data = cashiers[0]
+self.login_succeed = True
 
-# Load pending documents
-self.load_pending_documents()
-print(f"Loaded {len(self.pending_documents_data)} pending documents")
+# Try to load incomplete document first
+if not self.document_data:
+    if not self.load_incomplete_document():
+        # If no incomplete document, create new empty document
+        self.create_empty_document()
+
+# Navigate to appropriate form
+self._navigate_after_login()
+```
+
+### Example 4: Document Creation When Opening Sale Form
+
+```python
+# In _sales_form() method
+# Document is automatically created if none exists
+
+if self.login_succeed:
+    # Ensure document_data exists
+    if not self.document_data:
+        if not self.load_incomplete_document():
+            self.create_empty_document()
+    
+    self.current_form_type = FormName.SALE
+    self.interface.redraw(form_name=FormName.SALE.name)
 ```
 
 ## Document Status Flags

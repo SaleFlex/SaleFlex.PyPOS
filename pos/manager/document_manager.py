@@ -72,8 +72,8 @@ class DocumentManager:
         
         This method creates a fresh document structure with:
         - TransactionHeadTemp initialized with default values:
-          * document_type: First TransactionDocumentType record
-          * transaction_type: TransactionType.SALE
+          * document_type: From CurrentStatus.document_type property
+          * transaction_type: From CurrentStatus.document_type property (mapped to TransactionType)
           * transaction_status: TransactionStatus.DRAFT
           * closure_number: TransactionSequence with name="ClosureNumber"
           * receipt_number: TransactionSequence with name="ReceiptNumber"
@@ -88,12 +88,29 @@ class DocumentManager:
                 print("[DEBUG] Cannot create document: pos_settings not loaded")
                 return None
             
-            # Get document_type from TransactionDocumentType (first record)
-            document_types = self.pos_data.get("TransactionDocumentType", [])
-            if not document_types:
-                print("[DEBUG] Cannot create document: no TransactionDocumentType found")
-                return None
-            document_type = document_types[0].name
+            # Get document_type from CurrentStatus.document_type property
+            # CurrentStatus.document_type is a DocumentType enum, convert to string
+            from pos.data import DocumentType
+            current_doc_type = self.document_type if hasattr(self, 'document_type') else DocumentType.FISCAL_RECEIPT
+            
+            # Convert enum to string - use name attribute for enum
+            if isinstance(current_doc_type, DocumentType):
+                document_type = current_doc_type.name
+            elif hasattr(current_doc_type, 'name'):
+                document_type = current_doc_type.name
+            else:
+                document_type = str(current_doc_type)
+            
+            print(f"[DEBUG] CurrentStatus.document_type: {current_doc_type}, converted to: {document_type}")
+            
+            # Get transaction_type from CurrentStatus.document_type property
+            # Map DocumentType to TransactionType (default to SALE)
+            transaction_type = TransactionType.SALE.value
+            if current_doc_type == DocumentType.RETURN_SLIP:
+                transaction_type = TransactionType.RETURN.value
+            elif current_doc_type == DocumentType.ELECTRONIC_RECEIPT:
+                transaction_type = TransactionType.SALE.value
+            # Add more mappings as needed
             
             # Get closure_number from TransactionSequence
             closure_number = 1
@@ -132,7 +149,7 @@ class DocumentManager:
             head.pos_id = pos_id
             head.transaction_date_time = datetime.now()
             head.document_type = document_type
-            head.transaction_type = TransactionType.SALE.value
+            head.transaction_type = transaction_type
             head.transaction_status = TransactionStatus.DRAFT.value
             head.fk_store_id = store_id
             head.closure_number = closure_number
@@ -160,6 +177,12 @@ class DocumentManager:
             }
             
             print(f"[DEBUG] Created new empty document: {transaction_unique_id}")
+            print(f"[DEBUG] Document type: {document_type}, Transaction type: {transaction_type}, Receipt number: {receipt_number}")
+            print(f"[DEBUG] head.document_type: {head.document_type}, head.transaction_type: {head.transaction_type}, head.receipt_number: {head.receipt_number}")
+            
+            # Update StatusBar if available
+            self._update_statusbar()
+            
             return self.document_data
             
         except Exception as e:
@@ -167,6 +190,38 @@ class DocumentManager:
             import traceback
             traceback.print_exc()
             return None
+    
+    def _update_statusbar(self):
+        """Update StatusBar if available in current window"""
+        try:
+            from PySide6.QtWidgets import QApplication
+            app = QApplication.instance()
+            if app:
+                # Find the active window
+                active_window = app.activeWindow()
+                print(f"[DEBUG] _update_statusbar: active_window={active_window}")
+                if active_window and hasattr(active_window, 'statusbar'):
+                    statusbar = active_window.statusbar
+                    print(f"[DEBUG] _update_statusbar: Found statusbar, calling update_info_label")
+                    if statusbar and hasattr(statusbar, 'update_info_label'):
+                        statusbar.update_info_label()
+                else:
+                    # Try to find statusbar in all windows
+                    all_windows = app.allWindows()
+                    print(f"[DEBUG] _update_statusbar: Checking {len(all_windows)} windows for statusbar")
+                    for window in all_windows:
+                        if hasattr(window, 'statusbar'):
+                            statusbar = window.statusbar
+                            print(f"[DEBUG] _update_statusbar: Found statusbar in window {window}, calling update_info_label")
+                            if statusbar and hasattr(statusbar, 'update_info_label'):
+                                statusbar.update_info_label()
+                                break
+        except Exception as e:
+            # Print error for debugging
+            print(f"[DEBUG] _update_statusbar error: {e}")
+            import traceback
+            traceback.print_exc()
+            pass
     
     def load_incomplete_document(self):
         """

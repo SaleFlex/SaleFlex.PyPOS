@@ -233,6 +233,16 @@ class GeneralEvent:
         # Login successful - set cashier_data
         self.cashier_data = cashiers[0]
         self.login_succeed = True
+        
+        # Create document_data immediately after login so StatusBar can display it
+        # Try to load incomplete document first, if none exists, create new empty document
+        if not self.document_data:
+            print("[LOGIN] No document_data after login, trying to load incomplete document...")
+            if not self.load_incomplete_document():
+                print("[LOGIN] No incomplete document found, creating new empty document...")
+                if not self.create_empty_document():
+                    print("[LOGIN] Failed to create empty document")
+        
         self._navigate_after_login()
         return True
     
@@ -261,11 +271,29 @@ class GeneralEvent:
                     self.current_form_type = FormName.SALE
             else:
                 self.current_form_type = FormName.SALE
+            
+            # If navigating to SALE form, ensure document_data exists
+            if self.current_form_type == FormName.SALE:
+                if not self.document_data:
+                    print("[NAVIGATE_AFTER_LOGIN] No document_data, trying to load incomplete document...")
+                    if not self.load_incomplete_document():
+                        print("[NAVIGATE_AFTER_LOGIN] No incomplete document found, creating new empty document...")
+                        if not self.create_empty_document():
+                            print("[NAVIGATE_AFTER_LOGIN] Failed to create empty document")
                 
             self.interface.redraw(form_id=self.startup_form_id)
         else:
             # Fallback to SALE form by name using FormName enum
             self.current_form_type = FormName.SALE
+            
+            # Ensure document_data exists for SALE form
+            if not self.document_data:
+                print("[NAVIGATE_AFTER_LOGIN] No document_data, trying to load incomplete document...")
+                if not self.load_incomplete_document():
+                    print("[NAVIGATE_AFTER_LOGIN] No incomplete document found, creating new empty document...")
+                    if not self.create_empty_document():
+                        print("[NAVIGATE_AFTER_LOGIN] Failed to create empty document")
+            
             self.interface.redraw(form_name=FormName.SALE.name)
 
     def _login_extended(self):
@@ -605,11 +633,25 @@ class GeneralEvent:
         Transitions to the main sales interface where transactions
         are processed. Requires valid authentication.
         
+        Creates a new empty document if one doesn't exist or loads
+        incomplete document from database.
+        
         Returns:
             bool: True if navigation successful, False if not authenticated
         """
         if self.login_succeed:
             self.current_form_type = FormName.SALE
+            
+            # Ensure document_data exists - try to load incomplete document first,
+            # if none exists, create a new empty document
+            if not self.document_data:
+                print("[SALES_FORM] No document_data, trying to load incomplete document...")
+                if not self.load_incomplete_document():
+                    print("[SALES_FORM] No incomplete document found, creating new empty document...")
+                    if not self.create_empty_document():
+                        print("[SALES_FORM] Failed to create empty document")
+                        # Continue anyway - form will open but transaction won't work
+            
             self.interface.redraw(form_name=FormName.SALE.name)
             return True
         else:
