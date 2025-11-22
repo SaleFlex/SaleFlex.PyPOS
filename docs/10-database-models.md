@@ -59,8 +59,8 @@ SaleFlex.PyPOS uses a comprehensive database schema with over 80 models organize
 - **TransactionSurchargeTemp**: Temporary surcharge records
 - **TransactionTip**: Tip/gratuity records
 - **TransactionTipTemp**: Temporary tip records
-- **TransactionTotal**: Transaction totals summary
-- **TransactionTotalTemp**: Temporary totals
+- **TransactionDepartment**: Department totals summary for department-based sales
+- **TransactionDepartmentTemp**: Temporary department totals
 
 ### Transaction Extensions
 - **TransactionDelivery**: Delivery information for transactions
@@ -134,7 +134,7 @@ SaleFlex.PyPOS uses a comprehensive database schema with over 80 models organize
 - **Form**: Dynamic form definitions with layout, colors, and display settings
 - **FormControl**: Form controls (buttons, textboxes, comboboxes) with positioning and behavior
 - **PosVirtualKeyboard**: Virtual keyboard theme and configuration settings
-- **PosSettings**: POS system-wide settings and configuration including device information (serial number, OS), backend connection settings (IP/port), display configuration, and hardware port settings
+- **PosSettings**: POS system-wide settings and configuration including device information (serial number, OS), backend connection settings (IP/port), display configuration, hardware port settings, and working currency (`fk_working_currency_id`) for multi-currency operations
 - **ReceiptHeader**: Receipt header templates
 - **ReceiptFooter**: Receipt footer templates
 - **LabelValue**: Label/value pairs for translations and configuration
@@ -239,7 +239,7 @@ For more details, see `static_files/closures/README.md`.
 
 ## Tax and Compliance Models
 
-- **Vat**: VAT/tax rate definitions with percentages and effective dates
+- **Vat**: VAT/tax rate definitions with percentages and effective dates. The `rate` field uses `Numeric(precision=5, scale=2)` to support decimal VAT rates (e.g., 0.00, 5.00, 20.00)
 
 ## Model Features
 

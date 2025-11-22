@@ -21,7 +21,7 @@ self.document_data = {
     "products": List[TransactionProductTemp],
     "payments": List[TransactionPaymentTemp],
     "discounts": List[TransactionDiscountTemp],
-    "totals": List[TransactionTotalTemp],
+    "departments": List[TransactionDepartmentTemp],
     "deliveries": List[TransactionDeliveryTemp],
     "kitchen_orders": List[TransactionKitchenOrderTemp],
     "loyalty": List[TransactionLoyaltyTemp],
@@ -64,6 +64,23 @@ Documents are automatically created in the following scenarios:
 - **When Adding First Product**: If a product is added and no document exists, a new document is automatically created.
 
 This ensures that document information (document_type, transaction_type, receipt_number) is always available for display in the status bar and for transaction processing.
+
+**Automatic Document Data Updates:**
+During sales operations, the `document_data` is automatically updated:
+- **PLU Sales** (SALE_PLU_CODE, SALE_PLU_BARCODE): Automatically creates `TransactionProductTemp` records with product details, VAT calculations, and pricing
+- **Department Sales** (SALE_DEPARTMENT): Automatically creates `TransactionDepartmentTemp` records with department information, VAT rates, and totals
+- **Transaction Head Updates**: Automatically updates `TransactionHeadTemp` fields including:
+  - `transaction_date_time`: Set to current time if empty
+  - `transaction_status`: Changed from `DRAFT` to `ACTIVE` when first item is added
+  - `closure_number`: Set from active closure
+  - `base_currency`: Set from `CurrentStatus.current_currency`
+  - `order_source`: Set to "in_store"
+  - `order_channel`: Set to "cashier"
+  - `total_amount` and `total_vat_amount`: Automatically calculated from products and departments
+- **Customer Assignment**: Automatically assigns a default walk-in customer if not set
+- **Batch Number**: Automatically set to match `closure_number`
+
+All temp models are automatically saved to the database when created during sales operations.
 
 ### 2. Document Loading
 
@@ -132,6 +149,7 @@ self.complete_document(is_cancel=True, cancel_reason="Customer cancelled")
 2. Copies all temp models to permanent models:
    - `TransactionHeadTemp` → `TransactionHead`
    - `TransactionProductTemp` → `TransactionProduct`
+   - `TransactionDepartmentTemp` → `TransactionDepartment`
    - `TransactionPaymentTemp` → `TransactionPayment`
    - And all other related temp models
 3. Updates foreign keys correctly (maps temp IDs to permanent IDs)
