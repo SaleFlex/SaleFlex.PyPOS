@@ -207,7 +207,7 @@ The `PaymentService` provides business logic for processing payments, calculatin
 - **Button Name Parsing**: Supports payment button naming conventions:
   - `PAYMENT` prefix: Pays remaining balance
   - `CASH` prefix: Pays specific amount (number after CASH divided by 100)
-- **Change Calculation**: Automatically calculates and records change when payment exceeds transaction total
+- **Change Calculation**: Calculates change when payment exceeds transaction total. Change recording requires manual action via `CHANGE_PAYMENT` button or MessageForm dialog
 - **Document Completion**: Checks if document is fully paid and handles completion process
 - **Closure Updates**: Updates closure totals when document is completed
 - **Safe Decimal Conversion**: Handles None values and invalid formats gracefully

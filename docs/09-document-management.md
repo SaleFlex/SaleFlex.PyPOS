@@ -79,7 +79,7 @@ During sales operations, the `document_data` is automatically updated:
 - **PLU Sales** (SALE_PLU_CODE, SALE_PLU_BARCODE): Automatically creates `TransactionProductTemp` records with product details, VAT calculations, and pricing
 - **Department Sales** (SALE_DEPARTMENT): Automatically creates `TransactionDepartmentTemp` records with department information, VAT rates, and totals
 - **Payment Processing**: Automatically creates `TransactionPaymentTemp` records when payment buttons are clicked, updates `total_payment_amount`, and calculates change
-- **Change Recording**: Automatically creates `TransactionChangeTemp` records when payment exceeds transaction total
+- **Change Recording**: Change is recorded manually when `CHANGE_PAYMENT` button is clicked, or via MessageForm dialog if button doesn't exist in form
 - **Transaction Head Updates**: Automatically updates `TransactionHeadTemp` fields including:
   - `transaction_date_time`: Set to current time if empty
   - `transaction_status`: Changed from `DRAFT` to `ACTIVE` when first item is added, `COMPLETED` when fully paid
@@ -188,7 +188,9 @@ self.complete_document(is_cancel=True, cancel_reason="Customer cancelled")
 Documents are automatically completed when fully paid. The completion check happens after each payment:
 - **Condition**: `total_amount = total_payment_amount - total_change_amount`
 - If condition is met, document is automatically marked as COMPLETED and closed
-- Change is automatically calculated and recorded if payment exceeds total
+- Change is calculated if payment exceeds total, but recording requires manual action:
+  - If `CHANGE_PAYMENT` button exists: User clicks button to record change
+  - If `CHANGE_PAYMENT` button doesn't exist: MessageForm dialog shows change amount, OK records change
 - UI controls are automatically cleared after completion
 - New empty document is ready for next transaction
 
@@ -218,9 +220,12 @@ success, payment_temp, error = PaymentService.process_payment(
     button_name="CASH2000"  # Pays 20.00 (2000 / 100)
 )
 
-# If payment exceeds total, change is automatically calculated
+# If payment exceeds total, change is calculated
 change_amount = PaymentService.calculate_change(document_data)
 if change_amount > 0:
+    # Change recording requires manual action:
+    # - Click CHANGE_PAYMENT button if it exists in form
+    # - Or MessageForm dialog will appear automatically if button doesn't exist
     PaymentService.record_change(document_data)
 
 # Check if document is complete (automatically checked after payment)
@@ -442,9 +447,11 @@ Payment processing is handled through `PaymentService` and payment event handler
 3. `TransactionPaymentTemp` record is created and saved
 4. `TransactionHeadTemp.total_payment_amount` is updated
 5. UI controls (PaymentList, AmountTable) are updated
-6. Change is automatically calculated if payment exceeds total
-7. Change is recorded in `TransactionChangeTemp` if positive
-8. Document completion is checked automatically
+6. Change is calculated if payment exceeds total
+7. **Change Recording Behavior:**
+   - If `CHANGE_PAYMENT` button exists in form: User is informed to click change button to record change
+   - If `CHANGE_PAYMENT` button doesn't exist: MessageForm dialog is shown with change amount, and change is recorded when OK is clicked
+8. Document completion is checked automatically after change is recorded (or if no change needed)
 9. If complete (`total_amount = total_payment_amount - total_change_amount`):
    - Document is marked as COMPLETED
    - Closure totals are updated
@@ -464,9 +471,11 @@ success, payment_temp, error = PaymentService.process_payment(
     button_name="CASH1000"
 )
 
-# Calculate and record change if needed
+# Calculate change amount
 change_amount = PaymentService.calculate_change(document_data)
 if change_amount > 0:
+    # Record change manually (or via MessageForm if CHANGE_PAYMENT button doesn't exist)
+    # This is typically done by clicking CHANGE_PAYMENT button or via MessageForm dialog
     PaymentService.record_change(document_data)
 
 # Check if document is complete (automatically done after payment)
