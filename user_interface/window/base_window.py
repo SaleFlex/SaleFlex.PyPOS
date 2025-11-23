@@ -132,25 +132,67 @@ class BaseWindow(QMainWindow):
             dict: Dictionary mapping field names (lowercase) to textbox values
         """
         values = {}
-        if not hasattr(self, '_panels'):
-            return values
+        try:
+            if not hasattr(self, '_panels'):
+                return values
+            
+            panel = self._panels.get(panel_name)
+            if not panel:
+                return values
+            
+            # Check if panel widget is still valid
+            try:
+                # Try to access panel to check if it's still valid
+                if not hasattr(panel, 'get_content_widget'):
+                    return values
+            except RuntimeError:
+                # Widget already deleted
+                print(f"[GET_PANEL_VALUES] ⚠ Panel '{panel_name}' widget already deleted")
+                return values
+            
+            # Get all textboxes from panel's content widget
+            try:
+                content_widget = panel.get_content_widget()
+                if not content_widget:
+                    return values
+                
+                # Check if content widget is still valid
+                try:
+                    # Try to access widget to check if it's still valid
+                    _ = content_widget.children()
+                except RuntimeError:
+                    # Widget already deleted
+                    print(f"[GET_PANEL_VALUES] ⚠ Content widget for panel '{panel_name}' already deleted")
+                    return values
+                
+                for child in content_widget.findChildren(TextBox):
+                    try:
+                        # Check if child widget is still valid
+                        _ = child.text()
+                    except RuntimeError:
+                        # Widget already deleted, skip it
+                        continue
+                    
+                    # Get textbox name (uppercase in DB, convert to lowercase for model attribute)
+                    # Try both __name__ and name attributes
+                    textbox_name = getattr(child, 'name', None) or getattr(child, '__name__', None)
+                    if textbox_name:
+                        # Convert uppercase name to lowercase for model attribute
+                        # Textbox names are uppercase (e.g., "POS_NO_IN_STORE")
+                        # Model attributes are lowercase (e.g., "pos_no_in_store")
+                        field_name = textbox_name.lower()
+                        values[field_name] = child.text()
+            except RuntimeError as e:
+                # Widget already deleted
+                print(f"[GET_PANEL_VALUES] ⚠ Error accessing panel '{panel_name}': {e}")
+                return values
+            except Exception as e:
+                print(f"[GET_PANEL_VALUES] ⚠ Unexpected error accessing panel '{panel_name}': {e}")
+                return values
         
-        panel = self._panels.get(panel_name)
-        if not panel:
+        except Exception as e:
+            print(f"[GET_PANEL_VALUES] ⚠ Error getting panel values for '{panel_name}': {e}")
             return values
-        
-        # Get all textboxes from panel's content widget
-        content_widget = panel.get_content_widget()
-        for child in content_widget.findChildren(TextBox):
-            # Get textbox name (uppercase in DB, convert to lowercase for model attribute)
-            # Try both __name__ and name attributes
-            textbox_name = getattr(child, 'name', None) or getattr(child, '__name__', None)
-            if textbox_name:
-                # Convert uppercase name to lowercase for model attribute
-                # Textbox names are uppercase (e.g., "POS_NO_IN_STORE")
-                # Model attributes are lowercase (e.g., "pos_no_in_store")
-                field_name = textbox_name.lower()
-                values[field_name] = child.text()
         
         return values
 
@@ -460,23 +502,66 @@ class BaseWindow(QMainWindow):
         if parent_panel:
             parent_panel.add_child_control(textbox)
         
-        # Load data from CurrentData.pos_settings if this is a POS_SETTINGS panel textbox
-        if parent_panel and hasattr(parent_panel, 'name') and parent_panel.name == "POS_SETTINGS":
-            # Get field name from textbox name (uppercase in DB, convert to lowercase for model attribute)
-            # Textbox name is uppercase (e.g., "POS_NO_IN_STORE") but model attribute is lowercase (e.g., "pos_no_in_store")
+        # Load data from CurrentData if this textbox belongs to a panel
+        # Panel name matches model name (e.g., "POS_SETTINGS" -> PosSettings, "CASHIER" -> Cashier)
+        if parent_panel and hasattr(parent_panel, 'name') and parent_panel.name:
+            panel_name = parent_panel.name
             textbox_name = design_data.get('name', '')
+            
             if textbox_name:
-                field_name = textbox_name.lower()  # Convert to lowercase to match model attribute
-                if hasattr(self.app, 'pos_settings') and self.app.pos_settings:
+                # Get field name from textbox name (uppercase in DB, convert to lowercase for model attribute)
+                # Textbox name is uppercase (e.g., "POS_NO_IN_STORE", "USER_NAME") 
+                # Model attribute is lowercase (e.g., "pos_no_in_store", "user_name")
+                field_name = textbox_name.lower()
+                
+                # Convert panel name to model class name
+                # Panel name is uppercase (e.g., "POS_SETTINGS", "CASHIER")
+                # Model class name is PascalCase (e.g., "PosSettings", "Cashier")
+                parts = panel_name.lower().split('_')
+                model_class_name = ''.join(word.capitalize() for word in parts)
+                
+                # Try to get model instance from CurrentData cache
+                model_instance = None
+                cache_attr_name = None
+                
+                # Check common cache attributes
+                if model_class_name == "PosSettings":
+                    cache_attr_name = "pos_settings"
+                elif model_class_name == "Cashier":
+                    cache_attr_name = "cashier_data"
+                
+                if cache_attr_name and hasattr(self.app, cache_attr_name):
+                    model_instance = getattr(self.app, cache_attr_name)
+                    if model_instance:
+                        # Unwrap if it's an AutoSaveModel
+                        if hasattr(model_instance, 'unwrap'):
+                            model_instance = model_instance.unwrap()
+                
+                # If not in cache, try to get from model class
+                if not model_instance:
                     try:
-                        # Get value from pos_settings model
-                        value = getattr(self.app.pos_settings, field_name, None)
+                        from data_layer.model.definition import __all__ as model_names
+                        import data_layer.model.definition as model_module
+                        
+                        if model_class_name in model_names:
+                            model_class = getattr(model_module, model_class_name)
+                            # Try to get first instance from database
+                            instances = model_class.get_all(is_deleted=False)
+                            if instances and len(instances) > 0:
+                                model_instance = instances[0]
+                    except Exception as e:
+                        print(f"[LOAD_DATA] Error loading model class {model_class_name}: {e}")
+                
+                # Load value from model instance
+                if model_instance:
+                    try:
+                        value = getattr(model_instance, field_name, None)
                         if value is not None:
                             # Convert to string for textbox
                             textbox.setText(str(value))
-                            print(f"[CONFIG] Loaded {field_name} = {value} into textbox '{textbox_name}'")
+                            print(f"[LOAD_DATA] Loaded {field_name} = {value} into textbox '{textbox_name}' (panel: {panel_name}, model: {model_class_name})")
                     except Exception as e:
-                        print(f"[CONFIG] Error loading {field_name} from pos_settings: {e}")
+                        print(f"[LOAD_DATA] Error loading {field_name} from {model_class_name}: {e}")
                         import traceback
                         traceback.print_exc()
 

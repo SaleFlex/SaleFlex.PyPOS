@@ -110,11 +110,51 @@ When a form contains a SAVE button and panels, the system automatically:
 3. Updates model instances with textbox values
 4. Saves changes to database
 
-**Example: PosSettings Configuration Form**
+**Generic Model Form Pattern:**
+The system implements a generic panel-based form save mechanism that works with **any model** by following a simple naming convention:
+
+**Rules:**
+1. **Panel Name = Model Name**: Panel name must match the model name in uppercase with underscores
+   - `POS_SETTINGS` → `PosSettings` model
+   - `CASHIER` → `Cashier` model
+   - `CUSTOMER_INFO` → `CustomerInfo` model
+
+2. **Textbox Name = Model Field**: Textbox names inside panel must match model field names (uppercase → lowercase)
+   - `BACKEND_IP1` textbox → `backend_ip1` model field
+   - `USER_NAME` textbox → `user_name` model field
+   - `IS_ACTIVE` textbox → `is_active` model field
+
+3. **Automatic Data Loading**: On form open, textbox values are automatically loaded from:
+   - CurrentData cache (if model is cached: `pos_settings`, `cashier_data`)
+   - Database (first instance found or new instance created)
+
+4. **Automatic Data Saving**: On SAVE button click:
+   - All panel textbox values are collected
+   - Model instance is found or created
+   - Values are converted to appropriate types (int, bool, string)
+   - Model is updated and saved to database
+   - Cache is updated if model is cached
+
+**Examples:**
+
+**PosSettings Configuration Form:**
 - Panel name: `POS_SETTINGS` (matches model name)
 - Textbox names: Uppercase (e.g., `POS_NO_IN_STORE`) but map to lowercase model attributes (`pos_no_in_store`)
 - On form load: Values from `CurrentData.pos_settings` are automatically loaded into panel textboxes
 - On SAVE: All panel textbox values are saved to `PosSettings` model
+
+**Cashier Management Form:**
+- Panel name: `CASHIER` (matches model name)
+- Textbox names: `USER_NAME`, `NAME`, `LAST_NAME`, `PASSWORD`, `IDENTITY_NUMBER`, `DESCRIPTION`, `IS_ADMINISTRATOR`, `IS_ACTIVE`
+- On form load: Values from `CurrentData.cashier_data` are automatically loaded
+- On SAVE: Values are saved to `Cashier` model
+
+**Creating Forms for Any Model:**
+To create a form for any model, simply:
+1. Create a form with a SAVE button
+2. Add a PANEL with name matching the model (e.g., `MY_MODEL` → `MyModel`)
+3. Add labels and textboxes inside the panel with names matching model fields
+4. The system automatically handles data loading and saving!
 
 ## Updated Classes
 
@@ -467,13 +507,23 @@ Panels can contain child controls (textboxes, labels, buttons, etc.) through par
 - Keyboard positioning accounts for panel scroll position using global coordinates
 
 **Data Loading:**
-- On form open, panel textboxes can be automatically populated from model data
+- On form open, panel textboxes are automatically populated from model data
+- System tries to load from CurrentData cache first (for cached models like `pos_settings`, `cashier_data`)
+- If not in cache, loads from database (first instance found)
+- Panel name is converted to model class name (e.g., "POS_SETTINGS" → "PosSettings")
+- Textbox names are converted to model field names (uppercase → lowercase)
 - Example: `POS_SETTINGS` panel textboxes load from `CurrentData.pos_settings`
+- Example: `CASHIER` panel textboxes load from `CurrentData.cashier_data`
 
 **Data Saving:**
 - When SAVE button is clicked, panel textbox values are collected
 - Panel name is converted to model class name (e.g., "POS_SETTINGS" → "PosSettings")
-- Model instance is updated and saved
+- Model instance is found from cache or database (or created if new)
+- Values are converted to appropriate types (int, bool, string, None)
+- Model instance is updated with textbox values
+- Model is saved to database
+- Cache is updated if model is cached in CurrentData
+- Works with any model following the naming convention!
 
 ## Future Enhancements
 

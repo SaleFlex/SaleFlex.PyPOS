@@ -505,14 +505,19 @@ class GeneralEvent:
 
     def _save_changes(self):
         """
-        Handle save changes event for form data.
+        General panel-based save changes handler for any form.
         
-        Saves any pending changes in the current form before navigation
-        or form closure. Used for configuration and data entry forms.
+        This method implements a generic save mechanism that works with any form
+        that follows the panel-based pattern:
+        - Forms with SAVE button must have at least one PANEL
+        - Panel name matches model name (e.g., "POS_SETTINGS" -> PosSettings)
+        - Textbox names inside panel match model field names (uppercase -> lowercase)
+        - Example: "BACKEND_IP1" textbox -> "backend_ip1" model field
         
-        Currently supports:
-        - CASHIER form: Save cashier information (to be fully implemented)
-        - Other forms: Will be implemented as needed
+        This allows creating forms for any model by:
+        1. Creating a form with a SAVE button
+        2. Adding a PANEL with name matching the model (e.g., "CASHIER", "POS_SETTINGS")
+        3. Adding labels and textboxes inside the panel with names matching model fields
         
         Returns:
             bool: True if changes saved successfully, False otherwise
@@ -530,125 +535,81 @@ class GeneralEvent:
         current_form = self.current_form_type
         print(f"[SAVE_CHANGES] Current form: {current_form}")
         
-        # Handle CASHIER form saving
-        if current_form == FormName.CASHIER:
-            return self._save_cashier_changes()
-        
-        # Handle CONFIG/SETTING form saving (panel-based forms)
-        if current_form == FormName.CONFIG or current_form == FormName.SETTING:
-            return self._save_config_changes()
-        
-        # Handle other forms as they are implemented
-        # elif current_form == FormName.CUSTOMER:
-        #     return self._save_customer_changes()
-        
-        # Default: functionality to be implemented for other forms
-        print(f"[SAVE_CHANGES] Save functionality not yet implemented for form: {current_form}")
-        return False
-    
-    def _save_cashier_changes(self):
-        """
-        Save cashier information from CASHIER form.
-        
-        Retrieves data from form controls (textboxes) and saves
-        cashier information to the database.
-        
-        Form controls expected:
-        - CASHIER_NAME: Username
-        - NAME: First name
-        - LAST_NAME: Last name
-        - PASSWORD: Password
-        - ID_NUMBER: Identification number
-        - DESCRIPTION: Additional description
-        
-        Returns:
-            bool: True if save successful, False otherwise
-        """
-        print("[SAVE_CASHIER] Collecting cashier form data...")
-        
-        # Get all textbox values from the form
-        textbox_values = self.interface.window.get_textbox_values()
-        print(f"[SAVE_CASHIER] Textbox values: {textbox_values}")
-        
-        # Extract cashier data from form controls
-        cashier_data = {
-            'user_name': textbox_values.get('CASHIER_NAME', '').strip(),
-            'name': textbox_values.get('NAME', '').strip(),
-            'last_name': textbox_values.get('LAST_NAME', '').strip(),
-            'password': textbox_values.get('PASSWORD', '').strip(),
-            'identity_number': textbox_values.get('ID_NUMBER', '').strip(),
-            'description': textbox_values.get('DESCRIPTION', '').strip()
-        }
-        
-        print(f"[SAVE_CASHIER] Collected data: {cashier_data}")
-        
-        # Validate required fields
-        if not cashier_data['user_name']:
-            print("[SAVE_CASHIER] ✗ Username is required")
-            return False
-        
-        if not cashier_data['password']:
-            print("[SAVE_CASHIER] ✗ Password is required")
-            return False
-        
-        # TODO: Implement actual database save operation
-        # This will be completed in a future update
-        # For now, just log the action
-        print("[SAVE_CASHIER] ✓ Data validated successfully")
-        print("[SAVE_CASHIER] TODO: Implement database save operation")
-        print(f"[SAVE_CASHIER] Data to be saved:")
-        print(f"  - Username: {cashier_data['user_name']}")
-        print(f"  - Name: {cashier_data['name']}")
-        print(f"  - Last Name: {cashier_data['last_name']}")
-        print(f"  - ID Number: {cashier_data['identity_number']}")
-        print(f"  - Description: {cashier_data['description']}")
-        
-        # Return True to indicate the operation was processed
-        # (even though actual save is not yet implemented)
-        return True
-    
-    def _save_config_changes(self):
-        """
-        Save configuration changes from CONFIG/SETTING form.
-        
-        Finds all panels in the form and saves their textbox values
-        to the corresponding models. Panel name should match model name
-        (e.g., "POS_SETTINGS" panel -> PosSettings model).
-        
-        Returns:
-            bool: True if save successful, False otherwise
-        """
-        print("[SAVE_CONFIG] Collecting configuration form data...")
-        
         try:
+            # Check if interface and window are available
+            if not hasattr(self, 'interface') or not self.interface:
+                print("[SAVE_CHANGES] ✗ Interface not available")
+                return False
+            
+            if not hasattr(self.interface, 'window') or not self.interface.window:
+                print("[SAVE_CHANGES] ✗ Window not available")
+                return False
+            
             # Get window reference
             window = self.interface.window
             
-            # Find all panels in the form
-            if not hasattr(window, '_panels'):
-                print("[SAVE_CONFIG] ✗ No panels found in form")
+            # Check if window is still valid
+            if not window:
+                print("[SAVE_CHANGES] ✗ Window reference is None")
                 return False
             
-            panels = window._panels
-            print(f"[SAVE_CONFIG] Found {len(panels)} panel(s) in form")
+            try:
+                # Try to access window to check if it's still valid
+                _ = window.children()
+            except RuntimeError:
+                print("[SAVE_CHANGES] ✗ Window widget already deleted")
+                return False
+            
+            # Find all panels in the form
+            if not hasattr(window, '_panels'):
+                print("[SAVE_CHANGES] ✗ No panels found in form")
+                print("[SAVE_CHANGES] ⚠ Forms with SAVE button must have at least one PANEL")
+                return False
+            
+            try:
+                panels = window._panels
+            except RuntimeError:
+                print("[SAVE_CHANGES] ✗ Cannot access panels - window widget may be deleted")
+                return False
+            
+            print(f"[SAVE_CHANGES] Found {len(panels)} panel(s) in form")
+            
+            if len(panels) == 0:
+                print("[SAVE_CHANGES] ✗ No panels found in form")
+                print("[SAVE_CHANGES] ⚠ Forms with SAVE button must have at least one PANEL")
+                return False
             
             # Process each panel
+            all_saved = True
             for panel_name, panel in panels.items():
-                print(f"[SAVE_CONFIG] Processing panel: {panel_name}")
+                print(f"\n[SAVE_CHANGES] Processing panel: {panel_name}")
+                
+                # Check if panel is still valid before processing
+                try:
+                    _ = panel.get_content_widget() if hasattr(panel, 'get_content_widget') else None
+                except RuntimeError:
+                    print(f"[SAVE_CHANGES] ⚠ Panel '{panel_name}' widget already deleted, skipping")
+                    all_saved = False
+                    continue
                 
                 # Get all textbox values from this panel
-                textbox_values = window.get_panel_textbox_values(panel_name)
-                print(f"[SAVE_CONFIG] Collected {len(textbox_values)} textbox values from panel {panel_name}")
+                try:
+                    textbox_values = window.get_panel_textbox_values(panel_name)
+                except RuntimeError as e:
+                    print(f"[SAVE_CHANGES] ⚠ Error getting textbox values from panel '{panel_name}': {e}")
+                    all_saved = False
+                    continue
+                print(f"[SAVE_CHANGES] Collected {len(textbox_values)} textbox values from panel {panel_name}")
                 
                 if not textbox_values:
-                    print(f"[SAVE_CONFIG] ⚠ No textbox values found in panel {panel_name}")
+                    print(f"[SAVE_CHANGES] ⚠ No textbox values found in panel {panel_name}")
                     continue
                 
                 # Convert panel name to model class name
                 # Panel name is uppercase (e.g., "POS_SETTINGS")
                 # Model class name is PascalCase (e.g., "PosSettings")
                 model_class_name = self._panel_name_to_model_class(panel_name)
-                print(f"[SAVE_CONFIG] Model class name: {model_class_name}")
+                print(f"[SAVE_CHANGES] Model class name: {model_class_name}")
                 
                 # Get model class dynamically
                 try:
@@ -657,27 +618,21 @@ class GeneralEvent:
                     import data_layer.model.definition as model_module
                     
                     if model_class_name not in model_names:
-                        print(f"[SAVE_CONFIG] ✗ Model class '{model_class_name}' not found in model definitions")
+                        print(f"[SAVE_CHANGES] ✗ Model class '{model_class_name}' not found in model definitions")
+                        all_saved = False
                         continue
                     
                     model_class = getattr(model_module, model_class_name)
-                    print(f"[SAVE_CONFIG] Found model class: {model_class.__name__}")
+                    print(f"[SAVE_CHANGES] Found model class: {model_class.__name__}")
                     
                     # Get the model instance to update
-                    # For PosSettings, use the cached instance from CurrentData
-                    if model_class_name == "PosSettings":
-                        model_instance = self.pos_settings
-                        if not model_instance:
-                            print("[SAVE_CONFIG] ✗ PosSettings instance not found in CurrentData")
-                            continue
-                    else:
-                        # For other models, get the first instance or create new
-                        instances = model_class.get_all(is_deleted=False)
-                        if instances and len(instances) > 0:
-                            model_instance = instances[0]
-                        else:
-                            print(f"[SAVE_CONFIG] ✗ No {model_class_name} instance found, creating new...")
-                            model_instance = model_class()
+                    # Try to get from CurrentData cache first (for commonly used models)
+                    model_instance = self._get_model_instance(model_class_name, model_class)
+                    
+                    if not model_instance:
+                        print(f"[SAVE_CHANGES] ✗ Could not get or create {model_class_name} instance")
+                        all_saved = False
+                        continue
                     
                     # Update model fields with textbox values
                     updated_fields = []
@@ -697,7 +652,7 @@ class GeneralEvent:
                                 try:
                                     new_value = int(field_value) if field_value.strip() else None
                                 except ValueError:
-                                    print(f"[SAVE_CONFIG] ⚠ Cannot convert '{field_value}' to int for field '{field_name}', skipping")
+                                    print(f"[SAVE_CHANGES] ⚠ Cannot convert '{field_value}' to int for field '{field_name}', skipping")
                                     continue
                             elif field_type == bool or (old_value is not None and isinstance(old_value, bool)):
                                 # Boolean fields
@@ -710,31 +665,34 @@ class GeneralEvent:
                             if old_value != new_value:
                                 setattr(model_instance, field_name, new_value)
                                 updated_fields.append(field_name)
-                                print(f"[SAVE_CONFIG]   Updated {field_name}: {old_value} -> {new_value}")
+                                print(f"[SAVE_CHANGES]   Updated {field_name}: {old_value} -> {new_value}")
                     
                     if updated_fields:
                         # Save the model
                         model_instance.save()
-                        print(f"[SAVE_CONFIG] ✓ Saved {len(updated_fields)} field(s) to {model_class_name}")
+                        print(f"[SAVE_CHANGES] ✓ Saved {len(updated_fields)} field(s) to {model_class_name}")
                         
-                        # Update cache if this is PosSettings
-                        if model_class_name == "PosSettings":
-                            self.pos_settings = model_instance
-                            print("[SAVE_CONFIG] ✓ Updated pos_settings cache")
+                        # Update cache if this is a cached model
+                        self._update_model_cache(model_class_name, model_instance)
                     else:
-                        print(f"[SAVE_CONFIG] ⚠ No fields changed for {model_class_name}")
+                        print(f"[SAVE_CHANGES] ⚠ No fields changed for {model_class_name}")
                     
                 except Exception as e:
-                    print(f"[SAVE_CONFIG] ✗ Error saving {model_class_name}: {e}")
+                    print(f"[SAVE_CHANGES] ✗ Error saving {model_class_name}: {e}")
                     import traceback
                     traceback.print_exc()
+                    all_saved = False
                     continue
             
-            print("[SAVE_CONFIG] ✓ Configuration save completed")
-            return True
+            if all_saved:
+                print("\n[SAVE_CHANGES] ✓ All panels saved successfully")
+            else:
+                print("\n[SAVE_CHANGES] ⚠ Some panels had errors during save")
+            
+            return all_saved
             
         except Exception as e:
-            print(f"[SAVE_CONFIG] ✗ Error in save_config_changes: {e}")
+            print(f"[SAVE_CHANGES] ✗ Error in save_changes: {e}")
             import traceback
             traceback.print_exc()
             return False
@@ -751,10 +709,73 @@ class GeneralEvent:
         """
         # Convert uppercase with underscores to PascalCase
         # POS_SETTINGS -> PosSettings
+        # CASHIER -> Cashier
         # CASHIER_INFO -> CashierInfo
         parts = panel_name.lower().split('_')
         model_class_name = ''.join(word.capitalize() for word in parts)
         return model_class_name
+    
+    def _get_model_instance(self, model_class_name, model_class):
+        """
+        Get model instance for saving.
+        
+        Tries to get from CurrentData cache first (for commonly used models),
+        otherwise gets from database or creates new instance.
+        
+        Args:
+            model_class_name (str): Model class name (e.g., "PosSettings", "Cashier")
+            model_class: Model class object
+            
+        Returns:
+            Model instance or None if error
+        """
+        # Check if this model is cached in CurrentData
+        if model_class_name == "PosSettings":
+            model_instance = self.pos_settings
+            if not model_instance:
+                print("[SAVE_CHANGES] ✗ PosSettings instance not found in CurrentData")
+                return None
+            return model_instance
+        
+        elif model_class_name == "Cashier":
+            # For Cashier, use the cached instance from CurrentData
+            model_instance = self.cashier_data
+            if not model_instance:
+                print("[SAVE_CHANGES] ✗ Cashier instance not found in CurrentData")
+                return None
+            # Unwrap if it's an AutoSaveModel
+            if hasattr(model_instance, 'unwrap'):
+                model_instance = model_instance.unwrap()
+            return model_instance
+        
+        else:
+            # For other models, get the first instance or create new
+            try:
+                instances = model_class.get_all(is_deleted=False)
+                if instances and len(instances) > 0:
+                    return instances[0]
+                else:
+                    print(f"[SAVE_CHANGES] ⚠ No {model_class_name} instance found, creating new...")
+                    return model_class()
+            except Exception as e:
+                print(f"[SAVE_CHANGES] ✗ Error getting {model_class_name} instance: {e}")
+                return None
+    
+    def _update_model_cache(self, model_class_name, model_instance):
+        """
+        Update CurrentData cache for commonly used models.
+        
+        Args:
+            model_class_name (str): Model class name (e.g., "PosSettings", "Cashier")
+            model_instance: Model instance that was just saved
+        """
+        if model_class_name == "PosSettings":
+            self.pos_settings = model_instance
+            print("[SAVE_CHANGES] ✓ Updated pos_settings cache")
+        elif model_class_name == "Cashier":
+            self.cashier_data = model_instance
+            print("[SAVE_CHANGES] ✓ Updated cashier_data cache")
+        # Add other cached models here as needed
     
     def _redraw_form(self):
         """
