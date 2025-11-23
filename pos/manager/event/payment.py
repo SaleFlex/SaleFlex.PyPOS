@@ -267,7 +267,8 @@ class PaymentEvent:
         Handle change payment calculation and recording.
         
         Calculates change amount when payment exceeds transaction total
-        and records it in TransactionChangeTemp.
+        and records it in TransactionChangeTemp. After recording change,
+        completes the document.
         
         Parameters:
             button: Optional button object (name not important for this event)
@@ -289,11 +290,14 @@ class PaymentEvent:
             
             if success:
                 print(f"[PAYMENT] Change recorded: {change_temp.change_amount} {change_temp.currency}")
+                
+                # Update UI controls
+                self._update_payment_ui("CHANGE", change_temp.change_amount)
+                
+                # Check if document is complete and complete it
+                self._check_and_complete_document()
             else:
                 print(f"[PAYMENT] {error_message}")
-            
-            # Check if document is complete
-            self._check_and_complete_document()
             
             return success
             
@@ -346,15 +350,22 @@ class PaymentEvent:
             change_amount = PaymentService.calculate_change(self.document_data)
             if change_amount > 0:
                 print(f"[PAYMENT] Change needed: {change_amount}")
-                # Record change automatically
-                change_success, change_temp, change_error = PaymentService.record_change(self.document_data)
-                if change_success:
-                    print(f"[PAYMENT] Change recorded: {change_temp.change_amount} {change_temp.currency}")
+                # Check if change_payment button exists in the current window
+                has_change_button = self._has_change_payment_button()
+                
+                if has_change_button:
+                    # Change button exists - just inform user, don't record change automatically
+                    print(f"[PAYMENT] Change payment button found. User should click change button to record change.")
+                    # Don't complete document yet - wait for change button click
                 else:
-                    print(f"[PAYMENT] Error recording change: {change_error}")
-            
-            # Check if document is complete and complete it if so
-            self._check_and_complete_document()
+                    # No change button - show info message and record change when OK is clicked
+                    print(f"[PAYMENT] No change payment button found, showing MessageForm for change amount: {change_amount}")
+                    self._show_change_info_and_record(change_amount)
+                    # _show_change_info_and_record will handle document completion after change is recorded
+                    return True
+            else:
+                # No change needed - check if document is complete and complete it if so
+                self._check_and_complete_document()
             
             return True
             
@@ -514,6 +525,109 @@ class PaymentEvent:
                 
         except Exception as e:
             print(f"[PAYMENT] Error incrementing receipt number: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    def _has_change_payment_button(self):
+        """
+        Check if current window has a button with CHANGE_PAYMENT function.
+        
+        Returns:
+            bool: True if change payment button exists, False otherwise
+        """
+        try:
+            # Get current form_id from app
+            app = self.interface.app if hasattr(self, 'interface') and hasattr(self.interface, 'app') else None
+            if not app or not hasattr(app, 'current_form_id') or not app.current_form_id:
+                print("[PAYMENT] No current_form_id found, assuming no change button")
+                return False
+            
+            # Check form controls from database
+            from data_layer.model import FormControl
+            
+            form_controls = FormControl.filter_by(
+                fk_form_id=app.current_form_id,
+                is_deleted=False,
+                is_visible=True
+            )
+            
+            print(f"[PAYMENT] Checking {len(form_controls)} form controls for CHANGE_PAYMENT function")
+            
+            for control in form_controls:
+                if control.form_control_function1 == EventName.CHANGE_PAYMENT.value:
+                    print(f"[PAYMENT] Found CHANGE_PAYMENT button: {control.name}")
+                    return True
+            
+            print("[PAYMENT] No CHANGE_PAYMENT button found in form controls")
+            return False
+            
+        except Exception as e:
+            print(f"[PAYMENT] Error checking for change payment button: {e}")
+            import traceback
+            traceback.print_exc()
+            # On error, assume no button exists so MessageForm will be shown
+            return False
+    
+    def _show_change_info_and_record(self, change_amount):
+        """
+        Show info message about change amount and record change when OK is clicked.
+        
+        Parameters:
+            change_amount: Change amount as Decimal
+        """
+        print(f"[PAYMENT] _show_change_info_and_record called with change_amount: {change_amount}")
+        try:
+            # Get current window
+            window = self.interface.window if hasattr(self, 'interface') else None
+            if not window:
+                print("[PAYMENT] No window found for showing change info")
+                return
+            
+            print(f"[PAYMENT] Window found: {window}")
+            
+            # Get currency from document
+            currency = "GBP"
+            if self.document_data and self.document_data.get("head"):
+                currency = self.document_data["head"].base_currency or "GBP"
+            
+            # Format change amount
+            change_str = f"{change_amount:.2f} {currency}"
+            
+            # Get message from LabelValue or use default
+            from data_layer.model import LabelValue
+            
+            message_line1 = f"Change Amount: {change_str}"
+            message_line2 = "Please give change to customer."
+            
+            try:
+                label_values = LabelValue.filter_by(key="ChangeAmount", culture_info="en-GB", is_deleted=False)
+                if label_values and len(label_values) > 0:
+                    message_template = label_values[0].value
+                    message_line1 = message_template.replace("{amount}", change_str)
+            except Exception:
+                pass  # Use default message
+            
+            # Show info message
+            from user_interface.form.message_form import MessageForm
+            result = MessageForm.show_info(window, message_line1, message_line2)
+            
+            # When OK is clicked, record change
+            if result == "OK":
+                print(f"[PAYMENT] OK clicked, recording change: {change_amount}")
+                change_success, change_temp, change_error = PaymentService.record_change(self.document_data)
+                if change_success:
+                    print(f"[PAYMENT] Change recorded: {change_temp.change_amount} {change_temp.currency}")
+                    
+                    # Update UI controls
+                    self._update_payment_ui("CHANGE", change_temp.change_amount)
+                    
+                    # Check if document is complete and complete it if so
+                    self._check_and_complete_document()
+                else:
+                    print(f"[PAYMENT] Error recording change: {change_error}")
+            
+        except Exception as e:
+            print(f"[PAYMENT] Error showing change info: {e}")
             import traceback
             traceback.print_exc()
     
