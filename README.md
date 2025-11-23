@@ -39,7 +39,7 @@ SaleFlex.PyPOS follows a layered architecture pattern with clear separation of c
 
 - **Application Layer** (`pos/manager/application.py`): Main application class implementing Singleton pattern, combining CurrentStatus, CurrentData, and EventHandler
 - **Business Logic Layer** (`pos/service/`): Service classes (VatService, SaleService, PaymentService) for centralized business operations
-- **Event Handling Layer** (`pos/manager/event/`): 9 specialized event handler classes for modular event processing
+- **Event Handling Layer** (`pos/manager/event/`): 9 specialized event handler classes for modular event processing. Event handler methods use `_event` suffix naming convention (e.g., `_sales_form_event`, `_closure_event`) to distinguish them from properties
 - **Data Access Layer** (`data_layer/model/`): 98+ SQLAlchemy models with CRUD operations and auto-save functionality
 - **UI Layer** (`user_interface/`): PySide6-based UI components with dynamic form rendering
 - **Caching Layer** (`pos/manager/cache_manager.py`): In-memory caching for reference and product data
@@ -314,7 +314,7 @@ All models support:
 - [x] **Document Management System** - Transaction lifecycle management with temp/permanent models, pending documents, and restaurant mode support
 - [x] **Service Layer Architecture** - Business logic services (VatService, SaleService, PaymentService) for centralized calculations and operations
 - [x] **Payment Processing System** - Multi-payment method processing with button name parsing, change calculation, and automatic document completion
-- [x] **Event Handler System** - Comprehensive event handling with 9 specialized event handler classes (GeneralEvent, SaleEvent, PaymentEvent, ClosureEvent, ConfigurationEvent, ServiceEvent, ReportEvent, HardwareEvent, WarehouseEvent) for modular and maintainable code organization
+- [x] **Event Handler System** - Comprehensive event handling with 9 specialized event handler classes (GeneralEvent, SaleEvent, PaymentEvent, ClosureEvent, ConfigurationEvent, ServiceEvent, ReportEvent, HardwareEvent, WarehouseEvent) for modular and maintainable code organization. All event handler methods use `_event` suffix (e.g., `_sales_form_event`, `_closure_event`) to avoid conflicts with properties
 - [x] **Auto-Save System** - Automatic database persistence using descriptor pattern and wrapper classes (AutoSaveModel, AutoSaveDict, AutoSaveDescriptor) for seamless data integrity
 - [ ] **SPU/PLU Management** - Product and pricing management
 - [ ] **Customer Module** - Customer relationship management

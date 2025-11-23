@@ -40,7 +40,7 @@ class HardwareEvent:
     
     # ==================== CASH DRAWER OPERATIONS ====================
     
-    def _open_cash_drawer(self):
+    def _open_cash_drawer_event(self):
         """
         Handle cash drawer opening operation.
         
@@ -58,7 +58,7 @@ class HardwareEvent:
             bool: True if drawer opened successfully, False otherwise
         """
         if not self.login_succeed:
-            self._logout()
+            self._logout_event()
             return False
             
         try:

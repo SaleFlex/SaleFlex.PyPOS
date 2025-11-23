@@ -40,7 +40,7 @@ class ReportEvent:
     
     # ==================== SALES REPORTS ====================
     
-    def _sale_detail_report(self):
+    def _sale_detail_report_event(self):
         """
         Handle detailed sales report generation.
         
@@ -58,14 +58,14 @@ class ReportEvent:
             bool: True if report generated successfully, False otherwise
         """
         if not self.login_succeed:
-            self._logout()
+            self._logout_event()
             return False
             
         # TODO: Implement detailed sales report generation
         print("Sale detail report - functionality to be implemented")
         return False
     
-    def _plu_sale_report(self):
+    def _plu_sale_report_event(self):
         """
         Handle PLU (Product) sales report generation.
         
@@ -83,14 +83,14 @@ class ReportEvent:
             bool: True if PLU report generated successfully, False otherwise
         """
         if not self.login_succeed:
-            self._logout()
+            self._logout_event()
             return False
             
         # TODO: Implement PLU sales report generation
         print("PLU sale report - functionality to be implemented")
         return False
     
-    def _pos_summary_report(self):
+    def _pos_summary_report_event(self):
         """
         Handle POS summary report generation.
         
@@ -108,7 +108,7 @@ class ReportEvent:
             bool: True if summary report generated successfully, False otherwise
         """
         if not self.login_succeed:
-            self._logout()
+            self._logout_event()
             return False
             
         # TODO: Implement POS summary report generation
@@ -117,7 +117,7 @@ class ReportEvent:
     
     # ==================== DOCUMENT REPORTS ====================
     
-    def _invoice_list(self):
+    def _invoice_list_event(self):
         """
         Handle invoice list report generation.
         
@@ -135,14 +135,14 @@ class ReportEvent:
             bool: True if invoice list generated successfully, False otherwise
         """
         if not self.login_succeed:
-            self._logout()
+            self._logout_event()
             return False
             
         # TODO: Implement invoice list generation
         print("Invoice list - functionality to be implemented")
         return False
     
-    def _waybill_list(self):
+    def _waybill_list_event(self):
         """
         Handle waybill list report generation.
         
@@ -160,14 +160,14 @@ class ReportEvent:
             bool: True if waybill list generated successfully, False otherwise
         """
         if not self.login_succeed:
-            self._logout()
+            self._logout_event()
             return False
             
         # TODO: Implement waybill list generation
         print("Waybill list - functionality to be implemented")
         return False
     
-    def _return_list(self):
+    def _return_list_event(self):
         """
         Handle return/refund list report generation.
         
@@ -185,7 +185,7 @@ class ReportEvent:
             bool: True if return list generated successfully, False otherwise
         """
         if not self.login_succeed:
-            self._logout()
+            self._logout_event()
             return False
             
         # TODO: Implement return list generation
@@ -194,7 +194,7 @@ class ReportEvent:
     
     # ==================== INVENTORY REPORTS ====================
     
-    def _stock_list(self):
+    def _stock_list_event(self):
         """
         Handle stock/inventory list report generation.
         
@@ -212,14 +212,14 @@ class ReportEvent:
             bool: True if stock list generated successfully, False otherwise
         """
         if not self.login_succeed:
-            self._logout()
+            self._logout_event()
             return False
             
         # TODO: Implement stock list generation
         print("Stock list - functionality to be implemented")
         return False
     
-    def _stock_entry_form(self):
+    def _stock_entry_form_event(self):
         """
         Handle stock entry form for inventory management.
         
@@ -237,7 +237,7 @@ class ReportEvent:
             bool: True if stock entry completed successfully, False otherwise
         """
         if not self.login_succeed:
-            self._logout()
+            self._logout_event()
             return False
             
         # TODO: Implement stock entry form

@@ -40,7 +40,7 @@ class ClosureEvent:
     
     # ==================== CLOSURE EVENTS ====================
     
-    def _closure(self):
+    def _closure_event(self):
         """
         Handle end-of-day closure operation.
         
@@ -59,7 +59,7 @@ class ClosureEvent:
             bool: True if closure successful, False otherwise
         """
         print("\n" + "="*80)
-        print("[CLOSURE] _closure method called!")
+        print("[CLOSURE] _closure_event method called!")
         print("="*80)
         
         try:
@@ -106,7 +106,7 @@ class ClosureEvent:
             traceback.print_exc()
             return False
     
-    def _closure_form(self):
+    def _closure_form_event(self):
         """
         Navigate to the closure form.
         

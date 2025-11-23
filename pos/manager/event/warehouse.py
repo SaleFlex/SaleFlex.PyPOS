@@ -42,7 +42,7 @@ class WarehouseEvent:
     
     # ==================== STOCK OPERATIONS ====================
     
-    def _stock_in(self):
+    def _stock_in_event(self):
         """
         Handle stock receipt operations.
         
@@ -62,7 +62,7 @@ class WarehouseEvent:
         print("Stock in event - method not implemented yet")
         return False
     
-    def _stock_out(self):
+    def _stock_out_event(self):
         """
         Handle stock issue operations.
         
@@ -82,7 +82,7 @@ class WarehouseEvent:
         print("Stock out event - method not implemented yet")
         return False
     
-    def _stock_transfer(self):
+    def _stock_transfer_event(self):
         """
         Handle stock transfer operations between locations.
         
@@ -103,7 +103,7 @@ class WarehouseEvent:
         print("Stock transfer event - method not implemented yet")
         return False
     
-    def _stock_adjustment(self):
+    def _stock_adjustment_event(self):
         """
         Handle stock adjustment operations.
         
@@ -124,7 +124,7 @@ class WarehouseEvent:
         print("Stock adjustment event - method not implemented yet")
         return False
     
-    def _stock_count(self):
+    def _stock_count_event(self):
         """
         Handle stock count operations.
         
@@ -145,7 +145,7 @@ class WarehouseEvent:
         print("Stock count event - method not implemented yet")
         return False
     
-    def _stock_movement(self):
+    def _stock_movement_event(self):
         """
         Handle stock movement tracking.
         
@@ -165,7 +165,7 @@ class WarehouseEvent:
         print("Stock movement event - method not implemented yet")
         return False
     
-    def _stock_inquiry(self):
+    def _stock_inquiry_event(self):
         """
         Handle stock level inquiry operations.
         
@@ -188,7 +188,7 @@ class WarehouseEvent:
     
     # ==================== WAREHOUSE OPERATIONS ====================
     
-    def _warehouse_receipt(self):
+    def _warehouse_receipt_event(self):
         """
         Handle warehouse receipt operations.
         
@@ -210,7 +210,7 @@ class WarehouseEvent:
         print("Warehouse receipt event - method not implemented yet")
         return False
     
-    def _warehouse_issue(self):
+    def _warehouse_issue_event(self):
         """
         Handle warehouse issue operations.
         
@@ -232,7 +232,7 @@ class WarehouseEvent:
         print("Warehouse issue event - method not implemented yet")
         return False
     
-    def _warehouse_transfer(self):
+    def _warehouse_transfer_event(self):
         """
         Handle warehouse transfer operations.
         
@@ -254,7 +254,7 @@ class WarehouseEvent:
         print("Warehouse transfer event - method not implemented yet")
         return False
     
-    def _warehouse_adjustment(self):
+    def _warehouse_adjustment_event(self):
         """
         Handle warehouse adjustment operations.
         
@@ -276,7 +276,7 @@ class WarehouseEvent:
         print("Warehouse adjustment event - method not implemented yet")
         return False
     
-    def _warehouse_count(self):
+    def _warehouse_count_event(self):
         """
         Handle warehouse count operations.
         
@@ -298,7 +298,7 @@ class WarehouseEvent:
         print("Warehouse count event - method not implemented yet")
         return False
     
-    def _warehouse_location(self):
+    def _warehouse_location_event(self):
         """
         Handle warehouse location management.
         

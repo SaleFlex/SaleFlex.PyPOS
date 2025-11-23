@@ -53,15 +53,15 @@ class FormName(enum.Enum):
         - REFUND: Product/transaction refund form
         - VOID: Transaction voiding form
     
-    Configuration Forms (SETTING, CONFIG, PARAMETER, CASHIER_CONFIG):
-        - SETTING/CONFIG: System settings and configuration (same form, value=6)
+    Configuration Forms (SETTING, PARAMETER, CASHIER_CONFIG):
+        - SETTING: System settings and configuration
         - PARAMETER: Parameter configuration form
         - CASHIER_CONFIG: Cashier-specific configuration
         - Controls in these forms use ControlName values like BARCODE_LENGTH,
           IMAGE_FOLDER, DEBUG_MODE_STATE, etc.
     
-    Operational Forms (CLOSURE, END_OF_DAY, REPORT):
-        - CLOSURE/END_OF_DAY: End-of-shift operations (same form, value=15)
+    Operational Forms (CLOSURE, REPORT):
+        - CLOSURE: End-of-shift operations
         - REPORT: Reporting and analytics form
     
     Restaurant Forms (TABLE, ORDER, CHECK):
@@ -100,7 +100,7 @@ class FormName(enum.Enum):
     VOID = 12          # Form for voiding a transaction.
     REFUND = 13        # Refund transaction form.
     STOCK = 14         # Stock management form.
-    END_OF_DAY = 15    # End-of-day process form.
+    CLOSURE = 15       # End of day closure form.
     TABLE = 16         # Table management form (e.g., for restaurants).
     ORDER = 17         # Order management form.
     CHECK = 18         # Check payment form.
@@ -111,5 +111,3 @@ class FormName(enum.Enum):
     MAIN_MENU = 23     # Main menu form with navigation to other forms.
     SUB_MENU = 24      # Sub menu form with navigation to other forms.
     CASHIER = 25       # Cashier management form for adding/editing cashier information.
-    CONFIG = 6         # Configuration form (same as SETTING).
-    CLOSURE = 15       # End of day closure form (same as END_OF_DAY).

@@ -45,7 +45,7 @@ class PaymentEvent:
     
     # ==================== GENERAL PAYMENT EVENTS ====================
     
-    def _payment(self):
+    def _payment_event(self):
         """
         Handle general payment processing selection.
         
@@ -69,7 +69,7 @@ class PaymentEvent:
         print("Payment method selection - functionality to be implemented")
         return False
     
-    def _payment_detail(self):
+    def _payment_detail_event(self):
         """
         Handle payment detail display and management.
         
@@ -89,7 +89,7 @@ class PaymentEvent:
     
     # ==================== CASH PAYMENT EVENTS ====================
     
-    def _cash_payment(self, button=None, key=None):
+    def _cash_payment_event(self, button=None, key=None):
         """
         Handle cash payment processing.
         
@@ -119,7 +119,7 @@ class PaymentEvent:
     
     # ==================== ELECTRONIC PAYMENT EVENTS ====================
     
-    def _credit_payment(self, button=None, key=None):
+    def _credit_payment_event(self, button=None, key=None):
         """
         Handle credit card payment processing.
         
@@ -147,7 +147,7 @@ class PaymentEvent:
         
         return self._process_payment(EventName.CREDIT_PAYMENT.value, button)
     
-    def _check_payment(self, button=None, key=None):
+    def _check_payment_event(self, button=None, key=None):
         """
         Handle check payment processing.
         
@@ -177,7 +177,7 @@ class PaymentEvent:
     
     # ==================== ALTERNATIVE PAYMENT EVENTS ====================
     
-    def _exchange_payment(self, button=None):
+    def _exchange_payment_event(self, button=None):
         """
         Handle exchange/trade-in payment processing.
         
@@ -196,7 +196,7 @@ class PaymentEvent:
         
         return self._process_payment(EventName.EXCHANGE_PAYMENT.value, button)
     
-    def _prepaid_payment(self, button=None, key=None):
+    def _prepaid_payment_event(self, button=None, key=None):
         """
         Handle prepaid card or voucher payment processing.
         
@@ -223,7 +223,7 @@ class PaymentEvent:
         
         return self._process_payment(EventName.PREPAID_PAYMENT.value, button)
     
-    def _charge_sale_payment(self, button=None):
+    def _charge_sale_payment_event(self, button=None):
         """
         Handle charge sale payment processing.
         
@@ -242,7 +242,7 @@ class PaymentEvent:
         
         return self._process_payment(EventName.CHARGE_SALE_PAYMENT.value, button)
     
-    def _other_payment(self, button=None, key=None):
+    def _other_payment_event(self, button=None, key=None):
         """
         Handle other/miscellaneous payment methods.
         
@@ -262,7 +262,7 @@ class PaymentEvent:
         
         return self._process_payment(EventName.OTHER_PAYMENT.value, button)
     
-    def _change_payment(self, button=None):
+    def _change_payment_event(self, button=None):
         """
         Handle change payment calculation and recording.
         
@@ -633,7 +633,7 @@ class PaymentEvent:
     
     # ==================== PAYMENT MANAGEMENT EVENTS ====================
     
-    def _suspend_payment(self):
+    def _suspend_payment_event(self):
         """
         Handle payment suspension for later completion.
         
@@ -658,7 +658,7 @@ class PaymentEvent:
         print("Suspend payment - functionality to be implemented")
         return False
     
-    def _back_payment(self):
+    def _back_payment_event(self):
         """
         Handle return to previous payment step or method.
         

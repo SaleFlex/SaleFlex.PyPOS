@@ -86,8 +86,8 @@ def _insert_default_forms(session: Session, cashier_id: str):
         },
         {
             'form_no': 3,
-            'name': FormName.CONFIG.name,
-            'function': FormName.CONFIG.name,
+            'name': FormName.SETTING.name,
+            'function': FormName.SETTING.name,
             'need_login': True,  # Requires login
             'need_auth': False,
             'width': 1024,

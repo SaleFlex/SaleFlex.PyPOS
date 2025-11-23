@@ -151,7 +151,7 @@ class SaleEvent:
     
     # ==================== DEPARTMENT SALES EVENTS ====================
     
-    def _sale_department(self, button=None):
+    def _sale_department_event(self, button=None):
         """
         Handle department-based sale entry.
         
@@ -442,7 +442,7 @@ class SaleEvent:
             traceback.print_exc()
             return False
     
-    def _sale_department_by_no(self, key=None):
+    def _sale_department_by_no_event(self, key=None):
         """
         Handle department sale by department number entry.
         
@@ -468,7 +468,7 @@ class SaleEvent:
     
     # ==================== PLU SALES EVENTS ====================
     
-    def _sale_plu_code(self, button=None):
+    def _sale_plu_code_event(self, button=None):
         """
         Handle PLU (Price Look-Up) sale by product code.
         
@@ -644,7 +644,7 @@ class SaleEvent:
             traceback.print_exc()
             return False
     
-    def _sale_plu_barcode(self, button=None):
+    def _sale_plu_barcode_event(self, button=None):
         """
         Handle PLU sale by barcode scanning/entry.
         
@@ -833,7 +833,7 @@ class SaleEvent:
             traceback.print_exc()
             return False
     
-    def _get_plu_from_maingroup(self):
+    def _get_plu_from_maingroup_event(self):
         """
         Handle PLU selection from main product group.
         
@@ -853,7 +853,7 @@ class SaleEvent:
     
     # ==================== REPEAT SALES EVENTS ====================
     
-    def _repeat_last_sale(self):
+    def _repeat_last_sale_event(self):
         """
         Handle repeat of the last completed sale.
         
@@ -871,7 +871,7 @@ class SaleEvent:
         print("Repeat last sale - functionality to be implemented")
         return False
     
-    def _repeat_sale(self):
+    def _repeat_sale_event(self):
         """
         Handle repeat of a selected previous sale.
         
@@ -891,7 +891,7 @@ class SaleEvent:
     
     # ==================== CANCELLATION EVENTS ====================
     
-    def _cancel_department(self):
+    def _cancel_department_event(self):
         """
         Handle cancellation of department sale items.
         
@@ -909,7 +909,7 @@ class SaleEvent:
         print("Cancel department - functionality to be implemented")
         return False
     
-    def _cancel_plu(self):
+    def _cancel_plu_event(self):
         """
         Handle cancellation of PLU sale items.
         
@@ -927,7 +927,7 @@ class SaleEvent:
         print("Cancel PLU - functionality to be implemented")
         return False
     
-    def _cancel_last_sale(self):
+    def _cancel_last_sale_event(self):
         """
         Handle cancellation of the last entered sale item.
         
@@ -945,7 +945,7 @@ class SaleEvent:
         print("Cancel last sale - functionality to be implemented")
         return False
     
-    def _cancel_sale(self):
+    def _cancel_sale_event(self):
         """
         Handle cancellation of selected sale items.
         
@@ -963,7 +963,7 @@ class SaleEvent:
         print("Cancel sale - functionality to be implemented")
         return False
     
-    def _cancel_document(self):
+    def _cancel_document_event(self):
         """
         Handle cancellation of entire transaction document.
         
@@ -983,7 +983,7 @@ class SaleEvent:
     
     # ==================== TRANSACTION MODIFICATION EVENTS ====================
     
-    def _change_document_type(self):
+    def _change_document_type_event(self):
         """
         Handle change of document type for current transaction.
         
@@ -1001,7 +1001,7 @@ class SaleEvent:
         print("Change document type - functionality to be implemented")
         return False
     
-    def _refund(self):
+    def _refund_event(self):
         """
         Handle refund/return transaction processing.
         
@@ -1021,7 +1021,7 @@ class SaleEvent:
     
     # ==================== DISCOUNT AND SURCHARGE EVENTS ====================
     
-    def _discount_by_amount(self, key=None):
+    def _discount_by_amount_event(self, key=None):
         """
         Handle discount application by fixed amount.
         
@@ -1045,7 +1045,7 @@ class SaleEvent:
             print("Discount by amount - functionality to be implemented")
         return False
     
-    def _surcharge_by_amount(self, key=None):
+    def _surcharge_by_amount_event(self, key=None):
         """
         Handle surcharge application by fixed amount.
         
@@ -1069,7 +1069,7 @@ class SaleEvent:
             print("Surcharge by amount - functionality to be implemented")
         return False
     
-    def _discount_by_percent(self, key=None):
+    def _discount_by_percent_event(self, key=None):
         """
         Handle discount application by percentage.
         
@@ -1093,7 +1093,7 @@ class SaleEvent:
             print("Discount by percent - functionality to be implemented")
         return False
     
-    def _surcharge_by_percent(self, key=None):
+    def _surcharge_by_percent_event(self, key=None):
         """
         Handle surcharge application by percentage.
         
@@ -1119,7 +1119,7 @@ class SaleEvent:
     
     # ==================== INPUT MODIFICATION EVENTS ====================
     
-    def _input_price(self, key=None):
+    def _input_price_event(self, key=None):
         """
         Handle manual price entry or modification.
         
@@ -1143,7 +1143,7 @@ class SaleEvent:
             print("Input price - functionality to be implemented")
         return False
     
-    def _input_quantity(self, key=None):
+    def _input_quantity_event(self, key=None):
         """
         Handle manual quantity entry or modification.
         
@@ -1167,7 +1167,7 @@ class SaleEvent:
             print("Input quantity - functionality to be implemented")
         return False
     
-    def _input_amount(self, key=None):
+    def _input_amount_event(self, key=None):
         """
         Handle manual amount entry for calculations.
         
@@ -1193,7 +1193,7 @@ class SaleEvent:
     
     # ==================== LOOKUP AND CALCULATION EVENTS ====================
     
-    def _price_lookup(self, key=None):
+    def _price_lookup_event(self, key=None):
         """
         Handle price lookup for items without selling.
         
@@ -1217,7 +1217,7 @@ class SaleEvent:
             print("Price lookup - functionality to be implemented")
         return False
     
-    def _subtotal(self):
+    def _subtotal_event(self):
         """
         Handle subtotal calculation and display.
         
@@ -1235,7 +1235,7 @@ class SaleEvent:
         print("Subtotal - functionality to be implemented")
         return False
     
-    def _total(self):
+    def _total_event(self):
         """
         Handle final total calculation and payment preparation.
         
@@ -1253,7 +1253,7 @@ class SaleEvent:
         print("Total - functionality to be implemented")
         return False
     
-    def _clear_buffer(self):
+    def _clear_buffer_event(self):
         """
         Handle clearing of input buffer or temporary data.
         
@@ -1273,7 +1273,7 @@ class SaleEvent:
     
     # ==================== ADDITIONAL SALE OPERATIONS ====================
     
-    def _sale_option(self):
+    def _sale_option_event(self):
         """
         Handle additional sale options and modifiers.
         
@@ -1291,7 +1291,7 @@ class SaleEvent:
         print("Sale option - functionality to be implemented")
         return False
     
-    def _sale_shortcut(self):
+    def _sale_shortcut_event(self):
         """
         Handle sale shortcut operations.
         
@@ -1312,7 +1312,7 @@ class SaleEvent:
 
     # ==================== RESTAURANT TABLE OPERATIONS ====================
     
-    def _table_open(self):
+    def _table_open_event(self):
         """
         Handle opening a new restaurant table.
         
@@ -1325,7 +1325,7 @@ class SaleEvent:
         print("Table open event - method not implemented yet")
         return False
     
-    def _table_close(self):
+    def _table_close_event(self):
         """
         Handle closing a restaurant table.
         
@@ -1338,7 +1338,7 @@ class SaleEvent:
         print("Table close event - method not implemented yet")
         return False
     
-    def _table_select(self):
+    def _table_select_event(self):
         """
         Handle selecting an existing restaurant table.
         
@@ -1351,7 +1351,7 @@ class SaleEvent:
         print("Table select event - method not implemented yet")
         return False
     
-    def _table_transfer(self):
+    def _table_transfer_event(self):
         """
         Handle transferring orders between restaurant tables.
         
@@ -1364,7 +1364,7 @@ class SaleEvent:
         print("Table transfer event - method not implemented yet")
         return False
     
-    def _table_merge(self):
+    def _table_merge_event(self):
         """
         Handle merging multiple restaurant tables.
         
@@ -1377,7 +1377,7 @@ class SaleEvent:
         print("Table merge event - method not implemented yet")
         return False
     
-    def _table_split(self):
+    def _table_split_event(self):
         """
         Handle splitting restaurant table orders.
         
@@ -1390,7 +1390,7 @@ class SaleEvent:
         print("Table split event - method not implemented yet")
         return False
     
-    def _table_status(self):
+    def _table_status_event(self):
         """
         Handle viewing restaurant table status.
         
@@ -1405,7 +1405,7 @@ class SaleEvent:
         print("Table status event - method not implemented yet")
         return False
     
-    def _table_list(self):
+    def _table_list_event(self):
         """
         Handle displaying restaurant table list.
         
@@ -1420,7 +1420,7 @@ class SaleEvent:
     
     # ==================== RESTAURANT ORDER OPERATIONS ====================
     
-    def _order_add(self):
+    def _order_add_event(self):
         """
         Handle adding items to restaurant order.
         
@@ -1433,7 +1433,7 @@ class SaleEvent:
         print("Order add event - method not implemented yet")
         return False
     
-    def _order_cancel(self):
+    def _order_cancel_event(self):
         """
         Handle canceling restaurant order items.
         
@@ -1446,7 +1446,7 @@ class SaleEvent:
         print("Order cancel event - method not implemented yet")
         return False
     
-    def _order_modify(self):
+    def _order_modify_event(self):
         """
         Handle modifying restaurant order items.
         
@@ -1459,7 +1459,7 @@ class SaleEvent:
         print("Order modify event - method not implemented yet")
         return False
     
-    def _order_send_to_kitchen(self):
+    def _order_send_to_kitchen_event(self):
         """
         Handle sending orders to kitchen.
         
@@ -1472,7 +1472,7 @@ class SaleEvent:
         print("Order send to kitchen event - method not implemented yet")
         return False
     
-    def _order_ready(self):
+    def _order_ready_event(self):
         """
         Handle marking orders as ready.
         
@@ -1487,7 +1487,7 @@ class SaleEvent:
     
     # ==================== RESTAURANT CHECK OPERATIONS ====================
     
-    def _check_open(self):
+    def _check_open_event(self):
         """
         Handle opening a new check for restaurant table.
         
@@ -1500,7 +1500,7 @@ class SaleEvent:
         print("Check open event - method not implemented yet")
         return False
     
-    def _check_close(self):
+    def _check_close_event(self):
         """
         Handle closing restaurant check.
         
@@ -1513,7 +1513,7 @@ class SaleEvent:
         print("Check close event - method not implemented yet")
         return False
     
-    def _check_print(self):
+    def _check_print_event(self):
         """
         Handle printing restaurant check.
         
@@ -1526,7 +1526,7 @@ class SaleEvent:
         print("Check print event - method not implemented yet")
         return False
     
-    def _check_split(self):
+    def _check_split_event(self):
         """
         Handle splitting restaurant check.
         
@@ -1539,7 +1539,7 @@ class SaleEvent:
         print("Check split event - method not implemented yet")
         return False
     
-    def _check_merge(self):
+    def _check_merge_event(self):
         """
         Handle merging restaurant checks.
         
@@ -1554,7 +1554,7 @@ class SaleEvent:
     
     # ==================== MARKET SALE SUSPENSION OPERATIONS ====================
     
-    def _suspend_sale(self):
+    def _suspend_sale_event(self):
         """
         Handle suspending current sale transaction.
         
@@ -1567,7 +1567,7 @@ class SaleEvent:
         print("Suspend sale event - method not implemented yet")
         return False
     
-    def _resume_sale(self):
+    def _resume_sale_event(self):
         """
         Handle resuming suspended sale transaction.
         
@@ -1580,7 +1580,7 @@ class SaleEvent:
         print("Resume sale event - method not implemented yet")
         return False
     
-    def _suspend_list(self):
+    def _suspend_list_event(self):
         """
         Handle displaying list of suspended sales.
         
@@ -1593,7 +1593,7 @@ class SaleEvent:
         print("Suspend list event - method not implemented yet")
         return False
     
-    def _delete_suspended_sale(self):
+    def _delete_suspended_sale_event(self):
         """
         Handle deleting suspended sale transaction.
         
@@ -1606,7 +1606,7 @@ class SaleEvent:
         print("Delete suspended sale event - method not implemented yet")
         return False
     
-    def _suspend_detail(self):
+    def _suspend_detail_event(self):
         """
         Handle displaying suspended sale details.
         

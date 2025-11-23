@@ -297,7 +297,7 @@ def _update_document_data_for_sale(self, sale_type, ...):
     totals = SaleService.calculate_document_totals(self.document_data)
 
 # In general.py event handler - when entering sale screen
-def _sales_form(self):
+def _sales_form_event(self):
     # Ensure document_data exists
     if not self.document_data:
         if not self.load_incomplete_document():

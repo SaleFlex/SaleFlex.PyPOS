@@ -40,7 +40,7 @@ class ConfigurationEvent:
     
     # ==================== HARDWARE CONFIGURATION ====================
     
-    def _set_display_brightness(self):
+    def _set_display_brightness_event(self):
         """
         Handle display brightness configuration.
         
@@ -58,7 +58,7 @@ class ConfigurationEvent:
         print("Set display brightness - functionality to be implemented")
         return False
     
-    def _set_printer_intensity(self):
+    def _set_printer_intensity_event(self):
         """
         Handle thermal printer intensity configuration.
         
@@ -78,7 +78,7 @@ class ConfigurationEvent:
     
     # ==================== USER MANAGEMENT CONFIGURATION ====================
     
-    def _set_cashier(self):
+    def _set_cashier_event(self):
         """
         Handle cashier user configuration and management.
         
@@ -96,7 +96,7 @@ class ConfigurationEvent:
         print("Set cashier - functionality to be implemented")
         return False
     
-    def _set_supervisor(self):
+    def _set_supervisor_event(self):
         """
         Handle supervisor user configuration and management.
         
@@ -116,7 +116,7 @@ class ConfigurationEvent:
     
     # ==================== RECEIPT CONFIGURATION ====================
     
-    def _set_receipt_header(self):
+    def _set_receipt_header_event(self):
         """
         Handle receipt header text configuration.
         
@@ -134,7 +134,7 @@ class ConfigurationEvent:
         print("Set receipt header - functionality to be implemented")
         return False
     
-    def _set_receipt_footer(self):
+    def _set_receipt_footer_event(self):
         """
         Handle receipt footer text configuration.
         
@@ -152,7 +152,7 @@ class ConfigurationEvent:
         print("Set receipt footer - functionality to be implemented")
         return False
     
-    def _set_idle_message(self):
+    def _set_idle_message_event(self):
         """
         Handle idle screen message configuration.
         
@@ -172,7 +172,7 @@ class ConfigurationEvent:
     
     # ==================== PRODUCT CONFIGURATION ====================
     
-    def _set_barcode_definition(self):
+    def _set_barcode_definition_event(self):
         """
         Handle barcode format and mask configuration.
         
@@ -190,7 +190,7 @@ class ConfigurationEvent:
         print("Set barcode definition - functionality to be implemented")
         return False
     
-    def _set_vat_definition(self):
+    def _set_vat_definition_event(self):
         """
         Handle VAT (Value Added Tax) rate configuration.
         
@@ -208,7 +208,7 @@ class ConfigurationEvent:
         print("Set VAT definition - functionality to be implemented")
         return False
     
-    def _set_department_definition(self):
+    def _set_department_definition_event(self):
         """
         Handle department category configuration.
         
@@ -226,7 +226,7 @@ class ConfigurationEvent:
         print("Set department definition - functionality to be implemented")
         return False
     
-    def _set_currency_definition(self):
+    def _set_currency_definition_event(self):
         """
         Handle currency and exchange rate configuration.
         
@@ -244,7 +244,7 @@ class ConfigurationEvent:
         print("Set currency definition - functionality to be implemented")
         return False
     
-    def _set_plu_definition(self):
+    def _set_plu_definition_event(self):
         """
         Handle PLU (Price Look-Up) product configuration.
         
@@ -262,7 +262,7 @@ class ConfigurationEvent:
         print("Set PLU definition - functionality to be implemented")
         return False
     
-    def _set_plu_maingroup_definition(self):
+    def _set_plu_maingroup_definition_event(self):
         """
         Handle PLU main group category configuration.
         
@@ -282,7 +282,7 @@ class ConfigurationEvent:
     
     # ==================== PRICING CONFIGURATION ====================
     
-    def _set_discount_rate(self):
+    def _set_discount_rate_event(self):
         """
         Handle discount rate configuration.
         
@@ -300,7 +300,7 @@ class ConfigurationEvent:
         print("Set discount rate - functionality to be implemented")
         return False
     
-    def _set_surcharge_rate(self):
+    def _set_surcharge_rate_event(self):
         """
         Handle surcharge rate configuration.
         

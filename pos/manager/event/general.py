@@ -43,7 +43,7 @@ class GeneralEvent:
     
     # ==================== APPLICATION LIFECYCLE EVENTS ====================
     
-    def _exit_application(self):
+    def _exit_application_event(self):
         """
         Handle application exit event.
         
@@ -54,7 +54,7 @@ class GeneralEvent:
         """
         self.app.quit()
 
-    def _login(self, key=None):
+    def _login_event(self, key=None):
         """
         Handle user login authentication.
         
@@ -296,7 +296,7 @@ class GeneralEvent:
             
             self.interface.redraw(form_name=FormName.SALE.name)
 
-    def _login_extended(self):
+    def _login_extended_event(self):
         """
         Handle extended login with additional authentication features.
         
@@ -306,9 +306,9 @@ class GeneralEvent:
         Returns:
             bool: Result of login process
         """
-        return self._login()
+        return self._login_event()
 
-    def _logout(self):
+    def _logout_event(self):
         """
         Handle user logout and session termination.
         
@@ -377,7 +377,7 @@ class GeneralEvent:
         
         return True
 
-    def _service_code_request(self, key=None):
+    def _service_code_request_event(self, key=None):
         """
         Handle service code authentication request.
         
@@ -397,7 +397,7 @@ class GeneralEvent:
             print("Service code request - functionality to be implemented")
         return False
 
-    def _login_service(self, key=None):
+    def _login_service_event(self, key=None):
         """
         Handle service-level login for maintenance operations.
         
@@ -419,7 +419,7 @@ class GeneralEvent:
 
     # ==================== NAVIGATION AND FORM EVENTS ====================
 
-    def _back(self):
+    def _back_event(self):
         """
         Handle back/return navigation.
         
@@ -438,7 +438,7 @@ class GeneralEvent:
         # Require authentication for navigation
         if not self.login_succeed:
             print("[BACK] User not logged in, calling logout")
-            self._logout()
+            self._logout_event()
             return False
         
         # Get the previous form from history
@@ -491,7 +491,7 @@ class GeneralEvent:
         self._CurrentStatus__previous_form_type = self._CurrentStatus__current_form_type
         self._CurrentStatus__current_form_type = form_type
 
-    def _close_form(self):
+    def _close_form_event(self):
         """
         Handle form close event.
         
@@ -501,9 +501,9 @@ class GeneralEvent:
         Returns:
             bool: True if form closed successfully, False otherwise
         """
-        return self._back()
+        return self._back_event()
 
-    def _save_changes(self):
+    def _save_changes_event(self):
         """
         General panel-based save changes handler for any form.
         
@@ -777,7 +777,7 @@ class GeneralEvent:
             print("[SAVE_CHANGES] ✓ Updated cashier_data cache")
         # Add other cached models here as needed
     
-    def _redraw_form(self):
+    def _redraw_form_event(self):
         """
         Handle form redraw/refresh event.
         
@@ -834,7 +834,7 @@ class GeneralEvent:
 
     # ==================== MAIN NAVIGATION EVENTS ====================
 
-    def _sales_form(self):
+    def _sales_form_event(self):
         """
         Navigate to sales form.
         
@@ -871,10 +871,10 @@ class GeneralEvent:
             
             return True
         else:
-            self._logout()
+            self._logout_event()
             return False
 
-    def _settings_form(self):
+    def _settings_form_event(self):
         """
         Navigate to configuration form.
         
@@ -885,14 +885,14 @@ class GeneralEvent:
             bool: True if navigation successful, False if not authenticated
         """
         if self.login_succeed:
-            self.current_form_type = FormName.CONFIG
-            self.interface.redraw(form_name=FormName.CONFIG.name)
+            self.current_form_type = FormName.SETTING
+            self.interface.redraw(form_name=FormName.SETTING.name)
             return True
         else:
-            self._logout()
+            self._logout_event()
             return False
 
-    def _closure_form(self):
+    def _closure_form_event(self):
         """
         Navigate to end-of-day closure form.
         
@@ -907,12 +907,12 @@ class GeneralEvent:
             self.interface.redraw(form_name=FormName.CLOSURE.name)
             return True
         else:
-            self._logout()
+            self._logout_event()
             return False
 
     # ==================== MENU NAVIGATION EVENTS ====================
 
-    def _main_menu_form(self):
+    def _main_menu_form_event(self):
         """
         Navigate to function menu form.
         
@@ -926,10 +926,10 @@ class GeneralEvent:
             self.interface.redraw(form_name=FormName.MAIN_MENU.name)
             return True
         else:
-            self._logout()
+            self._logout_event()
             return False
 
-    def _service_form(self):
+    def _service_form_event(self):
         """
         Navigate to service form.
         """
@@ -938,10 +938,10 @@ class GeneralEvent:
             self.interface.redraw(form_name=FormName.SERVICE.name)
             return True
         else:
-            self._logout()
+            self._logout_event()
             return False
 
-    def _report_form(self):
+    def _report_form_event(self):
         """
         Navigate to reports menu.
         
@@ -955,12 +955,12 @@ class GeneralEvent:
             self.interface.redraw(form_name=FormName.REPORT.name)
             return True
         else:
-            self._logout()
+            self._logout_event()
             return False
 
     # ==================== USER MANAGEMENT EVENTS ====================
 
-    def _cashier_form(self):
+    def _cashier_form_event(self):
         """
         Handle cashier management operations.
         
@@ -974,10 +974,10 @@ class GeneralEvent:
             self.interface.redraw(form_name=FormName.CASHIER.name)
             return True
         else:
-            self._logout()
+            self._logout_event()
             return False
 
-    def _customer_form(self):
+    def _customer_form_event(self):
         """
         Handle customer management operations.
         
@@ -991,7 +991,7 @@ class GeneralEvent:
             self.interface.redraw(form_name=FormName.CUSTOMER.name)
             return True
         else:
-            self._logout()
+            self._logout_event()
             return False
     
     # ==================== DYNAMIC FORM NAVIGATION ====================

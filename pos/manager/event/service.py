@@ -41,7 +41,7 @@ class ServiceEvent:
     
     # ==================== COMPANY AND SYSTEM INFO ====================
     
-    def _service_company_info(self):
+    def _service_company_info_event(self):
         """
         Handle company information service configuration.
         
@@ -59,7 +59,7 @@ class ServiceEvent:
         print("Service company info - functionality to be implemented")
         return False
     
-    def _service_change_date_time(self):
+    def _service_change_date_time_event(self):
         """
         Handle system date and time change service.
         
@@ -79,7 +79,7 @@ class ServiceEvent:
     
     # ==================== SYSTEM CONFIGURATION SERVICES ====================
     
-    def _service_parameter_download(self):
+    def _service_parameter_download_event(self):
         """
         Handle parameter download service operation.
         
@@ -97,7 +97,7 @@ class ServiceEvent:
         print("Service parameter download - functionality to be implemented")
         return False
     
-    def _service_set_receipt_limit(self):
+    def _service_set_receipt_limit_event(self):
         """
         Handle receipt printing limit configuration service.
         
@@ -115,7 +115,7 @@ class ServiceEvent:
         print("Service set receipt limit - functionality to be implemented")
         return False
     
-    def _service_pos_active(self):
+    def _service_pos_active_event(self):
         """
         Handle POS activation service operation.
         
@@ -135,7 +135,7 @@ class ServiceEvent:
     
     # ==================== SYSTEM RECOVERY SERVICES ====================
     
-    def _service_reset_to_factory_mode(self):
+    def _service_reset_to_factory_mode_event(self):
         """
         Handle factory reset service operation.
         
@@ -157,7 +157,7 @@ class ServiceEvent:
     
     # ==================== PASSWORD MANAGEMENT SERVICES ====================
     
-    def _service_reset_password(self):
+    def _service_reset_password_event(self):
         """
         Handle password reset service operation.
         
@@ -175,7 +175,7 @@ class ServiceEvent:
         print("Service reset password - functionality to be implemented")
         return False
     
-    def _service_change_password(self):
+    def _service_change_password_event(self):
         """
         Handle password change service operation.
         
@@ -195,7 +195,7 @@ class ServiceEvent:
     
     # ==================== SOFTWARE UPDATE SERVICES ====================
     
-    def _service_software_download(self):
+    def _service_software_download_event(self):
         """
         Handle software download and update service operation.
         
@@ -215,7 +215,7 @@ class ServiceEvent:
     
     # ==================== DATA SERVICES ====================
     
-    def _service_get_plu_list(self):
+    def _service_get_plu_list_event(self):
         """
         Handle PLU list download service operation.
         
