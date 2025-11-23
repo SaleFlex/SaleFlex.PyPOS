@@ -16,6 +16,8 @@ SaleFlex.PyPOS uses a **database-driven dynamic form system** instead of TOML fi
 **FormControl Model** (`form_control.py`) - New fields:
 - `fk_target_form_id`: UUID ForeignKey to the target form when button is clicked
 - `form_transition_mode`: Transition mode ("MODAL" or "REPLACE")
+- `fk_parent_id`: UUID ForeignKey to parent control (for nested controls like Panel children)
+- `parent_name`: String name of parent control (for easier lookup)
 
 ## New Classes
 
@@ -59,8 +61,60 @@ result = interface.show_modal(form_name='CUSTOMER_FORM')
 **Features:**
 - Modal (temporary) form display
 - Works without closing the main window
-- Supports all standard controls (button, textbox, combobox, etc.)
+- Supports all standard controls (button, textbox, combobox, panel, etc.)
 - Automatic cleanup
+
+### Panel Control
+
+**File:** `user_interface/control/panel.py`
+
+A scrollable container control that can hold child controls. Designed for touch screens with a 30px scrollbar for easy interaction. Panels enable creating scrollable form sections, especially useful for forms with many fields (like configuration forms).
+
+**Features:**
+- QScrollArea-based with vertical and horizontal scrollbars
+- Touch-optimized 30px scrollbar width/height
+- Supports child controls (textboxes, labels, buttons, comboboxes)
+- Parent-child relationship support via `fk_parent_id` and `parent_name`
+- Automatic content sizing based on child controls
+
+**Usage in FormControl:**
+```python
+# Create a panel
+panel = FormControl(
+    name="POS_SETTINGS",  # Panel name (matches model name)
+    type="PANEL",
+    type_no=10,
+    width=900,
+    height=550,
+    location_x=62,
+    location_y=50,
+    back_color="0x2F4F4F",
+    fore_color="0xFFFFFF"
+)
+
+# Create child controls (textboxes, labels) with parent reference
+textbox = FormControl(
+    name="POS_NO_IN_STORE",  # Uppercase name, lowercase for model attribute
+    fk_parent_id=panel.id,  # Reference to panel
+    parent_name="POS_SETTINGS",  # Panel name for easier lookup
+    type="TEXTBOX",
+    type_no=2,
+    # ... other properties
+)
+```
+
+**Panel-Based Form Saving:**
+When a form contains a SAVE button and panels, the system automatically:
+1. Collects all textbox values from each panel
+2. Maps panel names to model classes (e.g., "POS_SETTINGS" → "PosSettings")
+3. Updates model instances with textbox values
+4. Saves changes to database
+
+**Example: PosSettings Configuration Form**
+- Panel name: `POS_SETTINGS` (matches model name)
+- Textbox names: Uppercase (e.g., `POS_NO_IN_STORE`) but map to lowercase model attributes (`pos_no_in_store`)
+- On form load: Values from `CurrentData.pos_settings` are automatically loaded into panel textboxes
+- On SAVE: All panel textbox values are saved to `PosSettings` model
 
 ## Updated Classes
 
@@ -393,6 +447,34 @@ control.form_transition_mode = "MODAL"  # Correct (uppercase)
 8. **Login Performance**: Login operations use cached `pos_data` instead of database queries, significantly reducing disk I/O
 9. **Sale Performance**: All sale operations (PLU code lookup, barcode lookup, department lookup) use cached `product_data`, eliminating database queries during transactions
 
+## Parent-Child Control Relationships
+
+### Panel Control Support
+
+Panels can contain child controls (textboxes, labels, buttons, etc.) through parent-child relationships:
+
+**Database Structure:**
+- Panel control has `fk_parent_id = None` (top-level control)
+- Child controls have `fk_parent_id = <panel_id>` and `parent_name = "<panel_name>"`
+
+**Rendering:**
+- Panels are created first
+- Child controls are then created and added to panel's content widget
+- Child control positions are relative to panel's content widget
+
+**Virtual Keyboard:**
+- Panel-contained textboxes automatically have virtual keyboard enabled
+- Keyboard positioning accounts for panel scroll position using global coordinates
+
+**Data Loading:**
+- On form open, panel textboxes can be automatically populated from model data
+- Example: `POS_SETTINGS` panel textboxes load from `CurrentData.pos_settings`
+
+**Data Saving:**
+- When SAVE button is clicked, panel textbox values are collected
+- Panel name is converted to model class name (e.g., "POS_SETTINGS" → "PosSettings")
+- Model instance is updated and saved
+
 ## Future Enhancements
 
 - [ ] Form cache system (for frequently used forms)
@@ -401,6 +483,7 @@ control.form_transition_mode = "MODAL"  # Correct (uppercase)
 - [ ] Form wizard (multi-step forms)
 - [ ] Drag & drop form designer (GUI tool)
 - [ ] Form versioning (form history)
+- [ ] Panel nesting (panels within panels)
 
 ---
 

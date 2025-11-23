@@ -245,6 +245,27 @@ activate_keyboard_theme("DARK_THEME_KEYBOARD")
 disable_virtual_keyboard()
 ```
 
+## Panel-Contained Textboxes
+
+Virtual keyboard automatically works with textboxes inside Panel controls:
+
+- **Automatic Activation**: Panel-contained textboxes have virtual keyboard enabled by default
+- **Position Calculation**: Keyboard position accounts for panel scroll position using global coordinates
+- **Focus Handling**: Focus events work correctly for textboxes within scrollable panels
+
+**Example:**
+```python
+# Textbox inside POS_SETTINGS panel
+textbox = FormControl(
+    name="POS_NO_IN_STORE",
+    fk_parent_id=panel.id,
+    parent_name="POS_SETTINGS",
+    type="TEXTBOX",
+    # ... other properties
+)
+# Virtual keyboard automatically enabled and positioned correctly
+```
+
 ## Future Enhancements
 
 Potential future improvements:

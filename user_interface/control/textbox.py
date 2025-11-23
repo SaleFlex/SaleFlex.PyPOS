@@ -49,8 +49,11 @@ class TextBox(QLineEdit):
                            f"color: #{foreground_color:06X};border-radius: 4px;}}")
 
     def focusInEvent(self, event):
-        if self.__keyboard and self.__keyboard.is_hidden:
-            self.__keyboard.display(source=self)
+        # Ensure keyboard is displayed when textbox gets focus
+        # This works for both regular textboxes and panel-contained textboxes
+        if self.__keyboard:
+            if self.__keyboard.is_hidden:
+                self.__keyboard.display(source=self)
             self.__keyboard.raise_()
         self.repaint()
         event.accept()

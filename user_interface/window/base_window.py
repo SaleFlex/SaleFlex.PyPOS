@@ -27,7 +27,7 @@ from PySide6.QtWidgets import QMainWindow
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon
 
-from user_interface.control import TextBox, Button, ToolBar, StatusBar, NumPad, PaymentList, SaleList, ComboBox, AmountTable, Label, DataGrid
+from user_interface.control import TextBox, Button, ToolBar, StatusBar, NumPad, PaymentList, SaleList, ComboBox, AmountTable, Label, DataGrid, Panel
 from user_interface.control import VirtualKeyboard
 
 
@@ -68,6 +68,10 @@ class BaseWindow(QMainWindow):
         if settings["statusbar"]:
             self._create_status_bar()
 
+        # Initialize panels dictionary
+        if not hasattr(self, '_panels'):
+            self._panels = {}
+
         for control_design_data in design:
             if control_design_data["type"] == "textbox":
                 self._create_textbox(control_design_data)
@@ -96,6 +100,9 @@ class BaseWindow(QMainWindow):
             if control_design_data["type"] == "datagrid":
                 self._create_datagrid(control_design_data)
 
+            if control_design_data["type"] == "panel":
+                self._create_panel(control_design_data)
+
         self.setUpdatesEnabled(True)
 
         self.keyboard.resize_from_parent()
@@ -113,11 +120,44 @@ class BaseWindow(QMainWindow):
             if type(item) is TextBox:
                 values[item.__name__] = item.text()
         return values
+    
+    def get_panel_textbox_values(self, panel_name):
+        """
+        Get all textbox values from a specific panel.
+        
+        Args:
+            panel_name (str): Name of the panel (e.g., "POS_SETTINGS")
+            
+        Returns:
+            dict: Dictionary mapping field names (lowercase) to textbox values
+        """
+        values = {}
+        if not hasattr(self, '_panels'):
+            return values
+        
+        panel = self._panels.get(panel_name)
+        if not panel:
+            return values
+        
+        # Get all textboxes from panel's content widget
+        content_widget = panel.get_content_widget()
+        for child in content_widget.findChildren(TextBox):
+            # Get textbox name (uppercase in DB, convert to lowercase for model attribute)
+            # Try both __name__ and name attributes
+            textbox_name = getattr(child, 'name', None) or getattr(child, '__name__', None)
+            if textbox_name:
+                # Convert uppercase name to lowercase for model attribute
+                # Textbox names are uppercase (e.g., "POS_NO_IN_STORE")
+                # Model attributes are lowercase (e.g., "pos_no_in_store")
+                field_name = textbox_name.lower()
+                values[field_name] = child.text()
+        
+        return values
 
     def clear(self):
         for item in self.children():
             print(item)
-            if type(item) in [TextBox, Button, Label, ToolBar, StatusBar, NumPad, PaymentList, SaleList, ComboBox, AmountTable, DataGrid]:
+            if type(item) in [TextBox, Button, Label, ToolBar, StatusBar, NumPad, PaymentList, SaleList, ComboBox, AmountTable, DataGrid, Panel]:
                 print(type(item), item)
                 item.deleteLater()
                 item.setParent(None)
@@ -130,13 +170,21 @@ class BaseWindow(QMainWindow):
         print(f"Button function value from DB: '{design_data.get('function')}'")
         print(f"Button function type: {type(design_data.get('function'))}")
         
+        # Check if this control belongs to a panel
+        parent_panel = None
+        if 'parent_name' in design_data and design_data['parent_name']:
+            parent_panel = self._panels.get(design_data['parent_name'])
+        
+        # Use panel's content widget as parent if available, otherwise use window
+        parent_widget = parent_panel.get_content_widget() if parent_panel else self
+        
         # Get font name from design_data, default to "Verdana"
         font_name = design_data.get("font", "Verdana")
         # Get font_auto_height setting from design_data, default to True
         font_auto_height = design_data.get("font_auto_height", True)
         # Create button with empty text first, then set geometry, then set text
         # This ensures button dimensions are set before font adjustment
-        button = Button("", self, font_name=font_name, font_auto_height=font_auto_height)
+        button = Button("", parent_widget, font_name=font_name, font_auto_height=font_auto_height)
         button.setGeometry(design_data["location_x"], design_data["location_y"],
                            design_data["width"], design_data["height"])
 
@@ -225,6 +273,10 @@ class BaseWindow(QMainWindow):
         if font_auto_height:
             from PySide6.QtCore import QTimer
             QTimer.singleShot(0, lambda: button._adjust_font_size() if hasattr(button, '_adjust_font_size') else None)
+        
+        # Add to panel if parent exists
+        if parent_panel:
+            parent_panel.add_child_control(button)
         
         print("="*80)
 
@@ -328,7 +380,15 @@ class BaseWindow(QMainWindow):
 
     def _create_label(self, design_data):
         print(design_data)
-        label = Label(self)
+        # Check if this control belongs to a panel
+        parent_panel = None
+        if 'parent_name' in design_data and design_data['parent_name']:
+            parent_panel = self._panels.get(design_data['parent_name'])
+        
+        # Use panel's content widget as parent if available, otherwise use window
+        parent_widget = parent_panel.get_content_widget() if parent_panel else self
+        
+        label = Label(parent_widget)
         label.setText(design_data.get('caption', ''))
         label.setGeometry(design_data["location_x"], design_data["location_y"],
                          design_data["width"], design_data["height"])
@@ -357,10 +417,22 @@ class BaseWindow(QMainWindow):
         # Set tooltip
         if design_data.get('caption'):
             label.setToolTip(design_data['caption'])
+        
+        # Add to panel if parent exists
+        if parent_panel:
+            parent_panel.add_child_control(label)
 
     def _create_textbox(self, design_data):
         print(design_data)
-        textbox = TextBox(self)
+        # Check if this control belongs to a panel
+        parent_panel = None
+        if 'parent_name' in design_data and design_data['parent_name']:
+            parent_panel = self._panels.get(design_data['parent_name'])
+        
+        # Use panel's content widget as parent if available, otherwise use window
+        parent_widget = parent_panel.get_content_widget() if parent_panel else self
+        
+        textbox = TextBox(parent_widget)
         if design_data.get('alignment') == "left":
             textbox.setAlignment(Qt.AlignLeft)
         elif design_data.get('alignment') == "right":
@@ -369,7 +441,10 @@ class BaseWindow(QMainWindow):
             textbox.setAlignment(Qt.AlignCenter)
         if design_data.get('input_type') == "password":
             textbox.set_password_type()
-        textbox.__name__ = design_data.get('field_name')
+        # Store textbox name for identification (used in save operations)
+        textbox_name = design_data.get('name') or design_data.get('field_name')
+        textbox.__name__ = textbox_name
+        textbox.name = textbox_name  # Also store as name attribute for easier access
         textbox.setGeometry(design_data["location_x"], design_data["location_y"],
                             design_data["width"], design_data["height"])
         textbox.set_font_size(design_data.get('font_size'))
@@ -377,17 +452,50 @@ class BaseWindow(QMainWindow):
         if design_data.get('place_holder'):
             textbox.setPlaceholderText(design_data.get('place_holder'))
         textbox.set_color(design_data['background_color'], design_data['foreground_color'])
-        if design_data['use_keyboard']:
+        # Set keyboard for textbox - always enable for panel textboxes or if use_keyboard is True
+        if design_data.get('use_keyboard') or parent_panel:
             textbox.keyboard = self.keyboard
+        
+        # Add to panel if parent exists
+        if parent_panel:
+            parent_panel.add_child_control(textbox)
+        
+        # Load data from CurrentData.pos_settings if this is a POS_SETTINGS panel textbox
+        if parent_panel and hasattr(parent_panel, 'name') and parent_panel.name == "POS_SETTINGS":
+            # Get field name from textbox name (uppercase in DB, convert to lowercase for model attribute)
+            # Textbox name is uppercase (e.g., "POS_NO_IN_STORE") but model attribute is lowercase (e.g., "pos_no_in_store")
+            textbox_name = design_data.get('name', '')
+            if textbox_name:
+                field_name = textbox_name.lower()  # Convert to lowercase to match model attribute
+                if hasattr(self.app, 'pos_settings') and self.app.pos_settings:
+                    try:
+                        # Get value from pos_settings model
+                        value = getattr(self.app.pos_settings, field_name, None)
+                        if value is not None:
+                            # Convert to string for textbox
+                            textbox.setText(str(value))
+                            print(f"[CONFIG] Loaded {field_name} = {value} into textbox '{textbox_name}'")
+                    except Exception as e:
+                        print(f"[CONFIG] Error loading {field_name} from pos_settings: {e}")
+                        import traceback
+                        traceback.print_exc()
 
     def _create_combobox(self, design_data):
         print(design_data)
+        # Check if this control belongs to a panel
+        parent_panel = None
+        if 'parent_name' in design_data and design_data['parent_name']:
+            parent_panel = self._panels.get(design_data['parent_name'])
+        
+        # Use panel's content widget as parent if available, otherwise use window
+        parent_widget = parent_panel.get_content_widget() if parent_panel else self
+        
         width = design_data.get("width", 240)
         height = design_data.get("height", 44)
         background_color = design_data.get("background_color", 0xFFFFFF)
         foreground_color = design_data.get("foreground_color", 0x000000)
 
-        combo = ComboBox(self,
+        combo = ComboBox(parent_widget,
                          width=width,
                          height=height,
                          location_x=design_data.get("location_x", 0),
@@ -433,6 +541,10 @@ class BaseWindow(QMainWindow):
             combo.function1 = design_data["function1"]
         if "function2" in design_data:
             combo.function2 = design_data["function2"]
+        
+        # Add to panel if parent exists
+        if parent_panel:
+            parent_panel.add_child_control(combo)
 
     def _create_toolbar(self, design_data):
         print(design_data)
@@ -533,5 +645,41 @@ class BaseWindow(QMainWindow):
                 datagrid.set_data([])
         
         datagrid.show()
+
+    def _create_panel(self, design_data):
+        """
+        Create a Panel control with scrollbar support.
+        
+        Args:
+            design_data (dict): Design specifications for the panel
+        """
+        print("="*80)
+        print(f"Creating panel: {design_data}")
+        print("="*80)
+        
+        width = design_data.get("width", 800)
+        height = design_data.get("height", 600)
+        background_color = design_data.get("background_color", 0xFFFFFF)
+        foreground_color = design_data.get("foreground_color", 0x000000)
+        
+        panel = Panel(
+            self,
+            width=width,
+            height=height,
+            location_x=design_data.get("location_x", 0),
+            location_y=design_data.get("location_y", 0),
+            background_color=background_color,
+            foreground_color=foreground_color
+        )
+        
+        # Store panel reference by name for child controls
+        if "name" in design_data:
+            panel.name = design_data["name"]
+            # Store panel in a dictionary for child controls to find their parent
+            if not hasattr(self, '_panels'):
+                self._panels = {}
+            self._panels[design_data["name"]] = panel
+        
+        panel.show()
 
 

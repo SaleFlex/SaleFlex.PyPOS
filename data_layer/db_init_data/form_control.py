@@ -1082,43 +1082,246 @@ def _insert_form_controls(session: Session, cashier_id: str):
     ]
     
     # Configuration form controls
-    config_form_controls = [
-        FormControl(
+    # First create the Panel control (name matches model name)
+    config_panel = FormControl(
+        fk_form_id=config_form.id,
+        fk_parent_id=None,
+        name="POS_SETTINGS",  # Model name in uppercase
+        form_control_function1=None,
+        form_control_function2=None,
+        type_no=10,  # New type number for Panel
+        type="PANEL",
+        width=900,
+        height=550,
+        location_x=62,
+        location_y=50,
+        start_position=None,
+        caption1="POS Settings",
+        caption2=None,
+        list_values=None,
+        dock=None,
+        alignment=None,
+        text_alignment="CENTER",
+        character_casing="NORMAL",
+        font="Tahoma",
+        icon=None,
+        tool_tip="POS Settings Configuration Panel",
+        image=None,
+        image_selected=None,
+        font_auto_height=False,
+        font_size=0,
+        input_type="ALPHANUMERIC",
+        text_image_relation=None,
+        back_color="0x2F4F4F",
+        fore_color="0xFFFFFF",
+        keyboard_value=None,
+        fk_cashier_create_id=cashier_id,
+        fk_cashier_update_id=cashier_id
+    )
+    
+    # Store panel ID for child controls (will be set after panel is added to session)
+    # For now, we'll use a placeholder and update after panel creation
+    config_panel_id_placeholder = None  # Will be set after panel is created
+    
+    # PosSettings field controls - all will be children of the panel
+    # Field definitions with labels and field names (field names match model attributes)
+    pos_settings_fields = [
+        ("POS No in Store", "pos_no_in_store", "NUMERIC"),
+        ("Name", "name", "ALPHANUMERIC"),
+        ("Owner National ID", "owner_national_id", "ALPHANUMERIC"),
+        ("Owner Tax ID", "owner_tax_id", "ALPHANUMERIC"),
+        ("Owner Web Address", "owner_web_address", "ALPHANUMERIC"),
+        ("MAC Address", "mac_address", "ALPHANUMERIC"),
+        ("Customer Display Type", "customer_display_type", "ALPHANUMERIC"),
+        ("Customer Display Port", "customer_display_port", "ALPHANUMERIC"),
+        ("Receipt Printer Type", "receipt_printer_type", "ALPHANUMERIC"),
+        ("Receipt Printer Port", "receipt_printer_port", "ALPHANUMERIC"),
+        ("Invoice Printer Type", "invoice_printer_type", "ALPHANUMERIC"),
+        ("Invoice Printer Port", "invoice_printer_port", "ALPHANUMERIC"),
+        ("Scale Type", "scale_type", "ALPHANUMERIC"),
+        ("Scale Port", "scale_port", "ALPHANUMERIC"),
+        ("Barcode Reader Port", "barcode_reader_port", "ALPHANUMERIC"),
+        ("Backend IP 1", "backend_ip1", "ALPHANUMERIC"),
+        ("Backend Port 1", "backend_port1", "NUMERIC"),
+        ("Backend IP 2", "backend_ip2", "ALPHANUMERIC"),
+        ("Backend Port 2", "backend_port2", "NUMERIC"),
+        ("Backend Type", "backend_type", "ALPHANUMERIC"),
+        ("Device Serial Number", "device_serial_number", "ALPHANUMERIC"),
+        ("Device OS", "device_operation_system", "ALPHANUMERIC"),
+        ("Force Online", "force_to_work_online", "ALPHANUMERIC"),  # Boolean - will be checkbox later
+        ("PLU Update No", "plu_update_no", "NUMERIC"),
+    ]
+    
+    # Create label and textbox pairs for each field
+    pos_settings_controls = []
+    start_y = 20  # Starting Y position inside panel
+    label_width = 200
+    textbox_width = 400
+    control_height = 40
+    spacing = 10
+    row_height = control_height + spacing
+    
+    for i, (label_text, field_name, input_type) in enumerate(pos_settings_fields):
+        y_pos = start_y + (i * row_height)
+        
+        # Label
+        label_control = FormControl(
             fk_form_id=config_form.id,
-            fk_parent_id=None,
-            name=ControlName.BACK.value,
-            form_control_function1=EventName.BACK.value,
+            fk_parent_id=None,  # Will be set to panel ID after panel is created
+            parent_name="POS_SETTINGS",  # Panel name matches model name
+            name=f"LBL_{field_name.upper()}",
+            form_control_function1=EventName.NONE.value,
             form_control_function2=None,
-            type_no=1,
-            type="BUTTON",
-            width=125,
-            height=99,
-            location_x=880,
-            location_y=630,
+            type_no=8,
+            type="LABEL",
+            width=label_width,
+            height=control_height,
+            location_x=10,
+            location_y=y_pos,
             start_position=None,
-            caption1="BACK",
+            caption1=label_text + ":",
             caption2=None,
             list_values=None,
             dock=None,
             alignment=None,
-            text_alignment="CENTER",
-            character_casing="UPPER",
+            text_alignment="RIGHT",
+            character_casing="NORMAL",
             font="Tahoma",
             icon=None,
-            tool_tip="Back to Main Menu",
+            tool_tip=None,
             image=None,
             image_selected=None,
             font_auto_height=False,
-            font_size=14,
+            font_size=12,
             input_type="ALPHANUMERIC",
             text_image_relation=None,
-            back_color="0x4682B4",
+            back_color=None,
             fore_color="0xFFFFFF",
             keyboard_value=None,
             fk_cashier_create_id=cashier_id,
             fk_cashier_update_id=cashier_id
         )
-    ]
+        pos_settings_controls.append(label_control)
+        
+        # TextBox - name is uppercase but lower() gives model field name
+        # e.g., "POS_NO_IN_STORE" -> lower() -> "pos_no_in_store" (matches model attribute)
+        textbox_control = FormControl(
+            fk_form_id=config_form.id,
+            fk_parent_id=None,  # Will be set to panel ID after panel is created
+            parent_name="POS_SETTINGS",  # Panel name matches model name
+            name=field_name.upper(),  # Uppercase name, but lower() gives model field name
+            form_control_function1=EventName.NONE.value,
+            form_control_function2=None,
+            type_no=2,
+            type="TEXTBOX",
+            width=textbox_width,
+            height=control_height,
+            location_x=label_width + 20,
+            location_y=y_pos,
+            start_position=None,
+            caption1="",
+            caption2=None,
+            list_values=None,
+            dock=None,
+            alignment=None,
+            text_alignment="LEFT",
+            character_casing="NORMAL",
+            font="Tahoma",
+            icon=None,
+            tool_tip=f"Enter {label_text.lower()}",
+            image=None,
+            image_selected=None,
+            font_auto_height=False,
+            font_size=12,
+            input_type=input_type,
+            text_image_relation=None,
+            back_color="0xFFFFFF",
+            fore_color="0x000000",
+            keyboard_value=None,
+            fk_cashier_create_id=cashier_id,
+            fk_cashier_update_id=cashier_id
+        )
+        pos_settings_controls.append(textbox_control)
+    
+    # SAVE button (outside panel)
+    save_button = FormControl(
+        fk_form_id=config_form.id,
+        fk_parent_id=None,
+        name=ControlName.SAVE.value,
+        form_control_function1=EventName.SAVE_CHANGES.value,
+        form_control_function2=None,
+        type_no=1,
+        type="BUTTON",
+        width=125,
+        height=99,
+        location_x=745,
+        location_y=630,
+        start_position=None,
+        caption1="SAVE",
+        caption2=None,
+        list_values=None,
+        dock=None,
+        alignment=None,
+        text_alignment="CENTER",
+        character_casing="UPPER",
+        font="Tahoma",
+        icon=None,
+        tool_tip="Save POS Settings",
+        image=None,
+        image_selected=None,
+        font_auto_height=False,
+        font_size=14,
+        input_type="ALPHANUMERIC",
+        text_image_relation=None,
+        back_color="0x228B22",  # Forest Green for save action
+        fore_color="0xFFFFFF",
+        keyboard_value=None,
+        fk_cashier_create_id=cashier_id,
+        fk_cashier_update_id=cashier_id
+    )
+    
+    # BACK button (outside panel)
+    back_button = FormControl(
+        fk_form_id=config_form.id,
+        fk_parent_id=None,
+        name=ControlName.BACK.value,
+        form_control_function1=EventName.BACK.value,
+        form_control_function2=None,
+        type_no=1,
+        type="BUTTON",
+        width=125,
+        height=99,
+        location_x=880,
+        location_y=630,
+        start_position=None,
+        caption1="BACK",
+        caption2=None,
+        list_values=None,
+        dock=None,
+        alignment=None,
+        text_alignment="CENTER",
+        character_casing="UPPER",
+        font="Tahoma",
+        icon=None,
+        tool_tip="Back to Main Menu",
+        image=None,
+        image_selected=None,
+        font_auto_height=False,
+        font_size=14,
+        input_type="ALPHANUMERIC",
+        text_image_relation=None,
+        back_color="0x4682B4",
+        fore_color="0xFFFFFF",
+        keyboard_value=None,
+        fk_cashier_create_id=cashier_id,
+        fk_cashier_update_id=cashier_id
+    )
+    
+    # Combine all config form controls
+    config_form_controls = [config_panel] + pos_settings_controls + [save_button, back_button]
+    
+    # After panel is added to session, update child controls' fk_parent_id
+    # Note: This will be done after adding to session and committing to get the panel ID
     
     # Cashier form controls
     cashier_form_controls = [
@@ -1751,6 +1954,23 @@ def _insert_form_controls(session: Session, cashier_id: str):
     # Add all controls to session
     for control in all_controls:
         session.add(control)
+    
+    # Flush to get IDs for parent-child relationships
+    session.flush()
+    
+    # Update parent IDs for config form panel children
+    # Find the panel control
+    config_panel_control = None
+    for control in config_form_controls:
+        if control.type == "PANEL" and control.name == "POS_SETTINGS":
+            config_panel_control = control
+            break
+    
+    if config_panel_control:
+        # Update all child controls to reference the panel
+        for control in pos_settings_controls:
+            if control.parent_name == "POS_SETTINGS":
+                control.fk_parent_id = config_panel_control.id
     
     session.commit()
     print(f"✓ {len(all_controls)} form controls inserted successfully") 

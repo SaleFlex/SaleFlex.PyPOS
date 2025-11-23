@@ -534,9 +534,11 @@ class GeneralEvent:
         if current_form == FormName.CASHIER:
             return self._save_cashier_changes()
         
+        # Handle CONFIG/SETTING form saving (panel-based forms)
+        if current_form == FormName.CONFIG or current_form == FormName.SETTING:
+            return self._save_config_changes()
+        
         # Handle other forms as they are implemented
-        # elif current_form == FormName.CONFIG:
-        #     return self._save_config_changes()
         # elif current_form == FormName.CUSTOMER:
         #     return self._save_customer_changes()
         
@@ -604,7 +606,156 @@ class GeneralEvent:
         # Return True to indicate the operation was processed
         # (even though actual save is not yet implemented)
         return True
-
+    
+    def _save_config_changes(self):
+        """
+        Save configuration changes from CONFIG/SETTING form.
+        
+        Finds all panels in the form and saves their textbox values
+        to the corresponding models. Panel name should match model name
+        (e.g., "POS_SETTINGS" panel -> PosSettings model).
+        
+        Returns:
+            bool: True if save successful, False otherwise
+        """
+        print("[SAVE_CONFIG] Collecting configuration form data...")
+        
+        try:
+            # Get window reference
+            window = self.interface.window
+            
+            # Find all panels in the form
+            if not hasattr(window, '_panels'):
+                print("[SAVE_CONFIG] ✗ No panels found in form")
+                return False
+            
+            panels = window._panels
+            print(f"[SAVE_CONFIG] Found {len(panels)} panel(s) in form")
+            
+            # Process each panel
+            for panel_name, panel in panels.items():
+                print(f"[SAVE_CONFIG] Processing panel: {panel_name}")
+                
+                # Get all textbox values from this panel
+                textbox_values = window.get_panel_textbox_values(panel_name)
+                print(f"[SAVE_CONFIG] Collected {len(textbox_values)} textbox values from panel {panel_name}")
+                
+                if not textbox_values:
+                    print(f"[SAVE_CONFIG] ⚠ No textbox values found in panel {panel_name}")
+                    continue
+                
+                # Convert panel name to model class name
+                # Panel name is uppercase (e.g., "POS_SETTINGS")
+                # Model class name is PascalCase (e.g., "PosSettings")
+                model_class_name = self._panel_name_to_model_class(panel_name)
+                print(f"[SAVE_CONFIG] Model class name: {model_class_name}")
+                
+                # Get model class dynamically
+                try:
+                    # Import model definition module
+                    from data_layer.model.definition import __all__ as model_names
+                    import data_layer.model.definition as model_module
+                    
+                    if model_class_name not in model_names:
+                        print(f"[SAVE_CONFIG] ✗ Model class '{model_class_name}' not found in model definitions")
+                        continue
+                    
+                    model_class = getattr(model_module, model_class_name)
+                    print(f"[SAVE_CONFIG] Found model class: {model_class.__name__}")
+                    
+                    # Get the model instance to update
+                    # For PosSettings, use the cached instance from CurrentData
+                    if model_class_name == "PosSettings":
+                        model_instance = self.pos_settings
+                        if not model_instance:
+                            print("[SAVE_CONFIG] ✗ PosSettings instance not found in CurrentData")
+                            continue
+                    else:
+                        # For other models, get the first instance or create new
+                        instances = model_class.get_all(is_deleted=False)
+                        if instances and len(instances) > 0:
+                            model_instance = instances[0]
+                        else:
+                            print(f"[SAVE_CONFIG] ✗ No {model_class_name} instance found, creating new...")
+                            model_instance = model_class()
+                    
+                    # Update model fields with textbox values
+                    updated_fields = []
+                    for field_name, field_value in textbox_values.items():
+                        if hasattr(model_instance, field_name):
+                            # Convert value based on field type
+                            old_value = getattr(model_instance, field_name, None)
+                            
+                            # Get field type from model
+                            field_type = type(getattr(model_instance, field_name, None))
+                            
+                            # Convert value to appropriate type
+                            if field_value.strip() == "":
+                                # Empty string -> None for nullable fields
+                                new_value = None
+                            elif field_type == int or (old_value is not None and isinstance(old_value, int)):
+                                try:
+                                    new_value = int(field_value) if field_value.strip() else None
+                                except ValueError:
+                                    print(f"[SAVE_CONFIG] ⚠ Cannot convert '{field_value}' to int for field '{field_name}', skipping")
+                                    continue
+                            elif field_type == bool or (old_value is not None and isinstance(old_value, bool)):
+                                # Boolean fields
+                                new_value = field_value.lower() in ('true', '1', 'yes', 'on')
+                            else:
+                                # String fields
+                                new_value = field_value.strip()
+                            
+                            # Only update if value changed
+                            if old_value != new_value:
+                                setattr(model_instance, field_name, new_value)
+                                updated_fields.append(field_name)
+                                print(f"[SAVE_CONFIG]   Updated {field_name}: {old_value} -> {new_value}")
+                    
+                    if updated_fields:
+                        # Save the model
+                        model_instance.save()
+                        print(f"[SAVE_CONFIG] ✓ Saved {len(updated_fields)} field(s) to {model_class_name}")
+                        
+                        # Update cache if this is PosSettings
+                        if model_class_name == "PosSettings":
+                            self.pos_settings = model_instance
+                            print("[SAVE_CONFIG] ✓ Updated pos_settings cache")
+                    else:
+                        print(f"[SAVE_CONFIG] ⚠ No fields changed for {model_class_name}")
+                    
+                except Exception as e:
+                    print(f"[SAVE_CONFIG] ✗ Error saving {model_class_name}: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    continue
+            
+            print("[SAVE_CONFIG] ✓ Configuration save completed")
+            return True
+            
+        except Exception as e:
+            print(f"[SAVE_CONFIG] ✗ Error in save_config_changes: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+    
+    def _panel_name_to_model_class(self, panel_name):
+        """
+        Convert panel name to model class name.
+        
+        Args:
+            panel_name (str): Panel name in uppercase (e.g., "POS_SETTINGS")
+            
+        Returns:
+            str: Model class name in PascalCase (e.g., "PosSettings")
+        """
+        # Convert uppercase with underscores to PascalCase
+        # POS_SETTINGS -> PosSettings
+        # CASHIER_INFO -> CashierInfo
+        parts = panel_name.lower().split('_')
+        model_class_name = ''.join(word.capitalize() for word in parts)
+        return model_class_name
+    
     def _redraw_form(self):
         """
         Handle form redraw/refresh event.

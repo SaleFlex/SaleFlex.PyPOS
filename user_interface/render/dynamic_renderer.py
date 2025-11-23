@@ -142,26 +142,47 @@ class DynamicFormRenderer:
     def design(self):
         """
         Convert form controls to design list for BaseWindow.
+        Parent controls (like Panel) are created first, then child controls.
         
         Returns:
-            list: List of control design dictionaries
+            list: List of control design dictionaries, ordered by parent-child relationship
         """
         if not self.form:
             return []
         
         design_list = []
+        parent_controls = {}  # Store parent controls by ID
         
+        # First pass: Create parent controls (Panel, Toolbar, Statusbar)
         for control in self.controls:
-            # Skip parent controls (like toolbar) - their children will be processed
-            if control.type.lower() in ['toolbar', 'statusbar']:
+            # Create parent controls first
+            if control.type.lower() in ['panel', 'toolbar', 'statusbar']:
+                design_dict = self._convert_control_to_design(control)
+                if design_dict:
+                    design_list.append(design_dict)
+                    parent_controls[control.id] = control
+        
+        # Second pass: Create child controls, linking them to their parents
+        for control in self.controls:
+            # Skip parent controls (already added)
+            if control.type.lower() in ['panel', 'toolbar', 'statusbar']:
                 continue
             
-            # Skip controls that belong to toolbar/statusbar
+            # Skip controls that belong to toolbar/statusbar (handled separately)
             if control.fk_parent_id:
                 parent = self._find_control_by_id(control.fk_parent_id)
                 if parent and parent.type.lower() in ['toolbar', 'statusbar']:
                     continue
+                # For Panel parent, add parent info to design dict
+                elif parent and parent.type.lower() == 'panel':
+                    design_dict = self._convert_control_to_design(control)
+                    if design_dict:
+                        design_dict['parent_id'] = str(parent.id)
+                        design_dict['parent_name'] = parent.name
+                        design_list.append(design_dict)
+                    continue
             
+            # Regular controls without parent
             design_dict = self._convert_control_to_design(control)
             if design_dict:
                 design_list.append(design_dict)
@@ -268,6 +289,11 @@ class DynamicFormRenderer:
             design.update({
                 'function': control.form_control_function1 or None,
                 'font_size': int(control.font_size) if control.font_size else 10,
+            })
+        
+        elif control.type.lower() == 'panel':
+            design.update({
+                'name': control.name,
             })
         
         return design

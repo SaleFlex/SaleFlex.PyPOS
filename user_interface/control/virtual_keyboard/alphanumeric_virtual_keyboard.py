@@ -258,7 +258,11 @@ class AlphaNumericVirtualKeyboard(QWidget):
         # Position the keyboard based on the TextBox location
         # If TextBox is in the upper half of the form, place keyboard at the bottom
         # If TextBox is in the lower half of the form, place keyboard at the top
-        textbox_y_position = self.source.pos().y()
+        # Get global position of textbox (works for both regular and panel-contained textboxes)
+        textbox_global_pos = self.source.mapToGlobal(self.source.rect().topLeft())
+        parent_global_pos = self.parent.mapToGlobal(self.parent.rect().topLeft())
+        # Calculate relative Y position within parent window
+        textbox_y_position = textbox_global_pos.y() - parent_global_pos.y()
         parent_mid_height = self.parent.height() / 2
         
         if textbox_y_position < parent_mid_height:
