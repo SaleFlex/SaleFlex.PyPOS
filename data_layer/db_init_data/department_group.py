@@ -85,7 +85,7 @@ def _insert_department_groups(session, admin_cashier_id: int):
         # Create sub groups for each main group
         _insert_department_sub_groups(session, admin_cashier_id, created_main_groups)
 
-        print("✓ Default main groups added: FOOD, TOBACCO, INDIVIDUAL")
+        print("✓ Default main groups added: BAKERY, FOOD, TOBACCO, INDIVIDUAL")
         print("✓ Default sub groups added")
 
 
@@ -93,18 +93,18 @@ def _insert_department_sub_groups(session, admin_cashier_id: int, main_groups):
     """Insert default department sub groups"""
     sub_groups_data = [
         # FOOD sub groups
-        {"main_group_code": "1", "code": "101", "name": "FRESH FOOD", "description": "Fresh food products"},
-        {"main_group_code": "1", "code": "102", "name": "CANNED FOOD", "description": "Canned and preserved food"},
-        {"main_group_code": "1", "code": "103", "name": "BEVERAGES", "description": "Drinks and beverages"},
+        {"main_group_code": "2", "code": "101", "name": "FRESH FOOD", "description": "Fresh food products"},
+        {"main_group_code": "2", "code": "102", "name": "CANNED FOOD", "description": "Canned and preserved food"},
+        {"main_group_code": "2", "code": "103", "name": "BEVERAGES", "description": "Drinks and beverages"},
 
         # TOBACCO sub groups
-        {"main_group_code": "2", "code": "201", "name": "CIGARETTES", "description": "Cigarette products"},
-        {"main_group_code": "2", "code": "202", "name": "TOBACCO PRODUCTS", "description": "Other tobacco products"},
+        {"main_group_code": "3", "code": "201", "name": "CIGARETTES", "description": "Cigarette products"},
+        {"main_group_code": "3", "code": "202", "name": "TOBACCO PRODUCTS", "description": "Other tobacco products"},
 
         # INDIVIDUAL sub groups
-        {"main_group_code": "3", "code": "301", "name": "PERSONAL CARE", "description": "Personal care items"},
-        {"main_group_code": "3", "code": "302", "name": "HOUSEHOLD ITEMS", "description": "Household products"},
-        {"main_group_code": "3", "code": "303", "name": "ACCESSORIES", "description": "General accessories"}
+        {"main_group_code": "4", "code": "301", "name": "PERSONAL CARE", "description": "Personal care items"},
+        {"main_group_code": "4", "code": "302", "name": "HOUSEHOLD ITEMS", "description": "Household products"},
+        {"main_group_code": "4", "code": "303", "name": "ACCESSORIES", "description": "General accessories"}
     ]
 
     for sub_group_data in sub_groups_data:

@@ -68,8 +68,8 @@ class TransactionProductTemp(Model, CRUD, AuditMixin, SoftDeleteMixin):
     tax_inclusive = Column(Boolean, nullable=False, default=True)
 
     # All monetary values now use Numeric
-    cost_price = Column(Numeric(precision=15, scale=4), nullable=True)  # NEW: For margin analysis
-    list_price = Column(Numeric(precision=15, scale=4), nullable=True)  # NEW: Original price
+    cost_price = Column(Numeric(precision=15, scale=4), nullable=True)  # For margin analysis
+    list_price = Column(Numeric(precision=15, scale=4), nullable=True)  # Original price
     unit_price = Column(Numeric(precision=15, scale=4), nullable=False)
     unit_discount = Column(Numeric(precision=15, scale=4), nullable=False, default=0)
 
