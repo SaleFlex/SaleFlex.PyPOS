@@ -25,7 +25,7 @@ SOFTWARE.
 import os
 from PySide6.QtWidgets import QDialog
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QIcon
+from PySide6.QtGui import QIcon, QColor, QLinearGradient, QBrush, QPalette
 
 from user_interface.control import TextBox, Button, NumPad, PaymentList, SaleList, ComboBox, AmountTable, Label, DataGrid
 from user_interface.control import VirtualKeyboard
@@ -82,14 +82,12 @@ class DynamicDialog(QDialog):
         """
         self.setUpdatesEnabled(False)
         
-        # Set window properties
-        p = self.palette()
-        p.setColor(self.backgroundRole(), settings['background_color'])
-        p.setColor(self.foregroundRole(), settings['foreground_color'])
-        self.setPalette(p)
-        
         self.setWindowTitle(settings["name"])
         self.setFixedSize(settings["width"], settings["height"])
+        self._apply_gradient_background(
+            settings.get('background_color', 0xFFFFFF),
+            settings.get('foreground_color', 0x000000)
+        )
         
         # Render all controls
         for control_design_data in design:
@@ -119,6 +117,39 @@ class DynamicDialog(QDialog):
         # Update keyboard size and position
         self.keyboard.resize_from_parent()
         self.keyboard.raise_()
+    
+    def _apply_gradient_background(self, background_value: int, foreground_value: int):
+        """
+        Apply a subtle gradient to match BaseWindow styling.
+        """
+        base_color = self._int_to_qcolor(background_value, default=QColor(255, 255, 255))
+        dark_color = base_color.darker(120)
+        light_color = base_color.lighter(120)
+
+        gradient = QLinearGradient(0, 0, 0, self.height() or 1)
+        gradient.setColorAt(0.0, dark_color)
+        gradient.setColorAt(0.5, base_color)
+        gradient.setColorAt(1.0, light_color)
+
+        palette = self.palette()
+        palette.setBrush(QPalette.Window, QBrush(gradient))
+        palette.setColor(QPalette.WindowText, self._int_to_qcolor(foreground_value, default=QColor(0, 0, 0)))
+        self.setPalette(palette)
+        self.setAutoFillBackground(True)
+
+    @staticmethod
+    def _int_to_qcolor(value, default: QColor):
+        """Safely convert an integer RGB value to QColor."""
+        try:
+            rgb = int(value)
+        except (TypeError, ValueError):
+            return default
+
+        rgb = max(0, min(0xFFFFFF, rgb))
+        r = (rgb >> 16) & 0xFF
+        g = (rgb >> 8) & 0xFF
+        b = rgb & 0xFF
+        return QColor(r, g, b)
     
     def focus_text_box(self):
         """Set focus to the first textbox found."""

@@ -25,7 +25,7 @@ SOFTWARE.
 import os
 from PySide6.QtWidgets import QMainWindow
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QIcon
+from PySide6.QtGui import QIcon, QColor, QLinearGradient, QBrush, QPalette
 
 from user_interface.control import TextBox, Button, ToolBar, StatusBar, NumPad, PaymentList, SaleList, ComboBox, AmountTable, Label, DataGrid, Panel
 from user_interface.control import VirtualKeyboard
@@ -54,14 +54,13 @@ class BaseWindow(QMainWindow):
 
     def draw_window(self, settings: dict, toolbar_settings: dict, design: list):
         self.setUpdatesEnabled(False)
-        p = self.palette()
-        p.setColor(self.backgroundRole(), settings['background_color'])
-        p.setColor(self.foregroundRole(), settings['foreground_color'])
-        self.setPalette(p)
-
         self.setWindowTitle(settings["name"])
         self.move(0, 0)
         self.setFixedSize(settings["width"], settings["height"])
+        self._apply_gradient_background(
+            settings.get('background_color', 0xFFFFFF),
+            settings.get('foreground_color', 0x000000)
+        )
 
         if settings["toolbar"]:
             self._create_toolbar(toolbar_settings)
@@ -107,6 +106,43 @@ class BaseWindow(QMainWindow):
 
         self.keyboard.resize_from_parent()
         self.keyboard.raise_()
+
+    def _apply_gradient_background(self, background_value: int, foreground_value: int):
+        """
+        Apply a subtle gradient using the provided base colors.
+
+        Creates a vertical gradient that starts slightly darker than the base
+        color, transitions through the original tone, and ends slightly lighter.
+        This keeps the existing color scheme but adds depth to the form surface.
+        """
+        base_color = self._int_to_qcolor(background_value, default=QColor(255, 255, 255))
+        dark_color = base_color.darker(120)   # ~20% darker
+        light_color = base_color.lighter(120) # ~20% lighter
+
+        gradient = QLinearGradient(0, 0, 0, self.height() or 1)
+        gradient.setColorAt(0.0, dark_color)
+        gradient.setColorAt(0.5, base_color)
+        gradient.setColorAt(1.0, light_color)
+
+        palette = self.palette()
+        palette.setBrush(QPalette.Window, QBrush(gradient))
+        palette.setColor(QPalette.WindowText, self._int_to_qcolor(foreground_value, default=QColor(0, 0, 0)))
+        self.setPalette(palette)
+        self.setAutoFillBackground(True)
+
+    @staticmethod
+    def _int_to_qcolor(value, default: QColor):
+        """Safely convert an integer RGB value to QColor."""
+        try:
+            rgb = int(value)
+        except (TypeError, ValueError):
+            return default
+
+        rgb = max(0, min(0xFFFFFF, rgb))
+        r = (rgb >> 16) & 0xFF
+        g = (rgb >> 8) & 0xFF
+        b = rgb & 0xFF
+        return QColor(r, g, b)
 
     def focus_text_box(self):
         for item in self.children():
