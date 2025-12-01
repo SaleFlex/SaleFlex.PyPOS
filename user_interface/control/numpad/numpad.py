@@ -450,116 +450,78 @@ class NumPad(QWidget):
                     self.button_layout.addWidget(button, row_idx, col_idx)
 
     def _apply_button_style(self, button, key):
-        # Base colors from the numpad settings
         base_bg = self.background_color
         base_fg = self.foreground_color
-        
-        # Calculate border width and radius based on button size
+        font_family = "Noto Sans CJK JP"
+
         border_width = max(1, int(min(self.button_width, self.button_height) * 0.04))
         border_radius = max(4, int(min(self.button_width, self.button_height) * 0.1))
-        
-        # Different styling based on button type
+        border_color = base_bg.darker(130)
+
+        base_color = base_bg.lighter(120)
+        hover_color = base_bg.lighter(145)
+        pressed_color = base_bg
+        text_color = base_fg
+        font_size = self.action_font_size
+        font_weight = "normal"
+        min_width = self.button_width
+        max_width = self.button_width
+        min_height = self.button_height
+        max_height = self.button_height
+
         if key.isdigit():
-            # Number buttons - make them large and prominent
-            button.setStyleSheet(f"""
-                QPushButton {{
-                    min-width: {self.button_width}px;
-                    max-width: {self.button_width}px;
-                    min-height: {self.button_height}px;
-                    max-height: {self.button_height}px;
-                    font-size: {self.number_font_size}px;
-                    font-weight: bold;
-                    font-family: Noto Sans CJK JP;
-                    border: {border_width}px solid {base_bg.darker(130).name()};
-                    border-radius: {border_radius}px;
-                    background-color: {base_bg.lighter(130).name()};
-                    color: {base_fg.name()};
-                }}
-                QPushButton:pressed {{
-                    background-color: {base_bg.name()};
-                    color: {base_fg.name()};
-                }}
-            """)
+            font_size = self.number_font_size
+            font_weight = "bold"
+            base_color = base_bg.lighter(130)
+            hover_color = base_bg.lighter(165)
+            pressed_color = base_bg
         elif key == "Backspace":
-            # Backspace button - distinctive styling
-            button.setStyleSheet(f"""
-                QPushButton {{
-                    min-width: {self.button_width}px;
-                    max-width: {self.button_width}px;
-                    min-height: {self.button_height}px;
-                    max-height: {self.button_height}px;
-                    font-size: {self.action_font_size}px;
-                    font-family: Noto Sans CJK JP;
-                    border: {border_width}px solid {base_bg.darker(120).name()};
-                    border-radius: {border_radius}px;
-                    background-color: {QColor(255, 204, 203).name()};
-                    color: black;
-                }}
-                QPushButton:pressed {{
-                    background-color: {QColor(255, 153, 153).name()};
-                    color: white;
-                }}
-            """)
+            font_size = self.action_font_size
+            font_weight = "bold"
+            base_color = QColor(255, 204, 203)
+            hover_color = QColor(base_color).lighter(110)
+            pressed_color = QColor(base_color).darker(125)
+            text_color = QColor(0, 0, 0)
+            border_color = QColor(base_color).darker(130)
         elif key == "Clear":
-            # Clear button - distinctive styling
-            button.setStyleSheet(f"""
-                QPushButton {{
-                    min-width: {self.button_width}px;
-                    max-width: {self.button_width}px;
-                    min-height: {self.button_height}px;
-                    max-height: {self.button_height}px;
-                    font-size: {self.action_font_size}px;
-                    font-family: Noto Sans CJK JP;
-                    border: {border_width}px solid {base_bg.darker(120).name()};
-                    border-radius: {border_radius}px;
-                    background-color: {QColor(255, 230, 204).name()};
-                    color: black;
-                }}
-                QPushButton:pressed {{
-                    background-color: {QColor(255, 204, 153).name()};
-                    color: white;
-                }}
-            """)
+            font_size = self.action_font_size
+            font_weight = "bold"
+            base_color = QColor(255, 230, 204)
+            hover_color = QColor(base_color).lighter(110)
+            pressed_color = QColor(base_color).darker(120)
+            text_color = QColor(0, 0, 0)
+            border_color = QColor(base_color).darker(130)
         elif key == "Enter":
-            # Enter button - make it wide and stand out
-            button.setStyleSheet(f"""
-                QPushButton {{
-                    min-width: 100%;
-                    min-height: {self.button_height}px;
-                    max-height: {self.button_height}px;
-                    font-size: {self.enter_font_size}px;
-                    font-weight: bold;
-                    font-family: Noto Sans CJK JP;
-                    border: {border_width}px solid {base_bg.darker(120).name()};
-                    border-radius: {border_radius}px;
-                    background-color: {base_bg.lighter(150).name()};
-                    color: {base_fg.name()};
-                }}
-                QPushButton:pressed {{
-                    background-color: {base_bg.name()};
-                    color: {base_fg.name()};
-                }}
-            """)
+            font_size = self.enter_font_size
+            font_weight = "bold"
+            base_color = base_bg.lighter(150)
+            hover_color = base_bg.lighter(185)
+            pressed_color = base_bg
+            border_color = base_bg.darker(120)
+            min_width = self.button_width * 3 + (self.button_spacing * 2)
+            max_width = None  # allow the layout to stretch the button across the row
         else:
-            # Default styling for other buttons
-            button.setStyleSheet(f"""
-                QPushButton {{
-                    min-width: {self.button_width}px;
-                    max-width: {self.button_width}px;
-                    min-height: {self.button_height}px;
-                    max-height: {self.button_height}px;
-                    font-size: {self.action_font_size}px;
-                    font-family: Noto Sans CJK JP;
-                    border: {border_width}px solid {base_bg.darker(120).name()};
-                    border-radius: {border_radius}px;
-                    background-color: {base_bg.lighter(120).name()};
-                    color: {base_fg.name()};
-                }}
-                QPushButton:pressed {{
-                    background-color: {base_bg.name()};
-                    color: {base_fg.name()};
-                }}
-            """)
+            # Default fallback styling
+            base_color = base_bg.lighter(125)
+            hover_color = base_bg.lighter(150)
+            pressed_color = base_bg
+
+        button.apply_visual_profile(
+            base_bg=base_color,
+            hover_bg=hover_color,
+            pressed_bg=pressed_color,
+            text_color=text_color,
+            border_color=border_color,
+            border_radius=border_radius,
+            border_width=border_width,
+            font_family=font_family,
+            font_size=font_size,
+            font_weight=font_weight,
+            min_width=int(min_width) if min_width is not None else None,
+            max_width=int(max_width) if max_width is not None else None,
+            min_height=int(min_height) if min_height is not None else None,
+            max_height=int(max_height) if max_height is not None else None,
+        )
 
     def _on_button_clicked(self, key):
         # Handle button click internally
