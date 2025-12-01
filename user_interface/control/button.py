@@ -24,6 +24,7 @@ SOFTWARE.
 
 from PySide6.QtWidgets import QPushButton
 from PySide6.QtGui import QFont, QFontMetrics
+from PySide6.QtCore import QEvent
 
 
 class Button(QPushButton):
@@ -117,6 +118,12 @@ class Button(QPushButton):
         self.setFont(font)
         # Set text directly to avoid recursion
         QPushButton.setText(self, final_text)
+
+    def event(self, event):
+        """Prevent tooltips from showing for this control"""
+        if event.type() == QEvent.ToolTip:
+            return True
+        return super().event(event)
         
     def resizeEvent(self, event):
         """Override resizeEvent to adjust font when button is resized"""
