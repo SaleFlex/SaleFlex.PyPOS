@@ -12,6 +12,8 @@
 
 SaleFlex.PyPOS is a modern, Python-based point-of-sale (POS) system designed for retail businesses, restaurants, and service-oriented establishments. Built with PySide6 (Qt framework), it offers a touch-optimized interface with cross-platform compatibility and robust database support.
 
+[Current Version Demo: 1.0.0b3](https://youtu.be/HoA2p6M8fuM)
+
 ## Key Features
 
 SaleFlex.PyPOS POS system is designed to streamline the sales process and improve efficiency with these capabilities:
