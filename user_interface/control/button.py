@@ -1,7 +1,7 @@
 """
 SaleFlex.PyPOS - Point of Sale Application
 
-Copyright (c) 2025 Ferhat Mousavi
+Copyright (c) 2025-2026 Ferhat Mousavi
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +24,7 @@ SOFTWARE.
 
 from PySide6.QtWidgets import QPushButton
 from PySide6.QtGui import QFont, QFontMetrics
-from PySide6.QtCore import QEvent
+from PySide6.QtCore import QEvent, Qt
 
 
 class Button(QPushButton):
@@ -35,6 +35,9 @@ class Button(QPushButton):
         self._font_auto_height = font_auto_height
         self.setFont(QFont(self._font_name, self._base_font_size))
         # Text wrapping is handled programmatically in _adjust_font_size()
+        # Set NoFocus policy to prevent stealing focus from widgets like NumPad
+        # This ensures keyboard input continues to work on focused controls
+        self.setFocusPolicy(Qt.NoFocus)
         
     def setText(self, text):
         """Override setText to auto-adjust font size and wrap text"""
@@ -183,5 +186,6 @@ class Button(QPushButton):
         return (r << 16) | (g << 8) | b
 
     def set_event(self, function):
-        self.click()
+        # Connect the clicked signal to the provided function
+        self.clicked.connect(function)
 

@@ -255,18 +255,30 @@ class NumPad(QWidget):
             
         # If we lost focus to another widget
         if old is self and new is not None and new is not self:
+            # IMPORTANT: Check if the new widget accepts focus
+            # Widgets with NoFocus policy (like Button controls) don't actually steal focus
+            # and shouldn't trigger our focus regain mechanism
+            if hasattr(new, 'focusPolicy') and new.focusPolicy() == Qt.NoFocus:
+                return
+            
             # Cancel any pending focus regain
             self.focus_timer.stop()
             # Start the timer to regain focus
             self.focus_timer.start(150)
             
     def _regain_focus(self):
-        """Internal method to regain focus after it's been lost to another widget"""
+        """Internal method to regain focus after it's been lost to another widget
+        
+        This method is called via a timer to avoid immediate focus fights.
+        It ensures the NumPad can receive keyboard input after a button click or
+        other interaction that temporarily shifted focus.
+        """
         # If we shouldn't try to regain focus or we're not visible, do nothing
         if not self.auto_focus_enabled or not self.isVisible():
             return
             
         # Set flag to prevent focus loop
+        # This prevents recursive focus change events from triggering more focus regains
         self.is_regaining_focus = True
         
         # Make sure this widget is visible and active before trying to regain focus
@@ -305,6 +317,11 @@ class NumPad(QWidget):
         if event.type() == QtCore.QEvent.FocusIn:
             # If another widget gained focus and we're not in the process of regaining focus
             if obj is not self and self.auto_focus_enabled and not self.is_regaining_focus:
+                # Check if the widget that gained focus actually accepts focus
+                # NoFocus widgets (like Button) don't steal keyboard input
+                if hasattr(obj, 'focusPolicy') and obj.focusPolicy() == Qt.NoFocus:
+                    return False
+                
                 # Cancel any pending focus regain
                 self.focus_timer.stop()
                 # Start the timer to regain focus
