@@ -49,8 +49,11 @@ class StatusBar(QStatusBar):
         self.addPermanentWidget(self.date_time_label)
         
         # Timer for updating date/time
-        date_time_timer = QTimer(self, interval=1000, timeout=self.update_display)
-        date_time_timer.start()
+        self.date_time_timer = QTimer(self)
+        self.date_time_timer.setInterval(1000)
+        self.date_time_timer.timeout.connect(self.update_display)
+        self.date_time_timer.start()
+
         
         # Initial update
         self.update_display()

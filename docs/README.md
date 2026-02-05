@@ -19,7 +19,7 @@
 
 ---
 
-**Last Updated:** 2025-01-28  
+**Last Updated:** 2025-11-28  
 **Version:** 1.0.0b3  
 **License:** MIT
 

@@ -1,16 +1,20 @@
-> **Under development. The project is not working properly yet.**
-> **Current Version: 1.0.0b3 (Beta)**
+# SaleFlex.PyPOS
+
+> **Current Status:** Beta v1.0.0b3 - Active Development
+> Core POS functionality operational. See [roadmap](#development-roadmap) for upcoming features.
+
+[Watch Demo](https://youtu.be/HoA2p6M8fuM) | [Documentation](docs/README.md) | [Quick Start](#quick-start)
 
 ![Python 3.13](https://img.shields.io/badge/python-%3E=_3.13-success.svg)
 ![PySide6](https://img.shields.io/badge/PySide6-6.10.0-blue.svg)
 ![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0.44-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
-# SaleFlex.PyPOS
-
 ### Touch Screen Point-of-Sale Application
 
 SaleFlex.PyPOS is a modern, Python-based point-of-sale (POS) system designed for retail businesses, restaurants, and service-oriented establishments. Built with PySide6 (Qt framework), it offers a touch-optimized interface with cross-platform compatibility and robust database support.
+
+[Current Version Demo: 1.0.0b3](https://youtu.be/HoA2p6M8fuM)
 
 ## Key Features
 
@@ -43,6 +47,22 @@ SaleFlex.PyPOS follows a layered architecture pattern with clear separation of c
 - **Data Access Layer** (`data_layer/model/`): 98+ SQLAlchemy models with CRUD operations and auto-save functionality
 - **UI Layer** (`user_interface/`): PySide6-based UI components with dynamic form rendering
 - **Caching Layer** (`pos/manager/cache_manager.py`): In-memory caching for reference and product data
+
+```
+┌─────────────────────────────────────────┐
+│          UI Layer (PySide6)             │
+├─────────────────────────────────────────┤
+│    Event Handlers (9 modules)           │
+├─────────────────────────────────────────┤
+│   Business Logic (Service Layer)        │
+├─────────────────────────────────────────┤
+│      Data Access Layer (ORM)            │
+├─────────────────────────────────────────┤
+│    Cache Layer (pos_data/product_data)  │
+├─────────────────────────────────────────┤
+│         Database (SQLite/PG)            │
+└─────────────────────────────────────────┘
+```
 
 ## Project Structure
 
@@ -209,6 +229,18 @@ SaleFlex.PyPOS integrates seamlessly with **[SaleFlex.GATE](https://github.com/S
 - **Microsoft SQL Server**
 - **Firebird**
 - **Sybase**
+
+## Quick Start
+```bash
+git clone https://github.com/SaleFlex/SaleFlex.PyPOS.git
+cd SaleFlex.PyPOS
+python3 -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate.bat
+pip install -r requirements.txt
+python saleflex.py
+```
+
+**Default credentials:** admin / admin
 
 ## Installation & Setup
 
