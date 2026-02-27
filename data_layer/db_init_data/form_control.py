@@ -1549,7 +1549,7 @@ def _insert_form_controls(session: Session, cashier_id: str):
         FormControl(
             fk_form_id=closure_form.id,
             fk_parent_id=None,
-            name=ControlName.DATAGRID.value,
+            name=ControlName.CLOSURE.value,
             form_control_function1=EventName.NONE.value,
             form_control_function2=None,
             type_no=9,

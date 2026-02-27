@@ -723,45 +723,65 @@ class BaseWindow(QMainWindow):
         if "caption" in design_data:
             datagrid.setToolTip(design_data["caption"])
         
-        # Auto-populate data if this is the CLOSURE DATAGRID
+        # Auto-populate data if this is the CLOSURE datagrid (from data_layer.model.definition.closure)
         from data_layer.enums import ControlName
         name_key = str(design_data.get("name", ""))
-        
-        if name_key == ControlName.DATAGRID.value:
-            # Load closure data from database
+
+        if name_key == ControlName.CLOSURE.value:
             try:
-                from data_layer.model import Closure
+                from data_layer.model import Closure, Cashier
                 closures = Closure.get_all(is_deleted=False)
-                
-                # Set column headers
+                # Sort by closure start time descending (newest first)
+                closures = sorted(
+                    closures,
+                    key=lambda c: c.closure_start_time if c.closure_start_time else c.closure_date,
+                    reverse=True
+                )
+
                 datagrid.set_columns([
-                    "Closure No", 
-                    "Date", 
-                    "Cashier", 
-                    "Total Sales", 
-                    "Cash", 
-                    "Credit Card"
+                    "Closure No",
+                    "Date",
+                    "Cashier",
+                    "Gross Sales",
+                    "Opening Cash",
+                    "Closing Cash"
                 ])
-                
-                # Prepare data rows
+
                 data_rows = []
                 for closure in closures:
+                    cashier_name = ""
+                    if closure.fk_cashier_closed_id:
+                        cashier = Cashier.get_by_id(closure.fk_cashier_closed_id)
+                        if cashier:
+                            cashier_name = cashier.user_name or ""
+
+                    date_str = ""
+                    if closure.closure_start_time:
+                        date_str = closure.closure_start_time.strftime("%Y-%m-%d %H:%M")
+                    elif closure.closure_date:
+                        date_str = closure.closure_date.strftime("%Y-%m-%d")
+
+                    def _num(val):
+                        if val is None:
+                            return "0.00"
+                        return f"{float(val):.2f}"
+
                     row = [
-                        str(closure.closure_no),
-                        closure.date_create.strftime("%Y-%m-%d %H:%M") if closure.date_create else "",
-                        closure.cashier.user_name if closure.cashier else "",
-                        f"{closure.total_amount:.2f}" if closure.total_amount else "0.00",
-                        f"{closure.cash_amount:.2f}" if closure.cash_amount else "0.00",
-                        f"{closure.credit_card_amount:.2f}" if closure.credit_card_amount else "0.00"
+                        str(closure.closure_number),
+                        date_str,
+                        cashier_name,
+                        _num(closure.gross_sales_amount),
+                        _num(closure.opening_cash_amount),
+                        _num(closure.closing_cash_amount)
                     ]
                     data_rows.append(row)
-                
-                # Set data
+
                 datagrid.set_data(data_rows)
-                
+
             except Exception as e:
+                import traceback
                 print(f"Error loading closure data: {e}")
-                # Set empty data on error
+                traceback.print_exc()
                 datagrid.set_columns(["No Data Available"])
                 datagrid.set_data([])
         
