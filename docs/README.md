@@ -16,6 +16,7 @@
 12. [Troubleshooting](12-troubleshooting.md)
 13. [Support and Resources](13-support.md)
 14. [Service Layer Architecture](14-service-layer.md)
+15. [Closure Operation (End-of-Day)](15-closure-operation.md)
 
 ---
 

@@ -507,6 +507,7 @@ Comprehensive documentation is available in the `docs/` directory:
 - **[Virtual Keyboard](docs/07-virtual-keyboard.md)** - Virtual keyboard configuration
 - **[Data Caching](docs/08-data-caching.md)** - Caching strategy and implementation
 - **[Document Management](docs/09-document-management.md)** - Transaction lifecycle management
+- **[Closure Operation](docs/15-closure-operation.md)** - End-of-day closure (authorization, aggregation, sequences)
 - **[Database Models](docs/10-database-models.md)** - Complete model reference
 - **[Service Layer](docs/14-service-layer.md)** - Business logic services architecture
 - **[Troubleshooting](docs/12-troubleshooting.md)** - Common issues and solutions

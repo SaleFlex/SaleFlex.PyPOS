@@ -26,6 +26,8 @@
 11. [Database Initialization Functions](docs/11-database-initialization.md)
 12. [Troubleshooting](docs/12-troubleshooting.md)
 13. [Support and Resources](docs/13-support.md)
+14. [Service Layer Architecture](docs/14-service-layer.md)
+15. [Closure Operation (End-of-Day)](docs/15-closure-operation.md)
 
 ---
 
