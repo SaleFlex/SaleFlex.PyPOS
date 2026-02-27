@@ -233,22 +233,15 @@ class BaseWindow(QMainWindow):
         return values
 
     def clear(self):
+        """Clear all child controls and hide the window."""
         for item in self.children():
-            print(item)
             if type(item) in [TextBox, Button, Label, ToolBar, StatusBar, NumPad, PaymentList, SaleList, ComboBox, AmountTable, DataGrid, Panel]:
-                print(type(item), item)
                 item.deleteLater()
                 item.setParent(None)
         self.hide()
 
     def _create_button(self, design_data):
-        print("="*80)
-        print(f"Creating button: {design_data}")
-        print(f"Button caption: {design_data.get('caption')}")
-        print(f"Button function value from DB: '{design_data.get('function')}'")
-        print(f"Button function type: {type(design_data.get('function'))}")
-        
-        # Check if this control belongs to a panel
+        # Resolve parent: panel content widget or window
         parent_panel = None
         if 'parent_name' in design_data and design_data['parent_name']:
             parent_panel = self._panels.get(design_data['parent_name'])
@@ -276,17 +269,10 @@ class BaseWindow(QMainWindow):
         button_name = design_data.get("name", "")
         button.control_name = button_name  # Store control name for SALE_PLU_CODE handling
         
-        # Get the event handler function
         function_name = design_data.get("function")
-        print(f"Calling event_distributor with: '{function_name}'")
-        
         event_handler = self.app.event_distributor(function_name)
-        print(f"Event handler retrieved: {event_handler}")
-        print(f"Event handler type: {type(event_handler)}")
         
         if event_handler:
-            print(f"✓ Connecting button '{design_data.get('caption')}' to event handler: {event_handler.__name__}")
-            
             # Special handling for sale and payment events: pass button object to handler
             # Use default parameter to avoid closure issues
             payment_events = ["CASH_PAYMENT", "CREDIT_PAYMENT", "CHECK_PAYMENT", "EXCHANGE_PAYMENT", 
@@ -296,9 +282,6 @@ class BaseWindow(QMainWindow):
                 button.clicked.connect(lambda checked=False, btn=button: event_handler(btn))
             else:
                 button.clicked.connect(event_handler)
-        else:
-            print(f"✗ WARNING: No event handler found for function: '{function_name}'")
-        
         # Set button text based on product information for PLU buttons
         if function_name in ["SALE_PLU_CODE", "SALE_PLU_BARCODE"] and button_name and button_name.upper().startswith("PLU"):
             try:
@@ -315,9 +298,9 @@ class BaseWindow(QMainWindow):
                         product = products[0]
                         product_name = product.short_name if product.short_name else product.name
                         button.setText(product_name)
-                        print(f"[BUTON] SALE_PLU_CODE: Set button text to '{product_name}' for code '{code_or_barcode}'")
+                        pass  # Button text set to product name
                     else:
-                        print(f"[BUTON] SALE_PLU_CODE: No product found with code '{code_or_barcode}'")
+                        pass  # No product found for code
                 
                 elif function_name == "SALE_PLU_BARCODE":
                     # Find product_barcode by barcode from product_data cache, then get product
@@ -336,15 +319,13 @@ class BaseWindow(QMainWindow):
                             product = products[0]
                             product_name = product.short_name if product.short_name else product.name
                             button.setText(product_name)
-                            print(f"[BUTON] SALE_PLU_BARCODE: Set button text to '{product_name}' for barcode '{code_or_barcode}'")
+                            pass  # Button text set to product name
                         else:
-                            print(f"[BUTON] SALE_PLU_BARCODE: Product not found with id '{product_barcode.fk_product_id}'")
+                            pass  # Product not found for barcode's product id
                     else:
-                        print(f"[BUTON] SALE_PLU_BARCODE: No product_barcode found with barcode '{code_or_barcode}'")
-            except Exception as e:
-                print(f"[BUTON] Error setting button text for PLU button: {str(e)}")
-                import traceback
-                traceback.print_exc()
+                        pass  # No product_barcode found for barcode
+            except Exception:
+                pass
         
         # Trigger font adjustment after button is fully created and sized (only if font_auto_height is True)
         # Use QTimer to ensure button dimensions are set
@@ -355,11 +336,8 @@ class BaseWindow(QMainWindow):
         # Add to panel if parent exists
         if parent_panel:
             parent_panel.add_child_control(button)
-        
-        print("="*80)
 
     def _create_numpad(self, design_data):
-        print(design_data)
         
         # Use width and height directly from database/design_data
         # NumPad now handles dynamic sizing internally
@@ -407,7 +385,7 @@ class BaseWindow(QMainWindow):
             self.payment_list.set_event(self.app.event_distributor(design_data["function"]))
 
     def _create_sale_list(self, design_data):
-        # Ensure payment list has appropriate dimensions
+        # Ensure sale list has appropriate dimensions
         width = design_data.get("width", 970)
         height = design_data.get("height", 315)
 
@@ -457,8 +435,7 @@ class BaseWindow(QMainWindow):
             self.amount_table.set_event(self.app.event_distributor(design_data["function"]))
 
     def _create_label(self, design_data):
-        print(design_data)
-        # Check if this control belongs to a panel
+        # Resolve parent: panel content widget or window
         parent_panel = None
         if 'parent_name' in design_data and design_data['parent_name']:
             parent_panel = self._panels.get(design_data['parent_name'])
@@ -501,8 +478,7 @@ class BaseWindow(QMainWindow):
             parent_panel.add_child_control(label)
 
     def _create_textbox(self, design_data):
-        print(design_data)
-        # Check if this control belongs to a panel
+        # Resolve parent: panel content widget or window
         parent_panel = None
         if 'parent_name' in design_data and design_data['parent_name']:
             parent_panel = self._panels.get(design_data['parent_name'])
@@ -526,7 +502,7 @@ class BaseWindow(QMainWindow):
         textbox.setGeometry(design_data["location_x"], design_data["location_y"],
                             design_data["width"], design_data["height"])
         textbox.set_font_size(design_data.get('font_size'))
-        textbox.filed_name = design_data.get('caption')
+        textbox.field_name = design_data.get('caption')
         if design_data.get('place_holder'):
             textbox.setPlaceholderText(design_data.get('place_holder'))
         textbox.set_color(design_data['background_color'], design_data['foreground_color'])
@@ -602,8 +578,7 @@ class BaseWindow(QMainWindow):
                         traceback.print_exc()
 
     def _create_combobox(self, design_data):
-        print(design_data)
-        # Check if this control belongs to a panel
+        # Resolve parent: panel content widget or window
         parent_panel = None
         if 'parent_name' in design_data and design_data['parent_name']:
             parent_panel = self._panels.get(design_data['parent_name'])
@@ -668,7 +643,6 @@ class BaseWindow(QMainWindow):
             parent_panel.add_child_control(combo)
 
     def _create_toolbar(self, design_data):
-        print(design_data)
         tools = ToolBar()
         if "button" in design_data and "back" in design_data["button"]:
             tools.add_event(back_function_caption=design_data["button"]["back"]["caption"],
@@ -689,10 +663,6 @@ class BaseWindow(QMainWindow):
         Args:
             design_data (dict): Design specifications for the datagrid
         """
-        print("="*80)
-        print(f"Creating datagrid: {design_data}")
-        print("="*80)
-        
         width = design_data.get("width", 600)
         height = design_data.get("height", 400)
         background_color = design_data.get("background_color", 0xFFFFFF)
@@ -794,10 +764,6 @@ class BaseWindow(QMainWindow):
         Args:
             design_data (dict): Design specifications for the panel
         """
-        print("="*80)
-        print(f"Creating panel: {design_data}")
-        print("="*80)
-        
         width = design_data.get("width", 800)
         height = design_data.get("height", 600)
         background_color = design_data.get("background_color", 0xFFFFFF)

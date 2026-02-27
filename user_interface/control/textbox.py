@@ -34,7 +34,7 @@ class TextBox(QLineEdit):
         self.setFont(QFont("Verdana", 20))
         self.setStyleSheet("QLineEdit {border-radius: 4px;}")
 
-        self.filed_name = ""
+        self.field_name = ""
         self.__keyboard = None
 
     def set_font_size(self, font_size):
