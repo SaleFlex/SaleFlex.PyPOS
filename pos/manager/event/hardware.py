@@ -25,6 +25,7 @@ SOFTWARE.
 
 
 from core.logger import get_logger
+from pos.exceptions import HardwareError, FiscalDeviceError, CashDrawerError
 
 logger = get_logger(__name__)
 
@@ -81,6 +82,8 @@ class HardwareEvent:
             
             return True
             
+        except CashDrawerError:
+            raise
         except Exception as e:
             logger.error("Error opening cash drawer: %s", str(e))
-            return False 
+            raise CashDrawerError(f"Failed to open cash drawer: {e}") from e

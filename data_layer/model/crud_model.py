@@ -29,6 +29,7 @@ from typing import List, Optional, Dict, Any
 from uuid import uuid4
 
 from data_layer.engine import Engine
+from pos.exceptions import DatabaseError
 
 
 
@@ -74,7 +75,7 @@ class CRUD:
                 return True
         except SQLAlchemyError as e:
             logger.error("Save operation error: %s", e)
-            return False
+            raise DatabaseError(f"Save operation failed: {e}") from e
 
     def create(self) -> bool:
         """
@@ -91,7 +92,7 @@ class CRUD:
                 return True
         except SQLAlchemyError as e:
             logger.error("Create operation error: %s", e)
-            return False
+            raise DatabaseError(f"Create operation failed: {e}") from e
 
     # READ Operations
     @classmethod
@@ -105,7 +106,7 @@ class CRUD:
                 return session.query(cls).filter(cls.id == record_id).first()
         except SQLAlchemyError as e:
             logger.error("Get by ID operation error: %s", e)
-            return None
+            raise DatabaseError(f"Get by ID operation failed: {e}") from e
 
     @classmethod
     def get_all(cls, is_deleted: bool = False) -> List['CRUD']:
@@ -124,7 +125,7 @@ class CRUD:
                 return query.all()
         except SQLAlchemyError as e:
             logger.error("Get all operation error: %s", e)
-            return []
+            raise DatabaseError(f"Get all operation failed: {e}") from e
 
     @classmethod
     def filter_by(cls, **kwargs) -> List['CRUD']:
@@ -143,7 +144,7 @@ class CRUD:
                 return query.all()
         except SQLAlchemyError as e:
             logger.error("Filter by operation error: %s", e)
-            return []
+            raise DatabaseError(f"Filter by operation failed: {e}") from e
 
     @classmethod
     def find_first(cls, **kwargs) -> Optional['CRUD']:
@@ -162,7 +163,7 @@ class CRUD:
                 return query.first()
         except SQLAlchemyError as e:
             logger.error("Find first operation error: %s", e)
-            return None
+            raise DatabaseError(f"Find first operation failed: {e}") from e
 
     @classmethod
     def count(cls, **kwargs) -> int:
@@ -181,7 +182,7 @@ class CRUD:
                 return query.count()
         except SQLAlchemyError as e:
             logger.error("Count operation error: %s", e)
-            return 0
+            raise DatabaseError(f"Count operation failed: {e}") from e
 
     @classmethod
     def paginate(cls, page: int = 1, per_page: int = 10, **kwargs) -> Dict[str, Any]:
@@ -214,7 +215,7 @@ class CRUD:
                 }
         except SQLAlchemyError as e:
             logger.error("Paginate operation error: %s", e)
-            return {'items': [], 'total': 0, 'page': page, 'per_page': per_page, 'pages': 0}
+            raise DatabaseError(f"Paginate operation failed: {e}") from e
 
     # UPDATE Operations
     def update(self, **kwargs) -> bool:
@@ -239,7 +240,7 @@ class CRUD:
                 return True
         except SQLAlchemyError as e:
             logger.error("Update operation error: %s", e)
-            return False
+            raise DatabaseError(f"Update operation failed: {e}") from e
 
     @classmethod
     def update_by_id(cls, record_id, **kwargs) -> bool:
@@ -257,7 +258,7 @@ class CRUD:
                 return result > 0
         except SQLAlchemyError as e:
             logger.error("Update by ID operation error: %s", e)
-            return False
+            raise DatabaseError(f"Update by ID operation failed: {e}") from e
 
     # DELETE Operations
     def delete(self, soft_delete: bool = True) -> bool:
@@ -281,7 +282,7 @@ class CRUD:
                 return True
         except SQLAlchemyError as e:
             logger.error("Delete operation error: %s", e)
-            return False
+            raise DatabaseError(f"Delete operation failed: {e}") from e
 
     @classmethod
     def delete_by_id(cls, record_id, soft_delete: bool = True) -> bool:
@@ -306,7 +307,7 @@ class CRUD:
                 return False
         except SQLAlchemyError as e:
             logger.error("Delete by ID operation error: %s", e)
-            return False
+            raise DatabaseError(f"Delete by ID operation failed: {e}") from e
 
     def restore(self) -> bool:
         """
@@ -354,4 +355,4 @@ class CRUD:
                 return True
         except SQLAlchemyError as e:
             logger.error("Refresh operation error: %s", e)
-            return False
+            raise DatabaseError(f"Refresh operation failed: {e}") from e

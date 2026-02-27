@@ -24,6 +24,7 @@ SOFTWARE.
 
 from decimal import Decimal, ROUND_HALF_UP, ROUND_DOWN
 from typing import Optional
+from pos.exceptions import TaxCalculationError
 
 
 
@@ -85,6 +86,8 @@ class VatService:
             
             # Default if currency not found
             return 2
+        except TaxCalculationError:
+            raise
         except Exception as e:
             logger.error("[VAT_SERVICE] Error getting currency decimal_places: %s, defaulting to 2", e)
             return 2
@@ -161,14 +164,23 @@ class VatService:
         if vat_rate <= 0:
             return 0.0
         
-        # Calculate VAT using the formula: price * (vat_rate / (100 + vat_rate))
-        vat_amount = price * (vat_rate / (100 + vat_rate))
-        
-        # Get decimal places for rounding
-        decimal_places = VatService.get_currency_decimal_places(currency_sign, product_data)
-        
-        # Round according to currency decimal places
-        rounded_vat = VatService.round_by_currency(vat_amount, decimal_places)
+        try:
+            # Calculate VAT using the formula: price * (vat_rate / (100 + vat_rate))
+            vat_amount = price * (vat_rate / (100 + vat_rate))
+            
+            # Get decimal places for rounding
+            decimal_places = VatService.get_currency_decimal_places(currency_sign, product_data)
+            
+            # Round according to currency decimal places
+            rounded_vat = VatService.round_by_currency(vat_amount, decimal_places)
+        except ZeroDivisionError as e:
+            raise TaxCalculationError(
+                f"Invalid VAT rate causes division by zero: rate={vat_rate}"
+            ) from e
+        except (TypeError, ValueError) as e:
+            raise TaxCalculationError(
+                f"VAT calculation failed for price={price}, rate={vat_rate}: {e}"
+            ) from e
         
         return rounded_vat
     
@@ -191,11 +203,21 @@ class VatService:
         if vat_rate <= 0:
             return 0.0
         
-        # Calculate VAT using the formula: price * (vat_rate / (100 + vat_rate))
-        vat_amount = price * (vat_rate / (100 + vat_rate))
-        
-        # Round according to specified decimal places
-        rounded_vat = VatService.round_by_currency(vat_amount, decimal_places)
+        try:
+            # Calculate VAT using the formula: price * (vat_rate / (100 + vat_rate))
+            vat_amount = price * (vat_rate / (100 + vat_rate))
+            
+            # Round according to specified decimal places
+            rounded_vat = VatService.round_by_currency(vat_amount, decimal_places)
+        except ZeroDivisionError as e:
+            raise TaxCalculationError(
+                f"Invalid VAT rate causes division by zero: rate={vat_rate}"
+            ) from e
+        except (TypeError, ValueError) as e:
+            raise TaxCalculationError(
+                f"VAT calculation failed for price={price}, rate={vat_rate}, "
+                f"decimal_places={decimal_places}: {e}"
+            ) from e
         
         return rounded_vat
 

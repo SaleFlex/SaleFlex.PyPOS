@@ -28,6 +28,7 @@ from data_layer.enums.event_name import EventName
 from data_layer.model.definition.transaction_status import TransactionStatus
 from data_layer.model.definition.transaction_payment_temp import TransactionPaymentTemp
 from data_layer.model.definition.transaction_change_temp import TransactionChangeTemp
+from pos.exceptions import PaymentError, InvalidAmountError, PaymentAlreadyCompleteError
 
 
 
@@ -124,7 +125,7 @@ class PaymentService:
                 amount_value = int(amount_str)
                 payment_amount = Decimal(str(amount_value)) / Decimal('100')
             except (ValueError, IndexError):
-                raise ValueError(f"Invalid CASH button name format: {button_name}")
+                raise InvalidAmountError(f"Invalid CASH button name format: {button_name}")
         else:
             # No special prefix: pay remaining balance
             payment_amount = remaining_amount
@@ -170,11 +171,11 @@ class PaymentService:
                 payment_amount = PaymentService.calculate_payment_amount(
                     button_name, remaining_amount, payment_type
                 )
-            except ValueError as e:
+            except (PaymentError, InvalidAmountError) as e:
                 return False, None, str(e)
             
             if payment_amount <= 0:
-                return False, None, "Invalid payment amount"
+                raise InvalidAmountError("Payment amount must be greater than zero")
             
             # Get next line number for payment
             payments = document_data.get("payments", [])
@@ -206,7 +207,10 @@ class PaymentService:
             
             return True, payment_temp, None
             
+        except (PaymentError, InvalidAmountError) as e:
+            return False, None, str(e)
         except Exception as e:
+            logger.error("[PAYMENT_SERVICE] Unexpected error during payment processing: %s", e)
             return False, None, f"Error processing payment: {str(e)}"
     
     @staticmethod
