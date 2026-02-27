@@ -25,6 +25,11 @@ SOFTWARE.
 from data_layer.model import TransactionDocumentType
 
 
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 def _insert_transaction_document_types(session):
     """Insert default transaction document types if not exists"""
     doc_type_exists = session.query(TransactionDocumentType).first()
@@ -59,4 +64,4 @@ def _insert_transaction_document_types(session):
                 description=doc_type_data["description"]
             )
             session.add(doc_type)
-        print("✓ Default transaction document types added")
+        logger.info("✓ Default transaction document types added")

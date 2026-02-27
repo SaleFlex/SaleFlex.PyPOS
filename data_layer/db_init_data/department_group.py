@@ -25,6 +25,11 @@ SOFTWARE.
 from data_layer.model import DepartmentMainGroup, DepartmentSubGroup, Vat
 
 
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 def _insert_department_groups(session, admin_cashier_id: int):
     """Insert default department groups if not exists"""
     main_group_exists = session.query(DepartmentMainGroup).first()
@@ -85,8 +90,8 @@ def _insert_department_groups(session, admin_cashier_id: int):
         # Create sub groups for each main group
         _insert_department_sub_groups(session, admin_cashier_id, created_main_groups)
 
-        print("✓ Default main groups added: BAKERY, FOOD, TOBACCO, INDIVIDUAL")
-        print("✓ Default sub groups added")
+        logger.info("✓ Default main groups added: BAKERY, FOOD, TOBACCO, INDIVIDUAL")
+        logger.info("✓ Default sub groups added")
 
 
 def _insert_department_sub_groups(session, admin_cashier_id: int, main_groups):

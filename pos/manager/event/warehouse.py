@@ -23,6 +23,11 @@ SOFTWARE.
 """
 
 
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 class WarehouseEvent:
     """
     Warehouse Event Handler for stock and inventory operations.
@@ -59,7 +64,7 @@ class WarehouseEvent:
         Returns:
             bool: True if stock receipt processed successfully, False otherwise
         """
-        print("Stock in event - method not implemented yet")
+        logger.warning("Stock in event - method not implemented yet")
         return False
     
     def _stock_out_event(self):
@@ -79,7 +84,7 @@ class WarehouseEvent:
         Returns:
             bool: True if stock issue processed successfully, False otherwise
         """
-        print("Stock out event - method not implemented yet")
+        logger.warning("Stock out event - method not implemented yet")
         return False
     
     def _stock_transfer_event(self):
@@ -100,7 +105,7 @@ class WarehouseEvent:
         Returns:
             bool: True if stock transfer processed successfully, False otherwise
         """
-        print("Stock transfer event - method not implemented yet")
+        logger.warning("Stock transfer event - method not implemented yet")
         return False
     
     def _stock_adjustment_event(self):
@@ -121,7 +126,7 @@ class WarehouseEvent:
         Returns:
             bool: True if stock adjustment processed successfully, False otherwise
         """
-        print("Stock adjustment event - method not implemented yet")
+        logger.warning("Stock adjustment event - method not implemented yet")
         return False
     
     def _stock_count_event(self):
@@ -142,7 +147,7 @@ class WarehouseEvent:
         Returns:
             bool: True if stock count processed successfully, False otherwise
         """
-        print("Stock count event - method not implemented yet")
+        logger.warning("Stock count event - method not implemented yet")
         return False
     
     def _stock_movement_event(self):
@@ -162,7 +167,7 @@ class WarehouseEvent:
         Returns:
             bool: True if stock movement displayed successfully, False otherwise
         """
-        print("Stock movement event - method not implemented yet")
+        logger.warning("Stock movement event - method not implemented yet")
         return False
     
     def _stock_inquiry_event(self):
@@ -183,7 +188,7 @@ class WarehouseEvent:
         Returns:
             bool: True if stock inquiry displayed successfully, False otherwise
         """
-        print("Stock inquiry event - method not implemented yet")
+        logger.warning("Stock inquiry event - method not implemented yet")
         return False
     
     # ==================== WAREHOUSE OPERATIONS ====================
@@ -207,7 +212,7 @@ class WarehouseEvent:
         Returns:
             bool: True if warehouse receipt processed successfully, False otherwise
         """
-        print("Warehouse receipt event - method not implemented yet")
+        logger.warning("Warehouse receipt event - method not implemented yet")
         return False
     
     def _warehouse_issue_event(self):
@@ -229,7 +234,7 @@ class WarehouseEvent:
         Returns:
             bool: True if warehouse issue processed successfully, False otherwise
         """
-        print("Warehouse issue event - method not implemented yet")
+        logger.warning("Warehouse issue event - method not implemented yet")
         return False
     
     def _warehouse_transfer_event(self):
@@ -251,7 +256,7 @@ class WarehouseEvent:
         Returns:
             bool: True if warehouse transfer processed successfully, False otherwise
         """
-        print("Warehouse transfer event - method not implemented yet")
+        logger.warning("Warehouse transfer event - method not implemented yet")
         return False
     
     def _warehouse_adjustment_event(self):
@@ -273,7 +278,7 @@ class WarehouseEvent:
         Returns:
             bool: True if warehouse adjustment processed successfully, False otherwise
         """
-        print("Warehouse adjustment event - method not implemented yet")
+        logger.warning("Warehouse adjustment event - method not implemented yet")
         return False
     
     def _warehouse_count_event(self):
@@ -295,7 +300,7 @@ class WarehouseEvent:
         Returns:
             bool: True if warehouse count processed successfully, False otherwise
         """
-        print("Warehouse count event - method not implemented yet")
+        logger.warning("Warehouse count event - method not implemented yet")
         return False
     
     def _warehouse_location_event(self):
@@ -317,5 +322,5 @@ class WarehouseEvent:
         Returns:
             bool: True if warehouse location managed successfully, False otherwise
         """
-        print("Warehouse location event - method not implemented yet")
+        logger.warning("Warehouse location event - method not implemented yet")
         return False 

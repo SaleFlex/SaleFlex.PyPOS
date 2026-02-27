@@ -25,6 +25,11 @@ SOFTWARE.
 from data_layer.model import ProductUnit
 
 
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 def _insert_product_units(session, admin_cashier_id: int):
     """Insert default product units if not exists"""
     unit_exists = session.query(ProductUnit).first()
@@ -48,4 +53,4 @@ def _insert_product_units(session, admin_cashier_id: int):
             unit.fk_cashier_create_id = admin_cashier_id
             unit.fk_cashier_update_id = admin_cashier_id
             session.add(unit)
-        print("✓ Default product units added")
+        logger.info("✓ Default product units added")

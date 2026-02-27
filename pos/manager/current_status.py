@@ -26,6 +26,11 @@ from data_layer.enums import FormName
 from pos.data import DocumentState, DocumentType, DocumentResult
 
 
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 class CurrentStatus:
     """
     Application State Manager for SaleFlex Point of Sale System.
@@ -97,7 +102,7 @@ class CurrentStatus:
                 self.__startup_form_id = startup_form.id
                 self.__current_form_id = startup_form.id
         except Exception as e:
-            print(f"Error loading startup form: {e}")
+            logger.error("Error loading startup form: %s", e)
             self.__startup_form_id = None
             self.__current_form_id = None
 
@@ -146,32 +151,32 @@ class CurrentStatus:
             value (FormName): The new form type to display
         """
         # Debug logging
-        print(f"\n[CURRENT_FORM_TYPE SETTER] Changing form:")
-        print(f"  From: {self.__current_form_type.name if self.__current_form_type else 'None'}")
-        print(f"  To: {value.name if value else 'None'}")
-        print(f"  Current history length: {len(self.__form_history)}")
+        logger.debug("\n[CURRENT_FORM_TYPE SETTER] Changing form:")
+        logger.debug("  From: %s", self.__current_form_type.name if self.__current_form_type else 'None')
+        logger.debug("  To: %s", value.name if value else 'None')
+        logger.debug("  Current history length: %s", len(self.__form_history))
         
         # Don't add LOGIN or LOGIN_EXT to history - they're shown by need_login/need_auth
         if self.__current_form_type not in [FormName.NONE, FormName.LOGIN, FormName.LOGIN_EXT]:
             # Add current form to history before changing (if not already the last item)
             if not self.__form_history or self.__form_history[-1] != self.__current_form_type:
                 self.__form_history.append(self.__current_form_type)
-                print(f"  ✓ Added {self.__current_form_type.name} to history")
+                logger.info("  ✓ Added %s to history", self.__current_form_type.name)
                 # Limit form history to last 30 forms
                 if len(self.__form_history) > 30:
                     removed = self.__form_history.pop(0)  # Remove oldest entry
-                    print(f"  ✓ Removed oldest entry: {removed.name} (history limit reached)")
+                    logger.info("  ✓ Removed oldest entry: %s (history limit reached)", removed.name)
             else:
-                print(f"  ✗ Skipped adding {self.__current_form_type.name} (already last in history)")
+                logger.error("  ✗ Skipped adding %s (already last in history)", self.__current_form_type.name)
         else:
-            print(f"  ✗ Skipped adding {self.__current_form_type.name} (LOGIN/LOGIN_EXT/NONE excluded)")
+            logger.error("  ✗ Skipped adding %s (LOGIN/LOGIN_EXT/NONE excluded)", self.__current_form_type.name)
         
         # Save current form as previous before changing
         self.__previous_form_type = self.__current_form_type
         # Set the new current form
         self.__current_form_type = value
-        print(f"  Final history length: {len(self.__form_history)}")
-        print(f"  Final history: {[f.name for f in self.__form_history]}")
+        logger.debug("  Final history length: %s", len(self.__form_history))
+        logger.debug("  Final history: %s", [f.name for f in self.__form_history])
 
     @property
     def previous_form_type(self):

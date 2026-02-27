@@ -27,6 +27,11 @@ from data_layer.enums.event_name import EventName
 from pos.service.payment_service import PaymentService
 
 
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 class PaymentEvent:
     """
     Payment Event Handler for POS transaction payment processing.
@@ -66,7 +71,7 @@ class PaymentEvent:
             return False
             
         # TODO: Implement payment method selection interface
-        print("Payment method selection - functionality to be implemented")
+        logger.debug("Payment method selection - functionality to be implemented")
         return False
     
     def _payment_detail_event(self):
@@ -84,7 +89,7 @@ class PaymentEvent:
             return False
             
         # TODO: Implement payment detail display
-        print("Payment detail - functionality to be implemented")
+        logger.debug("Payment detail - functionality to be implemented")
         return False
     
     # ==================== CASH PAYMENT EVENTS ====================
@@ -281,7 +286,7 @@ class PaymentEvent:
             return False
         
         if not self.document_data or not self.document_data.get("head"):
-            print("[PAYMENT] No active document for change calculation")
+            logger.debug("[PAYMENT] No active document for change calculation")
             return False
         
         try:
@@ -289,7 +294,7 @@ class PaymentEvent:
             success, change_temp, error_message = PaymentService.record_change(self.document_data)
             
             if success:
-                print(f"[PAYMENT] Change recorded: {change_temp.change_amount} {change_temp.currency}")
+                logger.debug("[PAYMENT] Change recorded: %s %s", change_temp.change_amount, change_temp.currency)
                 
                 # Update UI controls
                 self._update_payment_ui("CHANGE", change_temp.change_amount)
@@ -297,14 +302,12 @@ class PaymentEvent:
                 # Check if document is complete and complete it
                 self._check_and_complete_document()
             else:
-                print(f"[PAYMENT] {error_message}")
+                logger.error("[PAYMENT] %s", error_message)
             
             return success
             
         except Exception as e:
-            print(f"[PAYMENT] Error processing change payment: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("[PAYMENT] Error processing change payment: %s", e)
             return False
     
     def _process_payment(self, payment_type, button=None):
@@ -323,7 +326,7 @@ class PaymentEvent:
             bool: True if payment processed successfully, False otherwise
         """
         if not self.document_data or not self.document_data.get("head"):
-            print("[PAYMENT] No active document")
+            logger.debug("[PAYMENT] No active document")
             return False
         
         try:
@@ -338,28 +341,28 @@ class PaymentEvent:
             )
             
             if not success:
-                print(f"[PAYMENT] {error_message}")
+                logger.error("[PAYMENT] %s", error_message)
                 return False
             
             # Update UI controls
             self._update_payment_ui(payment_type, payment_temp.payment_total)
             
-            print(f"[PAYMENT] Payment recorded: {payment_temp.payment_total} {payment_temp.currency_code} ({payment_type})")
+            logger.debug("[PAYMENT] Payment recorded: %s %s (%s)", payment_temp.payment_total, payment_temp.currency_code, payment_type)
             
             # Check if change is needed (payment exceeds total)
             change_amount = PaymentService.calculate_change(self.document_data)
             if change_amount > 0:
-                print(f"[PAYMENT] Change needed: {change_amount}")
+                logger.debug("[PAYMENT] Change needed: %s", change_amount)
                 # Check if change_payment button exists in the current window
                 has_change_button = self._has_change_payment_button()
                 
                 if has_change_button:
                     # Change button exists - just inform user, don't record change automatically
-                    print(f"[PAYMENT] Change payment button found. User should click change button to record change.")
+                    logger.debug("[PAYMENT] Change payment button found. User should click change button to record change.")
                     # Don't complete document yet - wait for change button click
                 else:
                     # No change button - show info message and record change when OK is clicked
-                    print(f"[PAYMENT] No change payment button found, showing MessageForm for change amount: {change_amount}")
+                    logger.debug("[PAYMENT] No change payment button found, showing MessageForm for change amount: %s", change_amount)
                     self._show_change_info_and_record(change_amount)
                     # _show_change_info_and_record will handle document completion after change is recorded
                     return True
@@ -370,9 +373,7 @@ class PaymentEvent:
             return True
             
         except Exception as e:
-            print(f"[PAYMENT] Error processing payment: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("[PAYMENT] Error processing payment: %s", e)
             return False
     
     def _update_payment_ui(self, payment_type, payment_amount):
@@ -421,9 +422,7 @@ class PaymentEvent:
                     amount_table._set_amount_value(amount_table.BALANCE_AMOUNT_ROW, remaining)
                     
         except Exception as e:
-            print(f"[PAYMENT] Error updating UI: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("[PAYMENT] Error updating UI: %s", e)
     
     def _check_and_complete_document(self):
         """
@@ -460,13 +459,11 @@ class PaymentEvent:
             # Clear UI controls
             self._clear_sale_screen_controls()
             
-            print("[PAYMENT] Document completed successfully")
+            logger.info("[PAYMENT] Document completed successfully")
             return True
             
         except Exception as e:
-            print(f"[PAYMENT] Error checking document completion: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("[PAYMENT] Error checking document completion: %s", e)
             return False
     
     def _clear_sale_screen_controls(self):
@@ -484,28 +481,26 @@ class PaymentEvent:
             # Clear PaymentList if it exists
             if hasattr(window, 'payment_list') and window.payment_list:
                 window.payment_list.clear_payments()
-                print("[PAYMENT] PaymentList cleared")
+                logger.debug("[PAYMENT] PaymentList cleared")
             
             # Clear AmountTable if it exists
             if hasattr(window, 'amount_table') and window.amount_table:
                 window.amount_table.clear()
-                print("[PAYMENT] AmountTable cleared")
+                logger.debug("[PAYMENT] AmountTable cleared")
             
             # Clear SaleList if it exists
             if hasattr(window, 'sale_list') and window.sale_list:
                 window.sale_list.clear_products()
-                print("[PAYMENT] SaleList cleared")
+                logger.debug("[PAYMENT] SaleList cleared")
                 
         except Exception as e:
-            print(f"[PAYMENT] Error clearing sale screen controls: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("[PAYMENT] Error clearing sale screen controls: %s", e)
     
     def _increment_receipt_number(self):
         """Increment receipt number sequence."""
         try:
             if not self.pos_data or "TransactionSequence" not in self.pos_data:
-                print("[PAYMENT] TransactionSequence not found in pos_data")
+                logger.error("[PAYMENT] TransactionSequence not found in pos_data")
                 return
             
             sequences = self.pos_data["TransactionSequence"]
@@ -519,14 +514,12 @@ class PaymentEvent:
             if receipt_seq:
                 receipt_seq.value += 1
                 receipt_seq.save()
-                print(f"[PAYMENT] Receipt number incremented to: {receipt_seq.value}")
+                logger.debug("[PAYMENT] Receipt number incremented to: %s", receipt_seq.value)
             else:
-                print("[PAYMENT] ReceiptNumber sequence not found")
+                logger.error("[PAYMENT] ReceiptNumber sequence not found")
                 
         except Exception as e:
-            print(f"[PAYMENT] Error incrementing receipt number: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("[PAYMENT] Error incrementing receipt number: %s", e)
     
     def _has_change_payment_button(self):
         """
@@ -539,7 +532,7 @@ class PaymentEvent:
             # Get current form_id from app
             app = self.interface.app if hasattr(self, 'interface') and hasattr(self.interface, 'app') else None
             if not app or not hasattr(app, 'current_form_id') or not app.current_form_id:
-                print("[PAYMENT] No current_form_id found, assuming no change button")
+                logger.debug("[PAYMENT] No current_form_id found, assuming no change button")
                 return False
             
             # Check form controls from database
@@ -551,20 +544,18 @@ class PaymentEvent:
                 is_visible=True
             )
             
-            print(f"[PAYMENT] Checking {len(form_controls)} form controls for CHANGE_PAYMENT function")
+            logger.debug("[PAYMENT] Checking %s form controls for CHANGE_PAYMENT function", len(form_controls))
             
             for control in form_controls:
                 if control.form_control_function1 == EventName.CHANGE_PAYMENT.value:
-                    print(f"[PAYMENT] Found CHANGE_PAYMENT button: {control.name}")
+                    logger.debug("[PAYMENT] Found CHANGE_PAYMENT button: %s", control.name)
                     return True
             
-            print("[PAYMENT] No CHANGE_PAYMENT button found in form controls")
+            logger.debug("[PAYMENT] No CHANGE_PAYMENT button found in form controls")
             return False
             
         except Exception as e:
-            print(f"[PAYMENT] Error checking for change payment button: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("[PAYMENT] Error checking for change payment button: %s", e)
             # On error, assume no button exists so MessageForm will be shown
             return False
     
@@ -575,15 +566,15 @@ class PaymentEvent:
         Parameters:
             change_amount: Change amount as Decimal
         """
-        print(f"[PAYMENT] _show_change_info_and_record called with change_amount: {change_amount}")
+        logger.debug("[PAYMENT] _show_change_info_and_record called with change_amount: %s", change_amount)
         try:
             # Get current window
             window = self.interface.window if hasattr(self, 'interface') else None
             if not window:
-                print("[PAYMENT] No window found for showing change info")
+                logger.debug("[PAYMENT] No window found for showing change info")
                 return
             
-            print(f"[PAYMENT] Window found: {window}")
+            logger.debug("[PAYMENT] Window found: %s", window)
             
             # Get currency from document
             currency = "GBP"
@@ -613,10 +604,10 @@ class PaymentEvent:
             
             # When OK is clicked, record change
             if result == "OK":
-                print(f"[PAYMENT] OK clicked, recording change: {change_amount}")
+                logger.debug("[PAYMENT] OK clicked, recording change: %s", change_amount)
                 change_success, change_temp, change_error = PaymentService.record_change(self.document_data)
                 if change_success:
-                    print(f"[PAYMENT] Change recorded: {change_temp.change_amount} {change_temp.currency}")
+                    logger.debug("[PAYMENT] Change recorded: %s %s", change_temp.change_amount, change_temp.currency)
                     
                     # Update UI controls
                     self._update_payment_ui("CHANGE", change_temp.change_amount)
@@ -624,12 +615,10 @@ class PaymentEvent:
                     # Check if document is complete and complete it if so
                     self._check_and_complete_document()
                 else:
-                    print(f"[PAYMENT] Error recording change: {change_error}")
+                    logger.error("[PAYMENT] Error recording change: %s", change_error)
             
         except Exception as e:
-            print(f"[PAYMENT] Error showing change info: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("[PAYMENT] Error showing change info: %s", e)
     
     # ==================== PAYMENT MANAGEMENT EVENTS ====================
     
@@ -655,7 +644,7 @@ class PaymentEvent:
             return False
             
         # TODO: Implement payment suspension logic
-        print("Suspend payment - functionality to be implemented")
+        logger.debug("Suspend payment - functionality to be implemented")
         return False
     
     def _back_payment_event(self):
@@ -673,5 +662,5 @@ class PaymentEvent:
             return False
             
         # TODO: Implement payment navigation back logic
-        print("Back payment - functionality to be implemented")
+        logger.debug("Back payment - functionality to be implemented")
         return False 

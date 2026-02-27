@@ -27,6 +27,11 @@ from data_layer.model.definition.form import Form
 from data_layer.enums import FormName
 
 
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 def _insert_default_forms(session: Session, cashier_id: str):
     """
     Insert default forms (LOGIN and SALE) if they don't exist.
@@ -36,7 +41,7 @@ def _insert_default_forms(session: Session, cashier_id: str):
     existing_forms = session.query(Form).first()
     
     if existing_forms:
-        print("✓ Forms already exist, skipping insertion")
+        logger.warning("✓ Forms already exist, skipping insertion")
         return
 
     # Default forms data with new dynamic rendering fields
@@ -176,9 +181,9 @@ def _insert_default_forms(session: Session, cashier_id: str):
             session.add(form)
         
         session.commit()
-        print(f"✓ Inserted {len(forms_data)} default forms")
+        logger.info("✓ Inserted %s default forms", len(forms_data))
         
     except Exception as e:
         session.rollback()
-        print(f"✗ Error inserting forms: {e}")
+        logger.error("✗ Error inserting forms: %s", e)
         raise 

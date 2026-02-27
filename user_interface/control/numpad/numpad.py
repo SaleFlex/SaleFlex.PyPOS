@@ -25,7 +25,11 @@ SOFTWARE.
 from PySide6 import QtGui, QtCore, QtWidgets
 from PySide6.QtGui import QPainter, Qt, QColor
 from PySide6.QtWidgets import QWidget, QGridLayout, QSizePolicy, QVBoxLayout, QLineEdit, QApplication
+
+from core.logger import get_logger
 from user_interface.control.numpad.numpad_button import NumPadButton
+
+logger = get_logger(__name__)
 
 
 class NumPad(QWidget):
@@ -60,8 +64,8 @@ class NumPad(QWidget):
         self.background_color = QColor(background_color)
         self.foreground_color = QColor(foreground_color)
         
-        print("NumPad", self.numpad_width, self.numpad_height, self.location_x, self.location_y)
-        print(f"NumPad colors: bg={background_color:x}, fg={foreground_color:x}")
+        logger.debug("NumPad %s %s %s %s", self.numpad_width, self.numpad_height, self.location_x, self.location_y)
+        logger.debug("NumPad colors: bg=%x, fg=%x", background_color, foreground_color)
         
         # Calculate dynamic dimensions based on numpad size
         self._calculate_dynamic_dimensions()
@@ -208,14 +212,11 @@ class NumPad(QWidget):
         self.enter_font_size = max(12, int(base_enter_font * font_scale))
         self.text_font_size = max(14, int(base_text_font * scale))
         
-        print(f"Dynamic dimensions calculated:")
-        print(f"  Scale: {scale:.2f}")
-        print(f"  Margin: {self.dynamic_margin}px")
-        print(f"  Spacing: {self.dynamic_spacing}px")
-        print(f"  Button spacing: {self.button_spacing}px")
-        print(f"  Text display height: {self.text_display_height}px")
-        print(f"  Button size: {self.button_width}x{self.button_height}px")
-        print(f"  Font sizes - Number: {self.number_font_size}px, Action: {self.action_font_size}px, Enter: {self.enter_font_size}px, Text: {self.text_font_size}px")
+        logger.debug(
+            "Dynamic dimensions: scale=%.2f, margin=%spx, spacing=%s, button_spacing=%s, text_display_height=%spx, button=%sx%spx, fonts number=%s action=%s enter=%s text=%s",
+            scale, self.dynamic_margin, self.dynamic_spacing, self.button_spacing, self.text_display_height,
+            self.button_width, self.button_height, self.number_font_size, self.action_font_size, self.enter_font_size, self.text_font_size,
+        )
 
     def set_auto_focus(self, enabled):
         """Enable or disable automatic focus regaining
@@ -233,7 +234,7 @@ class NumPad(QWidget):
             self.activateWindow()
             self.setFocus()
             self.raise_()
-            print("NumPad initial focus set")
+            logger.debug("NumPad initial focus set")
         
     def on_focus_changed(self, old, new):
         """Handle focus change events in the application
@@ -285,7 +286,7 @@ class NumPad(QWidget):
         self.activateWindow()
         self.setFocus()
         self.raise_()
-        print("NumPad regained focus")
+        logger.debug("NumPad regained focus")
         
         # Reset flag after a short delay to allow focus events to settle
         QtCore.QTimer.singleShot(200, self._reset_regain_flag)
@@ -542,7 +543,7 @@ class NumPad(QWidget):
 
     def _on_button_clicked(self, key):
         # Handle button click internally
-        print(f"NumPad button clicked: {key}")
+        logger.debug("NumPad button clicked: %s", key)
         
         if key == 'Clear':
             self.current_text = ""

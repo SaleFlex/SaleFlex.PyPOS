@@ -28,6 +28,11 @@ from data_layer.model.definition.cashier import Cashier
 from data_layer.model.definition.store import Store
 
 
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 def _insert_cashier_performance_targets(session, admin_cashier_id: str):
     """
     Insert initial cashier performance targets if not exists
@@ -35,7 +40,7 @@ def _insert_cashier_performance_targets(session, admin_cashier_id: str):
     # Check if targets already exist
     existing_targets = session.query(CashierPerformanceTarget).first()
     if existing_targets:
-        print("✓ Cashier performance targets already exist, skipping insertion")
+        logger.warning("✓ Cashier performance targets already exist, skipping insertion")
         return
 
     # Get admin cashier and default store
@@ -43,7 +48,7 @@ def _insert_cashier_performance_targets(session, admin_cashier_id: str):
     default_store = session.query(Store).first()
     
     if not admin_cashier or not default_store:
-        print("✗ Admin cashier or default store not found, skipping performance targets insertion")
+        logger.error("✗ Admin cashier or default store not found, skipping performance targets insertion")
         return
     
     # Sample performance targets
@@ -289,9 +294,9 @@ def _insert_cashier_performance_targets(session, admin_cashier_id: str):
             session.add(target)
         
         session.commit()
-        print(f"✓ Inserted {len(performance_targets)} cashier performance targets")
+        logger.info("✓ Inserted %s cashier performance targets", len(performance_targets))
         
     except Exception as e:
         session.rollback()
-        print(f"✗ Error inserting performance targets: {e}")
+        logger.error("✗ Error inserting performance targets: %s", e)
         raise 

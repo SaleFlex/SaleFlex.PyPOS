@@ -26,7 +26,11 @@ from PySide6 import QtGui
 from PySide6.QtCore import QTimer, Slot, QDateTime
 from PySide6.QtGui import QFont, QPalette, QColor, Qt
 from PySide6.QtWidgets import QStatusBar, QLabel
+
+from core.logger import get_logger
 from data_layer.auto_save import AutoSaveModel, AutoSaveDict
+
+logger = get_logger(__name__)
 
 
 class StatusBar(QStatusBar):
@@ -127,12 +131,11 @@ class StatusBar(QStatusBar):
                     except:
                         pass
                     
-                    # Debug: Print only if values are missing
                     if not document_type and not transaction_type and receipt_number is None:
-                        print(f"[StatusBar] Warning: All document fields are None/empty")
-                        print(f"[StatusBar] head type: {type(head)}, head attributes: {dir(head) if hasattr(head, '__dict__') else 'N/A'}")
+                        logger.warning("[StatusBar] All document fields are None/empty")
+                        logger.debug("[StatusBar] head type: %s, head attributes: %s", type(head), dir(head) if hasattr(head, '__dict__') else 'N/A')
                         if hasattr(head, '__dict__'):
-                            print(f"[StatusBar] head.__dict__: {head.__dict__}")
+                            logger.debug("[StatusBar] head.__dict__: %s", head.__dict__)
                     
                     transaction_info = []
                     if document_type:
@@ -145,11 +148,7 @@ class StatusBar(QStatusBar):
                     if transaction_info:
                         info_parts.append(" | ".join(transaction_info))
         except Exception as e:
-            # Debug: Print exception to see what's wrong
-            import traceback
-            print(f"[StatusBar] Error getting document info: {e}")
-            traceback.print_exc()
-            pass
+            logger.exception("[StatusBar] Error getting document info: %s", e)
         
         # Get closure info
         try:

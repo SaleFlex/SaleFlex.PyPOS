@@ -2,6 +2,18 @@
 version = "1.0.0b3"
 icon = "static_files\\images\\saleflex.ico"
 
+[logging]
+# Log level: DEBUG, INFO, WARNING, ERROR, CRITICAL
+level = "INFO"
+# Write Console? (true/false)
+console = true
+# Write log file? (true/false)
+file = true
+# Log folder
+log_dir = "logs"
+# Log filename
+log_file = "saleflex.log"
+
 [database]
 engine = "sqlite"
 driver = ""

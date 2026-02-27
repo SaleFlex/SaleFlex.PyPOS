@@ -31,6 +31,10 @@ from uuid import uuid4
 from data_layer.engine import Engine
 
 
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
 Model = declarative_base()
 metadata = Model.metadata
 
@@ -69,9 +73,7 @@ class CRUD:
                 session.commit()
                 return True
         except SQLAlchemyError as e:
-            print(f"Save operation error: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("Save operation error: %s", e)
             return False
 
     def create(self) -> bool:
@@ -88,9 +90,7 @@ class CRUD:
                 session.commit()
                 return True
         except SQLAlchemyError as e:
-            print(f"Create operation error: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("Create operation error: %s", e)
             return False
 
     # READ Operations
@@ -104,7 +104,7 @@ class CRUD:
             with engine.get_session() as session:
                 return session.query(cls).filter(cls.id == record_id).first()
         except SQLAlchemyError as e:
-            print(f"Get by ID operation error: {e}")
+            logger.error("Get by ID operation error: %s", e)
             return None
 
     @classmethod
@@ -123,7 +123,7 @@ class CRUD:
                 
                 return query.all()
         except SQLAlchemyError as e:
-            print(f"Get all operation error: {e}")
+            logger.error("Get all operation error: %s", e)
             return []
 
     @classmethod
@@ -142,7 +142,7 @@ class CRUD:
                 
                 return query.all()
         except SQLAlchemyError as e:
-            print(f"Filter by operation error: {e}")
+            logger.error("Filter by operation error: %s", e)
             return []
 
     @classmethod
@@ -161,7 +161,7 @@ class CRUD:
                 
                 return query.first()
         except SQLAlchemyError as e:
-            print(f"Find first operation error: {e}")
+            logger.error("Find first operation error: %s", e)
             return None
 
     @classmethod
@@ -180,7 +180,7 @@ class CRUD:
                 
                 return query.count()
         except SQLAlchemyError as e:
-            print(f"Count operation error: {e}")
+            logger.error("Count operation error: %s", e)
             return 0
 
     @classmethod
@@ -213,7 +213,7 @@ class CRUD:
                     'pages': (total + per_page - 1) // per_page
                 }
         except SQLAlchemyError as e:
-            print(f"Paginate operation error: {e}")
+            logger.error("Paginate operation error: %s", e)
             return {'items': [], 'total': 0, 'page': page, 'per_page': per_page, 'pages': 0}
 
     # UPDATE Operations
@@ -238,9 +238,7 @@ class CRUD:
                 session.commit()
                 return True
         except SQLAlchemyError as e:
-            print(f"Update operation error: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("Update operation error: %s", e)
             return False
 
     @classmethod
@@ -258,7 +256,7 @@ class CRUD:
                 result = session.query(cls).filter(cls.id == record_id).update(kwargs)
                 return result > 0
         except SQLAlchemyError as e:
-            print(f"Update by ID operation error: {e}")
+            logger.error("Update by ID operation error: %s", e)
             return False
 
     # DELETE Operations
@@ -282,9 +280,7 @@ class CRUD:
                 session.commit()
                 return True
         except SQLAlchemyError as e:
-            print(f"Delete operation error: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("Delete operation error: %s", e)
             return False
 
     @classmethod
@@ -309,7 +305,7 @@ class CRUD:
                     return True
                 return False
         except SQLAlchemyError as e:
-            print(f"Delete by ID operation error: {e}")
+            logger.error("Delete by ID operation error: %s", e)
             return False
 
     def restore(self) -> bool:
@@ -357,7 +353,5 @@ class CRUD:
                 session.refresh(self)
                 return True
         except SQLAlchemyError as e:
-            print(f"Refresh operation error: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("Refresh operation error: %s", e)
             return False

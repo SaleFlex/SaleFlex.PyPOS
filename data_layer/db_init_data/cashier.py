@@ -24,6 +24,11 @@ SOFTWARE.
 
 from data_layer.model import Cashier
 
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 def _insert_admin_cashier(session) -> Cashier:
     """
     Insert default cashiers if not exists.
@@ -44,7 +49,7 @@ def _insert_admin_cashier(session) -> Cashier:
         )
         session.add(admin_cashier)
         session.flush()  # To get the ID
-        print("✓ Default cashier 'Ferhat Mousavi' added (password: admin)")
+        logger.info("✓ Default cashier 'Ferhat Mousavi' added (password: admin)")
         return admin_cashier
     else:
         return admin_exists

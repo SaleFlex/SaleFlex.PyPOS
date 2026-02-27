@@ -22,6 +22,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 from data_layer.model import (
     Cashier,
     CashierPerformanceMetrics,
@@ -153,17 +157,15 @@ class CacheManager:
                 if model_name == "PosSettings":
                     if self.pos_data[model_name] and len(self.pos_data[model_name]) > 0:
                         self.pos_settings = self.pos_data[model_name][0]
-                        print(f"[DEBUG] PosSettings cached in pos_settings: id={self.pos_settings.id}, name={self.pos_settings.name}")
+                        logger.debug("[DEBUG] PosSettings cached in pos_settings: id=%s, name=%s", self.pos_settings.id, self.pos_settings.name)
                 
-                print(f"[DEBUG] Loaded {len(self.pos_data[model_name])} {model_name} records")
+                logger.info("[DEBUG] Loaded %s %s records", len(self.pos_data[model_name]), model_name)
             except Exception as e:
                 # On any unexpected read error, keep an empty list
-                print(f"[DEBUG] Error loading {model_name}: {e}")
-                import traceback
-                traceback.print_exc()
+                logger.error("[DEBUG] Error loading %s: %s", model_name, e)
                 self.pos_data[model_name] = []
         
-        print(f"[DEBUG] pos_data populated with {len(self.pos_data)} model types")
+        logger.debug("[DEBUG] pos_data populated with %s model types", len(self.pos_data))
     
     def populate_product_data(self, progress_callback=None):
         """
@@ -228,15 +230,13 @@ class CacheManager:
                 # Load all records from database (excluding soft-deleted records)
                 self.product_data[model_name] = model_cls.get_all()
                 
-                print(f"[DEBUG] Loaded {len(self.product_data[model_name])} {model_name} records")
+                logger.info("[DEBUG] Loaded %s %s records", len(self.product_data[model_name]), model_name)
             except Exception as e:
                 # On any unexpected read error, keep an empty list
-                print(f"[DEBUG] Error loading {model_name}: {e}")
-                import traceback
-                traceback.print_exc()
+                logger.error("[DEBUG] Error loading %s: %s", model_name, e)
                 self.product_data[model_name] = []
         
-        print(f"[DEBUG] product_data populated with {len(self.product_data)} model types")
+        logger.debug("[DEBUG] product_data populated with %s model types", len(self.product_data))
     
     def update_pos_data_cache(self, model_instance):
         """
@@ -264,7 +264,7 @@ class CacheManager:
                 item for item in self.pos_data[model_name] 
                 if item.id != model_instance.id
             ]
-            print(f"[DEBUG] Removed {model_name} (id={model_instance.id}) from pos_data cache (soft-deleted)")
+            logger.debug("[DEBUG] Removed %s (id=%s) from pos_data cache (soft-deleted)", model_name, model_instance.id)
             return
         
         # Check if instance already exists in cache
@@ -277,16 +277,16 @@ class CacheManager:
         if existing_index is not None:
             # Update existing item in cache
             self.pos_data[model_name][existing_index] = model_instance
-            print(f"[DEBUG] Updated {model_name} (id={model_instance.id}) in pos_data cache")
+            logger.debug("[DEBUG] Updated %s (id=%s) in pos_data cache", model_name, model_instance.id)
         else:
             # Add new item to cache
             self.pos_data[model_name].append(model_instance)
-            print(f"[DEBUG] Added {model_name} (id={model_instance.id}) to pos_data cache")
+            logger.info("[DEBUG] Added %s (id=%s) to pos_data cache", model_name, model_instance.id)
         
         # Special handling for PosSettings - update cached reference
         if model_name == "PosSettings" and len(self.pos_data[model_name]) > 0:
             self.pos_settings = self.pos_data[model_name][0]
-            print(f"[DEBUG] Updated pos_settings cache reference")
+            logger.debug("[DEBUG] Updated pos_settings cache reference")
     
     def refresh_pos_data_model(self, model_class):
         """
@@ -310,11 +310,9 @@ class CacheManager:
             if model_name == "PosSettings" and len(self.pos_data[model_name]) > 0:
                 self.pos_settings = self.pos_data[model_name][0]
             
-            print(f"[DEBUG] Refreshed {model_name} in pos_data cache: {len(self.pos_data[model_name])} records")
+            logger.debug("[DEBUG] Refreshed %s in pos_data cache: %s records", model_name, len(self.pos_data[model_name]))
         except Exception as e:
-            print(f"[DEBUG] Error refreshing {model_name} in pos_data cache: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("[DEBUG] Error refreshing %s in pos_data cache: %s", model_name, e)
     
     def update_product_data_cache(self, model_instance):
         """
@@ -342,7 +340,7 @@ class CacheManager:
                 item for item in self.product_data[model_name] 
                 if item.id != model_instance.id
             ]
-            print(f"[DEBUG] Removed {model_name} (id={model_instance.id}) from product_data cache (soft-deleted)")
+            logger.debug("[DEBUG] Removed %s (id=%s) from product_data cache (soft-deleted)", model_name, model_instance.id)
             return
         
         # Check if instance already exists in cache
@@ -355,11 +353,11 @@ class CacheManager:
         if existing_index is not None:
             # Update existing item in cache
             self.product_data[model_name][existing_index] = model_instance
-            print(f"[DEBUG] Updated {model_name} (id={model_instance.id}) in product_data cache")
+            logger.debug("[DEBUG] Updated %s (id=%s) in product_data cache", model_name, model_instance.id)
         else:
             # Add new item to cache
             self.product_data[model_name].append(model_instance)
-            print(f"[DEBUG] Added {model_name} (id={model_instance.id}) to product_data cache")
+            logger.info("[DEBUG] Added %s (id=%s) to product_data cache", model_name, model_instance.id)
     
     def refresh_product_data_model(self, model_class):
         """
@@ -378,9 +376,7 @@ class CacheManager:
             # Reload from database
             self.product_data[model_name] = model_class.get_all()
             
-            print(f"[DEBUG] Refreshed {model_name} in product_data cache: {len(self.product_data[model_name])} records")
+            logger.debug("[DEBUG] Refreshed %s in product_data cache: %s records", model_name, len(self.product_data[model_name]))
         except Exception as e:
-            print(f"[DEBUG] Error refreshing {model_name} in product_data cache: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("[DEBUG] Error refreshing %s in product_data cache: %s", model_name, e)
 

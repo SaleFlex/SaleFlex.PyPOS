@@ -26,6 +26,11 @@ from data_layer.model import PosSettings
 from pos.hardware import get_device_serial_number, get_operation_system
 
 
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 def _insert_pos_settings(session, admin_cashier_id, gbp_currency=None):
     """Insert default POS settings if not exists
     
@@ -34,34 +39,34 @@ def _insert_pos_settings(session, admin_cashier_id, gbp_currency=None):
         admin_cashier_id: Admin cashier ID for audit fields
         gbp_currency: GBP Currency object (from _insert_currencies) for default current_currency
     """
-    print("[DEBUG] _insert_pos_settings called")
-    print(f"[DEBUG] admin_cashier_id={admin_cashier_id}, gbp_currency={gbp_currency}")
+    logger.debug("[DEBUG] _insert_pos_settings called")
+    logger.debug("[DEBUG] admin_cashier_id=%s, gbp_currency=%s", admin_cashier_id, gbp_currency)
     
     # Check if POS settings already exist
     pos_settings_exists = session.query(PosSettings).filter_by(is_deleted=False).first()
     if pos_settings_exists:
-        print(f"✓ POS settings already exist: id={pos_settings_exists.id}, name={pos_settings_exists.name}")
+        logger.info("✓ POS settings already exist: id=%s, name=%s", pos_settings_exists.id, pos_settings_exists.name)
         return
     
-    print("[DEBUG] Creating new POS settings...")
+    logger.debug("[DEBUG] Creating new POS settings...")
     
     # Get GBP currency ID if provided, otherwise query for it
     gbp_currency_id = None
     if gbp_currency:
         gbp_currency_id = gbp_currency.id
-        print(f"[DEBUG] Using provided GBP currency: id={gbp_currency_id}")
+        logger.debug("[DEBUG] Using provided GBP currency: id=%s", gbp_currency_id)
     else:
         # Fallback: query for GBP currency
         from data_layer.model import Currency
         gbp_currencies = session.query(Currency).filter_by(sign="GBP", is_deleted=False).first()
         if gbp_currencies:
             gbp_currency_id = gbp_currencies.id
-            print(f"[DEBUG] Found GBP currency: id={gbp_currency_id}")
+            logger.debug("[DEBUG] Found GBP currency: id=%s", gbp_currency_id)
         else:
-            print("[DEBUG] WARNING: GBP currency not found!")
+            logger.error("[DEBUG] WARNING: GBP currency not found!")
     
     if not gbp_currency_id:
-        print("[DEBUG] WARNING: GBP currency ID not found, creating PosSettings without currency")
+        logger.error("[DEBUG] WARNING: GBP currency ID not found, creating PosSettings without currency")
     
     # Get United Kingdom country ID
     from data_layer.model import Country
@@ -69,15 +74,15 @@ def _insert_pos_settings(session, admin_cashier_id, gbp_currency=None):
     uk_country_id = None
     if uk_country:
         uk_country_id = uk_country.id
-        print(f"[DEBUG] Found United Kingdom country: id={uk_country_id}")
+        logger.debug("[DEBUG] Found United Kingdom country: id=%s", uk_country_id)
     else:
-        print("[DEBUG] WARNING: United Kingdom country not found!")
+        logger.error("[DEBUG] WARNING: United Kingdom country not found!")
     
     # Get device information
     device_serial = get_device_serial_number()
     device_os = get_operation_system()
-    print(f"[DEBUG] Device serial number: {device_serial}")
-    print(f"[DEBUG] Device OS: {device_os}")
+    logger.debug("[DEBUG] Device serial number: %s", device_serial)
+    logger.debug("[DEBUG] Device OS: %s", device_os)
     
     # Create PosSettings with default values
     # Note: Model fields are now managed through the database, not settings.toml
@@ -116,13 +121,13 @@ def _insert_pos_settings(session, admin_cashier_id, gbp_currency=None):
     # Note: Printer, scale, and backend settings are now managed through the database
     # and should be configured via the application UI or API, not settings.toml
     
-    print(f"[DEBUG] About to add PosSettings: name={pos_settings.name}, pos_no={pos_settings.pos_no_in_store}, currency_id={pos_settings.fk_current_currency_id}, country_id={pos_settings.fk_default_country_id}, serial={pos_settings.device_serial_number}")
+    logger.debug("[DEBUG] About to add PosSettings: name=%s, pos_no=%s, currency_id=%s, country_id=%s, serial=%s", pos_settings.name, pos_settings.pos_no_in_store, pos_settings.fk_current_currency_id, pos_settings.fk_default_country_id, pos_settings.device_serial_number)
     session.add(pos_settings)
     session.flush()  # Flush to get any errors before commit
     
     # Verify the object was added
-    print(f"[DEBUG] PosSettings added: id={pos_settings.id}, name={pos_settings.name}, pos_no={pos_settings.pos_no_in_store}, currency_id={pos_settings.fk_current_currency_id}, country_id={pos_settings.fk_default_country_id}, serial={pos_settings.device_serial_number}")
+    logger.info("[DEBUG] PosSettings added: id=%s, name=%s, pos_no=%s, currency_id=%s, country_id=%s, serial=%s", pos_settings.id, pos_settings.name, pos_settings.pos_no_in_store, pos_settings.fk_current_currency_id, pos_settings.fk_default_country_id, pos_settings.device_serial_number)
     
     # Note: Don't commit here - the context manager in insert_initial_data will commit
-    print("✓ Default POS settings added (will be committed with transaction)")
+    logger.info("✓ Default POS settings added (will be committed with transaction)")
 

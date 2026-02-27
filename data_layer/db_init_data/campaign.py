@@ -27,13 +27,18 @@ from sqlalchemy.orm import Session
 from data_layer.model.definition import CampaignType, Campaign, CampaignRule, CampaignProduct
 
 
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 def _insert_campaign_types(session: Session):
     """
     Insert default campaign types
     """
     existing = session.query(CampaignType).first()
     if existing:
-        print("Campaign types already exist, skipping...")
+        logger.warning("Campaign types already exist, skipping...")
         return
 
     campaign_types = [
@@ -97,7 +102,7 @@ def _insert_campaign_types(session: Session):
         session.add(campaign_type)
 
     session.commit()
-    print(f"✓ Inserted {len(campaign_types)} campaign types")
+    logger.info("✓ Inserted %s campaign types", len(campaign_types))
 
 
 def _insert_sample_campaigns(session: Session, admin_cashier_id):
@@ -106,7 +111,7 @@ def _insert_sample_campaigns(session: Session, admin_cashier_id):
     """
     existing = session.query(Campaign).first()
     if existing:
-        print("Campaigns already exist, skipping...")
+        logger.warning("Campaigns already exist, skipping...")
         return
 
     # Get campaign types
@@ -199,7 +204,7 @@ def _insert_sample_campaigns(session: Session, admin_cashier_id):
         session.add(campaign)
 
     session.commit()
-    print(f"✓ Inserted {len(campaigns)} sample campaigns")
+    logger.info("✓ Inserted %s sample campaigns", len(campaigns))
 
 
 def _insert_campaigns(session: Session, admin_cashier_id):

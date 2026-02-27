@@ -25,6 +25,11 @@ SOFTWARE.
 from data_layer.model import District, City
 
 
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 def _insert_districts(session):
     """Insert London districts if not exists"""
     district_exists = session.query(District).first()
@@ -32,7 +37,7 @@ def _insert_districts(session):
         # First, get the London city ID
         london_city = session.query(City).filter_by(code="GB-LND").first()
         if not london_city:
-            print("⚠ London city not found, skipping district insertion")
+            logger.error("⚠ London city not found, skipping district insertion")
             return
 
         districts = [
@@ -81,4 +86,4 @@ def _insert_districts(session):
             )
             session.add(district)
 
-        print("✓ London districts added (33 districts)")
+        logger.info("✓ London districts added (33 districts)")

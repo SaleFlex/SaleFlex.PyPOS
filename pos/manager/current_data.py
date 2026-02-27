@@ -28,6 +28,11 @@ from pos.manager.cache_manager import CacheManager
 from pos.manager.closure_manager import ClosureManager
 
 
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 class CurrentData(DocumentManager, CacheManager, ClosureManager):
     """
     Session Data Manager for SaleFlex Point of Sale System.
@@ -197,9 +202,7 @@ class CurrentData(DocumentManager, CacheManager, ClosureManager):
             
             return True
         except Exception as e:
-            print(f"[DEBUG] Error saving document_data: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("[DEBUG] Error saving document_data: %s", e)
             return False
     
     def _save_pending_documents_data(self, value):
@@ -226,9 +229,7 @@ class CurrentData(DocumentManager, CacheManager, ClosureManager):
                             model.save()
             return True
         except Exception as e:
-            print(f"[DEBUG] Error saving pos_data: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("[DEBUG] Error saving pos_data: %s", e)
             return False
     
     def _save_pos_settings(self, value):
@@ -255,9 +256,7 @@ class CurrentData(DocumentManager, CacheManager, ClosureManager):
                             model.save()
             return True
         except Exception as e:
-            print(f"[DEBUG] Error saving product_data: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("[DEBUG] Error saving product_data: %s", e)
             return False
     
     def _save_closure(self, value):
@@ -323,9 +322,7 @@ class CurrentData(DocumentManager, CacheManager, ClosureManager):
             
             return True
         except Exception as e:
-            print(f"[DEBUG] Error saving closure: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("[DEBUG] Error saving closure: %s", e)
             return False
     
     # Property definitions with auto-save descriptors

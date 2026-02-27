@@ -26,6 +26,11 @@ from decimal import Decimal, ROUND_HALF_UP, ROUND_DOWN
 from typing import Optional
 
 
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 class VatService:
     """
     VAT (Value Added Tax) calculation service.
@@ -81,7 +86,7 @@ class VatService:
             # Default if currency not found
             return 2
         except Exception as e:
-            print(f"[VAT_SERVICE] Error getting currency decimal_places: {e}, defaulting to 2")
+            logger.error("[VAT_SERVICE] Error getting currency decimal_places: %s, defaulting to 2", e)
             return 2
     
     @staticmethod

@@ -25,6 +25,11 @@ SOFTWARE.
 from data_layer.model import PaymentType
 
 
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 def _insert_payment_types(session):
     """Insert payment types if not exists"""
     payment_types_data = [
@@ -104,8 +109,8 @@ def _insert_payment_types(session):
             )
             payment_type.culture_info = payment_type_data["culture_info"]
             session.add(payment_type)
-            print(f"✓ Payment type '{payment_type_data['type_name']}' added")
+            logger.info("✓ Payment type '%s' added", payment_type_data['type_name'])
         else:
-            print(f"✓ Payment type '{payment_type_data['type_name']}' already exists")
+            logger.info("✓ Payment type '%s' already exists", payment_type_data['type_name'])
 
     session.flush() 

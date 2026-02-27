@@ -25,6 +25,11 @@ SOFTWARE.
 from data_layer.model import Store, Country, City
 
 
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 def _insert_default_store(session):
     """Insert default store if not exists"""
     store_exists = session.query(Store).first()
@@ -70,9 +75,9 @@ def _insert_default_store(session):
         )
         
         session.add(default_store)
-        print("✓ Default store added")
-        print(f"  - Brand: SaleFlex")
-        print(f"  - Company: SaleFlex PyPOS")
-        print(f"  - Default Country: {'United Kingdom' if default_country_id else 'None'}")
+        logger.info("✓ Default store added")
+        logger.debug("  - Brand: SaleFlex")
+        logger.debug("  - Company: SaleFlex PyPOS")
+        logger.debug("  - Default Country: %s", 'United Kingdom' if default_country_id else 'None')
     else:
-        print("✓ Store already exists")
+        logger.info("✓ Store already exists")

@@ -41,6 +41,11 @@ from user_interface.form.about_form import AboutForm
 from data_layer.model import Form
 
 
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 class Application(CurrentStatus, CurrentData, EventHandler):
     """
     Main Application class for SaleFlex Point of Sale System.
@@ -192,15 +197,15 @@ class Application(CurrentStatus, CurrentData, EventHandler):
                     
                     if currency and currency.sign:
                         self.current_currency = currency.sign
-                        print(f"✓ Current currency loaded: {self.current_currency}")
+                        logger.info("✓ Current currency loaded: %s", self.current_currency)
                     else:
                         # Default to GBP if currency not found
                         self.current_currency = "GBP"
-                        print("✓ Currency not found, defaulting to GBP")
+                        logger.error("✓ Currency not found, defaulting to GBP")
                 else:
                     # Default to GBP if not set
                     self.current_currency = "GBP"
-                    print("✓ Current currency not set, defaulting to GBP")
+                    logger.warning("✓ Current currency not set, defaulting to GBP")
             else:
                 # Fallback: try pos_data if pos_settings not cached
                 pos_settings = self.pos_data.get("PosSettings", [])
@@ -211,21 +216,19 @@ class Application(CurrentStatus, CurrentData, EventHandler):
                         currency = next((c for c in all_currencies if c.id == settings.fk_current_currency_id), None)
                         if currency and currency.sign:
                             self.current_currency = currency.sign
-                            print(f"✓ Current currency loaded: {self.current_currency}")
+                            logger.info("✓ Current currency loaded: %s", self.current_currency)
                         else:
                             self.current_currency = "GBP"
-                            print("✓ Currency not found, defaulting to GBP")
+                            logger.error("✓ Currency not found, defaulting to GBP")
                     else:
                         self.current_currency = "GBP"
-                        print("✓ Current currency not set, defaulting to GBP")
+                        logger.warning("✓ Current currency not set, defaulting to GBP")
                 else:
                     # Default to GBP if no settings found
                     self.current_currency = "GBP"
-                    print("✓ No POS settings found, defaulting to GBP")
+                    logger.warning("✓ No POS settings found, defaulting to GBP")
         except Exception as e:
-            print(f"Error loading current currency: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("Error loading current currency: %s", e)
             # Default to GBP on error
             self.current_currency = "GBP"
     
@@ -250,15 +253,15 @@ class Application(CurrentStatus, CurrentData, EventHandler):
                     
                     if currency and currency.sign:
                         self.current_currency = currency.sign
-                        print(f"✓ Working currency loaded to CurrentStatus: {self.current_currency}")
+                        logger.info("✓ Working currency loaded to CurrentStatus: %s", self.current_currency)
                     else:
                         # Default to GBP if currency not found
                         self.current_currency = "GBP"
-                        print("✓ Currency not found, defaulting to GBP")
+                        logger.error("✓ Currency not found, defaulting to GBP")
                 else:
                     # Default to GBP if not set
                     self.current_currency = "GBP"
-                    print("✓ Working currency not set, defaulting to GBP")
+                    logger.warning("✓ Working currency not set, defaulting to GBP")
             else:
                 # Fallback: try pos_data if pos_settings not cached
                 pos_settings = self.pos_data.get("PosSettings", [])
@@ -269,21 +272,19 @@ class Application(CurrentStatus, CurrentData, EventHandler):
                         currency = next((c for c in all_currencies if c.id == settings.fk_working_currency_id), None)
                         if currency and currency.sign:
                             self.current_currency = currency.sign
-                            print(f"✓ Working currency loaded to CurrentStatus: {self.current_currency}")
+                            logger.info("✓ Working currency loaded to CurrentStatus: %s", self.current_currency)
                         else:
                             self.current_currency = "GBP"
-                            print("✓ Currency not found, defaulting to GBP")
+                            logger.error("✓ Currency not found, defaulting to GBP")
                     else:
                         self.current_currency = "GBP"
-                        print("✓ Working currency not set, defaulting to GBP")
+                        logger.warning("✓ Working currency not set, defaulting to GBP")
                 else:
                     # Default to GBP if no settings found
                     self.current_currency = "GBP"
-                    print("✓ No POS settings found, defaulting to GBP")
+                    logger.warning("✓ No POS settings found, defaulting to GBP")
         except Exception as e:
-            print(f"Error loading working currency: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("Error loading working currency: %s", e)
             # Default to GBP on error
             self.current_currency = "GBP"
 

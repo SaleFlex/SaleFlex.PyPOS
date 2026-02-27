@@ -26,6 +26,11 @@ from sqlalchemy.orm import Session
 from data_layer.model.definition import PosVirtualKeyboard
 
 
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 def _insert_virtual_keyboard_settings(session: Session):
     """
     Inserts default virtual keyboard settings if not exists
@@ -36,7 +41,7 @@ def _insert_virtual_keyboard_settings(session: Session):
     # Check if virtual keyboard settings already exist
     existing = session.query(PosVirtualKeyboard).first()
     if existing:
-        print("✓ Virtual keyboard settings already exist")
+        logger.info("✓ Virtual keyboard settings already exist")
         return existing
 
     # Create default virtual keyboard settings
@@ -89,7 +94,7 @@ def _insert_virtual_keyboard_settings(session: Session):
     session.add(default_keyboard)
     session.commit()
     
-    print(f"✓ Virtual keyboard settings created: {default_keyboard.name}")
+    logger.info("✓ Virtual keyboard settings created: %s", default_keyboard.name)
     return default_keyboard
 
 
@@ -149,7 +154,7 @@ def _insert_alternative_keyboard_themes(session: Session):
             button_text_color_pressed="#ffffff"
         )
         session.add(dark_theme_keyboard)
-        print(f"✓ Virtual keyboard theme created: {dark_theme_keyboard.name}")
+        logger.info("✓ Virtual keyboard theme created: %s", dark_theme_keyboard.name)
     
     # Check if compact theme already exists
     compact_theme = session.query(PosVirtualKeyboard).filter_by(name="COMPACT_KEYBOARD").first()
@@ -200,7 +205,7 @@ def _insert_alternative_keyboard_themes(session: Session):
             button_text_color_pressed=None
         )
         session.add(compact_keyboard)
-        print(f"✓ Virtual keyboard theme created: {compact_keyboard.name}")
+        logger.info("✓ Virtual keyboard theme created: %s", compact_keyboard.name)
     
     session.commit()
 

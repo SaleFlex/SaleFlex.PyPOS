@@ -25,6 +25,11 @@ SOFTWARE.
 from data_layer.model import Country
 
 
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 def _insert_countries(session):
     """Insert countries if not exists"""
     country_exists = session.query(Country).first()
@@ -234,4 +239,4 @@ def _insert_countries(session):
             )
             session.add(country)
 
-        print("✓ Countries added (195 countries)")
+        logger.info("✓ Countries added (195 countries)")

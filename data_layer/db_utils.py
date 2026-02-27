@@ -28,6 +28,11 @@ from data_layer.db_init_data import insert_initial_data
 from sqlalchemy.exc import SQLAlchemyError
 
 
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 def check_db_connection():
     """
     Tests database connection
@@ -37,10 +42,10 @@ def check_db_connection():
         with temp_engine.get_session() as session:
             # Execute simple query
             session.execute("SELECT 1")
-            print("✓ Database connection successful")
+            logger.info("✓ Database connection successful")
             return True
     except Exception as e:
-        print(f"✗ Database connection error: {e}")
+        logger.error("✗ Database connection error: %s", e)
         return False
 
 
@@ -49,7 +54,7 @@ def reset_db():
     Completely resets database (WARNING: All data will be deleted!)
     """
     try:
-        print("⚠️  Resetting database... (All data will be deleted)")
+        logger.warning("⚠️  Resetting database... (All data will be deleted)")
         
         # Drop tables
         if not drop_tables():
@@ -62,15 +67,15 @@ def reset_db():
         # Insert initial data
         temp_engine = Engine()
         insert_initial_data(temp_engine)
-        print("✓ Initial data added")
+        logger.info("✓ Initial data added")
         
         return True
         
     except SQLAlchemyError as e:
-        print(f"✗ Database reset error: {e}")
+        logger.error("✗ Database reset error: %s", e)
         return False
     except Exception as e:
-        print(f"✗ Unexpected error: {e}")
+        logger.error("✗ Unexpected error: %s", e)
         return False
 
 
@@ -84,12 +89,12 @@ def backup_db(backup_file_path: str):
     try:
         # TODO: Implement database backup functionality
         # This could use SQLAlchemy's reflection to dump schema and data
-        print(f"⚠️  Backup functionality not implemented yet")
-        print(f"   Backup would be saved to: {backup_file_path}")
+        logger.warning("⚠️  Backup functionality not implemented yet")
+        logger.debug("   Backup would be saved to: %s", backup_file_path)
         return False
         
     except Exception as e:
-        print(f"✗ Database backup error: {e}")
+        logger.error("✗ Database backup error: %s", e)
         return False
 
 
@@ -102,12 +107,12 @@ def restore_db(backup_file_path: str):
     """
     try:
         # TODO: Implement database restore functionality
-        print(f"⚠️  Restore functionality not implemented yet")
-        print(f"   Would restore from: {backup_file_path}")
+        logger.warning("⚠️  Restore functionality not implemented yet")
+        logger.debug("   Would restore from: %s", backup_file_path)
         return False
         
     except Exception as e:
-        print(f"✗ Database restore error: {e}")
+        logger.error("✗ Database restore error: %s", e)
         return False
 
 
@@ -149,12 +154,12 @@ def vacuum_db():
             with temp_engine.get_session() as session:
                 session.execute("VACUUM")
                 session.commit()
-                print("✓ Database vacuumed successfully")
+                logger.info("✓ Database vacuumed successfully")
                 return True
         else:
-            print("⚠️  VACUUM is only supported for SQLite databases")
+            logger.warning("⚠️  VACUUM is only supported for SQLite databases")
             return False
             
     except Exception as e:
-        print(f"✗ Database vacuum error: {e}")
+        logger.error("✗ Database vacuum error: %s", e)
         return False 

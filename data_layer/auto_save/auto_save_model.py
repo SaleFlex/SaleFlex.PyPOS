@@ -29,6 +29,10 @@ This module provides a wrapper class that automatically saves model instances
 to the database whenever their attributes are modified.
 """
 
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 
 class AutoSaveModel:
     """
@@ -66,9 +70,7 @@ class AutoSaveModel:
             try:
                 self._save_callback(self._model)
             except Exception as e:
-                print(f"[DEBUG] Error auto-saving model after attribute change: {e}")
-                import traceback
-                traceback.print_exc()
+                logger.exception("Error auto-saving model after attribute change: %s", e)
     
     def __getitem__(self, key):
         """Support dictionary-like access if model supports it"""
@@ -81,7 +83,7 @@ class AutoSaveModel:
             try:
                 self._save_callback(self._model)
             except Exception as e:
-                print(f"[DEBUG] Error auto-saving model after item change: {e}")
+                logger.exception("Error auto-saving model after item change: %s", e)
     
     def unwrap(self):
         """Return the unwrapped model instance"""

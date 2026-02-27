@@ -26,6 +26,11 @@ from data_layer.engine import Engine
 from data_layer.model.definition import PosVirtualKeyboard
 
 
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 class KeyboardSettingsLoader:
     """Helper class to load virtual keyboard settings from database"""
     
@@ -77,7 +82,7 @@ class KeyboardSettingsLoader:
                     # No active settings found, return default
                     return cls._get_default_settings()
         except Exception as e:
-            print(f"⚠ Error loading keyboard settings from database: {e}")
+            logger.error("⚠ Error loading keyboard settings from database: %s", e)
             return cls._get_default_settings()
     
     @classmethod

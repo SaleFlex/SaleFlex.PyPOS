@@ -25,6 +25,11 @@ SOFTWARE.
 from data_layer.model import Product, Vat, DepartmentSubGroup, ProductManufacturer, Store, ProductUnit, Warehouse
 
 
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 def _insert_products(session, admin_cashier_id: str):
     """Insert sample products if not exists"""
     product_exists = session.query(Product).first()
@@ -48,11 +53,11 @@ def _insert_products(session, admin_cashier_id: str):
         sales_floor_warehouse = session.query(Warehouse).filter_by(code="SALES-001").first()
         
         if not vat_0_percent or not default_manufacturer or not default_store or not fresh_food_sub_group or not pc_unit or not kg_unit:
-            print("⚠ Required references not found. Cannot insert products.")
+            logger.error("⚠ Required references not found. Cannot insert products.")
             return
         
         if not sales_floor_warehouse:
-            print("Sales Floor warehouse not found. Products will be created without primary warehouse.")
+            logger.error("Sales Floor warehouse not found. Products will be created without primary warehouse.")
             # Continue anyway as primary warehouse is optional
 
         # Sample products based on C# TablePlu data
@@ -495,4 +500,4 @@ def _insert_products(session, admin_cashier_id: str):
             
             session.add(product)
 
-        print(f"✓ Inserted {len(products_data)} sample products") 
+        logger.info("✓ Inserted %s sample products", len(products_data)) 

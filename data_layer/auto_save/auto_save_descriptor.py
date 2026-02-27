@@ -96,11 +96,9 @@ class AutoSaveDescriptor:
             try:
                 success = self.save_callback(obj, wrapped_value)
                 if not success:
-                    print(f"[DEBUG] Warning: Save callback returned False for {self.private_attr_name}")
+                    logger.warning("Save callback returned False for %s", self.private_attr_name)
             except Exception as e:
-                print(f"[DEBUG] Error in save callback for {self.private_attr_name}: {e}")
-                import traceback
-                traceback.print_exc()
+                logger.exception("Error in save callback for %s: %s", self.private_attr_name, e)
                 # Continue with setting value even if save failed
         
         # Update the private attribute

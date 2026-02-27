@@ -24,6 +24,11 @@ SOFTWARE.
 
 from datetime import datetime
 from uuid import uuid4
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 from data_layer.model import (
     TransactionHead,
     TransactionHeadTemp,
@@ -87,7 +92,7 @@ class DocumentManager:
         try:
             # Validate required data
             if not self.pos_settings:
-                print("[DEBUG] Cannot create document: pos_settings not loaded")
+                logger.error("[DEBUG] Cannot create document: pos_settings not loaded")
                 return None
             
             # Get document_type from CurrentStatus.document_type property
@@ -103,7 +108,7 @@ class DocumentManager:
             else:
                 document_type = str(current_doc_type)
             
-            print(f"[DEBUG] CurrentStatus.document_type: {current_doc_type}, converted to: {document_type}")
+            logger.debug("[DEBUG] CurrentStatus.document_type: %s, converted to: %s", current_doc_type, document_type)
             
             # Get transaction_type from CurrentStatus.document_type property
             # Map DocumentType to TransactionType (default to SALE)
@@ -138,7 +143,7 @@ class DocumentManager:
             if stores:
                 store_id = stores[0].id
             else:
-                print("[DEBUG] Cannot create document: no store found in pos_data")
+                logger.error("[DEBUG] Cannot create document: no store found in pos_data")
                 return None
             
             # Get customer_id - try to find "Walk-in Customer" or use first customer, or create default
@@ -155,7 +160,7 @@ class DocumentManager:
                 
                 if walk_in_customer:
                     customer_id = walk_in_customer.id
-                    print(f"[DEBUG] Using walk-in customer: {walk_in_customer.name}")
+                    logger.debug("[DEBUG] Using walk-in customer: %s", walk_in_customer.name)
                 else:
                     # Try to get first customer
                     first_customer = session.query(Customer).filter(
@@ -164,7 +169,7 @@ class DocumentManager:
                     
                     if first_customer:
                         customer_id = first_customer.id
-                        print(f"[DEBUG] Using first customer: {first_customer.name}")
+                        logger.debug("[DEBUG] Using first customer: %s", first_customer.name)
                     else:
                         # Create default walk-in customer
                         default_customer = Customer(
@@ -178,10 +183,10 @@ class DocumentManager:
                             default_customer.fk_cashier_update_id = self.cashier_data.id
                         default_customer.create()
                         customer_id = default_customer.id
-                        print(f"[DEBUG] Created default walk-in customer: {customer_id}")
+                        logger.info("[DEBUG] Created default walk-in customer: %s", customer_id)
             
             if not customer_id:
-                print("[DEBUG] Cannot create document: failed to get or create customer")
+                logger.error("[DEBUG] Cannot create document: failed to get or create customer")
                 return None
             
             # Get pos_id from pos_settings (use pos_no_in_store as pos_id is Integer)
@@ -227,9 +232,9 @@ class DocumentManager:
                 "changes": []
             }
             
-            print(f"[DEBUG] Created new empty document: {transaction_unique_id}")
-            print(f"[DEBUG] Document type: {document_type}, Transaction type: {transaction_type}, Receipt number: {receipt_number}")
-            print(f"[DEBUG] head.document_type: {head.document_type}, head.transaction_type: {head.transaction_type}, head.receipt_number: {head.receipt_number}")
+            logger.info("[DEBUG] Created new empty document: %s", transaction_unique_id)
+            logger.debug("[DEBUG] Document type: %s, Transaction type: %s, Receipt number: %s", document_type, transaction_type, receipt_number)
+            logger.debug("[DEBUG] head.document_type: %s, head.transaction_type: %s, head.receipt_number: %s", head.document_type, head.transaction_type, head.receipt_number)
             
             # Update StatusBar if available
             self._update_statusbar()
@@ -237,9 +242,7 @@ class DocumentManager:
             return self.document_data
             
         except Exception as e:
-            print(f"[DEBUG] Error creating empty document: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("[DEBUG] Error creating empty document: %s", e)
             return None
     
     def _update_statusbar(self):
@@ -250,28 +253,26 @@ class DocumentManager:
             if app:
                 # Find the active window
                 active_window = app.activeWindow()
-                print(f"[DEBUG] _update_statusbar: active_window={active_window}")
+                logger.debug("[DEBUG] _update_statusbar: active_window=%s", active_window)
                 if active_window and hasattr(active_window, 'statusbar'):
                     statusbar = active_window.statusbar
-                    print(f"[DEBUG] _update_statusbar: Found statusbar, calling update_info_label")
+                    logger.debug("[DEBUG] _update_statusbar: Found statusbar, calling update_info_label")
                     if statusbar and hasattr(statusbar, 'update_info_label'):
                         statusbar.update_info_label()
                 else:
                     # Try to find statusbar in all windows
                     all_windows = app.allWindows()
-                    print(f"[DEBUG] _update_statusbar: Checking {len(all_windows)} windows for statusbar")
+                    logger.debug("[DEBUG] _update_statusbar: Checking %s windows for statusbar", len(all_windows))
                     for window in all_windows:
                         if hasattr(window, 'statusbar'):
                             statusbar = window.statusbar
-                            print(f"[DEBUG] _update_statusbar: Found statusbar in window {window}, calling update_info_label")
+                            logger.debug("[DEBUG] _update_statusbar: Found statusbar in window %s, calling update_info_label", window)
                             if statusbar and hasattr(statusbar, 'update_info_label'):
                                 statusbar.update_info_label()
                                 break
         except Exception as e:
             # Print error for debugging
-            print(f"[DEBUG] _update_statusbar error: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("[DEBUG] _update_statusbar error: %s", e)
             pass
     
     def load_incomplete_document(self):
@@ -306,19 +307,17 @@ class DocumentManager:
                 ).first()
                 
                 if not incomplete_head:
-                    print("[DEBUG] No incomplete document found")
+                    logger.debug("[DEBUG] No incomplete document found")
                     return False
                 
                 # Load all related temp models
                 self._load_document_data(incomplete_head.id)
                 
-                print(f"[DEBUG] Loaded incomplete document: {incomplete_head.transaction_unique_id}")
+                logger.info("[DEBUG] Loaded incomplete document: %s", incomplete_head.transaction_unique_id)
                 return True
                 
         except Exception as e:
-            print(f"[DEBUG] Error loading incomplete document: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("[DEBUG] Error loading incomplete document: %s", e)
             return False
     
     def load_pending_documents(self):
@@ -352,12 +351,10 @@ class DocumentManager:
                     if doc_data:
                         self.pending_documents_data.append(doc_data)
                 
-                print(f"[DEBUG] Loaded {len(self.pending_documents_data)} pending documents")
+                logger.info("[DEBUG] Loaded %s pending documents", len(self.pending_documents_data))
                 
         except Exception as e:
-            print(f"[DEBUG] Error loading pending documents: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("[DEBUG] Error loading pending documents: %s", e)
             self.pending_documents_data = []
     
     def _load_document_data(self, head_id):
@@ -372,7 +369,7 @@ class DocumentManager:
             # Load head using CRUD.get_by_id()
             head = TransactionHeadTemp.get_by_id(head_id)
             if not head:
-                print(f"[DEBUG] Transaction head not found: {head_id}")
+                logger.error("[DEBUG] Transaction head not found: %s", head_id)
                 return
             
             # Load related models using CRUD.filter_by()
@@ -421,9 +418,7 @@ class DocumentManager:
             }
             
         except Exception as e:
-            print(f"[DEBUG] Error loading document data: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("[DEBUG] Error loading document data: %s", e)
     
     def _load_document_data_dict(self, head_id):
         """
@@ -491,9 +486,7 @@ class DocumentManager:
             }
             
         except Exception as e:
-            print(f"[DEBUG] Error loading document data dict: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("[DEBUG] Error loading document data dict: %s", e)
             return None
     
     def complete_document(self, is_cancel=False, cancel_reason=None):
@@ -514,7 +507,7 @@ class DocumentManager:
             cancel_reason: Optional reason for cancellation
         """
         if not self.document_data or not self.document_data.get("head"):
-            print("[DEBUG] No document to complete")
+            logger.debug("[DEBUG] No document to complete")
             return False
         
         try:
@@ -794,7 +787,7 @@ class DocumentManager:
                 # Create using CRUD.create()
                 tip.create()
             
-            print(f"[DEBUG] Completed document: {head_temp.transaction_unique_id}")
+            logger.info("[DEBUG] Completed document: %s", head_temp.transaction_unique_id)
             
             # Reset document_data
             self.document_data = None
@@ -802,9 +795,7 @@ class DocumentManager:
             return True
             
         except Exception as e:
-            print(f"[DEBUG] Error completing document: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("[DEBUG] Error completing document: %s", e)
             return False
     
     def set_document_pending(self, is_pending=True):
@@ -815,7 +806,7 @@ class DocumentManager:
             is_pending: True to suspend, False to resume
         """
         if not self.document_data or not self.document_data.get("head"):
-            print("[DEBUG] No document to set pending")
+            logger.debug("[DEBUG] No document to set pending")
             return False
         
         try:
@@ -839,12 +830,10 @@ class DocumentManager:
                 if hasattr(head, 'save'):
                     head.save()
             
-            print(f"[DEBUG] Document {'suspended' if is_pending else 'resumed'}: {head.transaction_unique_id}")
+            logger.debug("[DEBUG] Document %s: %s", 'suspended' if is_pending else 'resumed', head.transaction_unique_id)
             return True
             
         except Exception as e:
-            print(f"[DEBUG] Error setting document pending: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("[DEBUG] Error setting document pending: %s", e)
             return False
 

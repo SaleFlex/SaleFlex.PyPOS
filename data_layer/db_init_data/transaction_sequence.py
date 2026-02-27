@@ -25,6 +25,11 @@ SOFTWARE.
 from data_layer.model import TransactionSequence
 
 
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 def _insert_transaction_sequences(session, admin_cashier_id: int):
     """Insert default transaction sequences if not exists"""
     sequence_exists = session.query(TransactionSequence).first()
@@ -43,4 +48,4 @@ def _insert_transaction_sequences(session, admin_cashier_id: int):
             sequence.fk_cashier_create_id = admin_cashier_id
             sequence.fk_cashier_update_id = admin_cashier_id
             session.add(sequence)
-        print("✓ Default transaction sequences added")
+        logger.info("✓ Default transaction sequences added")

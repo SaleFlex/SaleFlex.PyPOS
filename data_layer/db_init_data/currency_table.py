@@ -25,6 +25,11 @@ SOFTWARE.
 from data_layer.model import CurrencyTable, Currency
 
 
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 def _insert_currency_table(session, admin_cashier_id):
     """
     Insert default currency exchange rates if not exists.
@@ -43,7 +48,7 @@ def _insert_currency_table(session, admin_cashier_id):
             # Get GBP currency as base currency
             gbp_currency = session.query(Currency).filter_by(sign="GBP", is_deleted=False).first()
             if not gbp_currency:
-                print("⚠ GBP currency not found, skipping currency table initialization")
+                logger.error("⚠ GBP currency not found, skipping currency table initialization")
                 return
             
             # Original rates from currency init data (relative to GBP)
@@ -126,11 +131,9 @@ def _insert_currency_table(session, admin_cashier_id):
                     currency_table_entry.fk_cashier_update_id = admin_cashier_id
                     session.add(currency_table_entry)
             
-            print("✓ Default currency exchange rates added")
+            logger.info("✓ Default currency exchange rates added")
         else:
-            print("✓ Currency table already exists")
+            logger.info("✓ Currency table already exists")
     except Exception as e:
-        print(f"⚠ Error inserting currency table: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.error("⚠ Error inserting currency table: %s", e)
 

@@ -29,6 +29,10 @@ from data_layer.db_init_data import insert_initial_data
 from sqlalchemy.exc import SQLAlchemyError
 
 # Import KeyboardSettingsLoader for initialization
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
 try:
     from user_interface.control.virtual_keyboard.keyboard_settings_loader import KeyboardSettingsLoader
     KEYBOARD_LOADER_AVAILABLE = True
@@ -43,28 +47,28 @@ def init_db():
     try:
         temp_engine = Engine()
         
-        print("Creating database tables...")
+        logger.debug("Creating database tables...")
         
         # Create tables
         metadata.create_all(bind=temp_engine.engine)
-        print("✓ Tables created successfully")
+        logger.info("✓ Tables created successfully")
         
         # Insert initial data
         insert_initial_data(temp_engine)
-        print("✓ Initial data inserted successfully")
+        logger.info("✓ Initial data inserted successfully")
         
         # Initialize keyboard settings loader
         if KEYBOARD_LOADER_AVAILABLE:
             KeyboardSettingsLoader.initialize(temp_engine)
-            print("✓ Virtual keyboard settings loaded")
+            logger.info("✓ Virtual keyboard settings loaded")
         
         return True
         
     except SQLAlchemyError as e:
-        print(f"✗ Database initialization error: {e}")
+        logger.error("✗ Database initialization error: %s", e)
         return False
     except Exception as e:
-        print(f"✗ Unexpected error: {e}")
+        logger.error("✗ Unexpected error: %s", e)
         return False
 
 
@@ -75,17 +79,17 @@ def create_tables():
     try:
         temp_engine = Engine()
         
-        print("Creating database tables...")
+        logger.debug("Creating database tables...")
         metadata.create_all(bind=temp_engine.engine)
-        print("✓ Tables created successfully")
+        logger.info("✓ Tables created successfully")
         
         return True
         
     except SQLAlchemyError as e:
-        print(f"✗ Table creation error: {e}")
+        logger.error("✗ Table creation error: %s", e)
         return False
     except Exception as e:
-        print(f"✗ Unexpected error: {e}")
+        logger.error("✗ Unexpected error: %s", e)
         return False
 
 
@@ -96,15 +100,15 @@ def drop_tables():
     try:
         temp_engine = Engine()
         
-        print("Dropping database tables...")
+        logger.debug("Dropping database tables...")
         metadata.drop_all(bind=temp_engine.engine)
-        print("✓ Tables dropped successfully")
+        logger.info("✓ Tables dropped successfully")
         
         return True
         
     except SQLAlchemyError as e:
-        print(f"✗ Table drop error: {e}")
+        logger.error("✗ Table drop error: %s", e)
         return False
     except Exception as e:
-        print(f"✗ Unexpected error: {e}")
+        logger.error("✗ Unexpected error: %s", e)
         return False 

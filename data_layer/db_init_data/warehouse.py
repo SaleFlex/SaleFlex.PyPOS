@@ -25,6 +25,11 @@ SOFTWARE.
 from data_layer.model import Warehouse, Store, City, District
 
 
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 def _insert_warehouses(session, admin_cashier_id: str):
     """Insert default warehouses for UK store if not exists"""
     warehouse_exists = session.query(Warehouse).first()
@@ -39,7 +44,7 @@ def _insert_warehouses(session, admin_cashier_id: str):
         barking_district = session.query(District).filter_by(code="LDN-BAD").first()
         
         if not default_store or not london_city:
-            print("Required references not found. Cannot insert warehouses.")
+            logger.error("Required references not found. Cannot insert warehouses.")
             return
 
         # Define warehouse data for a UK retail store
@@ -262,11 +267,11 @@ def _insert_warehouses(session, admin_cashier_id: str):
             
             session.add(warehouse)
 
-        print("✓ UK Store warehouses added:")
-        print("  - Main Storage Warehouse (Croydon)")
-        print("  - Store Backroom (Westminster)")
-        print("  - Sales Floor (Westminster)")
-        print("  - Cold Storage Facility (Barking)")
-        print("  - Security Storage (Westminster)")
-        print("  - Temporary Storage (Westminster)")
-        print(f"  Total: {len(warehouses_data)} warehouses") 
+        logger.info("✓ UK Store warehouses added:")
+        logger.debug("  - Main Storage Warehouse (Croydon)")
+        logger.debug("  - Store Backroom (Westminster)")
+        logger.debug("  - Sales Floor (Westminster)")
+        logger.debug("  - Cold Storage Facility (Barking)")
+        logger.debug("  - Security Storage (Westminster)")
+        logger.debug("  - Temporary Storage (Westminster)")
+        logger.debug("  Total: %s warehouses", len(warehouses_data)) 

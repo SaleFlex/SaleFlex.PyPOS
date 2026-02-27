@@ -27,6 +27,10 @@ from sqlalchemy.orm import Session
 from data_layer.model.definition.product_attribute import ProductAttribute
 
 # Example product attributes - these would be linked to actual products
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
 PRODUCT_ATTRIBUTES = [
     # Shoe attributes
     {
@@ -413,7 +417,7 @@ def _insert_product_attributes(session: Session, cashier_id: str):
     # Check if ProductAttribute table already has data
     existing_attributes = session.query(ProductAttribute).first()
     if existing_attributes:
-        print("✓ ProductAttribute table already has data, skipping insert")
+        logger.warning("✓ ProductAttribute table already has data, skipping insert")
         return
 
     # Get first product to link attributes to (for demo purposes)
@@ -421,7 +425,7 @@ def _insert_product_attributes(session: Session, cashier_id: str):
     first_product = session.query(Product).first()
     
     if not first_product:
-        print("✗ No products found, skipping ProductAttribute insert")
+        logger.error("✗ No products found, skipping ProductAttribute insert")
         return
 
     try:
@@ -450,9 +454,9 @@ def _insert_product_attributes(session: Session, cashier_id: str):
         # Insert all attributes
         session.add_all(attributes_to_insert)
         session.commit()
-        print(f"✓ Inserted {len(attributes_to_insert)} product attributes")
+        logger.info("✓ Inserted %s product attributes", len(attributes_to_insert))
         
     except Exception as e:
         session.rollback()
-        print(f"✗ Error inserting product attributes: {e}")
+        logger.error("✗ Error inserting product attributes: %s", e)
         raise 

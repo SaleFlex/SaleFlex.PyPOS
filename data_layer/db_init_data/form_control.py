@@ -23,9 +23,13 @@ SOFTWARE.
 """
 
 from sqlalchemy.orm import Session
+
+from core.logger import get_logger
 from data_layer.model.definition.form import Form
 from data_layer.model.definition.form_control import FormControl
 from data_layer.enums import ControlName, EventName
+
+logger = get_logger(__name__)
 
 
 def _insert_form_controls(session: Session, cashier_id: str):
@@ -49,7 +53,7 @@ def _insert_form_controls(session: Session, cashier_id: str):
     closure_form = session.query(Form).filter(Form.form_no == 6).first()
     
     if not login_form or not sale_form or not main_menu_form or not config_form or not cashier_form or not closure_form:
-        print("⚠ Forms not found. Cannot insert form controls.")
+        logger.warning("Forms not found. Cannot insert form controls.")
         return
     
     # Login form controls
@@ -1705,4 +1709,4 @@ def _insert_form_controls(session: Session, cashier_id: str):
                 control.fk_parent_id = cashier_panel_control.id
     
     session.commit()
-    print(f"✓ {len(all_controls)} form controls inserted successfully") 
+    logger.info("%s form controls inserted successfully", len(all_controls)) 

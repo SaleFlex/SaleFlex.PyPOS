@@ -33,6 +33,11 @@ from data_layer.db_init_data.campaign import _insert_campaigns
 from data_layer.db_init_data.loyalty import _insert_loyalty
 from data_layer.db_init_data.customer_segment import _insert_customer_segments
 
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 def insert_initial_data(engine: Engine):
     """
     Inserts initial data (only if tables are empty)
@@ -136,8 +141,8 @@ def insert_initial_data(engine: Engine):
             _insert_pos_settings(session, admin_cashier.id, gbp_currency)
 
     except SQLAlchemyError as e:
-        print(f"✗ Initial data insertion error: {e}")
+        logger.error("✗ Initial data insertion error: %s", e)
         raise
     except Exception as e:
-        print(f"✗ Unexpected error: {e}")
+        logger.error("✗ Unexpected error: %s", e)
         raise

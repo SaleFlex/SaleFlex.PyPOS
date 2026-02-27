@@ -27,6 +27,11 @@ from typing import Optional, Dict, Any
 from pos.service.vat_service import VatService
 
 
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 class SaleService:
     """
     Sale business logic service.
@@ -401,9 +406,7 @@ class SaleService:
                 return True
                 
         except Exception as e:
-            print(f"[SaleService.ensure_customer_for_head] Error ensuring customer: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("[SaleService.ensure_customer_for_head] Error ensuring customer: %s", e)
             return False
     
     @staticmethod
@@ -448,9 +451,7 @@ class SaleService:
             return True
             
         except Exception as e:
-            print(f"[SaleService.update_document_head_for_sale] Error updating head: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("[SaleService.update_document_head_for_sale] Error updating head: %s", e)
             return False
     
     @staticmethod
@@ -494,7 +495,7 @@ class SaleService:
             from data_layer.auto_save import AutoSaveModel
             
             if not document_data or not document_data.get("head"):
-                print("[SaleService.add_sale_to_document] No document_data or head found")
+                logger.debug("[SaleService.add_sale_to_document] No document_data or head found")
                 return False
             
             head = document_data["head"]
@@ -505,12 +506,12 @@ class SaleService:
             
             # Ensure customer is set
             if not SaleService.ensure_customer_for_head(head, cashier_data):
-                print("[SaleService.add_sale_to_document] Failed to ensure customer")
+                logger.error("[SaleService.add_sale_to_document] Failed to ensure customer")
                 return False
             
             # Update document head fields
             if not SaleService.update_document_head_for_sale(head, current_currency, closure):
-                print("[SaleService.add_sale_to_document] Failed to update head")
+                logger.error("[SaleService.add_sale_to_document] Failed to update head")
                 return False
             
             # Calculate line_no if not provided
@@ -521,11 +522,11 @@ class SaleService:
             if sale_type in ["PLU_CODE", "PLU_BARCODE"]:
                 # PLU sale - create TransactionProductTemp
                 if not product:
-                    print("[SaleService.add_sale_to_document] Product required for PLU sale")
+                    logger.debug("[SaleService.add_sale_to_document] Product required for PLU sale")
                     return False
                 
                 if not product_data:
-                    print("[SaleService.add_sale_to_document] product_data required for PLU sale")
+                    logger.debug("[SaleService.add_sale_to_document] product_data required for PLU sale")
                     return False
                 
                 # Calculate sale using SaleService
@@ -559,20 +560,18 @@ class SaleService:
                 # AutoSaveDict doesn't trigger save on list.append(), so we need to save manually
                 try:
                     product_temp.save()
-                    print(f"[SaleService.add_sale_to_document] ✓ Saved TransactionProductTemp to database")
+                    logger.info("[SaleService.add_sale_to_document] ✓ Saved TransactionProductTemp to database")
                 except Exception as e:
-                    print(f"[SaleService.add_sale_to_document] Error saving TransactionProductTemp: {e}")
-                    import traceback
-                    traceback.print_exc()
+                    logger.error("[SaleService.add_sale_to_document] Error saving TransactionProductTemp: %s", e)
                 
             elif sale_type == "DEPARTMENT":
                 # Department sale - create TransactionDepartmentTemp
                 if not department:
-                    print("[SaleService.add_sale_to_document] Department required for department sale")
+                    logger.debug("[SaleService.add_sale_to_document] Department required for department sale")
                     return False
                 
                 if not product_data:
-                    print("[SaleService.add_sale_to_document] product_data required for department sale")
+                    logger.debug("[SaleService.add_sale_to_document] product_data required for department sale")
                     return False
                 
                 # Calculate department sale using SaleService
@@ -586,7 +585,7 @@ class SaleService:
                 )
                 
                 if not dept_calc["dept_main_group"]:
-                    print("[SaleService.add_sale_to_document] Could not determine department main group")
+                    logger.debug("[SaleService.add_sale_to_document] Could not determine department main group")
                     return False
                 
                 # Create TransactionDepartmentTemp using SaleService
@@ -611,13 +610,11 @@ class SaleService:
                 # AutoSaveDict doesn't trigger save on list.append(), so we need to save manually
                 try:
                     dept_temp.save()
-                    print(f"[SaleService.add_sale_to_document] ✓ Saved TransactionDepartmentTemp to database")
+                    logger.info("[SaleService.add_sale_to_document] ✓ Saved TransactionDepartmentTemp to database")
                 except Exception as e:
-                    print(f"[SaleService.add_sale_to_document] Error saving TransactionDepartmentTemp: {e}")
-                    import traceback
-                    traceback.print_exc()
+                    logger.error("[SaleService.add_sale_to_document] Error saving TransactionDepartmentTemp: %s", e)
             else:
-                print(f"[SaleService.add_sale_to_document] Invalid sale_type: {sale_type}")
+                logger.debug("[SaleService.add_sale_to_document] Invalid sale_type: %s", sale_type)
                 return False
             
             # Update TransactionHeadTemp totals using SaleService
@@ -625,13 +622,11 @@ class SaleService:
             head.total_amount = totals["total_amount"]
             head.total_vat_amount = totals["total_vat_amount"]
             
-            print(f"[SaleService.add_sale_to_document] ✓ Added {sale_type} sale to document")
+            logger.info("[SaleService.add_sale_to_document] ✓ Added %s sale to document", sale_type)
             return True
             
         except Exception as e:
-            print(f"[SaleService.add_sale_to_document] Error adding sale to document: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("[SaleService.add_sale_to_document] Error adding sale to document: %s", e)
             return False
     
     @staticmethod
@@ -777,12 +772,10 @@ class SaleService:
                         # Amount discount
                         sale_list.add_discount_by_amount_line(discount_amount, product_name)
             
-            print(f"[SaleService.update_sale_list] Added {len(items_to_add)} items to sale_list")
+            logger.info("[SaleService.update_sale_list] Added %s items to sale_list", len(items_to_add))
             
         except Exception as e:
-            print(f"[SaleService.update_sale_list] Error updating sale_list: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("[SaleService.update_sale_list] Error updating sale_list: %s", e)
     
     @staticmethod
     def update_amount_table_from_document(amount_table, head):
@@ -823,12 +816,10 @@ class SaleService:
             # 3. Payment Amount (this will calculate Balance = Net Amount - Payment Amount)
             amount_table.receipt_total_payment = payment_amount
             
-            print(f"[SaleService.update_amount_table] Updated totals: sales={total_amount}, discount={discount_amount}, net={total_amount - discount_amount}, payment={payment_amount}")
+            logger.debug("[SaleService.update_amount_table] Updated totals: sales=%s, discount=%s, net=%s, payment=%s", total_amount, discount_amount, total_amount - discount_amount, payment_amount)
             
         except Exception as e:
-            print(f"[SaleService.update_amount_table] Error updating amount_table: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("[SaleService.update_amount_table] Error updating amount_table: %s", e)
     
     @staticmethod
     def update_payment_list_from_document(payment_list, document_data: Dict[str, Any]):
@@ -875,12 +866,10 @@ class SaleService:
                     payment_id=payment_id
                 )
             
-            print(f"[SaleService.update_payment_list] Added {len(sorted_payments)} payments to payment_list")
+            logger.info("[SaleService.update_payment_list] Added %s payments to payment_list", len(sorted_payments))
             
         except Exception as e:
-            print(f"[SaleService.update_payment_list] Error updating payment_list: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("[SaleService.update_payment_list] Error updating payment_list: %s", e)
     
     @staticmethod
     def update_sale_screen_controls(window, document_data: Dict[str, Any], 
@@ -913,7 +902,7 @@ class SaleService:
             # Get head and check transaction_status
             head = unwrapped_data.get("head")
             if not head:
-                print("[SaleService.update_sale_screen_controls] No head found in document_data")
+                logger.debug("[SaleService.update_sale_screen_controls] No head found in document_data")
                 return False
             
             # Unwrap if it's an AutoSaveModel
@@ -922,10 +911,10 @@ class SaleService:
             
             # Check transaction_status - only update if ACTIVE
             if head.transaction_status != TransactionStatus.ACTIVE.value:
-                print(f"[SaleService.update_sale_screen_controls] Transaction status is '{head.transaction_status}', not ACTIVE. Skipping update.")
+                logger.warning("[SaleService.update_sale_screen_controls] Transaction status is '%s', not ACTIVE. Skipping update.", head.transaction_status)
                 return False
             
-            print("[SaleService.update_sale_screen_controls] Updating sale screen controls for ACTIVE transaction...")
+            logger.debug("[SaleService.update_sale_screen_controls] Updating sale screen controls for ACTIVE transaction...")
             
             # Update sale_list with products and departments
             if hasattr(window, 'sale_list') and window.sale_list:
@@ -939,12 +928,10 @@ class SaleService:
             if hasattr(window, 'payment_list') and window.payment_list:
                 SaleService.update_payment_list_from_document(window.payment_list, unwrapped_data)
             
-            print("[SaleService.update_sale_screen_controls] ✓ Sale screen controls updated successfully")
+            logger.info("[SaleService.update_sale_screen_controls] ✓ Sale screen controls updated successfully")
             return True
             
         except Exception as e:
-            print(f"[SaleService.update_sale_screen_controls] Error updating sale screen controls: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("[SaleService.update_sale_screen_controls] Error updating sale screen controls: %s", e)
             return False
 

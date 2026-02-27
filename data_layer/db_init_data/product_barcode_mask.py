@@ -25,6 +25,11 @@ SOFTWARE.
 from data_layer.model import ProductBarcodeMask
 
 
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 def _insert_product_barcode_masks(session, admin_cashier_id: int):
     """Insert default product barcode masks if not exists"""
     barcode_mask_exists = session.query(ProductBarcodeMask).first()
@@ -43,4 +48,4 @@ def _insert_product_barcode_masks(session, admin_cashier_id: int):
         weighed_goods_mask.fk_cashier_update_id = admin_cashier_id
 
         session.add(weighed_goods_mask)
-        print("✓ Default product barcode mask added: WEIGHED GOODS")
+        logger.info("✓ Default product barcode mask added: WEIGHED GOODS")

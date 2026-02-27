@@ -26,7 +26,10 @@ from decimal import Decimal
 from datetime import date, datetime
 from collections import defaultdict
 
+from core.logger import get_logger
 from data_layer.engine import Engine
+
+logger = get_logger(__name__)
 from data_layer.model import (
     TransactionHead,
     TransactionSequence,
@@ -92,7 +95,7 @@ class ClosureEvent:
             bool: True if closure completed successfully, False otherwise.
         """
 
-        print("[CLOSURE] _closure_event method called!")
+        logger.debug("[CLOSURE] _closure_event method called!")
 
         try:
             if not self.login_succeed:
@@ -110,7 +113,7 @@ class ClosureEvent:
                     "Only authorized cashiers (administrators) can perform closure.",
                 )
                 return False
-            print("[CLOSURE] Login succeeded and cashier data is set.")
+            logger.debug("[CLOSURE] Login succeeded and cashier data is set.")
             # Get current closure number from transaction_sequence
             current_closure_number = self._get_sequence_value("ClosureNumber")
             if current_closure_number is None:
@@ -123,6 +126,7 @@ class ClosureEvent:
                 is_deleted=False,
             )
             if not heads:
+                logger.debug("[CLOSURE] No transactions found for closure number", current_closure_number)
                 self._show_closure_error(
                     "Closure not allowed",
                     f"No transactions found for closure number {current_closure_number}. Closure cannot be performed.",
@@ -185,13 +189,11 @@ class ClosureEvent:
             # Update current_data: create new open closure and load it into self.closure
             self.create_empty_closure()
 
-            print("[CLOSURE] Closure completed successfully.", "Closure Number:", current_closure_number)
+            logger.info("[CLOSURE] Closure completed successfully. Closure Number: %s", current_closure_number)
             return True
 
         except Exception as e:
-            print(f"[CLOSURE] Error during closure: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.exception("[CLOSURE] Error during closure: %s", e)
             self._show_closure_error("Closure error", str(e))
             return False
 
@@ -212,7 +214,7 @@ class ClosureEvent:
                 pass
             MessageForm.show_error(parent, title, line2)
         except Exception as e:
-            print(f"[CLOSURE] Could not show message form: {e}")
+            logger.warning("[CLOSURE] Could not show message form: %s", e)
 
     def _get_sequence_value(self, name: str) -> int | None:
         """Get value for a sequence by name from database."""
@@ -385,7 +387,7 @@ class ClosureEvent:
             c.create()
             return c
         except Exception as e:
-            print(f"[CLOSURE] Create closure record error: {e}")
+            logger.error("[CLOSURE] Create closure record error: %s", e)
             return None
 
     def _create_closure_vat_summaries(self, closure_id, head_ids, totals):
@@ -562,7 +564,7 @@ class ClosureEvent:
                 session.commit()
             return True
         except Exception as e:
-            print(f"[CLOSURE] Update sequences error: {e}")
+            logger.error("[CLOSURE] Update sequences error: %s", e)
             return False
 
     def _closure_form_event(self):
@@ -578,26 +580,24 @@ class ClosureEvent:
         Returns:
             bool: True if form opened successfully, False otherwise
         """
-        print("\n[CLOSURE_FORM] Navigating to closure form...")
+        logger.debug("[CLOSURE_FORM] Navigating to closure form...")
 
         try:
             from data_layer.enums import FormName
 
             if not self.login_succeed:
-                print("[CLOSURE_FORM] User not logged in")
+                logger.warning("[CLOSURE_FORM] User not logged in")
                 return False
 
             result = self.show_form(FormName.CLOSURE.name)
 
             if result:
-                print("[CLOSURE_FORM] Closure form opened successfully")
+                logger.info("[CLOSURE_FORM] Closure form opened successfully")
             else:
-                print("[CLOSURE_FORM] Failed to open closure form")
+                logger.warning("[CLOSURE_FORM] Failed to open closure form")
 
             return result
 
         except Exception as e:
-            print(f"[CLOSURE_FORM] Error opening closure form: {str(e)}")
-            import traceback
-            traceback.print_exc()
+            logger.exception("[CLOSURE_FORM] Error opening closure form: %s", e)
             return False

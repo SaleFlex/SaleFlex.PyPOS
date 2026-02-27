@@ -27,13 +27,18 @@ from sqlalchemy.orm import Session
 from data_layer.model.definition import LoyaltyProgram, LoyaltyTier
 
 
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 def _insert_loyalty_program(session: Session, admin_cashier_id):
     """
     Insert default loyalty program
     """
     existing = session.query(LoyaltyProgram).first()
     if existing:
-        print("Loyalty program already exists, skipping...")
+        logger.warning("Loyalty program already exists, skipping...")
         return existing
 
     loyalty_program = LoyaltyProgram(
@@ -53,7 +58,7 @@ def _insert_loyalty_program(session: Session, admin_cashier_id):
 
     session.add(loyalty_program)
     session.commit()
-    print("✓ Inserted default loyalty program")
+    logger.info("✓ Inserted default loyalty program")
     return loyalty_program
 
 
@@ -63,7 +68,7 @@ def _insert_loyalty_tiers(session: Session, loyalty_program_id):
     """
     existing = session.query(LoyaltyTier).first()
     if existing:
-        print("Loyalty tiers already exist, skipping...")
+        logger.warning("Loyalty tiers already exist, skipping...")
         return
 
     tiers = [
@@ -137,7 +142,7 @@ def _insert_loyalty_tiers(session: Session, loyalty_program_id):
         session.add(tier)
 
     session.commit()
-    print(f"✓ Inserted {len(tiers)} loyalty tiers")
+    logger.info("✓ Inserted %s loyalty tiers", len(tiers))
 
 
 def _insert_loyalty(session: Session, admin_cashier_id):

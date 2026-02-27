@@ -23,6 +23,11 @@ SOFTWARE.
 """
 
 
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 class ServiceEvent:
     """
     Service Event Handler for POS system maintenance and service operations.
@@ -56,7 +61,7 @@ class ServiceEvent:
             return False
             
         # TODO: Implement company information service
-        print("Service company info - functionality to be implemented")
+        logger.debug("Service company info - functionality to be implemented")
         return False
     
     def _service_change_date_time_event(self):
@@ -74,7 +79,7 @@ class ServiceEvent:
             return False
             
         # TODO: Implement date/time change service
-        print("Service change date/time - functionality to be implemented")
+        logger.debug("Service change date/time - functionality to be implemented")
         return False
     
     # ==================== SYSTEM CONFIGURATION SERVICES ====================
@@ -94,7 +99,7 @@ class ServiceEvent:
             return False
             
         # TODO: Implement parameter download service
-        print("Service parameter download - functionality to be implemented")
+        logger.debug("Service parameter download - functionality to be implemented")
         return False
     
     def _service_set_receipt_limit_event(self):
@@ -112,7 +117,7 @@ class ServiceEvent:
             return False
             
         # TODO: Implement service receipt limit configuration
-        print("Service set receipt limit - functionality to be implemented")
+        logger.debug("Service set receipt limit - functionality to be implemented")
         return False
     
     def _service_pos_active_event(self):
@@ -130,7 +135,7 @@ class ServiceEvent:
             return False
             
         # TODO: Implement POS activation service
-        print("Service POS active - functionality to be implemented")
+        logger.debug("Service POS active - functionality to be implemented")
         return False
     
     # ==================== SYSTEM RECOVERY SERVICES ====================
@@ -152,7 +157,7 @@ class ServiceEvent:
             return False
             
         # TODO: Implement factory reset service with confirmation
-        print("Service reset to factory mode - functionality to be implemented")
+        logger.debug("Service reset to factory mode - functionality to be implemented")
         return False
     
     # ==================== PASSWORD MANAGEMENT SERVICES ====================
@@ -172,7 +177,7 @@ class ServiceEvent:
             return False
             
         # TODO: Implement service password reset
-        print("Service reset password - functionality to be implemented")
+        logger.debug("Service reset password - functionality to be implemented")
         return False
     
     def _service_change_password_event(self):
@@ -190,7 +195,7 @@ class ServiceEvent:
             return False
             
         # TODO: Implement service password change
-        print("Service change password - functionality to be implemented")
+        logger.debug("Service change password - functionality to be implemented")
         return False
     
     # ==================== SOFTWARE UPDATE SERVICES ====================
@@ -210,7 +215,7 @@ class ServiceEvent:
             return False
             
         # TODO: Implement software download service
-        print("Service software download - functionality to be implemented")
+        logger.debug("Service software download - functionality to be implemented")
         return False
     
     # ==================== DATA SERVICES ====================
@@ -230,5 +235,5 @@ class ServiceEvent:
             return False
             
         # TODO: Implement PLU list download service
-        print("Service get PLU list - functionality to be implemented")
+        logger.debug("Service get PLU list - functionality to be implemented")
         return False 

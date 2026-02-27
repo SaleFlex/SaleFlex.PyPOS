@@ -22,6 +22,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 from datetime import date, datetime
 from uuid import uuid4
 from data_layer.model import (
@@ -72,22 +76,18 @@ class ClosureManager:
                 if open_closure:
                     # Load closure with all summary data
                     self._load_closure_data(open_closure.id)
-                    print(f"[DEBUG] Loaded open closure: {open_closure.closure_unique_id}")
+                    logger.info("[DEBUG] Loaded open closure: %s", open_closure.closure_unique_id)
                 else:
                     # No open closure exists, create a new empty one
-                    print("[DEBUG] No open closure found, creating new empty closure")
+                    logger.debug("[DEBUG] No open closure found, creating new empty closure")
                     self.create_empty_closure()
         except Exception as e:
-            print(f"[DEBUG] Error loading open closure: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("[DEBUG] Error loading open closure: %s", e)
             # On error, try to create a new empty closure
             try:
                 self.create_empty_closure()
             except Exception as e2:
-                print(f"[DEBUG] Error creating empty closure: {e2}")
-                import traceback
-                traceback.print_exc()
+                logger.error("[DEBUG] Error creating empty closure: %s", e2)
     
     def _load_closure_data(self, closure_id):
         """
@@ -100,7 +100,7 @@ class ClosureManager:
             # Load main closure record using CRUD.get_by_id()
             closure = Closure.get_by_id(closure_id)
             if not closure:
-                print(f"[DEBUG] Closure not found: {closure_id}")
+                logger.error("[DEBUG] Closure not found: %s", closure_id)
                 return
             
             # Initialize closure dictionary
@@ -154,13 +154,11 @@ class ClosureManager:
                 fk_closure_id=closure_id, is_deleted=False
             )
             
-            print(f"[DEBUG] Loaded closure data: {len(self.closure['cashier_summaries'])} cashiers, "
-                  f"{len(self.closure['currencies'])} currencies, "
-                  f"{len(self.closure['department_summaries'])} departments")
+            logger.info("[DEBUG] Loaded closure data: %s cashiers, "
+                  f"%s currencies, "
+                  f"%s departments", len(self.closure['cashier_summaries']), len(self.closure['currencies']), len(self.closure['department_summaries']))
         except Exception as e:
-            print(f"[DEBUG] Error loading closure data: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("[DEBUG] Error loading closure data: %s", e)
     
     def create_empty_closure(self):
         """
@@ -186,7 +184,7 @@ class ClosureManager:
         try:
             # Validate required data
             if not self.pos_settings:
-                print("[DEBUG] Cannot create closure: pos_settings not loaded")
+                logger.error("[DEBUG] Cannot create closure: pos_settings not loaded")
                 return
             
             # Get store_id from pos_data["Store"]
@@ -194,9 +192,9 @@ class ClosureManager:
             stores = self.pos_data.get("Store", [])
             if stores:
                 store_id = stores[0].id
-                print(f"[DEBUG] Using store for closure: {store_id}")
+                logger.debug("[DEBUG] Using store for closure: %s", store_id)
             else:
-                print("[DEBUG] Cannot create closure: no store found in pos_data")
+                logger.error("[DEBUG] Cannot create closure: no store found in pos_data")
                 return
             
             # Get base currency from pos_settings
@@ -209,7 +207,7 @@ class ClosureManager:
                 if currencies:
                     base_currency_id = currencies[0].id
                 else:
-                    print("[DEBUG] Cannot create closure: no currency found")
+                    logger.error("[DEBUG] Cannot create closure: no currency found")
                     return
             
             # Get cashier ID (use current cashier if logged in, otherwise use first cashier as fallback)
@@ -221,9 +219,9 @@ class ClosureManager:
                 cashiers = self.pos_data.get("Cashier", [])
                 if cashiers:
                     cashier_id = cashiers[0].id
-                    print(f"[DEBUG] Using fallback cashier for closure: {cashier_id}")
+                    logger.debug("[DEBUG] Using fallback cashier for closure: %s", cashier_id)
                 else:
-                    print("[DEBUG] Warning: No cashier available, closure will be created without cashier")
+                    logger.warning("[DEBUG] Warning: No cashier available, closure will be created without cashier")
                     # Note: fk_cashier_opened_id is nullable=False, so we need a cashier
                     # In production, you might want to create a system cashier or handle this differently
                     return
@@ -268,11 +266,9 @@ class ClosureManager:
             # Load the closure data into self.closure
             self._load_closure_data(new_closure.id)
             
-            print(f"[DEBUG] Created new empty closure: {closure_unique_id}")
+            logger.info("[DEBUG] Created new empty closure: %s", closure_unique_id)
         except Exception as e:
-            print(f"[DEBUG] Error creating empty closure: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("[DEBUG] Error creating empty closure: %s", e)
     
     def close_closure(self, closing_cash_amount=None, description=None):
         """
@@ -292,11 +288,11 @@ class ClosureManager:
         from datetime import datetime
         
         if not self.closure or not self.closure.get("closure"):
-            print("[DEBUG] No open closure to close")
+            logger.debug("[DEBUG] No open closure to close")
             return
         
         if not self.cashier_data:
-            print("[DEBUG] Cannot close closure: cashier_data not set (user not logged in)")
+            logger.error("[DEBUG] Cannot close closure: cashier_data not set (user not logged in)")
             return
         
         try:
@@ -356,13 +352,11 @@ class ClosureManager:
                 elif not country_specific.id and hasattr(country_specific, 'create'):
                     country_specific.create()
             
-            print(f"[DEBUG] Closed closure: {closure.closure_unique_id}")
+            logger.debug("[DEBUG] Closed closure: %s", closure.closure_unique_id)
             
             # Create new empty closure
             self.create_empty_closure()
             
         except Exception as e:
-            print(f"[DEBUG] Error closing closure: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("[DEBUG] Error closing closure: %s", e)
 

@@ -26,13 +26,18 @@ from sqlalchemy.orm import Session
 from data_layer.model.definition import CustomerSegment
 
 
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 def _insert_customer_segments(session: Session):
     """
     Insert default customer segments
     """
     existing = session.query(CustomerSegment).first()
     if existing:
-        print("Customer segments already exist, skipping...")
+        logger.warning("Customer segments already exist, skipping...")
         return
 
     segments = [
@@ -114,5 +119,5 @@ def _insert_customer_segments(session: Session):
         session.add(segment)
 
     session.commit()
-    print(f"✓ Inserted {len(segments)} customer segments")
+    logger.info("✓ Inserted %s customer segments", len(segments))
 

@@ -23,6 +23,11 @@ SOFTWARE.
 """
 
 
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 class HardwareEvent:
     """
     Hardware Event Handler for POS system hardware operations.
@@ -69,7 +74,7 @@ class HardwareEvent:
             # - USB device commands
             # - Network-connected drawer controls
             
-            print("Opening cash drawer - functionality to be implemented")
+            logger.debug("Opening cash drawer - functionality to be implemented")
             
             # Log the drawer opening event
             # TODO: Add audit logging for drawer operations
@@ -77,5 +82,5 @@ class HardwareEvent:
             return True
             
         except Exception as e:
-            print(f"Error opening cash drawer: {str(e)}")
+            logger.error("Error opening cash drawer: %s", str(e))
             return False 

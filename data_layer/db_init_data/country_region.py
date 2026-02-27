@@ -26,6 +26,11 @@ from data_layer.model.definition.country_region import CountryRegion
 from data_layer.model.definition.country import Country
 
 
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 def _insert_country_regions(session, admin_cashier_id):
     """
     Insert country regions (states, provinces, special economic zones) if not exists.
@@ -39,15 +44,15 @@ def _insert_country_regions(session, admin_cashier_id):
         session: Database session
         admin_cashier_id: Admin cashier ID for audit fields
     """
-    print("[DEBUG] _insert_country_regions called")
+    logger.debug("[DEBUG] _insert_country_regions called")
     
     # Check if regions already exist
     region_exists = session.query(CountryRegion).first()
     if region_exists:
-        print("✓ Country regions already exist")
+        logger.info("✓ Country regions already exist")
         return
     
-    print("[DEBUG] Creating country regions...")
+    logger.debug("[DEBUG] Creating country regions...")
     
     # Get countries
     usa = session.query(Country).filter_by(iso_alpha2='US').first()
@@ -235,5 +240,5 @@ def _insert_country_regions(session, admin_cashier_id):
         session.add(region)
     
     session.commit()
-    print(f"✓ Inserted {len(regions_data)} country regions")
+    logger.info("✓ Inserted %s country regions", len(regions_data))
 

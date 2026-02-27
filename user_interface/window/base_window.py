@@ -24,6 +24,10 @@ SOFTWARE.
 
 import os
 from PySide6.QtWidgets import QMainWindow
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon, QColor, QLinearGradient, QBrush, QPalette
 
@@ -183,7 +187,7 @@ class BaseWindow(QMainWindow):
                     return values
             except RuntimeError:
                 # Widget already deleted
-                print(f"[GET_PANEL_VALUES] ⚠ Panel '{panel_name}' widget already deleted")
+                logger.warning("[GET_PANEL_VALUES] Panel '%s' widget already deleted", panel_name)
                 return values
             
             # Get all textboxes from panel's content widget
@@ -198,7 +202,7 @@ class BaseWindow(QMainWindow):
                     _ = content_widget.children()
                 except RuntimeError:
                     # Widget already deleted
-                    print(f"[GET_PANEL_VALUES] ⚠ Content widget for panel '{panel_name}' already deleted")
+                    logger.warning("[GET_PANEL_VALUES] Content widget for panel '%s' already deleted", panel_name)
                     return values
                 
                 for child in content_widget.findChildren(TextBox):
@@ -220,14 +224,14 @@ class BaseWindow(QMainWindow):
                         values[field_name] = child.text()
             except RuntimeError as e:
                 # Widget already deleted
-                print(f"[GET_PANEL_VALUES] ⚠ Error accessing panel '{panel_name}': {e}")
+                logger.warning("[GET_PANEL_VALUES] Error accessing panel '%s': %s", panel_name, e)
                 return values
             except Exception as e:
-                print(f"[GET_PANEL_VALUES] ⚠ Unexpected error accessing panel '{panel_name}': {e}")
+                logger.warning("[GET_PANEL_VALUES] Unexpected error accessing panel '%s': %s", panel_name, e)
                 return values
         
         except Exception as e:
-            print(f"[GET_PANEL_VALUES] ⚠ Error getting panel values for '{panel_name}': {e}")
+            logger.warning("[GET_PANEL_VALUES] Error getting panel values for '%s': %s", panel_name, e)
             return values
         
         return values
@@ -562,7 +566,7 @@ class BaseWindow(QMainWindow):
                             if instances and len(instances) > 0:
                                 model_instance = instances[0]
                     except Exception as e:
-                        print(f"[LOAD_DATA] Error loading model class {model_class_name}: {e}")
+                        logger.error("[LOAD_DATA] Error loading model class %s: %s", model_class_name, e)
                 
                 # Load value from model instance
                 if model_instance:
@@ -571,11 +575,9 @@ class BaseWindow(QMainWindow):
                         if value is not None:
                             # Convert to string for textbox
                             textbox.setText(str(value))
-                            print(f"[LOAD_DATA] Loaded {field_name} = {value} into textbox '{textbox_name}' (panel: {panel_name}, model: {model_class_name})")
+                            logger.debug("[LOAD_DATA] Loaded %s = %s into textbox '%s' (panel: %s, model: %s)", field_name, value, textbox_name, panel_name, model_class_name)
                     except Exception as e:
-                        print(f"[LOAD_DATA] Error loading {field_name} from {model_class_name}: {e}")
-                        import traceback
-                        traceback.print_exc()
+                        logger.error("[LOAD_DATA] Error loading %s from %s: %s", field_name, model_class_name, e)
 
     def _create_combobox(self, design_data):
         # Resolve parent: panel content widget or window
@@ -750,8 +752,7 @@ class BaseWindow(QMainWindow):
 
             except Exception as e:
                 import traceback
-                print(f"Error loading closure data: {e}")
-                traceback.print_exc()
+                logger.exception("Error loading closure data: %s", e)
                 datagrid.set_columns(["No Data Available"])
                 datagrid.set_data([])
         

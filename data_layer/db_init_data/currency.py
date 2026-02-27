@@ -25,6 +25,11 @@ SOFTWARE.
 from data_layer.model import Currency
 
 
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 def _insert_currencies(session):
     """Insert default currencies if not exists
     
@@ -454,7 +459,7 @@ def _insert_currencies(session):
             if currency_data["sign"] == "GBP":
                 gbp_currency = currency
         
-        print("✓ Default currencies added (40 currencies)")
+        logger.info("✓ Default currencies added (40 currencies)")
         return gbp_currency  # Return GBP currency for use in PosSettings
     else:
         # Currencies already exist, find and return GBP currency

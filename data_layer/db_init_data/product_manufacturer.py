@@ -25,6 +25,11 @@ SOFTWARE.
 from data_layer.model import ProductManufacturer
 
 
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 def _insert_product_manufacturers(session):
     """Insert default product manufacturers if not exists"""
     manufacturer_exists = session.query(ProductManufacturer).first()
@@ -34,4 +39,4 @@ def _insert_product_manufacturers(session):
             description="Default manufacturer for products without specific manufacturer"
         )
         session.add(default_manufacturer)
-        print("✓ Default product manufacturer added")
+        logger.info("✓ Default product manufacturer added")

@@ -25,6 +25,11 @@ SOFTWARE.
 from data_layer.model import City, Country
 
 
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 def _insert_cities(session):
     """Insert UK cities if not exists"""
     city_exists = session.query(City).first()
@@ -32,7 +37,7 @@ def _insert_cities(session):
         # First, get the UK country ID
         uk_country = session.query(Country).filter_by(iso_alpha2="GB").first()
         if not uk_country:
-            print("⚠ UK country not found, skipping city insertion")
+            logger.error("⚠ UK country not found, skipping city insertion")
             return
 
         cities = [
@@ -125,4 +130,4 @@ def _insert_cities(session):
             )
             session.add(city)
 
-        print("✓ UK cities added (74 cities)")
+        logger.info("✓ UK cities added (74 cities)")

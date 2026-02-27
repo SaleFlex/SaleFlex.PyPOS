@@ -25,6 +25,11 @@ SOFTWARE.
 from data_layer.model import Vat
 
 
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 def _insert_vat_rates(session, admin_cashier_id: int):
     """Insert default VAT rates if not exists"""
     vat_exists = session.query(Vat).first()
@@ -46,4 +51,4 @@ def _insert_vat_rates(session, admin_cashier_id: int):
             vat.fk_cashier_create_id = admin_cashier_id
             vat.fk_cashier_update_id = admin_cashier_id
             session.add(vat)
-        print("✓ Default VAT rates added")
+        logger.info("✓ Default VAT rates added")

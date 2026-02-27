@@ -25,6 +25,11 @@ SOFTWARE.
 from data_layer.model import LabelValue
 
 
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 def _insert_label_values(session):
     """Insert default label values if not exists"""
     label_value_exists = session.query(LabelValue).first()
@@ -128,4 +133,4 @@ def _insert_label_values(session):
             )
             session.add(label_value)
 
-        print("✓ Default label values added (80 labels)") 
+        logger.info("✓ Default label values added (80 labels)") 

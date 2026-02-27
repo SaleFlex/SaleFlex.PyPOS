@@ -27,6 +27,10 @@ from sqlalchemy.orm import Session
 from data_layer.model.definition.product_variant import ProductVariant
 
 # Example product variants - these would be linked to actual products
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
 PRODUCT_VARIANTS = [
     # Clothing variants
     {
@@ -234,7 +238,7 @@ def _insert_product_variants(session: Session, cashier_id: str):
     # Check if ProductVariant table already has data
     existing_variants = session.query(ProductVariant).first()
     if existing_variants:
-        print("✓ ProductVariant table already has data, skipping insert")
+        logger.warning("✓ ProductVariant table already has data, skipping insert")
         return
 
     # Get first product to link variants to (for demo purposes)
@@ -242,7 +246,7 @@ def _insert_product_variants(session: Session, cashier_id: str):
     first_product = session.query(Product).first()
     
     if not first_product:
-        print("✗ No products found, skipping ProductVariant insert")
+        logger.error("✗ No products found, skipping ProductVariant insert")
         return
 
     try:
@@ -270,9 +274,9 @@ def _insert_product_variants(session: Session, cashier_id: str):
         # Insert all variants
         session.add_all(variants_to_insert)
         session.commit()
-        print(f"✓ Inserted {len(variants_to_insert)} product variants")
+        logger.info("✓ Inserted %s product variants", len(variants_to_insert))
         
     except Exception as e:
         session.rollback()
-        print(f"✗ Error inserting product variants: {e}")
+        logger.error("✗ Error inserting product variants: %s", e)
         raise 

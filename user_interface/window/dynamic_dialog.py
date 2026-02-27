@@ -25,6 +25,10 @@ SOFTWARE.
 import os
 from PySide6.QtWidgets import QDialog
 from PySide6.QtCore import Qt
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
 from PySide6.QtGui import QIcon, QColor, QLinearGradient, QBrush, QPalette
 
 from user_interface.control import TextBox, Button, NumPad, PaymentList, SaleList, ComboBox, AmountTable, Label, DataGrid, Panel
@@ -201,7 +205,7 @@ class DynamicDialog(QDialog):
                 if not hasattr(panel, 'get_content_widget'):
                     return values
             except RuntimeError:
-                print(f"[GET_PANEL_VALUES] Panel '{panel_name}' widget already deleted")
+                logger.warning("[GET_PANEL_VALUES] Panel '%s' widget already deleted", panel_name)
                 return values
             
             try:
@@ -212,7 +216,7 @@ class DynamicDialog(QDialog):
                 try:
                     _ = content_widget.children()
                 except RuntimeError:
-                    print(f"[GET_PANEL_VALUES] Content widget for panel '{panel_name}' already deleted")
+                    logger.warning("[GET_PANEL_VALUES] Content widget for panel '%s' already deleted", panel_name)
                     return values
                 
                 for child in content_widget.findChildren(TextBox):
@@ -226,14 +230,14 @@ class DynamicDialog(QDialog):
                         field_name = textbox_name.lower()
                         values[field_name] = child.text()
             except RuntimeError as e:
-                print(f"[GET_PANEL_VALUES] Error accessing panel '{panel_name}': {e}")
+                logger.warning("[GET_PANEL_VALUES] Error accessing panel '%s': %s", panel_name, e)
                 return values
             except Exception as e:
-                print(f"[GET_PANEL_VALUES] Unexpected error accessing panel '{panel_name}': {e}")
+                logger.warning("[GET_PANEL_VALUES] Unexpected error accessing panel '%s': %s", panel_name, e)
                 return values
         
         except Exception as e:
-            print(f"[GET_PANEL_VALUES] Error getting panel values for '{panel_name}': {e}")
+            logger.warning("[GET_PANEL_VALUES] Error getting panel values for '%s': %s", panel_name, e)
             return values
         
         return values
@@ -643,8 +647,7 @@ class DynamicDialog(QDialog):
                 datagrid.set_data(data_rows)
             except Exception as e:
                 import traceback
-                print(f"Error loading closure data: {e}")
-                traceback.print_exc()
+                logger.exception("Error loading closure data: %s", e)
                 datagrid.set_columns(["No Data Available"])
                 datagrid.set_data([])
         

@@ -30,6 +30,11 @@ from data_layer.model.definition.transaction_payment_temp import TransactionPaym
 from data_layer.model.definition.transaction_change_temp import TransactionChangeTemp
 
 
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 class PaymentService:
     """
     Payment business logic service.
@@ -80,7 +85,7 @@ class PaymentService:
             return Decimal(str(value))
             
         except (ValueError, InvalidOperation, TypeError):
-            print(f"[PAYMENT_SERVICE] Warning: Could not convert {value} ({type(value)}) to Decimal, using 0")
+            logger.warning("[PAYMENT_SERVICE] Warning: Could not convert %s (%s) to Decimal, using 0", value, type(value))
             return Decimal('0')
     
     @staticmethod
@@ -308,19 +313,17 @@ class PaymentService:
             is_complete = difference < Decimal('0.01')
             
             # Debug logging
-            print(f"[PAYMENT_SERVICE] Document completion check:")
-            print(f"  total_amount: {total_amount}")
-            print(f"  total_payment: {total_payment}")
-            print(f"  total_change: {total_change}")
-            print(f"  difference: {difference}")
-            print(f"  is_complete: {is_complete}")
+            logger.debug("[PAYMENT_SERVICE] Document completion check:")
+            logger.debug("  total_amount: %s", total_amount)
+            logger.debug("  total_payment: %s", total_payment)
+            logger.debug("  total_change: %s", total_change)
+            logger.debug("  difference: %s", difference)
+            logger.debug("  is_complete: %s", is_complete)
             
             return is_complete
             
         except Exception as e:
-            print(f"[PAYMENT_SERVICE] Error checking document completion: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("[PAYMENT_SERVICE] Error checking document completion: %s", e)
             return False
     
     @staticmethod
@@ -414,9 +417,7 @@ class PaymentService:
             return True
             
         except Exception as e:
-            print(f"[PAYMENT_SERVICE] Error updating closure: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("[PAYMENT_SERVICE] Error updating closure: %s", e)
             return False
     
     @staticmethod
@@ -478,8 +479,6 @@ class PaymentService:
             return True
             
         except Exception as e:
-            print(f"[PAYMENT_SERVICE] Error copying temp to permanent: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("[PAYMENT_SERVICE] Error copying temp to permanent: %s", e)
             return False
 

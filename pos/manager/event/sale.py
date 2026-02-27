@@ -23,6 +23,11 @@ SOFTWARE.
 """
 
 
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 class SaleEvent:
     """
     Sales Event Handler for POS transaction operations.
@@ -55,17 +60,17 @@ class SaleEvent:
         
         # Check if document_data exists
         if not self.document_data:
-            print("[ENSURE_DOCUMENT_OPEN] document_data is None, creating empty document...")
+            logger.debug("[ENSURE_DOCUMENT_OPEN] document_data is None, creating empty document...")
             if not self.create_empty_document():
-                print("[ENSURE_DOCUMENT_OPEN] Failed to create empty document")
+                logger.error("[ENSURE_DOCUMENT_OPEN] Failed to create empty document")
                 return False
             return True
         
         # Check if document has a head
         if not self.document_data.get("head"):
-            print("[ENSURE_DOCUMENT_OPEN] document_data has no head, creating empty document...")
+            logger.debug("[ENSURE_DOCUMENT_OPEN] document_data has no head, creating empty document...")
             if not self.create_empty_document():
-                print("[ENSURE_DOCUMENT_OPEN] Failed to create empty document")
+                logger.error("[ENSURE_DOCUMENT_OPEN] Failed to create empty document")
                 return False
             return True
         
@@ -75,9 +80,9 @@ class SaleEvent:
         transaction_status = getattr(head, 'transaction_status', None)
         
         if is_closed or transaction_status == TransactionStatus.COMPLETED.value:
-            print(f"[ENSURE_DOCUMENT_OPEN] Document is closed (is_closed={is_closed}, status={transaction_status}), creating new empty document...")
+            logger.debug("[ENSURE_DOCUMENT_OPEN] Document is closed (is_closed=%s, status=%s), creating new empty document...", is_closed, transaction_status)
             if not self.create_empty_document():
-                print("[ENSURE_DOCUMENT_OPEN] Failed to create empty document")
+                logger.error("[ENSURE_DOCUMENT_OPEN] Failed to create empty document")
                 return False
             return True
         
@@ -110,7 +115,7 @@ class SaleEvent:
             from pos.service import SaleService
             
             if not self.document_data or not self.document_data.get("head"):
-                print("[UPDATE_DOCUMENT_DATA] No document_data or head found")
+                logger.debug("[UPDATE_DOCUMENT_DATA] No document_data or head found")
                 return False
             
             # Get current currency
@@ -139,14 +144,12 @@ class SaleEvent:
             if success:
                 # Save document_data (AutoSaveDescriptor will handle saving)
                 self.document_data = self.document_data
-                print(f"[UPDATE_DOCUMENT_DATA] ✓ Updated document_data for {sale_type} sale")
+                logger.info("[UPDATE_DOCUMENT_DATA] ✓ Updated document_data for %s sale", sale_type)
             
             return success
             
         except Exception as e:
-            print(f"[UPDATE_DOCUMENT_DATA] Error updating document_data: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("[UPDATE_DOCUMENT_DATA] Error updating document_data: %s", e)
             return False
     
     # ==================== DEPARTMENT SALES EVENTS ====================
@@ -179,38 +182,38 @@ class SaleEvent:
         
         # Ensure document is open (create new if None or closed)
         if not self._ensure_document_open():
-            print("[SALE_DEPARTMENT] Failed to ensure document is open")
+            logger.error("[SALE_DEPARTMENT] Failed to ensure document is open")
             return False
         
         try:
             # Get button control name
             if button is None or not hasattr(button, 'control_name'):
-                print("[SALE_DEPARTMENT] No button provided or button missing control_name")
+                logger.debug("[SALE_DEPARTMENT] No button provided or button missing control_name")
                 return False
             
             control_name = button.control_name
-            print(f"[SALE_DEPARTMENT] Processing button with control_name: '{control_name}'")
+            logger.debug("[SALE_DEPARTMENT] Processing button with control_name: '%s'", control_name)
             
             # Check if control name starts with "DEPARTMENT"
             if not control_name or not control_name.upper().startswith("DEPARTMENT"):
-                print(f"[SALE_DEPARTMENT] Control name '{control_name}' does not start with DEPARTMENT")
+                logger.debug("[SALE_DEPARTMENT] Control name '%s' does not start with DEPARTMENT", control_name)
                 return False
             
             # Extract department number from control name (remove "DEPARTMENT" prefix)
             department_no_str = control_name[10:]  # Remove first 10 characters "DEPARTMENT"
-            print(f"[SALE_DEPARTMENT] Extracted department number string: '{department_no_str}'")
+            logger.debug("[SALE_DEPARTMENT] Extracted department number string: '%s'", department_no_str)
             
             if not department_no_str:
-                print("[SALE_DEPARTMENT] Empty department number after removing DEPARTMENT prefix")
+                logger.debug("[SALE_DEPARTMENT] Empty department number after removing DEPARTMENT prefix")
                 return False
             
             try:
                 department_no = int(department_no_str)
             except ValueError:
-                print(f"[SALE_DEPARTMENT] Invalid department number: '{department_no_str}'")
+                logger.debug("[SALE_DEPARTMENT] Invalid department number: '%s'", department_no_str)
                 return False
             
-            print(f"[SALE_DEPARTMENT] Department number: {department_no}")
+            logger.debug("[SALE_DEPARTMENT] Department number: %s", department_no)
             
             # Find numpad widget in the current window to get price
             current_window = button.parent() if button else None
@@ -225,15 +228,15 @@ class SaleEvent:
                         break
             
             if not numpad:
-                print("[SALE_DEPARTMENT] NumPad widget not found in current window")
+                logger.error("[SALE_DEPARTMENT] NumPad widget not found in current window")
                 return False
             
             # Get price from numpad
             numpad_text = numpad.get_text()
-            print(f"[SALE_DEPARTMENT] NumPad text: '{numpad_text}'")
+            logger.debug("[SALE_DEPARTMENT] NumPad text: '%s'", numpad_text)
             
             if not numpad_text or numpad_text.strip() == "":
-                print("[SALE_DEPARTMENT] No price entered in numpad")
+                logger.debug("[SALE_DEPARTMENT] No price entered in numpad")
                 
                 # Show error message using MessageForm
                 try:
@@ -250,9 +253,7 @@ class SaleEvent:
                     # Show error dialog
                     MessageForm.show_error(current_window, error_message, "")
                 except Exception as e:
-                    print(f"[SALE_DEPARTMENT] Error showing message form: {e}")
-                    import traceback
-                    traceback.print_exc()
+                    logger.error("[SALE_DEPARTMENT] Error showing message form: %s", e)
                 
                 return False
             
@@ -260,10 +261,10 @@ class SaleEvent:
                 # Convert numpad text to integer (numpad value is multiplied by 10^decimal_places)
                 numpad_value = int(numpad_text)
             except ValueError:
-                print(f"[SALE_DEPARTMENT] Invalid price format: '{numpad_text}'")
+                logger.debug("[SALE_DEPARTMENT] Invalid price format: '%s'", numpad_text)
                 return False
             
-            print(f"[SALE_DEPARTMENT] NumPad value (before division): {numpad_value}")
+            logger.debug("[SALE_DEPARTMENT] NumPad value (before division): %s", numpad_value)
             
             # Get current currency and divide by 10^decimal_places
             from user_interface.form.message_form import MessageForm
@@ -271,7 +272,7 @@ class SaleEvent:
             
             # Get current currency from CurrentData
             current_currency_sign = self.current_currency if hasattr(self, 'current_currency') and self.current_currency else "GBP"
-            print(f"[SALE_DEPARTMENT] Current currency sign: '{current_currency_sign}'")
+            logger.debug("[SALE_DEPARTMENT] Current currency sign: '%s'", current_currency_sign)
             
             # Find currency from product_data (more efficient than database query)
             decimal_places = 2  # Default
@@ -282,9 +283,9 @@ class SaleEvent:
                     currency = next((c for c in all_currencies if c.sign == current_currency_sign and not c.is_deleted), None)
                     if currency and currency.decimal_places is not None:
                         decimal_places = currency.decimal_places
-                        print(f"[SALE_DEPARTMENT] Currency decimal_places from product_data: {decimal_places}")
+                        logger.debug("[SALE_DEPARTMENT] Currency decimal_places from product_data: %s", decimal_places)
                     else:
-                        print(f"[SALE_DEPARTMENT] Currency not found in product_data with sign: '{current_currency_sign}', defaulting to decimal_places=2")
+                        logger.error("[SALE_DEPARTMENT] Currency not found in product_data with sign: '%s', defaulting to decimal_places=2", current_currency_sign)
                 else:
                     # Fallback: query from database
                     from data_layer.model import Currency
@@ -292,17 +293,17 @@ class SaleEvent:
                     if currencies and len(currencies) > 0:
                         currency = currencies[0]
                         decimal_places = currency.decimal_places if currency.decimal_places is not None else 2
-                        print(f"[SALE_DEPARTMENT] Currency decimal_places from database: {decimal_places}")
+                        logger.debug("[SALE_DEPARTMENT] Currency decimal_places from database: %s", decimal_places)
                     else:
-                        print(f"[SALE_DEPARTMENT] Currency not found with sign: '{current_currency_sign}', defaulting to decimal_places=2")
+                        logger.error("[SALE_DEPARTMENT] Currency not found with sign: '%s', defaulting to decimal_places=2", current_currency_sign)
             except Exception as e:
-                print(f"[SALE_DEPARTMENT] Error getting currency decimal_places: {e}, defaulting to 2")
+                logger.error("[SALE_DEPARTMENT] Error getting currency decimal_places: %s, defaulting to 2", e)
                 decimal_places = 2
             
             # Divide by 10^decimal_places to get actual price
             divisor = 10 ** decimal_places
             price = float(numpad_value) / divisor
-            print(f"[SALE_DEPARTMENT] Price after division (numpad_value / {divisor}): {price}")
+            logger.debug("[SALE_DEPARTMENT] Price after division (numpad_value / %s): %s", divisor, price)
             
             # Import SaleList
             from user_interface.control.sale_list.sale_list import SaleList
@@ -313,46 +314,46 @@ class SaleEvent:
             # Determine which table to query based on department number
             if 1 <= department_no <= 99:
                 # Query department_main_group from product_data cache
-                print(f"[SALE_DEPARTMENT] Querying department_main_group for code: '{department_no}'")
+                logger.debug("[SALE_DEPARTMENT] Querying department_main_group for code: '%s'", department_no)
                 departments = [
                     d for d in self.product_data.get("DepartmentMainGroup", [])
                     if d.code == str(department_no) and not (hasattr(d, 'is_deleted') and d.is_deleted)
                 ]
                 
                 if not departments or len(departments) == 0:
-                    print(f"[SALE_DEPARTMENT] No department_main_group found with code: '{department_no}'")
+                    logger.debug("[SALE_DEPARTMENT] No department_main_group found with code: '%s'", department_no)
                     return False
                 
                 department = departments[0]
                 department_name = department.name if department.name else f"Department {department_no}"
-                print(f"[SALE_DEPARTMENT] Found department_main_group: {department_name}")
+                logger.debug("[SALE_DEPARTMENT] Found department_main_group: %s", department_name)
                 
             elif department_no > 99:
                 # Query department_sub_group from product_data cache
-                print(f"[SALE_DEPARTMENT] Querying department_sub_group for code: '{department_no}'")
+                logger.debug("[SALE_DEPARTMENT] Querying department_sub_group for code: '%s'", department_no)
                 departments = [
                     d for d in self.product_data.get("DepartmentSubGroup", [])
                     if d.code == str(department_no) and not (hasattr(d, 'is_deleted') and d.is_deleted)
                 ]
                 
                 if not departments or len(departments) == 0:
-                    print(f"[SALE_DEPARTMENT] No department_sub_group found with code: '{department_no}'")
+                    logger.debug("[SALE_DEPARTMENT] No department_sub_group found with code: '%s'", department_no)
                     return False
                 
                 department = departments[0]
                 department_name = department.name if department.name else f"Department {department_no}"
-                print(f"[SALE_DEPARTMENT] Found department_sub_group: {department_name}")
+                logger.debug("[SALE_DEPARTMENT] Found department_sub_group: %s", department_name)
             else:
-                print(f"[SALE_DEPARTMENT] Invalid department number range: {department_no}")
+                logger.debug("[SALE_DEPARTMENT] Invalid department number range: %s", department_no)
                 return False
             
             # Check max_price if defined
             if department.max_price is not None:
                 max_price = float(department.max_price)
-                print(f"[SALE_DEPARTMENT] Max price check: {price} <= {max_price}")
+                logger.debug("[SALE_DEPARTMENT] Max price check: %s <= %s", price, max_price)
                 
                 if price > max_price:
-                    print(f"[SALE_DEPARTMENT] Price {price} exceeds max_price {max_price}")
+                    logger.debug("[SALE_DEPARTMENT] Price %s exceeds max_price %s", price, max_price)
                     
                     # Show error message using MessageForm
                     try:
@@ -368,7 +369,7 @@ class SaleEvent:
                         # Show error dialog
                         MessageForm.show_error(current_window, error_message, "")
                     except Exception as e:
-                        print(f"[SALE_DEPARTMENT] Error showing message form: {e}")
+                        logger.error("[SALE_DEPARTMENT] Error showing message form: %s", e)
                     
                     return False
             
@@ -387,7 +388,7 @@ class SaleEvent:
                             break
             
             if not sale_list:
-                print("[SALE_DEPARTMENT] SaleList widget not found in current window")
+                logger.error("[SALE_DEPARTMENT] SaleList widget not found in current window")
                 return False
             
             # Add department sale to sale list
@@ -403,7 +404,7 @@ class SaleEvent:
             )
             
             if success:
-                print(f"[SALE_DEPARTMENT] ✓ Successfully added department '{department_name}' to sale list")
+                logger.info("[SALE_DEPARTMENT] ✓ Successfully added department '%s' to sale list", department_name)
                 
                 # Update document_data
                 # Get line_no from sale_list
@@ -425,21 +426,19 @@ class SaleEvent:
                             current_window.amount_table,
                             self.document_data["head"]
                         )
-                        print(f"[SALE_DEPARTMENT] ✓ Updated amount_table")
+                        logger.info("[SALE_DEPARTMENT] ✓ Updated amount_table")
                 
                 # Clear numpad after successful sale
                 numpad.set_text("")
-                print(f"[SALE_DEPARTMENT] Cleared numpad")
+                logger.debug("[SALE_DEPARTMENT] Cleared numpad")
                 
                 return True
             else:
-                print("[SALE_DEPARTMENT] Failed to add department to sale list")
+                logger.error("[SALE_DEPARTMENT] Failed to add department to sale list")
                 return False
                 
         except Exception as e:
-            print(f"[SALE_DEPARTMENT] Error processing department sale: {str(e)}")
-            import traceback
-            traceback.print_exc()
+            logger.error("[SALE_DEPARTMENT] Error processing department sale: %s", str(e))
             return False
     
     def _sale_department_by_no_event(self, key=None):
@@ -461,9 +460,9 @@ class SaleEvent:
             
         # TODO: Implement department number entry logic
         if key is not None:
-            print(f"Department sale by number - key pressed: {key}")
+            logger.debug("Department sale by number - key pressed: %s", key)
         else:
-            print("Department sale by number - functionality to be implemented")
+            logger.debug("Department sale by number - functionality to be implemented")
         return False
     
     # ==================== PLU SALES EVENTS ====================
@@ -491,29 +490,29 @@ class SaleEvent:
         
         # Ensure document is open (create new if None or closed)
         if not self._ensure_document_open():
-            print("[SALE_PLU_CODE] Failed to ensure document is open")
+            logger.error("[SALE_PLU_CODE] Failed to ensure document is open")
             return False
         
         try:
             # Get button control name
             if button is None or not hasattr(button, 'control_name'):
-                print("[SALE_PLU_CODE] No button provided or button missing control_name")
+                logger.debug("[SALE_PLU_CODE] No button provided or button missing control_name")
                 return False
             
             control_name = button.control_name
-            print(f"[SALE_PLU_CODE] Processing button with control_name: '{control_name}'")
+            logger.debug("[SALE_PLU_CODE] Processing button with control_name: '%s'", control_name)
             
             # Check if control name starts with "PLU"
             if not control_name or not control_name.upper().startswith("PLU"):
-                print(f"[SALE_PLU_CODE] Control name '{control_name}' does not start with PLU")
+                logger.debug("[SALE_PLU_CODE] Control name '%s' does not start with PLU", control_name)
                 return False
             
             # Extract code from control name (remove "PLU" prefix)
             product_code = control_name[3:]  # Remove first 3 characters "PLU"
-            print(f"[SALE_PLU_CODE] Extracted product code: '{product_code}'")
+            logger.debug("[SALE_PLU_CODE] Extracted product code: '%s'", product_code)
             
             if not product_code:
-                print("[SALE_PLU_CODE] Empty code after removing PLU prefix")
+                logger.debug("[SALE_PLU_CODE] Empty code after removing PLU prefix")
                 return False
             
             # Import SaleList
@@ -526,26 +525,26 @@ class SaleEvent:
             ]
             
             if not products or len(products) == 0:
-                print(f"[SALE_PLU_CODE] No product found with code: '{product_code}'")
+                logger.debug("[SALE_PLU_CODE] No product found with code: '%s'", product_code)
                 return False
             
             # Get the first matching product
             product = products[0]
-            print(f"[SALE_PLU_CODE] Found product: {product.name} (short_name: {product.short_name})")
+            logger.debug("[SALE_PLU_CODE] Found product: %s (short_name: %s)", product.name, product.short_name)
             
             # Get sale price from product
             sale_price = float(product.sale_price) if product.sale_price else 0.0
-            print(f"[SALE_PLU_CODE] Using sale_price: {sale_price}")
+            logger.debug("[SALE_PLU_CODE] Using sale_price: %s", sale_price)
             
             if sale_price == 0.0:
-                print("[SALE_PLU_CODE] Warning: Product sale_price is 0")
+                logger.warning("[SALE_PLU_CODE] Warning: Product sale_price is 0")
             
             # Find sale_list widget in the current window
             # Button's parent should be BaseWindow
             current_window = button.parent() if button else None
             
             if not current_window:
-                print("[SALE_PLU_CODE] Button has no parent window")
+                logger.debug("[SALE_PLU_CODE] Button has no parent window")
                 return False
             
             sale_list = None
@@ -560,7 +559,7 @@ class SaleEvent:
                     sale_list = sale_lists[0]
             
             if not sale_list:
-                print("[SALE_PLU_CODE] SaleList widget not found in current window")
+                logger.error("[SALE_PLU_CODE] SaleList widget not found in current window")
                 return False
             
             # Get quantity from numpad if available
@@ -575,7 +574,7 @@ class SaleEvent:
             
             if numpad:
                 numpad_text = numpad.get_text()
-                print(f"[SALE_PLU_CODE] NumPad text: '{numpad_text}'")
+                logger.debug("[SALE_PLU_CODE] NumPad text: '%s'", numpad_text)
                 
                 if numpad_text and numpad_text.strip():
                     try:
@@ -583,15 +582,15 @@ class SaleEvent:
                         quantity_value = float(numpad_text)
                         if quantity_value > 0:
                             quantity = quantity_value
-                            print(f"[SALE_PLU_CODE] Using quantity from numpad: {quantity}")
+                            logger.debug("[SALE_PLU_CODE] Using quantity from numpad: %s", quantity)
                         else:
-                            print(f"[SALE_PLU_CODE] NumPad value '{quantity_value}' is not positive, using default quantity 1.0")
+                            logger.debug("[SALE_PLU_CODE] NumPad value '%s' is not positive, using default quantity 1.0", quantity_value)
                     except ValueError:
-                        print(f"[SALE_PLU_CODE] NumPad text '{numpad_text}' is not a valid number, using default quantity 1.0")
+                        logger.debug("[SALE_PLU_CODE] NumPad text '%s' is not a valid number, using default quantity 1.0", numpad_text)
                     finally:
                         # Always clear numpad after attempting to read quantity (whether valid or not)
                         numpad.set_text("")
-                        print(f"[SALE_PLU_CODE] Cleared numpad")
+                        logger.debug("[SALE_PLU_CODE] Cleared numpad")
             
             # Add product to sale list
             product_name = product.short_name if product.short_name else product.name
@@ -606,7 +605,7 @@ class SaleEvent:
             )
             
             if success:
-                print(f"[SALE_PLU_CODE] ✓ Successfully added product '{product_name}' to sale list")
+                logger.info("[SALE_PLU_CODE] ✓ Successfully added product '%s' to sale list", product_name)
                 
                 # Update document_data
                 # Get line_no from sale_list
@@ -627,21 +626,19 @@ class SaleEvent:
                             current_window.amount_table,
                             self.document_data["head"]
                         )
-                        print(f"[SALE_PLU_CODE] ✓ Updated amount_table")
+                        logger.info("[SALE_PLU_CODE] ✓ Updated amount_table")
                 
                 # Update button text to show product short_name
                 button.setText(product_name)
-                print(f"[SALE_PLU_CODE] Updated button text to: '{product_name}'")
+                logger.debug("[SALE_PLU_CODE] Updated button text to: '%s'", product_name)
                 
                 return True
             else:
-                print("[SALE_PLU_CODE] Failed to add product to sale list")
+                logger.error("[SALE_PLU_CODE] Failed to add product to sale list")
                 return False
                 
         except Exception as e:
-            print(f"[SALE_PLU_CODE] Error processing PLU code sale: {str(e)}")
-            import traceback
-            traceback.print_exc()
+            logger.error("[SALE_PLU_CODE] Error processing PLU code sale: %s", str(e))
             return False
     
     def _sale_plu_barcode_event(self, button=None):
@@ -668,29 +665,29 @@ class SaleEvent:
         
         # Ensure document is open (create new if None or closed)
         if not self._ensure_document_open():
-            print("[SALE_PLU_BARCODE] Failed to ensure document is open")
+            logger.error("[SALE_PLU_BARCODE] Failed to ensure document is open")
             return False
         
         try:
             # Get button control name
             if button is None or not hasattr(button, 'control_name'):
-                print("[SALE_PLU_BARCODE] No button provided or button missing control_name")
+                logger.debug("[SALE_PLU_BARCODE] No button provided or button missing control_name")
                 return False
             
             control_name = button.control_name
-            print(f"[SALE_PLU_BARCODE] Processing button with control_name: '{control_name}'")
+            logger.debug("[SALE_PLU_BARCODE] Processing button with control_name: '%s'", control_name)
             
             # Check if control name starts with "PLU"
             if not control_name or not control_name.upper().startswith("PLU"):
-                print(f"[SALE_PLU_BARCODE] Control name '{control_name}' does not start with PLU")
+                logger.debug("[SALE_PLU_BARCODE] Control name '%s' does not start with PLU", control_name)
                 return False
             
             # Extract barcode from control name (remove "PLU" prefix)
             barcode = control_name[3:]  # Remove first 3 characters "PLU"
-            print(f"[SALE_PLU_BARCODE] Extracted barcode: '{barcode}'")
+            logger.debug("[SALE_PLU_BARCODE] Extracted barcode: '%s'", barcode)
             
             if not barcode:
-                print("[SALE_PLU_BARCODE] Empty barcode after removing PLU prefix")
+                logger.debug("[SALE_PLU_BARCODE] Empty barcode after removing PLU prefix")
                 return False
             
             # Import SaleList
@@ -703,12 +700,12 @@ class SaleEvent:
             ]
             
             if not barcode_records or len(barcode_records) == 0:
-                print(f"[SALE_PLU_BARCODE] No product found with barcode: '{barcode}'")
+                logger.debug("[SALE_PLU_BARCODE] No product found with barcode: '%s'", barcode)
                 return False
             
             # Get the first matching barcode record
             product_barcode = barcode_records[0]
-            print(f"[SALE_PLU_BARCODE] Found product_barcode: {product_barcode}")
+            logger.debug("[SALE_PLU_BARCODE] Found product_barcode: %s", product_barcode)
             
             # Get product using fk_product_id from product_data cache
             products = [
@@ -717,23 +714,23 @@ class SaleEvent:
             ]
             
             if not products or len(products) == 0:
-                print(f"[SALE_PLU_BARCODE] Product not found with id: {product_barcode.fk_product_id}")
+                logger.error("[SALE_PLU_BARCODE] Product not found with id: %s", product_barcode.fk_product_id)
                 return False
             
             product = products[0]
             
-            print(f"[SALE_PLU_BARCODE] Found product: {product.name} (short_name: {product.short_name})")
+            logger.debug("[SALE_PLU_BARCODE] Found product: %s (short_name: %s)", product.name, product.short_name)
             
             # Determine sale price (prefer product_barcode.sale_price, fallback to product.sale_price)
             sale_price = float(product_barcode.sale_price) if product_barcode.sale_price else float(product.sale_price)
-            print(f"[SALE_PLU_BARCODE] Using sale_price: {sale_price}")
+            logger.debug("[SALE_PLU_BARCODE] Using sale_price: %s", sale_price)
             
             # Find sale_list widget in the current window
             # Button's parent should be BaseWindow
             current_window = button.parent() if button else None
             
             if not current_window:
-                print("[SALE_PLU_BARCODE] Button has no parent window")
+                logger.debug("[SALE_PLU_BARCODE] Button has no parent window")
                 return False
             
             sale_list = None
@@ -748,7 +745,7 @@ class SaleEvent:
                     sale_list = sale_lists[0]
             
             if not sale_list:
-                print("[SALE_PLU_BARCODE] SaleList widget not found in current window")
+                logger.error("[SALE_PLU_BARCODE] SaleList widget not found in current window")
                 return False
             
             # Get quantity from numpad if available
@@ -763,7 +760,7 @@ class SaleEvent:
             
             if numpad:
                 numpad_text = numpad.get_text()
-                print(f"[SALE_PLU_BARCODE] NumPad text: '{numpad_text}'")
+                logger.debug("[SALE_PLU_BARCODE] NumPad text: '%s'", numpad_text)
                 
                 if numpad_text and numpad_text.strip():
                     try:
@@ -771,15 +768,15 @@ class SaleEvent:
                         quantity_value = float(numpad_text)
                         if quantity_value > 0:
                             quantity = quantity_value
-                            print(f"[SALE_PLU_BARCODE] Using quantity from numpad: {quantity}")
+                            logger.debug("[SALE_PLU_BARCODE] Using quantity from numpad: %s", quantity)
                         else:
-                            print(f"[SALE_PLU_BARCODE] NumPad value '{quantity_value}' is not positive, using default quantity 1.0")
+                            logger.debug("[SALE_PLU_BARCODE] NumPad value '%s' is not positive, using default quantity 1.0", quantity_value)
                     except ValueError:
-                        print(f"[SALE_PLU_BARCODE] NumPad text '{numpad_text}' is not a valid number, using default quantity 1.0")
+                        logger.debug("[SALE_PLU_BARCODE] NumPad text '%s' is not a valid number, using default quantity 1.0", numpad_text)
                     finally:
                         # Always clear numpad after attempting to read quantity (whether valid or not)
                         numpad.set_text("")
-                        print(f"[SALE_PLU_BARCODE] Cleared numpad")
+                        logger.debug("[SALE_PLU_BARCODE] Cleared numpad")
             
             # Add product to sale list
             product_name = product.short_name if product.short_name else product.name
@@ -794,7 +791,7 @@ class SaleEvent:
             )
             
             if success:
-                print(f"[SALE_PLU_BARCODE] ✓ Successfully added product '{product_name}' to sale list")
+                logger.info("[SALE_PLU_BARCODE] ✓ Successfully added product '%s' to sale list", product_name)
                 
                 # Update document_data
                 # Get line_no from sale_list
@@ -816,21 +813,19 @@ class SaleEvent:
                             current_window.amount_table,
                             self.document_data["head"]
                         )
-                        print(f"[SALE_PLU_BARCODE] ✓ Updated amount_table")
+                        logger.info("[SALE_PLU_BARCODE] ✓ Updated amount_table")
                 
                 # Update button text to show product short_name
                 button.setText(product_name)
-                print(f"[SALE_PLU_BARCODE] Updated button text to: '{product_name}'")
+                logger.debug("[SALE_PLU_BARCODE] Updated button text to: '%s'", product_name)
                 
                 return True
             else:
-                print("[SALE_PLU_BARCODE] Failed to add product to sale list")
+                logger.error("[SALE_PLU_BARCODE] Failed to add product to sale list")
                 return False
                 
         except Exception as e:
-            print(f"[SALE_PLU_BARCODE] Error processing PLU barcode sale: {str(e)}")
-            import traceback
-            traceback.print_exc()
+            logger.error("[SALE_PLU_BARCODE] Error processing PLU barcode sale: %s", str(e))
             return False
     
     def _get_plu_from_maingroup_event(self):
@@ -848,7 +843,7 @@ class SaleEvent:
             return False
             
         # TODO: Implement main group PLU selection
-        print("PLU main group selection - functionality to be implemented")
+        logger.debug("PLU main group selection - functionality to be implemented")
         return False
     
     # ==================== REPEAT SALES EVENTS ====================
@@ -868,7 +863,7 @@ class SaleEvent:
             return False
             
         # TODO: Implement last sale repeat logic
-        print("Repeat last sale - functionality to be implemented")
+        logger.debug("Repeat last sale - functionality to be implemented")
         return False
     
     def _repeat_sale_event(self):
@@ -886,7 +881,7 @@ class SaleEvent:
             return False
             
         # TODO: Implement sale history selection and repeat
-        print("Repeat sale - functionality to be implemented")
+        logger.debug("Repeat sale - functionality to be implemented")
         return False
     
     # ==================== CANCELLATION EVENTS ====================
@@ -906,7 +901,7 @@ class SaleEvent:
             return False
             
         # TODO: Implement department cancellation logic
-        print("Cancel department - functionality to be implemented")
+        logger.debug("Cancel department - functionality to be implemented")
         return False
     
     def _cancel_plu_event(self):
@@ -924,7 +919,7 @@ class SaleEvent:
             return False
             
         # TODO: Implement PLU cancellation logic
-        print("Cancel PLU - functionality to be implemented")
+        logger.debug("Cancel PLU - functionality to be implemented")
         return False
     
     def _cancel_last_sale_event(self):
@@ -942,7 +937,7 @@ class SaleEvent:
             return False
             
         # TODO: Implement last item cancellation logic
-        print("Cancel last sale - functionality to be implemented")
+        logger.debug("Cancel last sale - functionality to be implemented")
         return False
     
     def _cancel_sale_event(self):
@@ -960,7 +955,7 @@ class SaleEvent:
             return False
             
         # TODO: Implement item selection and cancellation
-        print("Cancel sale - functionality to be implemented")
+        logger.debug("Cancel sale - functionality to be implemented")
         return False
     
     def _cancel_document_event(self):
@@ -978,7 +973,7 @@ class SaleEvent:
             return False
             
         # TODO: Implement complete transaction void
-        print("Cancel document - functionality to be implemented")
+        logger.debug("Cancel document - functionality to be implemented")
         return False
     
     # ==================== TRANSACTION MODIFICATION EVENTS ====================
@@ -998,7 +993,7 @@ class SaleEvent:
             return False
             
         # TODO: Implement document type switching
-        print("Change document type - functionality to be implemented")
+        logger.debug("Change document type - functionality to be implemented")
         return False
     
     def _refund_event(self):
@@ -1016,7 +1011,7 @@ class SaleEvent:
             return False
             
         # TODO: Implement refund processing logic
-        print("Refund - functionality to be implemented")
+        logger.debug("Refund - functionality to be implemented")
         return False
     
     # ==================== DISCOUNT AND SURCHARGE EVENTS ====================
@@ -1040,9 +1035,9 @@ class SaleEvent:
             
         # TODO: Implement fixed amount discount logic
         if key is not None:
-            print(f"Discount by amount - key pressed: {key}")
+            logger.debug("Discount by amount - key pressed: %s", key)
         else:
-            print("Discount by amount - functionality to be implemented")
+            logger.debug("Discount by amount - functionality to be implemented")
         return False
     
     def _surcharge_by_amount_event(self, key=None):
@@ -1064,9 +1059,9 @@ class SaleEvent:
             
         # TODO: Implement fixed amount surcharge logic
         if key is not None:
-            print(f"Surcharge by amount - key pressed: {key}")
+            logger.debug("Surcharge by amount - key pressed: %s", key)
         else:
-            print("Surcharge by amount - functionality to be implemented")
+            logger.debug("Surcharge by amount - functionality to be implemented")
         return False
     
     def _discount_by_percent_event(self, key=None):
@@ -1088,9 +1083,9 @@ class SaleEvent:
             
         # TODO: Implement percentage discount logic
         if key is not None:
-            print(f"Discount by percent - key pressed: {key}")
+            logger.debug("Discount by percent - key pressed: %s", key)
         else:
-            print("Discount by percent - functionality to be implemented")
+            logger.debug("Discount by percent - functionality to be implemented")
         return False
     
     def _surcharge_by_percent_event(self, key=None):
@@ -1112,9 +1107,9 @@ class SaleEvent:
             
         # TODO: Implement percentage surcharge logic
         if key is not None:
-            print(f"Surcharge by percent - key pressed: {key}")
+            logger.debug("Surcharge by percent - key pressed: %s", key)
         else:
-            print("Surcharge by percent - functionality to be implemented")
+            logger.debug("Surcharge by percent - functionality to be implemented")
         return False
     
     # ==================== INPUT MODIFICATION EVENTS ====================
@@ -1138,9 +1133,9 @@ class SaleEvent:
             
         # TODO: Implement price override logic
         if key is not None:
-            print(f"Input price - key pressed: {key}")
+            logger.debug("Input price - key pressed: %s", key)
         else:
-            print("Input price - functionality to be implemented")
+            logger.debug("Input price - functionality to be implemented")
         return False
     
     def _input_quantity_event(self, key=None):
@@ -1162,9 +1157,9 @@ class SaleEvent:
             
         # TODO: Implement quantity entry logic
         if key is not None:
-            print(f"Input quantity - key pressed: {key}")
+            logger.debug("Input quantity - key pressed: %s", key)
         else:
-            print("Input quantity - functionality to be implemented")
+            logger.debug("Input quantity - functionality to be implemented")
         return False
     
     def _input_amount_event(self, key=None):
@@ -1186,9 +1181,9 @@ class SaleEvent:
             
         # TODO: Implement amount entry logic
         if key is not None:
-            print(f"Input amount - key pressed: {key}")
+            logger.debug("Input amount - key pressed: %s", key)
         else:
-            print("Input amount - functionality to be implemented")
+            logger.debug("Input amount - functionality to be implemented")
         return False
     
     # ==================== LOOKUP AND CALCULATION EVENTS ====================
@@ -1212,9 +1207,9 @@ class SaleEvent:
             
         # TODO: Implement price lookup logic
         if key is not None:
-            print(f"Price lookup - key pressed: {key}")
+            logger.debug("Price lookup - key pressed: %s", key)
         else:
-            print("Price lookup - functionality to be implemented")
+            logger.debug("Price lookup - functionality to be implemented")
         return False
     
     def _subtotal_event(self):
@@ -1232,7 +1227,7 @@ class SaleEvent:
             return False
             
         # TODO: Implement subtotal calculation
-        print("Subtotal - functionality to be implemented")
+        logger.debug("Subtotal - functionality to be implemented")
         return False
     
     def _total_event(self):
@@ -1250,7 +1245,7 @@ class SaleEvent:
             return False
             
         # TODO: Implement total calculation and payment prep
-        print("Total - functionality to be implemented")
+        logger.debug("Total - functionality to be implemented")
         return False
     
     def _clear_buffer_event(self):
@@ -1268,7 +1263,7 @@ class SaleEvent:
             return False
             
         # TODO: Implement buffer clearing logic
-        print("Clear buffer - functionality to be implemented")
+        logger.debug("Clear buffer - functionality to be implemented")
         return False
     
     # ==================== ADDITIONAL SALE OPERATIONS ====================
@@ -1288,7 +1283,7 @@ class SaleEvent:
             return False
             
         # TODO: Implement sale options interface
-        print("Sale option - functionality to be implemented")
+        logger.debug("Sale option - functionality to be implemented")
         return False
     
     def _sale_shortcut_event(self):
@@ -1307,7 +1302,7 @@ class SaleEvent:
         Returns:
             bool: True if shortcut executed successfully, False otherwise
         """
-        print("Sale shortcut event - method not implemented yet")
+        logger.warning("Sale shortcut event - method not implemented yet")
         return False
 
     # ==================== RESTAURANT TABLE OPERATIONS ====================
@@ -1322,7 +1317,7 @@ class SaleEvent:
         Returns:
             bool: True if table opened successfully, False otherwise
         """
-        print("Table open event - method not implemented yet")
+        logger.warning("Table open event - method not implemented yet")
         return False
     
     def _table_close_event(self):
@@ -1335,7 +1330,7 @@ class SaleEvent:
         Returns:
             bool: True if table closed successfully, False otherwise
         """
-        print("Table close event - method not implemented yet")
+        logger.warning("Table close event - method not implemented yet")
         return False
     
     def _table_select_event(self):
@@ -1348,7 +1343,7 @@ class SaleEvent:
         Returns:
             bool: True if table selected successfully, False otherwise
         """
-        print("Table select event - method not implemented yet")
+        logger.warning("Table select event - method not implemented yet")
         return False
     
     def _table_transfer_event(self):
@@ -1361,7 +1356,7 @@ class SaleEvent:
         Returns:
             bool: True if table transferred successfully, False otherwise
         """
-        print("Table transfer event - method not implemented yet")
+        logger.warning("Table transfer event - method not implemented yet")
         return False
     
     def _table_merge_event(self):
@@ -1374,7 +1369,7 @@ class SaleEvent:
         Returns:
             bool: True if tables merged successfully, False otherwise
         """
-        print("Table merge event - method not implemented yet")
+        logger.warning("Table merge event - method not implemented yet")
         return False
     
     def _table_split_event(self):
@@ -1387,7 +1382,7 @@ class SaleEvent:
         Returns:
             bool: True if table split successfully, False otherwise
         """
-        print("Table split event - method not implemented yet")
+        logger.warning("Table split event - method not implemented yet")
         return False
     
     def _table_status_event(self):
@@ -1402,7 +1397,7 @@ class SaleEvent:
         Returns:
             bool: True if status displayed successfully, False otherwise
         """
-        print("Table status event - method not implemented yet")
+        logger.warning("Table status event - method not implemented yet")
         return False
     
     def _table_list_event(self):
@@ -1415,7 +1410,7 @@ class SaleEvent:
         Returns:
             bool: True if table list displayed successfully, False otherwise
         """
-        print("Table list event - method not implemented yet")
+        logger.warning("Table list event - method not implemented yet")
         return False
     
     # ==================== RESTAURANT ORDER OPERATIONS ====================
@@ -1430,7 +1425,7 @@ class SaleEvent:
         Returns:
             bool: True if order added successfully, False otherwise
         """
-        print("Order add event - method not implemented yet")
+        logger.warning("Order add event - method not implemented yet")
         return False
     
     def _order_cancel_event(self):
@@ -1443,7 +1438,7 @@ class SaleEvent:
         Returns:
             bool: True if order canceled successfully, False otherwise
         """
-        print("Order cancel event - method not implemented yet")
+        logger.warning("Order cancel event - method not implemented yet")
         return False
     
     def _order_modify_event(self):
@@ -1456,7 +1451,7 @@ class SaleEvent:
         Returns:
             bool: True if order modified successfully, False otherwise
         """
-        print("Order modify event - method not implemented yet")
+        logger.warning("Order modify event - method not implemented yet")
         return False
     
     def _order_send_to_kitchen_event(self):
@@ -1469,7 +1464,7 @@ class SaleEvent:
         Returns:
             bool: True if order sent successfully, False otherwise
         """
-        print("Order send to kitchen event - method not implemented yet")
+        logger.warning("Order send to kitchen event - method not implemented yet")
         return False
     
     def _order_ready_event(self):
@@ -1482,7 +1477,7 @@ class SaleEvent:
         Returns:
             bool: True if order marked ready successfully, False otherwise
         """
-        print("Order ready event - method not implemented yet")
+        logger.warning("Order ready event - method not implemented yet")
         return False
     
     # ==================== RESTAURANT CHECK OPERATIONS ====================
@@ -1497,7 +1492,7 @@ class SaleEvent:
         Returns:
             bool: True if check opened successfully, False otherwise
         """
-        print("Check open event - method not implemented yet")
+        logger.warning("Check open event - method not implemented yet")
         return False
     
     def _check_close_event(self):
@@ -1510,7 +1505,7 @@ class SaleEvent:
         Returns:
             bool: True if check closed successfully, False otherwise
         """
-        print("Check close event - method not implemented yet")
+        logger.warning("Check close event - method not implemented yet")
         return False
     
     def _check_print_event(self):
@@ -1523,7 +1518,7 @@ class SaleEvent:
         Returns:
             bool: True if check printed successfully, False otherwise
         """
-        print("Check print event - method not implemented yet")
+        logger.warning("Check print event - method not implemented yet")
         return False
     
     def _check_split_event(self):
@@ -1536,7 +1531,7 @@ class SaleEvent:
         Returns:
             bool: True if check split successfully, False otherwise
         """
-        print("Check split event - method not implemented yet")
+        logger.warning("Check split event - method not implemented yet")
         return False
     
     def _check_merge_event(self):
@@ -1549,7 +1544,7 @@ class SaleEvent:
         Returns:
             bool: True if checks merged successfully, False otherwise
         """
-        print("Check merge event - method not implemented yet")
+        logger.warning("Check merge event - method not implemented yet")
         return False
     
     # ==================== MARKET SALE SUSPENSION OPERATIONS ====================
@@ -1564,7 +1559,7 @@ class SaleEvent:
         Returns:
             bool: True if sale suspended successfully, False otherwise
         """
-        print("Suspend sale event - method not implemented yet")
+        logger.warning("Suspend sale event - method not implemented yet")
         return False
     
     def _resume_sale_event(self):
@@ -1577,7 +1572,7 @@ class SaleEvent:
         Returns:
             bool: True if sale resumed successfully, False otherwise
         """
-        print("Resume sale event - method not implemented yet")
+        logger.warning("Resume sale event - method not implemented yet")
         return False
     
     def _suspend_list_event(self):
@@ -1590,7 +1585,7 @@ class SaleEvent:
         Returns:
             bool: True if suspend list displayed successfully, False otherwise
         """
-        print("Suspend list event - method not implemented yet")
+        logger.warning("Suspend list event - method not implemented yet")
         return False
     
     def _delete_suspended_sale_event(self):
@@ -1603,7 +1598,7 @@ class SaleEvent:
         Returns:
             bool: True if suspended sale deleted successfully, False otherwise
         """
-        print("Delete suspended sale event - method not implemented yet")
+        logger.warning("Delete suspended sale event - method not implemented yet")
         return False
     
     def _suspend_detail_event(self):
@@ -1616,5 +1611,5 @@ class SaleEvent:
         Returns:
             bool: True if suspend detail displayed successfully, False otherwise
         """
-        print("Suspend detail event - method not implemented yet")
+        logger.warning("Suspend detail event - method not implemented yet")
         return False

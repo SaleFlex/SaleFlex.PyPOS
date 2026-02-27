@@ -23,6 +23,11 @@ SOFTWARE.
 """
 
 
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 class ReportEvent:
     """
     Report Event Handler for POS system reporting and analytics.
@@ -62,7 +67,7 @@ class ReportEvent:
             return False
             
         # TODO: Implement detailed sales report generation
-        print("Sale detail report - functionality to be implemented")
+        logger.debug("Sale detail report - functionality to be implemented")
         return False
     
     def _plu_sale_report_event(self):
@@ -87,7 +92,7 @@ class ReportEvent:
             return False
             
         # TODO: Implement PLU sales report generation
-        print("PLU sale report - functionality to be implemented")
+        logger.debug("PLU sale report - functionality to be implemented")
         return False
     
     def _pos_summary_report_event(self):
@@ -112,7 +117,7 @@ class ReportEvent:
             return False
             
         # TODO: Implement POS summary report generation
-        print("POS summary report - functionality to be implemented")
+        logger.debug("POS summary report - functionality to be implemented")
         return False
     
     # ==================== DOCUMENT REPORTS ====================
@@ -139,7 +144,7 @@ class ReportEvent:
             return False
             
         # TODO: Implement invoice list generation
-        print("Invoice list - functionality to be implemented")
+        logger.debug("Invoice list - functionality to be implemented")
         return False
     
     def _waybill_list_event(self):
@@ -164,7 +169,7 @@ class ReportEvent:
             return False
             
         # TODO: Implement waybill list generation
-        print("Waybill list - functionality to be implemented")
+        logger.debug("Waybill list - functionality to be implemented")
         return False
     
     def _return_list_event(self):
@@ -189,7 +194,7 @@ class ReportEvent:
             return False
             
         # TODO: Implement return list generation
-        print("Return list - functionality to be implemented")
+        logger.debug("Return list - functionality to be implemented")
         return False
     
     # ==================== INVENTORY REPORTS ====================
@@ -216,7 +221,7 @@ class ReportEvent:
             return False
             
         # TODO: Implement stock list generation
-        print("Stock list - functionality to be implemented")
+        logger.debug("Stock list - functionality to be implemented")
         return False
     
     def _stock_entry_form_event(self):
@@ -241,5 +246,5 @@ class ReportEvent:
             return False
             
         # TODO: Implement stock entry form
-        print("Stock entry form - functionality to be implemented")
+        logger.debug("Stock entry form - functionality to be implemented")
         return False

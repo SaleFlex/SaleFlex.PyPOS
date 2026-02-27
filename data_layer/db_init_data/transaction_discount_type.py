@@ -25,6 +25,11 @@ SOFTWARE.
 from data_layer.model import TransactionDiscountType
 
 
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 def _insert_transaction_discount_types(session):
     """Insert default transaction discount types if not exists"""
     discount_type_exists = session.query(TransactionDiscountType).first()
@@ -70,5 +75,5 @@ def _insert_transaction_discount_types(session):
                 description=discount_type_data["description"]
             )
             session.add(discount_type)
-        print("✓ Default transaction discount types added")
+        logger.info("✓ Default transaction discount types added")
 

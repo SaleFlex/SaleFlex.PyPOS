@@ -23,6 +23,11 @@ SOFTWARE.
 """
 
 
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 class ConfigurationEvent:
     """
     Configuration Event Handler for POS system settings and setup.
@@ -55,7 +60,7 @@ class ConfigurationEvent:
             return False
             
         # TODO: Implement display brightness configuration
-        print("Set display brightness - functionality to be implemented")
+        logger.debug("Set display brightness - functionality to be implemented")
         return False
     
     def _set_printer_intensity_event(self):
@@ -73,7 +78,7 @@ class ConfigurationEvent:
             return False
             
         # TODO: Implement printer intensity configuration
-        print("Set printer intensity - functionality to be implemented")
+        logger.debug("Set printer intensity - functionality to be implemented")
         return False
     
     # ==================== USER MANAGEMENT CONFIGURATION ====================
@@ -93,7 +98,7 @@ class ConfigurationEvent:
             return False
             
         # TODO: Implement cashier management interface
-        print("Set cashier - functionality to be implemented")
+        logger.debug("Set cashier - functionality to be implemented")
         return False
     
     def _set_supervisor_event(self):
@@ -111,7 +116,7 @@ class ConfigurationEvent:
             return False
             
         # TODO: Implement supervisor management interface
-        print("Set supervisor - functionality to be implemented")
+        logger.debug("Set supervisor - functionality to be implemented")
         return False
     
     # ==================== RECEIPT CONFIGURATION ====================
@@ -131,7 +136,7 @@ class ConfigurationEvent:
             return False
             
         # TODO: Implement receipt header configuration
-        print("Set receipt header - functionality to be implemented")
+        logger.debug("Set receipt header - functionality to be implemented")
         return False
     
     def _set_receipt_footer_event(self):
@@ -149,7 +154,7 @@ class ConfigurationEvent:
             return False
             
         # TODO: Implement receipt footer configuration
-        print("Set receipt footer - functionality to be implemented")
+        logger.debug("Set receipt footer - functionality to be implemented")
         return False
     
     def _set_idle_message_event(self):
@@ -167,7 +172,7 @@ class ConfigurationEvent:
             return False
             
         # TODO: Implement idle message configuration
-        print("Set idle message - functionality to be implemented")
+        logger.debug("Set idle message - functionality to be implemented")
         return False
     
     # ==================== PRODUCT CONFIGURATION ====================
@@ -187,7 +192,7 @@ class ConfigurationEvent:
             return False
             
         # TODO: Implement barcode definition configuration
-        print("Set barcode definition - functionality to be implemented")
+        logger.debug("Set barcode definition - functionality to be implemented")
         return False
     
     def _set_vat_definition_event(self):
@@ -205,7 +210,7 @@ class ConfigurationEvent:
             return False
             
         # TODO: Implement VAT definition configuration
-        print("Set VAT definition - functionality to be implemented")
+        logger.debug("Set VAT definition - functionality to be implemented")
         return False
     
     def _set_department_definition_event(self):
@@ -223,7 +228,7 @@ class ConfigurationEvent:
             return False
             
         # TODO: Implement department definition configuration
-        print("Set department definition - functionality to be implemented")
+        logger.debug("Set department definition - functionality to be implemented")
         return False
     
     def _set_currency_definition_event(self):
@@ -241,7 +246,7 @@ class ConfigurationEvent:
             return False
             
         # TODO: Implement currency definition configuration
-        print("Set currency definition - functionality to be implemented")
+        logger.debug("Set currency definition - functionality to be implemented")
         return False
     
     def _set_plu_definition_event(self):
@@ -259,7 +264,7 @@ class ConfigurationEvent:
             return False
             
         # TODO: Implement PLU definition configuration
-        print("Set PLU definition - functionality to be implemented")
+        logger.debug("Set PLU definition - functionality to be implemented")
         return False
     
     def _set_plu_maingroup_definition_event(self):
@@ -277,7 +282,7 @@ class ConfigurationEvent:
             return False
             
         # TODO: Implement PLU main group definition configuration
-        print("Set PLU main group definition - functionality to be implemented")
+        logger.debug("Set PLU main group definition - functionality to be implemented")
         return False
     
     # ==================== PRICING CONFIGURATION ====================
@@ -297,7 +302,7 @@ class ConfigurationEvent:
             return False
             
         # TODO: Implement discount rate configuration
-        print("Set discount rate - functionality to be implemented")
+        logger.debug("Set discount rate - functionality to be implemented")
         return False
     
     def _set_surcharge_rate_event(self):
@@ -315,5 +320,5 @@ class ConfigurationEvent:
             return False
             
         # TODO: Implement surcharge rate configuration
-        print("Set surcharge rate - functionality to be implemented")
+        logger.debug("Set surcharge rate - functionality to be implemented")
         return False

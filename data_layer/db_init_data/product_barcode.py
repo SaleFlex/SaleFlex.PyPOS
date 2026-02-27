@@ -25,6 +25,11 @@ SOFTWARE.
 from data_layer.model import ProductBarcode, Product
 
 
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 def _insert_product_barcodes(session, admin_cashier_id: str):
     """Insert sample product barcodes if not exists"""
     barcode_exists = session.query(ProductBarcode).first()
@@ -152,6 +157,6 @@ def _insert_product_barcodes(session, admin_cashier_id: str):
                 
                 session.add(product_barcode)
             else:
-                print(f"⚠ Product with code '{barcode_item['product_code']}' not found for barcode '{barcode_item['barcode']}'")
+                logger.error("⚠ Product with code '%s' not found for barcode '%s'", barcode_item['product_code'], barcode_item['barcode'])
 
-        print(f"✓ Inserted {len(barcode_data)} sample product barcodes") 
+        logger.info("✓ Inserted %s sample product barcodes", len(barcode_data)) 

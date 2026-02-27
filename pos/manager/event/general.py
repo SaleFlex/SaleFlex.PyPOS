@@ -26,6 +26,11 @@ from data_layer.enums import FormName, ControlName
 from data_layer import Cashier
 
 
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
 class GeneralEvent:
     """
     General Event Handler for basic POS application operations.
@@ -84,13 +89,13 @@ class GeneralEvent:
         Returns:
             bool: True if login successful, False otherwise
         """
-        print("\n" + "="*80)
-        print("[LOGIN] _login method called!")
-        print("="*80)
+        logger.debug("\n" + "="*80)
+        logger.debug("[LOGIN] _login method called!")
+        logger.debug("="*80)
         
         # Skip if already logged in
         if self.login_succeed:
-            print("[LOGIN] Already logged in, skipping")
+            logger.warning("[LOGIN] Already logged in, skipping")
             return True
         
         # Try to get username from COMBOBOX first (preferred method)
@@ -98,34 +103,34 @@ class GeneralEvent:
         user_name_from_combo = ""
         has_combobox = False
         
-        print("[LOGIN] Searching for CASHIER_NAME_LIST combobox...")
+        logger.debug("[LOGIN] Searching for CASHIER_NAME_LIST combobox...")
         for item in self.interface.window.children():
             if isinstance(item, ComboBox) and hasattr(item, 'name'):
-                print(f"[LOGIN] Found combobox with name: '{item.name}'")
+                logger.debug("[LOGIN] Found combobox with name: '%s'", item.name)
                 if item.name == ControlName.CASHIER_NAME_LIST.value:
                     user_name_from_combo = item.currentText()
                     has_combobox = True
-                    print(f"[LOGIN] ✓ Found CASHIER_NAME_LIST, selected value: '{user_name_from_combo}'")
+                    logger.info("[LOGIN] ✓ Found CASHIER_NAME_LIST, selected value: '%s'", user_name_from_combo)
                     break
         
         # If no COMBOBOX, get username from TEXTBOX
         user_name_from_textbox = ""
         password = ""
-        print("[LOGIN] Getting textbox values...")
+        logger.debug("[LOGIN] Getting textbox values...")
         textbox_values = self.interface.window.get_textbox_values()
-        print(f"[LOGIN] Textbox values: {textbox_values}")
+        logger.debug("[LOGIN] Textbox values: %s", textbox_values)
         
         for key, value in textbox_values.items():
             if key == "user_name":
                 user_name_from_textbox = value
-                print(f"[LOGIN] Found username textbox: '{value}'")
+                logger.debug("[LOGIN] Found username textbox: '%s'", value)
             elif key == "PASSWORD":  # Changed from "password" to "PASSWORD"
                 password = value
-                print(f"[LOGIN] Found password textbox: '{value}'")
+                logger.debug("[LOGIN] Found password textbox: '%s'", value)
         
         # Determine which username source to use
-        print(f"[LOGIN] has_combobox: {has_combobox}, user_name_from_combo: '{user_name_from_combo}'")
-        print(f"[LOGIN] user_name_from_textbox: '{user_name_from_textbox}', password: '{password}'")
+        logger.debug("[LOGIN] has_combobox: %s, user_name_from_combo: '%s'", has_combobox, user_name_from_combo)
+        logger.debug("[LOGIN] user_name_from_textbox: '%s', password: '%s'", user_name_from_textbox, password)
         
         if has_combobox and user_name_from_combo:
             # COMBOBOX mode: Parse "username (name lastname)" format
@@ -237,11 +242,11 @@ class GeneralEvent:
         # Create document_data immediately after login so StatusBar can display it
         # Try to load incomplete document first, if none exists, create new empty document
         if not self.document_data:
-            print("[LOGIN] No document_data after login, trying to load incomplete document...")
+            logger.debug("[LOGIN] No document_data after login, trying to load incomplete document...")
             if not self.load_incomplete_document():
-                print("[LOGIN] No incomplete document found, creating new empty document...")
+                logger.debug("[LOGIN] No incomplete document found, creating new empty document...")
                 if not self.create_empty_document():
-                    print("[LOGIN] Failed to create empty document")
+                    logger.error("[LOGIN] Failed to create empty document")
         
         self._navigate_after_login()
         return True
@@ -275,11 +280,11 @@ class GeneralEvent:
             # If navigating to SALE form, ensure document_data exists
             if self.current_form_type == FormName.SALE:
                 if not self.document_data:
-                    print("[NAVIGATE_AFTER_LOGIN] No document_data, trying to load incomplete document...")
+                    logger.debug("[NAVIGATE_AFTER_LOGIN] No document_data, trying to load incomplete document...")
                     if not self.load_incomplete_document():
-                        print("[NAVIGATE_AFTER_LOGIN] No incomplete document found, creating new empty document...")
+                        logger.debug("[NAVIGATE_AFTER_LOGIN] No incomplete document found, creating new empty document...")
                         if not self.create_empty_document():
-                            print("[NAVIGATE_AFTER_LOGIN] Failed to create empty document")
+                            logger.error("[NAVIGATE_AFTER_LOGIN] Failed to create empty document")
                 
             self.interface.redraw(form_id=self.startup_form_id)
         else:
@@ -288,11 +293,11 @@ class GeneralEvent:
             
             # Ensure document_data exists for SALE form
             if not self.document_data:
-                print("[NAVIGATE_AFTER_LOGIN] No document_data, trying to load incomplete document...")
+                logger.debug("[NAVIGATE_AFTER_LOGIN] No document_data, trying to load incomplete document...")
                 if not self.load_incomplete_document():
-                    print("[NAVIGATE_AFTER_LOGIN] No incomplete document found, creating new empty document...")
+                    logger.debug("[NAVIGATE_AFTER_LOGIN] No incomplete document found, creating new empty document...")
                     if not self.create_empty_document():
-                        print("[NAVIGATE_AFTER_LOGIN] Failed to create empty document")
+                        logger.error("[NAVIGATE_AFTER_LOGIN] Failed to create empty document")
             
             self.interface.redraw(form_name=FormName.SALE.name)
 
@@ -337,11 +342,11 @@ class GeneralEvent:
                 if current_form.need_auth:
                     # Form requires authorization -> go to extended login
                     target_form_name = FormName.LOGIN_EXT
-                    print(f"[LOGOUT] Current form '{current_form.name}' requires authorization -> redirecting to LOGIN_EXT")
+                    logger.debug("[LOGOUT] Current form '%s' requires authorization -> redirecting to LOGIN_EXT", current_form.name)
                 elif current_form.need_login:
                     # Form requires login -> go to regular login
                     target_form_name = FormName.LOGIN
-                    print(f"[LOGOUT] Current form '{current_form.name}' requires login -> redirecting to LOGIN")
+                    logger.debug("[LOGOUT] Current form '%s' requires login -> redirecting to LOGIN", current_form.name)
         
         # Clear authentication and session data
         self.login_succeed = False
@@ -392,9 +397,9 @@ class GeneralEvent:
         """
         # TODO: Implement service code validation logic
         if key is not None:
-            print(f"Service code request - key pressed: {key}")
+            logger.debug("Service code request - key pressed: %s", key)
         else:
-            print("Service code request - functionality to be implemented")
+            logger.debug("Service code request - functionality to be implemented")
         return False
 
     def _login_service_event(self, key=None):
@@ -412,9 +417,9 @@ class GeneralEvent:
         """
         # TODO: Implement service login logic
         if key is not None:
-            print(f"Service login - key pressed: {key}")
+            logger.debug("Service login - key pressed: %s", key)
         else:
-            print("Service login - functionality to be implemented")
+            logger.debug("Service login - functionality to be implemented")
         return False
 
     # ==================== NAVIGATION AND FORM EVENTS ====================
@@ -430,14 +435,14 @@ class GeneralEvent:
         Returns:
             bool: True if navigation successful, False if not authenticated or no history
         """
-        print("\n[BACK] Back button pressed")
-        print(f"[BACK] Login status: {self.login_succeed}")
-        print(f"[BACK] Form history length: {len(self.form_history)}")
-        print(f"[BACK] Form history: {[f.name for f in self.form_history]}")
+        logger.debug("\n[BACK] Back button pressed")
+        logger.debug("[BACK] Login status: %s", self.login_succeed)
+        logger.debug("[BACK] Form history length: %s", len(self.form_history))
+        logger.debug("[BACK] Form history: %s", [f.name for f in self.form_history])
         
         # Require authentication for navigation
         if not self.login_succeed:
-            print("[BACK] User not logged in, calling logout")
+            logger.debug("[BACK] User not logged in, calling logout")
             self._logout_event()
             return False
         
@@ -446,21 +451,21 @@ class GeneralEvent:
         
         if previous_form_type is None:
             # No history available, cannot go back
-            print("[BACK] No form history available")
+            logger.debug("[BACK] No form history available")
             return False
         
-        print(f"[BACK] Previous form from history: {previous_form_type.name}")
+        logger.debug("[BACK] Previous form from history: %s", previous_form_type.name)
         
         # Find the form from database by name
         from data_layer.model import Form
         forms = Form.filter_by(name=previous_form_type.name, is_deleted=False)
         
         if not forms or len(forms) == 0:
-            print(f"[BACK] Form not found in database: {previous_form_type.name}")
+            logger.error("[BACK] Form not found in database: %s", previous_form_type.name)
             return False
         
         previous_form = forms[0]
-        print(f"[BACK] Found form in database: {previous_form.name} (ID: {previous_form.id})")
+        logger.debug("[BACK] Found form in database: %s (ID: %s)", previous_form.name, previous_form.id)
         
         # Update current form without adding to history
         # We need to temporarily set the form directly to avoid adding to history again
@@ -468,14 +473,14 @@ class GeneralEvent:
         
         # Set current_form_id as well
         self._CurrentStatus__current_form_id = previous_form.id
-        print(f"[BACK] Set current_form_type to: {previous_form_type.name}")
-        print(f"[BACK] Set current_form_id to: {previous_form.id}")
+        logger.debug("[BACK] Set current_form_type to: %s", previous_form_type.name)
+        logger.debug("[BACK] Set current_form_id to: %s", previous_form.id)
         
         # Redraw interface with previous form using form ID
         # Use skip_history_update=True to avoid adding back to history
-        print(f"[BACK] Redrawing interface with form_id: {previous_form.id}")
+        logger.debug("[BACK] Redrawing interface with form_id: %s", previous_form.id)
         self.interface.redraw(form_id=previous_form.id, skip_history_update=True)
-        print("[BACK] Back navigation completed successfully")
+        logger.info("[BACK] Back navigation completed successfully")
         return True
     
     def _set_current_form_without_history(self, form_type):
@@ -522,27 +527,27 @@ class GeneralEvent:
         Returns:
             bool: True if changes saved successfully, False otherwise
         """
-        print("\n" + "="*80)
-        print("[SAVE_CHANGES] Save changes event triggered")
-        print("="*80)
+        logger.debug("\n" + "="*80)
+        logger.debug("[SAVE_CHANGES] Save changes event triggered")
+        logger.debug("="*80)
         
         # Check if user is authenticated
         if not self.login_succeed:
-            print("[SAVE_CHANGES] User not authenticated")
+            logger.debug("[SAVE_CHANGES] User not authenticated")
             return False
         
         # Determine current form type
         current_form = self.current_form_type
-        print(f"[SAVE_CHANGES] Current form: {current_form}")
+        logger.debug("[SAVE_CHANGES] Current form: %s", current_form)
         
         try:
             # Check if interface and window are available
             if not hasattr(self, 'interface') or not self.interface:
-                print("[SAVE_CHANGES] ✗ Interface not available")
+                logger.error("[SAVE_CHANGES] ✗ Interface not available")
                 return False
             
             if not hasattr(self.interface, 'window') or not self.interface.window:
-                print("[SAVE_CHANGES] ✗ Window not available")
+                logger.error("[SAVE_CHANGES] ✗ Window not available")
                 return False
             
             # Get window reference
@@ -550,45 +555,45 @@ class GeneralEvent:
             
             # Check if window is still valid
             if not window:
-                print("[SAVE_CHANGES] ✗ Window reference is None")
+                logger.error("[SAVE_CHANGES] ✗ Window reference is None")
                 return False
             
             try:
                 # Try to access window to check if it's still valid
                 _ = window.children()
             except RuntimeError:
-                print("[SAVE_CHANGES] ✗ Window widget already deleted")
+                logger.error("[SAVE_CHANGES] ✗ Window widget already deleted")
                 return False
             
             # Find all panels in the form
             if not hasattr(window, '_panels'):
-                print("[SAVE_CHANGES] ✗ No panels found in form")
-                print("[SAVE_CHANGES] ⚠ Forms with SAVE button must have at least one PANEL")
+                logger.error("[SAVE_CHANGES] ✗ No panels found in form")
+                logger.warning("[SAVE_CHANGES] ⚠ Forms with SAVE button must have at least one PANEL")
                 return False
             
             try:
                 panels = window._panels
             except RuntimeError:
-                print("[SAVE_CHANGES] ✗ Cannot access panels - window widget may be deleted")
+                logger.error("[SAVE_CHANGES] ✗ Cannot access panels - window widget may be deleted")
                 return False
             
-            print(f"[SAVE_CHANGES] Found {len(panels)} panel(s) in form")
+            logger.debug("[SAVE_CHANGES] Found %s panel(s) in form", len(panels))
             
             if len(panels) == 0:
-                print("[SAVE_CHANGES] ✗ No panels found in form")
-                print("[SAVE_CHANGES] ⚠ Forms with SAVE button must have at least one PANEL")
+                logger.error("[SAVE_CHANGES] ✗ No panels found in form")
+                logger.warning("[SAVE_CHANGES] ⚠ Forms with SAVE button must have at least one PANEL")
                 return False
             
             # Process each panel
             all_saved = True
             for panel_name, panel in panels.items():
-                print(f"\n[SAVE_CHANGES] Processing panel: {panel_name}")
+                logger.debug("\n[SAVE_CHANGES] Processing panel: %s", panel_name)
                 
                 # Check if panel is still valid before processing
                 try:
                     _ = panel.get_content_widget() if hasattr(panel, 'get_content_widget') else None
                 except RuntimeError:
-                    print(f"[SAVE_CHANGES] ⚠ Panel '{panel_name}' widget already deleted, skipping")
+                    logger.warning("[SAVE_CHANGES] ⚠ Panel '%s' widget already deleted, skipping", panel_name)
                     all_saved = False
                     continue
                 
@@ -596,20 +601,20 @@ class GeneralEvent:
                 try:
                     textbox_values = window.get_panel_textbox_values(panel_name)
                 except RuntimeError as e:
-                    print(f"[SAVE_CHANGES] ⚠ Error getting textbox values from panel '{panel_name}': {e}")
+                    logger.error("[SAVE_CHANGES] ⚠ Error getting textbox values from panel '%s': %s", panel_name, e)
                     all_saved = False
                     continue
-                print(f"[SAVE_CHANGES] Collected {len(textbox_values)} textbox values from panel {panel_name}")
+                logger.debug("[SAVE_CHANGES] Collected %s textbox values from panel %s", len(textbox_values), panel_name)
                 
                 if not textbox_values:
-                    print(f"[SAVE_CHANGES] ⚠ No textbox values found in panel {panel_name}")
+                    logger.warning("[SAVE_CHANGES] ⚠ No textbox values found in panel %s", panel_name)
                     continue
                 
                 # Convert panel name to model class name
                 # Panel name is uppercase (e.g., "POS_SETTINGS")
                 # Model class name is PascalCase (e.g., "PosSettings")
                 model_class_name = self._panel_name_to_model_class(panel_name)
-                print(f"[SAVE_CHANGES] Model class name: {model_class_name}")
+                logger.debug("[SAVE_CHANGES] Model class name: %s", model_class_name)
                 
                 # Get model class dynamically
                 try:
@@ -618,19 +623,19 @@ class GeneralEvent:
                     import data_layer.model.definition as model_module
                     
                     if model_class_name not in model_names:
-                        print(f"[SAVE_CHANGES] ✗ Model class '{model_class_name}' not found in model definitions")
+                        logger.error("[SAVE_CHANGES] ✗ Model class '%s' not found in model definitions", model_class_name)
                         all_saved = False
                         continue
                     
                     model_class = getattr(model_module, model_class_name)
-                    print(f"[SAVE_CHANGES] Found model class: {model_class.__name__}")
+                    logger.debug("[SAVE_CHANGES] Found model class: %s", model_class.__name__)
                     
                     # Get the model instance to update
                     # Try to get from CurrentData cache first (for commonly used models)
                     model_instance = self._get_model_instance(model_class_name, model_class)
                     
                     if not model_instance:
-                        print(f"[SAVE_CHANGES] ✗ Could not get or create {model_class_name} instance")
+                        logger.error("[SAVE_CHANGES] ✗ Could not get or create %s instance", model_class_name)
                         all_saved = False
                         continue
                     
@@ -652,7 +657,7 @@ class GeneralEvent:
                                 try:
                                     new_value = int(field_value) if field_value.strip() else None
                                 except ValueError:
-                                    print(f"[SAVE_CHANGES] ⚠ Cannot convert '{field_value}' to int for field '{field_name}', skipping")
+                                    logger.error("[SAVE_CHANGES] ⚠ Cannot convert '%s' to int for field '%s', skipping", field_value, field_name)
                                     continue
                             elif field_type == bool or (old_value is not None and isinstance(old_value, bool)):
                                 # Boolean fields
@@ -665,36 +670,32 @@ class GeneralEvent:
                             if old_value != new_value:
                                 setattr(model_instance, field_name, new_value)
                                 updated_fields.append(field_name)
-                                print(f"[SAVE_CHANGES]   Updated {field_name}: {old_value} -> {new_value}")
+                                logger.debug("[SAVE_CHANGES]   Updated %s: %s -> %s", field_name, old_value, new_value)
                     
                     if updated_fields:
                         # Save the model
                         model_instance.save()
-                        print(f"[SAVE_CHANGES] ✓ Saved {len(updated_fields)} field(s) to {model_class_name}")
+                        logger.info("[SAVE_CHANGES] ✓ Saved %s field(s) to %s", len(updated_fields), model_class_name)
                         
                         # Update cache if this is a cached model
                         self._update_model_cache(model_class_name, model_instance)
                     else:
-                        print(f"[SAVE_CHANGES] ⚠ No fields changed for {model_class_name}")
+                        logger.warning("[SAVE_CHANGES] ⚠ No fields changed for %s", model_class_name)
                     
                 except Exception as e:
-                    print(f"[SAVE_CHANGES] ✗ Error saving {model_class_name}: {e}")
-                    import traceback
-                    traceback.print_exc()
+                    logger.error("[SAVE_CHANGES] ✗ Error saving %s: %s", model_class_name, e)
                     all_saved = False
                     continue
             
             if all_saved:
-                print("\n[SAVE_CHANGES] ✓ All panels saved successfully")
+                logger.info("\n[SAVE_CHANGES] ✓ All panels saved successfully")
             else:
-                print("\n[SAVE_CHANGES] ⚠ Some panels had errors during save")
+                logger.error("\n[SAVE_CHANGES] ⚠ Some panels had errors during save")
             
             return all_saved
             
         except Exception as e:
-            print(f"[SAVE_CHANGES] ✗ Error in save_changes: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("[SAVE_CHANGES] ✗ Error in save_changes: %s", e)
             return False
     
     def _panel_name_to_model_class(self, panel_name):
@@ -733,7 +734,7 @@ class GeneralEvent:
         if model_class_name == "PosSettings":
             model_instance = self.pos_settings
             if not model_instance:
-                print("[SAVE_CHANGES] ✗ PosSettings instance not found in CurrentData")
+                logger.error("[SAVE_CHANGES] ✗ PosSettings instance not found in CurrentData")
                 return None
             return model_instance
         
@@ -741,7 +742,7 @@ class GeneralEvent:
             # For Cashier, use the cached instance from CurrentData
             model_instance = self.cashier_data
             if not model_instance:
-                print("[SAVE_CHANGES] ✗ Cashier instance not found in CurrentData")
+                logger.error("[SAVE_CHANGES] ✗ Cashier instance not found in CurrentData")
                 return None
             # Unwrap if it's an AutoSaveModel
             if hasattr(model_instance, 'unwrap'):
@@ -755,10 +756,10 @@ class GeneralEvent:
                 if instances and len(instances) > 0:
                     return instances[0]
                 else:
-                    print(f"[SAVE_CHANGES] ⚠ No {model_class_name} instance found, creating new...")
+                    logger.warning("[SAVE_CHANGES] ⚠ No %s instance found, creating new...", model_class_name)
                     return model_class()
             except Exception as e:
-                print(f"[SAVE_CHANGES] ✗ Error getting {model_class_name} instance: {e}")
+                logger.error("[SAVE_CHANGES] ✗ Error getting %s instance: %s", model_class_name, e)
                 return None
     
     def _update_model_cache(self, model_class_name, model_instance):
@@ -771,10 +772,10 @@ class GeneralEvent:
         """
         if model_class_name == "PosSettings":
             self.pos_settings = model_instance
-            print("[SAVE_CHANGES] ✓ Updated pos_settings cache")
+            logger.info("[SAVE_CHANGES] ✓ Updated pos_settings cache")
         elif model_class_name == "Cashier":
             self.cashier_data = model_instance
-            print("[SAVE_CHANGES] ✓ Updated cashier_data cache")
+            logger.info("[SAVE_CHANGES] ✓ Updated cashier_data cache")
         # Add other cached models here as needed
     
     def _redraw_form_event(self):
@@ -809,13 +810,13 @@ class GeneralEvent:
         try:
             # Check if document_data exists
             if not self.document_data:
-                print("[UPDATE_SALE_SCREEN] No document_data found")
+                logger.debug("[UPDATE_SALE_SCREEN] No document_data found")
                 return False
             
             # Get window reference
             window = self.interface.window
             if not window:
-                print("[UPDATE_SALE_SCREEN] Window not found")
+                logger.error("[UPDATE_SALE_SCREEN] Window not found")
                 return False
             
             # Delegate to SaleService
@@ -827,9 +828,7 @@ class GeneralEvent:
             )
             
         except Exception as e:
-            print(f"[UPDATE_SALE_SCREEN] Error updating sale screen controls: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("[UPDATE_SALE_SCREEN] Error updating sale screen controls: %s", e)
             return False
 
     # ==================== MAIN NAVIGATION EVENTS ====================
@@ -854,11 +853,11 @@ class GeneralEvent:
             # Ensure document_data exists - try to load incomplete document first,
             # if none exists, create a new empty document
             if not self.document_data:
-                print("[SALES_FORM] No document_data, trying to load incomplete document...")
+                logger.debug("[SALES_FORM] No document_data, trying to load incomplete document...")
                 if not self.load_incomplete_document():
-                    print("[SALES_FORM] No incomplete document found, creating new empty document...")
+                    logger.debug("[SALES_FORM] No incomplete document found, creating new empty document...")
                     if not self.create_empty_document():
-                        print("[SALES_FORM] Failed to create empty document")
+                        logger.error("[SALES_FORM] Failed to create empty document")
                         # Continue anyway - form will open but transaction won't work
             
             # Redraw the form
@@ -1019,18 +1018,18 @@ class GeneralEvent:
             target_form = Form.get_by_id(target_form_id)
             
             if not target_form:
-                print(f"Form not found: {target_form_id}")
+                logger.error("Form not found: %s", target_form_id)
                 return False
             
             # Check if form requires login
             if target_form.need_login and not self.login_succeed:
-                print(f"Login required to access form: {target_form.name}")
+                logger.debug("Login required to access form: %s", target_form.name)
                 return False
             
             # Check if form requires special authorization
             if target_form.need_auth:
                 # TODO: Implement authorization check
-                print(f"Authorization check for form: {target_form.name}")
+                logger.debug("Authorization check for form: %s", target_form.name)
             
             # Navigate based on transition mode
             if transition_mode.upper() == "MODAL":
@@ -1050,5 +1049,5 @@ class GeneralEvent:
                 return True
                 
         except Exception as e:
-            print(f"Error navigating to form {target_form_id}: {str(e)}")
+            logger.error("Error navigating to form %s: %s", target_form_id, str(e))
             return False

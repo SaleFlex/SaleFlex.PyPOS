@@ -23,10 +23,14 @@ SOFTWARE.
 """
 
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem, QHeaderView,
-                             QDialog, QPushButton, QHBoxLayout, QLabel)
+                               QDialog, QPushButton, QHBoxLayout, QLabel)
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont, QColor
 from typing import List, Optional, Dict, Any
+
+from core.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class SalesData:
@@ -527,7 +531,7 @@ class SaleList(QWidget):
             
         except Exception as e:
             # Log error and return failure status
-            print(f"Error adding sale: {e}")
+            logger.error("Error adding sale: %s", e)
             return False
     
     def add_subtotal(self, total_price: float = None) -> bool:
@@ -653,7 +657,7 @@ class SaleList(QWidget):
                 return self.remove_product_at_row(row_index)
                 
         except Exception as e:
-            print(f"Error deleting transaction: {e}")
+            logger.error("Error deleting transaction: %s", e)
             return False
     
     def add_discount_by_amount_line(self, discount_amount: float, product_name: str = "") -> bool:
@@ -800,7 +804,7 @@ class SaleList(QWidget):
                 selected_row = self.table_widget.currentRow()
                 return self.get_product_at_row(selected_row)
         except Exception as e:
-            print(f"Error getting selected sale: {e}")
+            logger.error("Error getting selected sale: %s", e)
         return None
     
     def get_last_sale(self) -> Optional[Dict[str, Any]]:
@@ -817,7 +821,7 @@ class SaleList(QWidget):
                     row_index -= 1
                     
         except Exception as e:
-            print(f"Error getting last sale: {e}")
+            logger.error("Error getting last sale: %s", e)
         return None
     
     def cancel_transaction(self, row_index: int) -> bool:
@@ -845,7 +849,7 @@ class SaleList(QWidget):
             return True
             
         except Exception as e:
-            print(f"Error canceling transaction: {e}")
+            logger.error("Error canceling transaction: %s", e)
             return False
     
     def repeat_transaction(self, row_index: int) -> bool:
@@ -915,9 +919,7 @@ class SaleList(QWidget):
             return success
             
         except Exception as e:
-            print(f"Error repeating transaction: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("Error repeating transaction: %s", e)
             return False
     
     def error_correction(self, row_index: int) -> bool:
@@ -947,7 +949,7 @@ class SaleList(QWidget):
             return True
             
         except Exception as e:
-            print(f"Error in error correction: {e}")
+            logger.error("Error in error correction: %s", e)
             return False
     
     def _apply_canceled_style(self, row_index: int):
@@ -966,7 +968,7 @@ class SaleList(QWidget):
                     item.setFont(font)
                     
         except Exception as e:
-            print(f"Error applying canceled style: {e}")
+            logger.error("Error applying canceled style: %s", e)
     
     def move_selection_up(self):
         """
