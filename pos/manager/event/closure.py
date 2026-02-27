@@ -30,6 +30,7 @@ from core.logger import get_logger
 from data_layer.engine import Engine
 
 logger = get_logger(__name__)
+
 from data_layer.model import (
     TransactionHead,
     TransactionSequence,
@@ -357,22 +358,41 @@ class ClosureEvent:
 
     def _create_closure_record(self, closure_number, store_id, pos_id, base_currency_id,
                                 closure_start_time, closure_end_time, totals):
-        """Create and persist the main Closure record."""
+        """Create or update the main Closure record.
+
+        If an open (closure_end_time IS NULL) closure record already exists for
+        this closure_number (created by create_empty_closure at startup), it is
+        updated in-place instead of inserted, preventing a UNIQUE constraint
+        violation on closure_unique_id.
+        """
         try:
             today = date.today()
             closure_unique_id = f"{today.strftime('%Y%m%d')}-{closure_number:04d}"
             cashier_id = self.cashier_data.id
 
-            c = Closure()
-            c.closure_unique_id = closure_unique_id
-            c.closure_number = closure_number
-            c.fk_store_id = store_id
-            c.fk_pos_id = pos_id
-            c.closure_date = today
+            # Reuse the open closure record created at startup if it exists
+            c = None
+            with Engine().get_session() as session:
+                existing = session.query(Closure).filter(
+                    Closure.closure_number == closure_number,
+                    Closure.closure_end_time.is_(None),
+                    Closure.is_deleted == False,
+                ).first()
+                if existing:
+                    c = Closure.get_by_id(existing.id)
+
+            if c is None:
+                c = Closure()
+                c.closure_unique_id = closure_unique_id
+                c.closure_number = closure_number
+                c.fk_store_id = store_id
+                c.fk_pos_id = pos_id
+                c.closure_date = today
+                c.fk_cashier_opened_id = cashier_id
+                c.fk_base_currency_id = base_currency_id
+
             c.closure_start_time = closure_start_time
             c.closure_end_time = closure_end_time
-            c.fk_base_currency_id = base_currency_id
-            c.fk_cashier_opened_id = cashier_id
             c.fk_cashier_closed_id = cashier_id
             c.total_document_count = totals["total_document_count"]
             c.gross_sales_amount = totals["gross_sales_amount"]
@@ -384,7 +404,11 @@ class ClosureEvent:
             c.canceled_transaction_count = totals["canceled_transaction_count"]
             c.return_transaction_count = totals["return_transaction_count"]
             c.expected_cash_amount = totals["expected_cash_amount"]
-            c.create()
+
+            if c.id:
+                c.save()
+            else:
+                c.create()
             return c
         except Exception as e:
             logger.error("[CLOSURE] Create closure record error: %s", e)
