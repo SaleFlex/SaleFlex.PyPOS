@@ -18,10 +18,11 @@
 14. [Service Layer Architecture](14-service-layer.md)
 15. [Closure Operation (End-of-Day)](15-closure-operation.md)
 16. [Central Logging](16-logging.md)
+17. [Centralized Exception Handling](17-exception-handling.md)
 
 ---
 
-**Last Updated:** 2025-11-28  
+**Last Updated:** 2026-02-27  
 **Version:** 1.0.0b3  
 **License:** MIT
 
@@ -33,5 +34,6 @@
 - [User Guide](05-basic-navigation.md) - Basic navigation and usage
 - [Developer Guide](06-dynamic-forms.md) - Advanced features for developers
 - [Central Logging](16-logging.md) - Logging configuration and usage
+- [Exception Handling](17-exception-handling.md) - Centralized exception hierarchy
 - [Troubleshooting](12-troubleshooting.md) - Common issues and solutions
 

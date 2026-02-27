@@ -36,6 +36,7 @@ SaleFlex.PyPOS POS system is designed to streamline the sales process and improv
 - **Document Management System**: Complete transaction lifecycle management with temporary models during processing and automatic conversion to permanent models upon completion. Automatically updates document data during sales operations (PLU and department sales). Supports document suspension/resumption for restaurant mode (table/order management) and automatic recovery of incomplete transactions at startup. Automatically restores sale screen UI controls (sale_list, amount_table, payment_list) when entering sale screen with ACTIVE transaction status, enabling seamless resumption of incomplete transactions
 - **Auto-Save Functionality**: Automatic database persistence system using descriptor pattern and wrapper classes. Model instances and dictionaries are automatically saved to the database when attributes are modified, ensuring data integrity and reducing manual save operations. Supports nested model wrapping and skip flags for batch operations
 - **Central Logging**: Configurable logging via `core/logger.py` with a single `saleflex` root logger. Log level (DEBUG/INFO/WARNING/ERROR/CRITICAL), console output, and file output are controlled from the `[logging]` section in `settings.toml`. All modules use `get_logger(__name__)` for consistent, hierarchical log records
+- **Centralized Exception Handling**: Typed exception hierarchy rooted at `SaleFlexError` (`pos/exceptions.py`). Domain-specific subclasses (`PaymentError`, `FiscalDeviceError`, `GATEConnectionError`, `TaxCalculationError`, `DatabaseError`, etc.) replace bare `Exception` raises throughout the codebase. All exceptions are chained with `raise ... from e` to preserve the full traceback
 - **Optimized Performance**: In-memory caching of reference data (`pos_data`) and product data (`product_data`) minimizes disk I/O, extending disk life for POS devices with limited write cycles. All product lookups, currency calculations, VAT rate lookups, button rendering, and sale operations use cached data instead of database queries
 
 ## Architecture Overview
@@ -49,6 +50,7 @@ SaleFlex.PyPOS follows a layered architecture pattern with clear separation of c
 - **UI Layer** (`user_interface/`): PySide6-based UI components with dynamic form rendering
 - **Caching Layer** (`pos/manager/cache_manager.py`): In-memory caching for reference and product data
 - **Logging** (`core/logger.py`): Central logging module; all components use `get_logger(__name__)` with configuration from `settings.toml` `[logging]`
+- **Exception Layer** (`pos/exceptions.py`): Typed exception hierarchy (`SaleFlexError` root) with domain subclasses for payment, hardware, tax, database, document, configuration, and authentication errors
 
 ```
 ┌─────────────────────────────────────────┐
@@ -142,6 +144,7 @@ SaleFlex.PyPOS/
 │       └── interface.py
 │
 ├── pos/                    # Core POS Business Logic
+│   ├── exceptions.py       # Centralized exception hierarchy (SaleFlexError root)
 │   ├── data/               # POS-specific data types
 │   │   ├── document_type.py
 │   │   ├── document_state.py
@@ -345,6 +348,7 @@ All models support:
 - [x] **Auto-Save System** - Automatic database persistence with descriptor pattern
 - [ ] **Configuration Management** - Advanced settings system
 - [x] **Central Logging** - Configurable logging via `core/logger.py`; level, console, and file output driven by `settings.toml` `[logging]`; application-wide use of `get_logger(__name__)`
+- [x] **Centralized Exception Handling** - Typed `SaleFlexError` hierarchy in `pos/exceptions.py`; domain-specific subclasses for payment, hardware, tax, database, document, configuration, and authentication errors; all exceptions chained with `raise ... from e`
 
 ### POS Core Modules
 - [x] **POS Manager Module** - Central business logic and transaction handling with document management system
@@ -514,6 +518,7 @@ Comprehensive documentation is available in the `docs/` directory:
 - **[Document Management](docs/09-document-management.md)** - Transaction lifecycle management
 - **[Closure Operation](docs/15-closure-operation.md)** - End-of-day closure (authorization, aggregation, sequences)
 - **[Central Logging](docs/16-logging.md)** - Logging configuration and usage (`core/logger.py`, `settings.toml` [logging])
+- **[Exception Handling](docs/17-exception-handling.md)** - Centralized exception hierarchy, usage patterns, and design guidelines
 - **[Database Models](docs/10-database-models.md)** - Complete model reference
 - **[Service Layer](docs/14-service-layer.md)** - Business logic services architecture
 - **[Troubleshooting](docs/12-troubleshooting.md)** - Common issues and solutions

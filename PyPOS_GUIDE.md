@@ -29,9 +29,10 @@
 14. [Service Layer Architecture](docs/14-service-layer.md)
 15. [Closure Operation (End-of-Day)](docs/15-closure-operation.md)
 16. [Central Logging](docs/16-logging.md)
+17. [Centralized Exception Handling](docs/17-exception-handling.md)
 
 ---
 
-**Last Updated:** 2025-01-27  
+**Last Updated:** 2026-02-27  
 **Version:** 1.0.0b3  
 **License:** MIT
