@@ -25,7 +25,7 @@ SOFTWARE.
 
 
 from core.logger import get_logger
-from pos.exceptions import HardwareError, FiscalDeviceError, CashDrawerError
+from core.exceptions import HardwareError, FiscalDeviceError, CashDrawerError
 
 logger = get_logger(__name__)
 

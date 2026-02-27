@@ -28,7 +28,7 @@ from data_layer.enums.event_name import EventName
 from data_layer.model.definition.transaction_status import TransactionStatus
 from data_layer.model.definition.transaction_payment_temp import TransactionPaymentTemp
 from data_layer.model.definition.transaction_change_temp import TransactionChangeTemp
-from pos.exceptions import PaymentError, InvalidAmountError, PaymentAlreadyCompleteError
+from core.exceptions import PaymentError, InvalidAmountError, PaymentAlreadyCompleteError
 
 
 

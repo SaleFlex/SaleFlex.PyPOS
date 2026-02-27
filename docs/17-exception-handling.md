@@ -1,6 +1,6 @@
 # Centralized Exception Handling
 
-SaleFlex.PyPOS uses a **centralized exception hierarchy** (`pos/exceptions.py`) so that every layer of the application raises typed, meaningful errors instead of bare `Exception` or built-in types.  
+SaleFlex.PyPOS uses a **centralized exception hierarchy** (`core/exceptions.py`) so that every layer of the application raises typed, meaningful errors instead of bare `Exception` or built-in types.  
 All custom exceptions inherit from `SaleFlexError`, making it easy to catch all application-level errors with a single `except SaleFlexError` clause or to catch only a specific domain.
 
 ## Exception Hierarchy
@@ -35,7 +35,7 @@ SaleFlexError                          ← Root base class
 ## File Location
 
 ```
-pos/
+core/
 └── exceptions.py    ← entire exception hierarchy lives here
 ```
 
@@ -44,7 +44,7 @@ pos/
 ### Importing
 
 ```python
-from pos.exceptions import (
+from core.exceptions import (
     SaleFlexError,
     PaymentError,
     InvalidAmountError,
@@ -61,7 +61,7 @@ from pos.exceptions import (
 ### Raising a domain-specific exception
 
 ```python
-from pos.exceptions import InvalidAmountError
+from core.exceptions import InvalidAmountError
 
 def calculate_payment_amount(button_name: str, ...) -> Decimal:
     try:
@@ -76,7 +76,7 @@ Always use `raise NewError(...) from e` when wrapping a lower-level exception.
 This preserves the full traceback for debugging.
 
 ```python
-from pos.exceptions import DatabaseError
+from core.exceptions import DatabaseError
 from sqlalchemy.exc import SQLAlchemyError
 
 try:
@@ -89,7 +89,7 @@ except SQLAlchemyError as e:
 ### Catching only application errors
 
 ```python
-from pos.exceptions import SaleFlexError
+from core.exceptions import SaleFlexError
 
 try:
     result = some_pos_operation()
@@ -101,7 +101,7 @@ except SaleFlexError as e:
 ### Catching a specific domain
 
 ```python
-from pos.exceptions import TaxCalculationError
+from core.exceptions import TaxCalculationError
 
 try:
     vat = VatService.calculate_vat(price, vat_rate)

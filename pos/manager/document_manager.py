@@ -26,7 +26,7 @@ from datetime import datetime
 from uuid import uuid4
 
 from core.logger import get_logger
-from pos.exceptions import DatabaseError
+from core.exceptions import DatabaseError
 
 logger = get_logger(__name__)
 

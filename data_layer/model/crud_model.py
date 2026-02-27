@@ -29,7 +29,7 @@ from typing import List, Optional, Dict, Any
 from uuid import uuid4
 
 from data_layer.engine import Engine
-from pos.exceptions import DatabaseError
+from core.exceptions import DatabaseError
 
 
 

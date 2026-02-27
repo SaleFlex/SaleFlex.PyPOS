@@ -24,7 +24,7 @@ SOFTWARE.
 
 from decimal import Decimal, ROUND_HALF_UP, ROUND_DOWN
 from typing import Optional
-from pos.exceptions import TaxCalculationError
+from core.exceptions import TaxCalculationError
 
 
 
