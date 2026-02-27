@@ -26,6 +26,7 @@ from datetime import datetime
 from uuid import uuid4
 
 from core.logger import get_logger
+from pos.exceptions import DatabaseError
 
 logger = get_logger(__name__)
 
@@ -89,6 +90,11 @@ class DocumentManager:
         
         This method should be called when starting a new transaction.
         """
+        # Guard: return already-loaded document without re-creating
+        if self.document_data and self.document_data.get("head"):
+            logger.debug("[DEBUG] create_empty_document: document already loaded, returning existing")
+            return self.document_data
+
         try:
             # Validate required data
             if not self.pos_settings:
@@ -191,10 +197,39 @@ class DocumentManager:
             
             # Get pos_id from pos_settings (use pos_no_in_store as pos_id is Integer)
             pos_id = self.pos_settings.pos_no_in_store if hasattr(self.pos_settings, 'pos_no_in_store') else 1
-            
-            # Generate unique transaction ID
-            transaction_unique_id = f"{datetime.now().strftime('%Y%m%d')}-{receipt_number:06d}"
-            
+
+            # Generate unique transaction ID; resolve any UNIQUE conflicts up-front
+            # so that head.create() below is guaranteed to succeed.
+            today_str = datetime.now().strftime('%Y%m%d')
+            transaction_unique_id = f"{today_str}-{receipt_number:06d}"
+
+            with Engine().get_session() as _check_session:
+                for _attempt in range(100):
+                    conflict = _check_session.query(TransactionHeadTemp).filter(
+                        TransactionHeadTemp.transaction_unique_id == transaction_unique_id
+                    ).first()
+                    if conflict is None:
+                        break  # This receipt_number is free
+                    if not conflict.is_closed:
+                        # An open (unfinished) document already owns this number — reuse it
+                        conflict_head_id = conflict.id
+                        logger.warning(
+                            "[DEBUG] transaction_unique_id %s already exists (open) — "
+                            "reusing existing document", transaction_unique_id
+                        )
+                        self._load_document_data(conflict_head_id)
+                        if self.document_data:
+                            self._update_statusbar()
+                            return self.document_data
+                        break  # Load failed — fall through to create new
+                    # Closed document owns this number — try the next receipt_number
+                    receipt_number += 1
+                    transaction_unique_id = f"{today_str}-{receipt_number:06d}"
+                    logger.debug(
+                        "[DEBUG] receipt_number %s already used (closed), trying %s",
+                        receipt_number - 1, receipt_number
+                    )
+
             # Create new TransactionHeadTemp
             head = TransactionHeadTemp()
             head.id = uuid4()
@@ -212,8 +247,13 @@ class DocumentManager:
             head.is_closed = False
             head.is_pending = False
             head.is_cancel = False
-            
-            # Initialize document_data structure
+
+            # Persist the head to DB BEFORE setting document_data so that
+            # subsequent save() calls (from auto-save or payment service) can
+            # do UPDATE instead of INSERT.
+            head.create()
+
+            # Initialize document_data structure (auto-save will UPDATE the head)
             self.document_data = {
                 "head": head,
                 "products": [],

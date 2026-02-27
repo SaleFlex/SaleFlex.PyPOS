@@ -203,7 +203,15 @@ class PaymentService:
             # Update head_temp total_payment_amount (use safe decimal conversion)
             current_payment = PaymentService._safe_decimal(head_temp.total_payment_amount)
             head_temp.total_payment_amount = current_payment + payment_amount
-            head_temp.save()
+            try:
+                head_temp.save()
+            except Exception as save_err:
+                # Log but do not abort: the in-memory value is already updated,
+                # and mark_document_complete() will persist the final state.
+                logger.warning(
+                    "[PAYMENT_SERVICE] head_temp.save() failed (will retry on completion): %s",
+                    save_err
+                )
             
             return True, payment_temp, None
             
@@ -278,7 +286,13 @@ class PaymentService:
                 
                 # Update head_temp total_change_amount
                 head_temp.total_change_amount = change_amount
-                head_temp.save()
+                try:
+                    head_temp.save()
+                except Exception as save_err:
+                    logger.warning(
+                        "[PAYMENT_SERVICE] head_temp.save() in record_change failed "
+                        "(non-fatal): %s", save_err
+                    )
                 
                 return True, change_temp, None
             else:
@@ -352,9 +366,12 @@ class PaymentService:
             head_temp.is_closed = True
             head_temp.save()
             
+            logger.info("[PAYMENT_SERVICE] Document marked as complete: %s",
+                        getattr(head_temp, 'transaction_unique_id', head_temp.id))
             return True
             
-        except Exception:
+        except Exception as e:
+            logger.error("[PAYMENT_SERVICE] mark_document_complete failed: %s", e)
             return False
     
     @staticmethod

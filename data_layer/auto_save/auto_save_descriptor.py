@@ -30,6 +30,9 @@ when an attribute is set, with support for wrapping dictionaries and models.
 """
 
 from .auto_save_dict import AutoSaveDict
+from core.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class AutoSaveDescriptor:

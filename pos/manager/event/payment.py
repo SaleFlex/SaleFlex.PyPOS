@@ -441,25 +441,36 @@ class PaymentEvent:
             
             # Mark document as complete
             if not PaymentService.mark_document_complete(self.document_data):
+                logger.error("[PAYMENT] Failed to mark document as complete")
                 return False
             
             # Update closure
             if self.closure:
                 PaymentService.update_closure_for_completion(self.closure, self.document_data)
             
-            # Increment receipt number
-            self._increment_receipt_number()
-            
             # Copy temp models to permanent models
             PaymentService.copy_temp_to_permanent(self.document_data)
             
-            # Reset document_data
+            # Increment receipt number AFTER copying to permanent so the next
+            # document gets a fresh number.
+            self._increment_receipt_number()
+            
+            # Reset document_data so the next sale starts fresh
             self.document_data = None
             
             # Clear UI controls
             self._clear_sale_screen_controls()
             
             logger.info("[PAYMENT] Document completed successfully")
+
+            # Immediately create the next empty document so the cashier can
+            # start the next sale without any additional action.
+            new_doc = self.create_empty_document()
+            if new_doc:
+                logger.info("[PAYMENT] New empty document ready for next sale")
+            else:
+                logger.warning("[PAYMENT] Could not pre-create next empty document")
+
             return True
             
         except Exception as e:

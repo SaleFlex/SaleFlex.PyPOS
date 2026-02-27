@@ -23,7 +23,7 @@ SOFTWARE.
 """
 
 from sqlalchemy.orm import declarative_base
-from sqlalchemy import func, desc, asc
+from sqlalchemy import func, desc, asc, update as sql_update, inspect as sa_inspect
 from sqlalchemy.exc import SQLAlchemyError
 from typing import List, Optional, Dict, Any
 from uuid import uuid4
@@ -60,17 +60,43 @@ class CRUD:
     # CREATE Operations
     def save(self) -> bool:
         """
-        Saves record to database, inserts if new, updates if exists.
-        Works even if model was loaded from database (lazy engine initialization).
+        Saves record to database: UPDATE if exists (by PK), INSERT if not.
+
+        Uses an explicit UPDATE-then-INSERT strategy instead of session.merge(),
+        which can silently try INSERT for detached objects when the SQLAlchemy
+        identity map cannot match the UUID format stored in SQLite TEXT columns.
         """
         try:
             engine = self._get_engine()
             with engine.get_session() as session:
-                # If no ID, assign a new UUID (for UUID-enabled models)
                 if hasattr(self, 'id') and self.id is None:
                     self.id = uuid4()
-                
-                session.merge(self)  # merge handles both insert and update
+
+                # Build a dict of all non-PK column values for the UPDATE
+                try:
+                    mapper = sa_inspect(type(self))
+                    update_dict = {
+                        col.key: getattr(self, col.key)
+                        for col in mapper.column_attrs
+                        if col.key != 'id' and hasattr(self, col.key)
+                    }
+                except Exception:
+                    update_dict = {}
+
+                if update_dict and hasattr(self, 'id') and self.id is not None:
+                    # Try UPDATE first
+                    result = session.execute(
+                        sql_update(type(self))
+                        .where(type(self).id == self.id)
+                        .values(**update_dict)
+                    )
+                    session.flush()
+                    if result.rowcount == 0:
+                        # Record not in DB yet — INSERT it
+                        session.add(self)
+                else:
+                    session.add(self)
+
                 session.commit()
                 return True
         except SQLAlchemyError as e:
