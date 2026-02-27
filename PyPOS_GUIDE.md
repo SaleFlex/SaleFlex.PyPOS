@@ -28,6 +28,7 @@
 13. [Support and Resources](docs/13-support.md)
 14. [Service Layer Architecture](docs/14-service-layer.md)
 15. [Closure Operation (End-of-Day)](docs/15-closure-operation.md)
+16. [Central Logging](docs/16-logging.md)
 
 ---
 

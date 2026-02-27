@@ -17,6 +17,7 @@
 13. [Support and Resources](13-support.md)
 14. [Service Layer Architecture](14-service-layer.md)
 15. [Closure Operation (End-of-Day)](15-closure-operation.md)
+16. [Central Logging](16-logging.md)
 
 ---
 
@@ -31,5 +32,6 @@
 - [Getting Started](03-installation.md) - Installation and setup instructions
 - [User Guide](05-basic-navigation.md) - Basic navigation and usage
 - [Developer Guide](06-dynamic-forms.md) - Advanced features for developers
+- [Central Logging](16-logging.md) - Logging configuration and usage
 - [Troubleshooting](12-troubleshooting.md) - Common issues and solutions
 
