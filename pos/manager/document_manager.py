@@ -125,14 +125,29 @@ class DocumentManager:
                 transaction_type = TransactionType.SALE.value
             # Add more mappings as needed
             
-            # Get closure_number from TransactionSequence
+            # Get closure_number from TransactionSequence cache
             closure_number = 1
             sequences = self.pos_data.get("TransactionSequence", [])
             for seq in sequences:
                 if seq.name == "ClosureNumber":
                     closure_number = seq.value
                     break
-            
+
+            # Safety check: prefer the active open closure's number over the cached
+            # sequence value so they never diverge (e.g. after a DB restore or first
+            # boot where the sequence row still holds its initial value of 1).
+            try:
+                active_closure = self.closure
+                if active_closure and active_closure.get("closure"):
+                    closure_obj = active_closure["closure"]
+                    from data_layer.auto_save import AutoSaveModel as _ASM
+                    if isinstance(closure_obj, _ASM):
+                        closure_obj = closure_obj.unwrap()
+                    if closure_obj and closure_obj.closure_number:
+                        closure_number = closure_obj.closure_number
+            except Exception:
+                pass
+
             # Get receipt_number from TransactionSequence
             receipt_number = 1
             for seq in sequences:

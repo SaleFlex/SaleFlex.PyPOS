@@ -88,6 +88,9 @@ class ClosureManager:
                 self.create_empty_closure()
             except Exception as e2:
                 logger.error("[DEBUG] Error creating empty closure: %s", e2)
+        
+        # Ensure transaction_sequence.ClosureNumber matches the active closure
+        self._sync_closure_number_sequence()
     
     def _load_closure_data(self, closure_id):
         """
@@ -267,9 +270,62 @@ class ClosureManager:
             self._load_closure_data(new_closure.id)
             
             logger.info("[DEBUG] Created new empty closure: %s", closure_unique_id)
+            
+            # Sync transaction_sequence.ClosureNumber to match the new closure
+            self._sync_closure_number_sequence()
         except Exception as e:
             logger.error("[DEBUG] Error creating empty closure: %s", e)
     
+    def _sync_closure_number_sequence(self):
+        """
+        Sync transaction_sequence.ClosureNumber value to match the active closure's
+        closure_number.
+
+        This prevents documents from being stamped with a stale ClosureNumber
+        (e.g. value=1 from DB init) when the real active closure has a higher number.
+        Called after load_open_closure() and create_empty_closure().
+        """
+        from data_layer.engine import Engine
+        from data_layer.model import TransactionSequence
+
+        try:
+            if not self.closure or not self.closure.get("closure"):
+                return
+
+            closure_obj = self.closure["closure"]
+            if isinstance(closure_obj, AutoSaveModel):
+                closure_obj = closure_obj.unwrap()
+
+            active_closure_number = closure_obj.closure_number
+            if active_closure_number is None:
+                return
+
+            # Update DB row only when values differ to avoid unnecessary writes
+            with Engine().get_session() as session:
+                seq = session.query(TransactionSequence).filter(
+                    TransactionSequence.name == "ClosureNumber",
+                    TransactionSequence.is_deleted == False
+                ).first()
+
+                if seq is None:
+                    logger.warning("[ClosureManager] ClosureNumber sequence row not found")
+                    return
+
+                if seq.value != active_closure_number:
+                    logger.info(
+                        "[ClosureManager] Syncing ClosureNumber sequence: %s -> %s",
+                        seq.value, active_closure_number
+                    )
+                    seq.value = active_closure_number
+                    session.commit()
+
+            # Refresh in-memory pos_data cache so document creation picks up the new value
+            if hasattr(self, 'refresh_pos_data_model'):
+                self.refresh_pos_data_model(TransactionSequence)
+
+        except Exception as e:
+            logger.error("[ClosureManager] Error syncing ClosureNumber sequence: %s", e)
+
     def close_closure(self, closing_cash_amount=None, description=None):
         """
         Close the current open closure.
