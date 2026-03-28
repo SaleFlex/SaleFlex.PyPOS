@@ -6,8 +6,8 @@
 [Watch Demo](https://youtu.be/HoA2p6M8fuM) | [Documentation](docs/README.md) | [Quick Start](#quick-start)
 
 ![Python 3.13](https://img.shields.io/badge/python-%3E=_3.13-success.svg)
-![PySide6](https://img.shields.io/badge/PySide6-6.10.0-blue.svg)
-![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0.44-green.svg)
+![PySide6](https://img.shields.io/badge/PySide6-6.11.0-blue.svg)
+![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0.48-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
 ### Touch Screen Point-of-Sale Application
@@ -224,10 +224,12 @@ SaleFlex.PyPOS integrates seamlessly with **[SaleFlex.GATE](https://github.com/S
 - **Scales**: Weighing scales for retail environments
 
 ### Software Requirements
-- **Python**: 3.13 or higher
-- **PySide6**: 6.10.0 (Qt-based GUI framework)
-- **SQLAlchemy**: 2.0.44 (ORM for database operations)
-- **Requests**: 2.32.5 (HTTP client for API communications)
+- **Python**: 3.13 or higher (recommended)
+- **PySide6**: 6.11.0 (Qt-based GUI framework)
+- **SQLAlchemy**: 2.0.48 (ORM for database operations)
+- **Requests**: 2.33.0 (HTTP client for API communications)
+
+> **Note on Python 3.14:** Python 3.14 can be used to run the application, but SQLAlchemy does not yet officially support Python 3.14. You may encounter unexpected issues or incompatibilities. It is recommended to use Python 3.13 until official SQLAlchemy support for Python 3.14 is confirmed.
 
 ### Supported Database Engines
 - **SQLite** (default, included)
@@ -253,7 +255,7 @@ python saleflex.py
 ## Installation & Setup
 
 ### Prerequisites
-1. Install [Python 3.13](https://www.python.org/downloads/) or higher
+1. Install [Python 3.13](https://www.python.org/downloads/) or higher (**Python 3.14 is not yet officially supported by SQLAlchemy — use 3.13 for best compatibility**)
 2. Ensure pip is installed and up to date
 
 ### Installation Steps
