@@ -1328,6 +1328,43 @@ def _insert_form_controls(session: Session, cashier_id: str):
     # Note: This will be done after adding to session and committing to get the panel ID
     
     # Cashier form controls
+    # Cashier selection combobox (admin only - populated and shown dynamically at runtime)
+    cashier_mgmt_list = FormControl(
+        fk_form_id=cashier_form.id,
+        fk_parent_id=None,
+        name=ControlName.CASHIER_MGMT_LIST.value,
+        form_control_function1=EventName.SELECT_CASHIER.value,
+        form_control_function2=None,
+        type_no=3,
+        type="COMBOBOX",
+        width=600,
+        height=50,
+        location_x=212,
+        location_y=5,
+        start_position=None,
+        caption1="Select Cashier",
+        caption2=None,
+        list_values=None,
+        dock=None,
+        alignment=None,
+        text_alignment="LEFT",
+        character_casing="NORMAL",
+        font="Tahoma",
+        icon=None,
+        tool_tip="Select cashier to view or edit",
+        image=None,
+        image_selected=None,
+        font_auto_height=False,
+        font_size=14,
+        input_type="ALPHANUMERIC",
+        text_image_relation=None,
+        back_color="0xFFFFFF",
+        fore_color="0x000000",
+        keyboard_value=None,
+        fk_cashier_create_id=cashier_id,
+        fk_cashier_update_id=cashier_id
+    )
+
     # First create the Panel control (name matches model name)
     cashier_panel = FormControl(
         fk_form_id=cashier_form.id,
@@ -1545,7 +1582,7 @@ def _insert_form_controls(session: Session, cashier_id: str):
     )
     
     # Combine all cashier form controls
-    cashier_form_controls = [cashier_panel] + cashier_controls + [save_button, back_button]
+    cashier_form_controls = [cashier_mgmt_list, cashier_panel] + cashier_controls + [save_button, back_button]
     
     # Closure form controls
     closure_form_controls = [

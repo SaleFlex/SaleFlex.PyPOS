@@ -145,9 +145,29 @@ The system implements a generic panel-based form save mechanism that works with 
 
 **Cashier Management Form:**
 - Panel name: `CASHIER` (matches model name)
-- Textbox names: `USER_NAME`, `NAME`, `LAST_NAME`, `PASSWORD`, `IDENTITY_NUMBER`, `DESCRIPTION`, `IS_ADMINISTRATOR`, `IS_ACTIVE`
-- On form load: Values from `CurrentData.cashier_data` are automatically loaded
-- On SAVE: Values are saved to `Cashier` model
+- Textbox names inside panel: `NO`, `USER_NAME`, `NAME`, `LAST_NAME`, `PASSWORD`, `IDENTITY_NUMBER`, `DESCRIPTION`, `IS_ADMINISTRATOR`, `IS_ACTIVE`
+- On form load: Values from `CurrentData.editing_cashier` (or fallback `cashier_data`) are loaded automatically
+- On SAVE: Values are saved to the currently selected cashier (`editing_cashier`)
+
+**Cashier Selection Combobox (`CASHIER_MGMT_LIST`):**  
+A combobox placed above the CASHIER panel enables multi-cashier management:
+- If the **logged-in user is an admin** (`is_administrator = True`): all cashiers are listed and any of them can be selected and edited
+- If the **logged-in user is not an admin** (`is_administrator = False`): only their own account is shown
+- Selecting a cashier from the combobox updates `CurrentData.editing_cashier` and redraws the form with that cashier's data
+- Signals are blocked during initial population (`blockSignals`) to prevent spurious `SELECT_CASHIER` events
+
+**Field Read-Only Rules:**
+
+| Cashier being edited | Password field | All other fields |
+|---|---|---|
+| `is_administrator = True` | Editable | Editable |
+| `is_administrator = False` | Editable | **Read-only** (grey background) |
+
+This means a non-admin cashier can only update their own password. An admin cashier can edit all fields of any account.
+
+**`editing_cashier` vs `cashier_data`:**
+- `cashier_data` — the currently **logged-in** cashier (set at login, never changed while session is active)
+- `editing_cashier` — the cashier whose data is **currently displayed** in the form (set when opening the form or changing the combobox selection; defaults to `cashier_data` on form open)
 
 **Creating Forms for Any Model:**
 To create a form for any model, simply:
@@ -513,17 +533,71 @@ Panels can contain child controls (textboxes, labels, buttons, etc.) through par
 - Panel name is converted to model class name (e.g., "POS_SETTINGS" → "PosSettings")
 - Textbox names are converted to model field names (uppercase → lowercase)
 - Example: `POS_SETTINGS` panel textboxes load from `CurrentData.pos_settings`
-- Example: `CASHIER` panel textboxes load from `CurrentData.cashier_data`
+- Example: `CASHIER` panel textboxes load from `CurrentData.editing_cashier` (falls back to `cashier_data`)
+
+**Cashier Panel — Read-Only Rules:**
+After loading data, the CASHIER panel applies field-level read-only protection:
+- If loaded cashier has `is_administrator = True` → all fields are **editable**
+- If loaded cashier has `is_administrator = False` → all fields are **read-only** *except* `PASSWORD`
+
+This is enforced inside `base_window._create_textbox()` immediately after the field value is loaded.
 
 **Data Saving:**
 - When SAVE button is clicked, panel textbox values are collected
 - Panel name is converted to model class name (e.g., "POS_SETTINGS" → "PosSettings")
-- Model instance is found from cache or database (or created if new)
+- For `CASHIER` panel: saves to `CurrentData.editing_cashier` (the cashier currently displayed), not necessarily the logged-in user
 - Values are converted to appropriate types (int, bool, string, None)
 - Model instance is updated with textbox values
 - Model is saved to database
-- Cache is updated if model is cached in CurrentData
+- If the saved cashier is also the logged-in cashier, `cashier_data` cache is updated too
 - Works with any model following the naming convention!
+
+## Special Auto-Populated Comboboxes
+
+Some comboboxes are auto-populated at runtime based on their `name` attribute. The logic lives in `base_window._create_combobox()`.
+
+| Control Name | Form | Behaviour |
+|---|---|---|
+| `CASHIER_NAME_LIST` | LOGIN | Lists all active cashiers + optional `SUPERVISOR` entry |
+| `CASHIER_MGMT_LIST` | CASHIER | Admin: lists all cashiers; non-admin: lists only themselves |
+
+### `CASHIER_MGMT_LIST` Detail
+
+```python
+# db_init_data/form_control.py (seed data)
+FormControl(
+    name=ControlName.CASHIER_MGMT_LIST.value,   # "CASHIER_MGMT_LIST"
+    type="COMBOBOX",
+    form_control_function1=EventName.SELECT_CASHIER.value,  # "SELECT_CASHIER"
+    width=600, height=50,
+    location_x=212, location_y=5,   # above the CASHIER panel
+    ...
+)
+```
+
+**Event flow:**
+1. Form opens → `_cashier_form_event()` sets `editing_cashier = logged_in_cashier`
+2. Combobox created → signals blocked → items populated → editing cashier pre-selected → signals unblocked
+3. User changes selection → `SELECT_CASHIER` event → `_select_cashier_event(index)` called
+4. `_select_cashier_event` → updates `editing_cashier` → calls `interface.redraw()`
+5. Form redraws with new cashier's data loaded into panel textboxes
+
+**New enums added:**
+
+`ControlName` (`data_layer/enums/control_name.py`):
+```python
+CASHIER_MGMT_LIST = "CASHIER_MGMT_LIST"  # Cashier management selection combobox
+```
+
+`EventName` (`data_layer/enums/event_name.py`):
+```python
+SELECT_CASHIER = "SELECT_CASHIER"  # Select cashier from management list
+```
+
+`EventHandler` (`pos/manager/event_handler.py`):
+```python
+EventName.SELECT_CASHIER.name: self._select_cashier_event,
+```
 
 ## Future Enhancements
 

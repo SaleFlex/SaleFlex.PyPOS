@@ -96,6 +96,7 @@ class EventName(enum.Enum):
     CLOSURE_FORM = "CLOSURE_FORM"                   # Closure form
     CASHIER_FORM = "CASHIER_FORM"                   # Cashier form
     CASHIER = "CASHIER"                             # Cashier function
+    SELECT_CASHIER = "SELECT_CASHIER"               # Select cashier from management list
     CUSTOMER_FORM = "CUSTOMER_FORM"                 # Customer form
     CHANGE_DOCUMENT_TYPE = "CHANGE_DOCUMENT_TYPE"   # Change document type
     CUSTOMER = "CUSTOMER"                           # Customer function

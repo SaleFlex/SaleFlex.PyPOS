@@ -8,6 +8,7 @@ After logging in, you'll see the main menu with options for:
 - **Closure**: End-of-day operations and cash drawer reconciliation
 - **ClosureCountrySpecific**: Country-specific closure data with template-based initialization
 - **Configuration**: System settings and customization
+- **Cashier Management**: View and edit cashier accounts (see below)
 - **Logout**: Exit current user session
 
 ## Using the NumPad
@@ -43,6 +44,37 @@ When selling products by PLU code or barcode, you can specify the quantity using
 4. Adjust quantities as needed
 5. When all items are added, complete the transaction
 6. Print a receipt for the customer
+
+## Cashier Management
+
+Accessible from the main menu via the **Cashier Management** button.
+
+### Cashier Selection Combobox
+
+A combobox at the top of the form allows switching between cashier accounts:
+
+- **Admin users** (`is_administrator = True`): All cashiers are listed. Selecting a cashier loads their data into the form for viewing or editing.
+- **Non-admin users** (`is_administrator = False`): Only their own account is shown.
+
+### Field Permissions
+
+| Logged-in user | Cashier being viewed | Password | Other fields |
+|---|---|---|---|
+| Admin | Any cashier | Editable | Editable |
+| Non-admin | Own account | Editable | **Read-only** |
+
+Non-admin cashiers can update **only their own password**. All other fields are displayed as read-only (grey background).
+
+### Saving Changes
+
+Click the **SAVE** button to persist changes. The system saves to the cashier currently selected in the combobox (`editing_cashier`), which may differ from the logged-in user when an admin is editing another account.
+
+### Default Accounts
+
+| Username | Password | Role |
+|---|---|---|
+| `admin` | `admin` | Administrator |
+| `jdoe` | `1234` | Standard cashier |
 
 ---
 

@@ -22,8 +22,8 @@
 
 ---
 
-**Last Updated:** 2026-02-27  
-**Version:** 1.0.0b3  
+**Last Updated:** 2026-03-28  
+**Version:** 1.0.0b4  
 **License:** MIT
 
 ---

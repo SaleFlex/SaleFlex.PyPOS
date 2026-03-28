@@ -1,6 +1,6 @@
 # SaleFlex.PyPOS
 
-> **Current Status:** Beta v1.0.0b3 - Active Development
+> **Current Status:** Beta v1.0.0b4 - Active Development
 > Core POS functionality operational. See [roadmap](#development-roadmap) for upcoming features.
 
 [Watch Demo](https://youtu.be/HoA2p6M8fuM) | [Documentation](docs/README.md) | [Quick Start](#quick-start)
@@ -9,12 +9,13 @@
 ![PySide6](https://img.shields.io/badge/PySide6-6.11.0-blue.svg)
 ![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0.48-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Version](https://img.shields.io/badge/version-1.0.0b4-orange.svg)
 
 ### Touch Screen Point-of-Sale Application
 
 SaleFlex.PyPOS is a modern, Python-based point-of-sale (POS) system designed for retail businesses, restaurants, and service-oriented establishments. Built with PySide6 (Qt framework), it offers a touch-optimized interface with cross-platform compatibility and robust database support.
 
-[Current Version Demo: 1.0.0b3](https://youtu.be/HoA2p6M8fuM)
+[Current Version Demo: 1.0.0b4](https://youtu.be/HoA2p6M8fuM)
 
 ## Key Features
 
@@ -28,6 +29,7 @@ SaleFlex.PyPOS POS system is designed to streamline the sales process and improv
 - **System Integration**: Connect with accounting software, warehouse management, and ERP systems
 - **️Returns & Exchanges**: Handle product returns and exchanges efficiently
 - **Employee Management**: Track employee time, attendance, and performance
+- **Cashier Management**: Role-based cashier account management with dynamic combobox selection. Admin users can view and edit all cashier accounts; non-admin cashiers can update only their own password. Field-level read-only protection enforced at the form layer (`is_administrator` flag)
 - **Campaign & Promotion Management**: Flexible promotional campaigns with time-based, product-specific, and basket discounts
 - **Loyalty Programs**: Tiered membership rewards system with points earning, redemption, and customer segmentation
 - **Country-Specific Closure Templates**: Flexible template system for country-specific closure data (E-Fatura for Turkey, state tax for USA, VAT reporting for EU, etc.) stored as JSON templates in `static_files/closures/` directory
@@ -250,7 +252,7 @@ pip install -r requirements.txt
 python saleflex.py
 ```
 
-**Default credentials:** admin / admin
+**Default credentials:** `admin` / `admin` (administrator) · `jdoe` / `1234` (standard cashier)
 
 ## Installation & Setup
 
@@ -300,8 +302,11 @@ After running the application, you will see the login screen:
 ![Login Screen](static_files/images/sample_login.jpg)
 
 **Default Login Credentials:**
-- **Username**: `admin`
-- **Password**: `admin`
+
+| Username | Password | Role |
+|---|---|---|
+| `admin` | `admin` | Administrator — can edit all cashier accounts |
+| `jdoe` | `1234` | Standard cashier — can update own password only |
 
 After successful login, you will be redirected to the main menu:
 
@@ -382,6 +387,7 @@ All models support:
 - [x] **Panel Control** - Scrollable container control with parent-child support for complex forms
 - [x] **Parent-Child Control Relationships** - Panel controls can contain child controls (textboxes, labels, buttons)
 - [x] **Generic Panel-Based Form Saving** - Automatic model updates from panel textbox values on SAVE button click. Works with any model via naming convention (panel name = model name, textbox name = model field). Automatically loads model data into form and saves changes to database
+- [x] **Cashier Management Form** - Role-aware cashier management with `CASHIER_MGMT_LIST` combobox for multi-cashier selection, `editing_cashier` session tracking, and field-level read-only enforcement based on `is_administrator` flag
 - [ ] **Dynamic Interface Interpreter** - Flexible UI rendering system
 - [ ] **Interface Functions** - Core UI interaction handlers
 - [ ] **Tables Layout Module** - Restaurant table management

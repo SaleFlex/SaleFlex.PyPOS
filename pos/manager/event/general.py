@@ -739,8 +739,9 @@ class GeneralEvent:
             return model_instance
         
         elif model_class_name == "Cashier":
-            # For Cashier, use the cached instance from CurrentData
-            model_instance = self.cashier_data
+            # Use editing_cashier if set (admin editing another cashier),
+            # otherwise fall back to the logged-in cashier_data
+            model_instance = self._editing_cashier or self.cashier_data
             if not model_instance:
                 logger.error("[SAVE_CHANGES] ✗ Cashier instance not found in CurrentData")
                 return None
@@ -774,8 +775,14 @@ class GeneralEvent:
             self.pos_settings = model_instance
             logger.info("[SAVE_CHANGES] ✓ Updated pos_settings cache")
         elif model_class_name == "Cashier":
-            self.cashier_data = model_instance
-            logger.info("[SAVE_CHANGES] ✓ Updated cashier_data cache")
+            self._editing_cashier = model_instance
+            # Also update cashier_data if this is the logged-in cashier
+            logged_in = self._cashier_data
+            if logged_in and hasattr(logged_in, 'unwrap'):
+                logged_in = logged_in.unwrap()
+            if logged_in and model_instance and getattr(logged_in, 'id', None) == getattr(model_instance, 'id', None):
+                self.cashier_data = model_instance
+            logger.info("[SAVE_CHANGES] ✓ Updated editing_cashier cache")
         # Add other cached models here as needed
     
     def _redraw_form_event(self):
@@ -964,16 +971,62 @@ class GeneralEvent:
         Handle cashier management operations.
         
         Access cashier selection, information display, or management interface.
+        Sets editing_cashier to the currently logged-in cashier before rendering.
         
         Returns:
             bool: True if operation successful, False otherwise
         """
         if self.login_succeed:
+            logged_in = self.cashier_data
+            if logged_in and hasattr(logged_in, 'unwrap'):
+                logged_in = logged_in.unwrap()
+            self._editing_cashier = logged_in
             self.current_form_type = FormName.CASHIER
             self.interface.redraw(form_name=FormName.CASHIER.name)
             return True
         else:
             self._logout_event()
+            return False
+
+    def _select_cashier_event(self, index=0):
+        """
+        Handle cashier selection from the CASHIER_MGMT_LIST combobox.
+        
+        Loads the selected cashier's data into the form by updating editing_cashier
+        and redrawing the form.
+        
+        Args:
+            index (int): The index of the selected item in the combobox
+        
+        Returns:
+            bool: True if selection successful, False otherwise
+        """
+        if not self.login_succeed:
+            return False
+        
+        try:
+            from data_layer.model import Cashier
+            logged_in = self.cashier_data
+            if logged_in and hasattr(logged_in, 'unwrap'):
+                logged_in = logged_in.unwrap()
+            is_admin = logged_in.is_administrator if logged_in else False
+
+            cashiers = Cashier.get_all(is_deleted=False) if is_admin else (
+                [logged_in] if logged_in else []
+            )
+
+            if 0 <= index < len(cashiers):
+                selected = cashiers[index]
+                self._editing_cashier = selected
+                self.interface.redraw(form_name=FormName.CASHIER.name)
+                logger.info("[SELECT_CASHIER] ✓ Switched editing cashier to: %s", selected.user_name)
+                return True
+            else:
+                logger.warning("[SELECT_CASHIER] ⚠ Index %s out of range (total: %s)", index, len(cashiers))
+                return False
+
+        except Exception as e:
+            logger.error("[SELECT_CASHIER] ✗ Error selecting cashier: %s", e)
             return False
 
     def _customer_form_event(self):

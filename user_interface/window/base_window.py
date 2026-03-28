@@ -544,7 +544,13 @@ class BaseWindow(QMainWindow):
                 if model_class_name == "PosSettings":
                     cache_attr_name = "pos_settings"
                 elif model_class_name == "Cashier":
-                    cache_attr_name = "cashier_data"
+                    # Prefer editing_cashier (set when entering the cashier management form)
+                    # so that admin changes are reflected when selecting different cashiers
+                    editing = getattr(self.app, '_editing_cashier', None)
+                    cache_attr_name = None
+                    model_instance = editing or getattr(self.app, 'cashier_data', None)
+                    if model_instance and hasattr(model_instance, 'unwrap'):
+                        model_instance = model_instance.unwrap()
                 
                 if cache_attr_name and hasattr(self.app, cache_attr_name):
                     model_instance = getattr(self.app, cache_attr_name)
@@ -578,6 +584,19 @@ class BaseWindow(QMainWindow):
                             logger.debug("[LOAD_DATA] Loaded %s = %s into textbox '%s' (panel: %s, model: %s)", field_name, value, textbox_name, panel_name, model_class_name)
                     except Exception as e:
                         logger.error("[LOAD_DATA] Error loading %s from %s: %s", field_name, model_class_name, e)
+                    
+                    # Read-only rules for Cashier panel:
+                    # - Admin (is_administrator==True)     -> all fields editable
+                    # - Non-admin (is_administrator==False) -> only password editable, rest read-only
+                    if model_class_name == "Cashier":
+                        is_admin_account = getattr(model_instance, 'is_administrator', False)
+                        is_password_field = design_data.get('input_type') == 'password'
+                        if not is_admin_account and not is_password_field:
+                            textbox.setReadOnly(True)
+                            textbox.setStyleSheet(
+                                textbox.styleSheet() +
+                                "QLineEdit { background-color: #D3D3D3; color: #555555; }"
+                            )
 
     def _create_combobox(self, design_data):
         # Resolve parent: panel content widget or window
@@ -622,6 +641,31 @@ class BaseWindow(QMainWindow):
                         labels.append("SUPERVISOR")
                     combo.set_items(labels)
                 except Exception:
+                    combo.set_items([])
+            
+            elif name_key == ControlName.CASHIER_MGMT_LIST.value:
+                try:
+                    from data_layer.model import Cashier
+                    logged_in = getattr(self.app, 'cashier_data', None)
+                    if logged_in and hasattr(logged_in, 'unwrap'):
+                        logged_in = logged_in.unwrap()
+                    is_admin = logged_in.is_administrator if logged_in else False
+                    cashiers = Cashier.get_all(is_deleted=False) if is_admin else (
+                        [logged_in] if logged_in else []
+                    )
+                    labels = [f"{c.user_name} ({c.name} {c.last_name})" for c in cashiers]
+                    # Block signals during population to prevent spurious SELECT_CASHIER events
+                    combo.blockSignals(True)
+                    combo.set_items(labels)
+                    # Pre-select the current editing cashier
+                    editing = getattr(self.app, '_editing_cashier', None)
+                    if editing:
+                        target = f"{editing.user_name} ({editing.name} {editing.last_name})"
+                        idx = labels.index(target) if target in labels else 0
+                        combo.setCurrentIndex(idx)
+                    combo.blockSignals(False)
+                except Exception:
+                    combo.blockSignals(False)
                     combo.set_items([])
 
         # Optional event hookup

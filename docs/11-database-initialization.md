@@ -42,12 +42,22 @@ The `insert_initial_data()` function in `db_init_data/__init__.py` orchestrates 
 ## Function Details
 
 ### `_insert_admin_cashier(session)`
-Creates the default administrator cashier account:
+Creates the default cashier accounts on first initialization:
+
+**Administrator account:**
 - Username: `admin`
 - Password: `admin` (should be hashed in production)
 - Name: Ferhat Mousavi
-- Administrator privileges enabled
-- Returns the created cashier object for use in other initialization functions
+- `is_administrator = True` → all fields in Cashier Management form are editable
+- Returns the admin cashier object for use in other initialization functions
+
+**Standard cashier account:**
+- Username: `jdoe`
+- Password: `1234`
+- Name: John Doe
+- `is_administrator = False` → only password is editable in Cashier Management form; all other fields are read-only
+
+Both accounts are created only if they do not already exist (idempotent).
 
 ### `_insert_default_store(session)`
 Creates the default store with:
@@ -102,17 +112,24 @@ Inserts default transaction discount types:
 - **PRODUCT**: Product-specific discount
 
 ### `_insert_default_forms(session, cashier_id)`
-Creates essential forms:
-- **LOGIN**: Login screen with authentication fields
-- **MAIN_MENU**: Main menu with navigation options
+Creates essential forms (form_no 1–6):
+- **LOGIN** (1): Login screen with cashier selection combobox, password, and login/exit buttons
+- **MAIN_MENU** (2): Main menu with navigation buttons (Sales, Closure, Settings, Cashier Management, Logout)
+- **SETTING** (3): POS configuration form
+- **CASHIER** (4): Cashier management form with combobox-based multi-cashier selection
+- **SALE** (5): Point-of-sale transaction screen
+- **CLOSURE** (6): End-of-day closure screen
 - Forms include layout, colors, and display settings
 
 ### `_insert_form_controls(session, cashier_id)`
-Populates forms with controls:
-- Buttons for navigation and actions
-- Textboxes for input
-- Labels for display
-- Proper positioning and styling
+Populates forms with controls (buttons, textboxes, labels, comboboxes, panels, etc.).
+
+**CASHIER form controls in detail:**
+- `CASHIER_MGMT_LIST` (COMBOBOX): Appears above the data panel. Admin users see all cashiers; non-admin users see only themselves. Fires `SELECT_CASHIER` event on selection change. Signals are blocked during initial population to prevent spurious redraws.
+- `CASHIER` (PANEL): Scrollable panel containing all cashier data fields
+- Field textboxes inside panel: `NO`, `USER_NAME`, `NAME`, `LAST_NAME`, `PASSWORD`, `IDENTITY_NUMBER`, `DESCRIPTION`, `IS_ADMINISTRATOR`, `IS_ACTIVE`
+- `SAVE` (BUTTON): Saves the currently selected cashier's data
+- `BACK` (BUTTON): Returns to the main menu
 
 ### `_insert_virtual_keyboard_settings(session)`
 Creates the default virtual keyboard theme:

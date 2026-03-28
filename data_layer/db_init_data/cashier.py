@@ -32,7 +32,7 @@ logger = get_logger(__name__)
 def _insert_admin_cashier(session) -> Cashier:
     """
     Insert default cashiers if not exists.
-    Creates admin user for initial setup.
+    Creates admin user and a standard cashier for initial setup.
     """
     admin_exists = session.query(Cashier).filter_by(user_name="admin").first()
     if not admin_exists:
@@ -50,6 +50,24 @@ def _insert_admin_cashier(session) -> Cashier:
         session.add(admin_cashier)
         session.flush()  # To get the ID
         logger.info("✓ Default cashier 'Ferhat Mousavi' added (password: admin)")
-        return admin_cashier
     else:
-        return admin_exists
+        admin_cashier = admin_exists
+
+    cashier_exists = session.query(Cashier).filter_by(user_name="jdoe").first()
+    if not cashier_exists:
+        standard_cashier = Cashier(
+            no=2,
+            user_name="jdoe",
+            name="John",
+            last_name="Doe",
+            password="1234",
+            identity_number="C00002",
+            description="Standard cashier",
+            is_administrator=False,
+            is_active=True
+        )
+        session.add(standard_cashier)
+        session.flush()
+        logger.info("✓ Default cashier 'John Doe' added (password: 1234)")
+
+    return admin_cashier

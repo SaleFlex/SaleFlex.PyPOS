@@ -133,6 +133,7 @@ class CurrentData(DocumentManager, CacheManager, ClosureManager):
         
         # Initialize private attributes directly (no database save during init)
         self._cashier_data = None
+        self._editing_cashier = None
         self._document_data = None
         self._pending_documents_data = []
         self._pos_data = {}
@@ -327,6 +328,7 @@ class CurrentData(DocumentManager, CacheManager, ClosureManager):
     
     # Property definitions with auto-save descriptors
     cashier_data = AutoSaveDescriptor('_cashier_data', lambda obj, val: obj._save_cashier_data(val))
+    editing_cashier = AutoSaveDescriptor('_editing_cashier', lambda obj, val: obj._save_cashier_data(val))
     document_data = AutoSaveDescriptor('_document_data', lambda obj, val: obj._save_document_data(val))
     pending_documents_data = AutoSaveDescriptor('_pending_documents_data', lambda obj, val: obj._save_pending_documents_data(val))
     pos_data = AutoSaveDescriptor('_pos_data', lambda obj, val: obj._save_pos_data(val))
