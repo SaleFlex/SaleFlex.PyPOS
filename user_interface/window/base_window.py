@@ -71,9 +71,9 @@ class BaseWindow(QMainWindow):
         if settings["statusbar"]:
             self._create_status_bar()
 
-        # Initialize panels dictionary
-        if not hasattr(self, '_panels'):
-            self._panels = {}
+        # Always reset panels dictionary at the start of each draw so stale
+        # Panel references from a previous form do not leak into the new one.
+        self._panels = {}
 
         for control_design_data in design:
             if control_design_data["type"] == "textbox":
@@ -238,10 +238,32 @@ class BaseWindow(QMainWindow):
 
     def clear(self):
         """Clear all child controls and hide the window."""
-        for item in self.children():
+        # First, explicitly clean up Panel children (they are parented to
+        # panel.content_widget, not directly to the window, so the loop
+        # below would miss them and leave dangling Qt/Python wrapper objects).
+        if hasattr(self, '_panels'):
+            for panel in list(self._panels.values()):
+                try:
+                    for child in list(panel._child_controls):
+                        try:
+                            child.blockSignals(True)
+                            child.setParent(None)
+                            child.deleteLater()
+                        except RuntimeError:
+                            pass
+                    panel._child_controls.clear()
+                except RuntimeError:
+                    pass
+            self._panels.clear()
+
+        for item in list(self.children()):
             if type(item) in [TextBox, Button, Label, ToolBar, StatusBar, NumPad, PaymentList, SaleList, ComboBox, AmountTable, DataGrid, Panel]:
-                item.deleteLater()
-                item.setParent(None)
+                try:
+                    item.blockSignals(True)
+                    item.setParent(None)
+                    item.deleteLater()
+                except RuntimeError:
+                    pass
         self.hide()
 
     def _create_button(self, design_data):
@@ -827,10 +849,9 @@ class BaseWindow(QMainWindow):
         # Store panel reference by name for child controls
         if "name" in design_data:
             panel.name = design_data["name"]
-            # Store panel in a dictionary for child controls to find their parent
             if not hasattr(self, '_panels'):
                 self._panels = {}
-            self._panels[design_data["name"]] = panel
+            self._panels[design_data["name"]] = panel  # noqa: always reset in draw_window
         
         panel.show()
 

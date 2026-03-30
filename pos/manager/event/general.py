@@ -1003,7 +1003,14 @@ class GeneralEvent:
         """
         if not self.login_succeed:
             return False
-        
+
+        # Guard against re-entrant calls that can occur when rapid combobox
+        # changes queue multiple currentIndexChanged signals before the previous
+        # redraw has finished destroying the old widget tree.
+        if getattr(self, '_select_cashier_in_progress', False):
+            return False
+        self._select_cashier_in_progress = True
+
         try:
             from data_layer.model import Cashier
             logged_in = self.cashier_data
@@ -1028,6 +1035,8 @@ class GeneralEvent:
         except Exception as e:
             logger.error("[SELECT_CASHIER] ✗ Error selecting cashier: %s", e)
             return False
+        finally:
+            self._select_cashier_in_progress = False
 
     def _customer_form_event(self):
         """

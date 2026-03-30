@@ -115,10 +115,20 @@ class ComboBox(QComboBox):
 
     # ----- Data population -----
     def set_items(self, items: Sequence[str]):
-        self.clear()
-        if items:
-            self.addItems(list(items))
-            self.setCurrentIndex(0)
+        # Block signals for the entire population sequence so that neither
+        # clear() nor setCurrentIndex(0) fires currentIndexChanged while
+        # we are still setting up the widget.  The caller may also block
+        # signals, but doing it here makes the method safe on its own.
+        was_blocked = self.signalsBlocked()
+        self.blockSignals(True)
+        try:
+            self.clear()
+            if items:
+                self.addItems(list(items))
+                self.setCurrentIndex(0)
+        finally:
+            if not was_blocked:
+                self.blockSignals(False)
 
     def set_items_with_icons(self, items: Sequence[str], icons: Sequence[QIcon | str]):
         self.clear()
