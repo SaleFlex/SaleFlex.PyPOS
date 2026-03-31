@@ -608,12 +608,15 @@ class BaseWindow(QMainWindow):
                         logger.error("[LOAD_DATA] Error loading %s from %s: %s", field_name, model_class_name, e)
                     
                     # Read-only rules for Cashier panel:
-                    # - Admin (is_administrator==True)     -> all fields editable
-                    # - Non-admin (is_administrator==False) -> only password editable, rest read-only
+                    # - Logged-in admin (is_administrator==True) -> all fields editable
+                    # - Non-admin logged-in cashier              -> only password editable, rest read-only
                     if model_class_name == "Cashier":
-                        is_admin_account = getattr(model_instance, 'is_administrator', False)
+                        logged_in_cashier = getattr(self.app, 'cashier_data', None)
+                        if logged_in_cashier and hasattr(logged_in_cashier, 'unwrap'):
+                            logged_in_cashier = logged_in_cashier.unwrap()
+                        is_logged_in_admin = getattr(logged_in_cashier, 'is_administrator', False) if logged_in_cashier else False
                         is_password_field = design_data.get('input_type') == 'password'
-                        if not is_admin_account and not is_password_field:
+                        if not is_logged_in_admin and not is_password_field:
                             textbox.setReadOnly(True)
                             textbox.setStyleSheet(
                                 textbox.styleSheet() +
