@@ -572,7 +572,10 @@ class GeneralEvent:
                 return False
             
             try:
-                panels = window._panels
+                # Use a shallow copy so that a redraw triggered inside the loop
+                # (e.g. after saving a new cashier) can safely call window.clear()
+                # without causing "dictionary changed size during iteration".
+                panels = dict(window._panels)
             except RuntimeError:
                 logger.error("[SAVE_CHANGES] ✗ Cannot access panels - window widget may be deleted")
                 return False
@@ -649,22 +652,30 @@ class GeneralEvent:
                             # Get field type from model
                             field_type = type(getattr(model_instance, field_name, None))
                             
-                            # Convert value to appropriate type
-                            if field_value.strip() == "":
-                                # Empty string -> None for nullable fields
-                                new_value = None
-                            elif field_type == int or (old_value is not None and isinstance(old_value, int)):
+                            # Convert value to appropriate type.
+                            # IMPORTANT: bool check must come BEFORE int check because
+                            # bool is a subclass of int in Python: isinstance(False, int) == True.
+                            # Using type() instead of isinstance() avoids the subclass trap.
+                            stripped = field_value.strip()
+                            if type(old_value) is bool or field_type is bool:
+                                if stripped == "":
+                                    # Empty bool -> False (0); never None to satisfy NOT NULL
+                                    new_value = False
+                                else:
+                                    new_value = stripped.lower() in ('true', '1', 'yes', 'on')
+                            elif type(old_value) is int or field_type is int:
+                                if stripped == "":
+                                    # Empty int field: skip rather than guess a default
+                                    continue
                                 try:
-                                    new_value = int(field_value) if field_value.strip() else None
+                                    new_value = int(stripped)
                                 except ValueError:
                                     logger.error("[SAVE_CHANGES] ⚠ Cannot convert '%s' to int for field '%s', skipping", field_value, field_name)
                                     continue
-                            elif field_type == bool or (old_value is not None and isinstance(old_value, bool)):
-                                # Boolean fields
-                                new_value = field_value.lower() in ('true', '1', 'yes', 'on')
                             else:
-                                # String fields
-                                new_value = field_value.strip()
+                                # String fields: use empty string instead of None so that
+                                # NOT NULL columns do not cause a constraint violation.
+                                new_value = stripped
                             
                             # Only update if value changed
                             if old_value != new_value:
@@ -782,6 +793,14 @@ class GeneralEvent:
                 logged_in = logged_in.unwrap()
             if logged_in and model_instance and getattr(logged_in, 'id', None) == getattr(model_instance, 'id', None):
                 self.cashier_data = model_instance
+            # Keep pos_data cache in sync (handles both new inserts and updates)
+            if hasattr(self, 'update_pos_data_cache'):
+                self.update_pos_data_cache(model_instance)
+            # After saving a brand-new cashier, redraw the form so the combobox and
+            # ADD_NEW_CASHIER button reappear with the new cashier pre-selected.
+            if getattr(self, '_is_adding_new_cashier', False):
+                self._is_adding_new_cashier = False
+                self.interface.redraw(form_name=FormName.CASHIER.name)
             logger.info("[SAVE_CHANGES] ✓ Updated editing_cashier cache")
         # Add other cached models here as needed
     
@@ -981,6 +1000,8 @@ class GeneralEvent:
             if logged_in and hasattr(logged_in, 'unwrap'):
                 logged_in = logged_in.unwrap()
             self._editing_cashier = logged_in
+            # Reset add-new flag when entering the form normally
+            self._is_adding_new_cashier = False
             self.current_form_type = FormName.CASHIER
             self.interface.redraw(form_name=FormName.CASHIER.name)
             return True
@@ -1037,6 +1058,90 @@ class GeneralEvent:
             return False
         finally:
             self._select_cashier_in_progress = False
+
+    def _add_new_cashier_event(self):
+        """
+        Handle add new cashier operation.
+
+        Manipulates existing form controls in-place (no form redraw) to avoid the
+        "new form opened" sensation.  Steps:
+          1. Prepare a blank Cashier instance as _editing_cashier.
+          2. Clear every textbox inside the CASHIER panel.
+          3. Hide the CASHIER_MGMT_LIST combobox (would show a wrong cashier).
+          4. Hide this button itself (prevents repeated presses).
+
+        After the operator fills in the fields and presses SAVE, the generic
+        _save_changes_event performs an INSERT (new instance has no id).
+        _update_model_cache then redraws the form to restore the normal view
+        with the new cashier pre-selected in the combobox.
+
+        Access restricted to logged-in administrators (is_administrator == True).
+
+        Returns:
+            bool: True if form prepared successfully, False otherwise
+        """
+        logger.debug("\n[ADD_NEW_CASHIER] Add new cashier event triggered")
+
+        if not self.login_succeed:
+            logger.debug("[ADD_NEW_CASHIER] User not logged in")
+            return False
+
+        logged_in = self.cashier_data
+        if logged_in and hasattr(logged_in, 'unwrap'):
+            logged_in = logged_in.unwrap()
+
+        if not logged_in or not getattr(logged_in, 'is_administrator', False):
+            logger.warning("[ADD_NEW_CASHIER] Access denied - not an administrator")
+            return False
+
+        from data_layer.model import Cashier as CashierModel
+        from data_layer.enums import ControlName
+        # no=0 ensures integer type inference works correctly in _save_changes_event.
+        new_cashier = CashierModel(no=0, is_administrator=False, is_active=False)
+        self._editing_cashier = new_cashier
+        self._is_adding_new_cashier = True
+
+        window = getattr(self.interface, 'window', None)
+        if not window:
+            logger.error("[ADD_NEW_CASHIER] ✗ Window not available")
+            return False
+
+        try:
+            from user_interface.control import TextBox, ComboBox, Button
+
+            # 1. Clear all textboxes inside the CASHIER panel
+            panel = window._panels.get('CASHIER') if hasattr(window, '_panels') else None
+            if panel:
+                content = panel.get_content_widget()
+                if content:
+                    for child in content.findChildren(TextBox):
+                        field = getattr(child, 'name', '').lower()
+                        if field == 'no':
+                            child.setText('0')
+                        elif field in ('is_administrator', 'is_active'):
+                            child.setText('False')
+                        else:
+                            child.clear()
+
+                    # 2. Hide CASHIER_MGMT_LIST combobox (inside panel)
+                    for child in content.findChildren(ComboBox):
+                        if getattr(child, 'name', '') == ControlName.CASHIER_MGMT_LIST.value:
+                            child.hide()
+                            logger.debug("[ADD_NEW_CASHIER] Hid CASHIER_MGMT_LIST combobox")
+
+            # 3. Hide ADD_NEW_CASHIER button (direct window child)
+            for child in window.children():
+                if isinstance(child, Button):
+                    if getattr(child, 'control_name', '') == ControlName.ADD_NEW_CASHIER.value:
+                        child.hide()
+                        logger.debug("[ADD_NEW_CASHIER] Hid ADD_NEW_CASHIER button")
+
+        except Exception as exc:
+            logger.error("[ADD_NEW_CASHIER] ✗ Error manipulating controls: %s", exc)
+            return False
+
+        logger.info("[ADD_NEW_CASHIER] ✓ Form cleared for new cashier entry")
+        return True
 
     def _customer_form_event(self):
         """

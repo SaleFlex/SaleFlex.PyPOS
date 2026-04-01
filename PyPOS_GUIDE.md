@@ -33,6 +33,6 @@
 
 ---
 
-**Last Updated:** 2026-03-28  
+**Last Updated:** 2026-04-01  
 **Version:** 1.0.0b4  
 **License:** MIT

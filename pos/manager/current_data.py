@@ -134,6 +134,7 @@ class CurrentData(DocumentManager, CacheManager, ClosureManager):
         # Initialize private attributes directly (no database save during init)
         self._cashier_data = None
         self._editing_cashier = None
+        self._is_adding_new_cashier = False
         self._document_data = None
         self._pending_documents_data = []
         self._pos_data = {}

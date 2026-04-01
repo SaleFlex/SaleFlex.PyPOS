@@ -308,6 +308,16 @@ class BaseWindow(QMainWindow):
                 button.clicked.connect(lambda checked=False, btn=button: event_handler(btn))
             else:
                 button.clicked.connect(event_handler)
+
+        # Hide admin-only buttons for non-administrator users
+        if function_name == "ADD_NEW_CASHIER":
+            logged_in_cashier = getattr(self.app, 'cashier_data', None)
+            if logged_in_cashier and hasattr(logged_in_cashier, 'unwrap'):
+                logged_in_cashier = logged_in_cashier.unwrap()
+            is_admin = getattr(logged_in_cashier, 'is_administrator', False) if logged_in_cashier else False
+            if not is_admin:
+                button.hide()
+
         # Set button text based on product information for PLU buttons
         if function_name in ["SALE_PLU_CODE", "SALE_PLU_BARCODE"] and button_name and button_name.upper().startswith("PLU"):
             try:

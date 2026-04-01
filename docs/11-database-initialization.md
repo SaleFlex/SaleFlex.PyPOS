@@ -125,11 +125,12 @@ Creates essential forms (form_no 1–6):
 Populates forms with controls (buttons, textboxes, labels, comboboxes, panels, etc.).
 
 **CASHIER form controls in detail:**
-- `CASHIER_MGMT_LIST` (COMBOBOX): Appears above the data panel. Admin users see all cashiers; non-admin users see only themselves. Fires `SELECT_CASHIER` event on selection change. Signals are blocked during initial population to prevent spurious redraws.
+- `CASHIER_MGMT_LIST` (COMBOBOX): Appears above the data panel. Admin users see all cashiers; non-admin users see only themselves. Fires `SELECT_CASHIER` event on selection change. Signals are blocked during initial population to prevent spurious redraws. Hidden during new-cashier entry mode.
 - `CASHIER` (PANEL): Scrollable panel containing all cashier data fields
 - Field textboxes inside panel: `NO`, `USER_NAME`, `NAME`, `LAST_NAME`, `PASSWORD`, `IDENTITY_NUMBER`, `DESCRIPTION`, `IS_ADMINISTRATOR`, `IS_ACTIVE`
 - `SAVE` (BUTTON): Saves the currently selected cashier's data
 - `BACK` (BUTTON): Returns to the main menu
+- `ADD_NEW_CASHIER` (BUTTON): Bottom-left of form, SaddleBrown (`0x8B4513`) background. Visible only to admin users (`is_administrator = True`); hidden at render time for all others. Fires `ADD_NEW_CASHIER` event. When pressed, clears all CASHIER panel textboxes in-place, hides the `CASHIER_MGMT_LIST` combobox, and hides itself — preparing the form for new cashier data entry without a full redraw. After the operator saves, the form is redrawn and the new cashier appears pre-selected in the combobox.
 
 ### `_insert_virtual_keyboard_settings(session)`
 Creates the default virtual keyboard theme:

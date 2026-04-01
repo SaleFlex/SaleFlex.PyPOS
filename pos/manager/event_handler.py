@@ -154,6 +154,7 @@ class EventHandler(GeneralEvent, SaleEvent, PaymentEvent, ConfigurationEvent,
                 EventName.CASHIER_FORM.name: self._cashier_form_event,
                 EventName.CASHIER.name: self._cashier_form_event,
                 EventName.SELECT_CASHIER.name: self._select_cashier_event,
+                EventName.ADD_NEW_CASHIER.name: self._add_new_cashier_event,
                 EventName.CUSTOMER_FORM.name: self._customer_form_event,
                 EventName.CUSTOMER.name: self._customer_form_event,
                 

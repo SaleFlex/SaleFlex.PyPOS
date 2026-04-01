@@ -97,6 +97,7 @@ class EventName(enum.Enum):
     CASHIER_FORM = "CASHIER_FORM"                   # Cashier form
     CASHIER = "CASHIER"                             # Cashier function
     SELECT_CASHIER = "SELECT_CASHIER"               # Select cashier from management list
+    ADD_NEW_CASHIER = "ADD_NEW_CASHIER"             # Add new cashier (admin only)
     CUSTOMER_FORM = "CUSTOMER_FORM"                 # Customer form
     CHANGE_DOCUMENT_TYPE = "CHANGE_DOCUMENT_TYPE"   # Change document type
     CUSTOMER = "CUSTOMER"                           # Customer function

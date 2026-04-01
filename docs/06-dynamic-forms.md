@@ -495,6 +495,34 @@ control.form_transition_mode = "MODAL"  # Correct (uppercase)
 # control.form_transition_mode = "modal"  # Works (code does upper())
 ```
 
+### Issue 4: Boolean Fields Saved as `None` — NOT NULL Constraint Error
+
+**Symptom:** `NOT NULL constraint failed: cashier.description` or similar when saving a form that includes bool/string fields left empty.
+
+**Root cause:** Python's `bool` is a subclass of `int` (`isinstance(False, int) == True`). If the type check is `isinstance(old_value, int)`, boolean fields are misidentified as integers, the conversion of `"True"` / `"False"` to `int()` raises `ValueError`, the field is skipped, and the empty model default (`None`) violates the NOT NULL constraint.
+
+**Solution (applied in `_save_changes_event`):**
+- Use `type(old_value) is bool` (strict identity) to check bool **before** the int check.
+- Empty bool → `False` (not `None`).
+- Empty string → `""` (not `None`).
+- Empty int → skip (`continue`), do not default to `None`.
+
+### Issue 5: `RuntimeError: dictionary changed size during iteration` in `_save_changes_event`
+
+**Symptom:** Error logged after a successful save when adding a new cashier:  
+`[SAVE_CHANGES] ✗ Error in save_changes: dictionary changed size during iteration`
+
+**Root cause:** `_save_changes_event` iterates over `window._panels`. When a new cashier is saved, `_update_model_cache` triggers `interface.redraw()`, which calls `window.clear()` → `self._panels.clear()`. This mutates the dictionary while the `for` loop is still running.
+
+**Solution (applied in `_save_changes_event`):**
+```python
+# Take a shallow copy so a redraw triggered inside the loop
+# (e.g. after saving a new cashier) can safely call window.clear()
+panels = dict(window._panels)
+for panel_name, panel_widget in panels.items():
+    ...
+```
+
 ## Performance Tips
 
 1. **In-Memory Data Caching**: All reference data (Cashier, CashierPerformanceMetrics, CashierPerformanceTarget, CashierTransactionMetrics, CashierWorkBreak, CashierWorkSession, City, Country, CountryRegion, District, Form, FormControl, LabelValue, PaymentType, PosSettings, PosVirtualKeyboard, ReceiptFooter, ReceiptHeader, Store, Table, TransactionDiscountType, TransactionDocumentType, TransactionSequence, etc.) is loaded once at application startup into `pos_data` dictionary. This minimizes disk I/O and improves performance, especially important for POS devices with limited disk write cycles.
@@ -576,7 +604,7 @@ FormControl(
 ```
 
 **Event flow:**
-1. Form opens → `_cashier_form_event()` sets `editing_cashier = logged_in_cashier`
+1. Form opens → `_cashier_form_event()` sets `editing_cashier = logged_in_cashier`, resets `_is_adding_new_cashier = False`
 2. Combobox created → signals blocked → items populated → editing cashier pre-selected → signals unblocked
 3. User changes selection → `SELECT_CASHIER` event → `_select_cashier_event(index)` called
 4. `_select_cashier_event` → updates `editing_cashier` → calls `interface.redraw()`
@@ -587,17 +615,138 @@ FormControl(
 `ControlName` (`data_layer/enums/control_name.py`):
 ```python
 CASHIER_MGMT_LIST = "CASHIER_MGMT_LIST"  # Cashier management selection combobox
+ADD_NEW_CASHIER   = "ADD_NEW_CASHIER"    # Add new cashier button (admin only)
 ```
 
 `EventName` (`data_layer/enums/event_name.py`):
 ```python
-SELECT_CASHIER = "SELECT_CASHIER"  # Select cashier from management list
+SELECT_CASHIER  = "SELECT_CASHIER"   # Select cashier from management list
+ADD_NEW_CASHIER = "ADD_NEW_CASHIER"  # Add new cashier (admin only)
 ```
 
 `EventHandler` (`pos/manager/event_handler.py`):
 ```python
-EventName.SELECT_CASHIER.name: self._select_cashier_event,
+EventName.SELECT_CASHIER.name:  self._select_cashier_event,
+EventName.ADD_NEW_CASHIER.name: self._add_new_cashier_event,
 ```
+
+## Add New Cashier (Admin Only)
+
+### Overview
+
+Administrators can create new cashier accounts directly from the CASHIER form without navigating away. A dedicated **ADD NEW CASHIER** button (bottom-left, SaddleBrown `#8B4513`) is visible only to users with `is_administrator = True`. Non-admin users never see this button (`button.hide()` is called in `base_window._create_button()` at render time).
+
+### Button Definition (seed data)
+
+```python
+# data_layer/db_init_data/form_control.py
+FormControl(
+    name=ControlName.ADD_NEW_CASHIER.value,   # "ADD_NEW_CASHIER"
+    form_control_function1=EventName.ADD_NEW_CASHIER.value,  # "ADD_NEW_CASHIER"
+    type="BUTTON",
+    width=300, height=99,
+    location_x=20, location_y=630,  # bottom-left, same row as SAVE/BACK
+    back_color="0x8B4513",          # SaddleBrown — visually distinct admin action
+    fore_color="0xFFFFFF",
+    font_size=14,
+    ...
+)
+```
+
+### Event Flow
+
+```
+[ADD NEW CASHIER] pressed
+        │
+        ▼
+_add_new_cashier_event()
+  ├─ Check is_administrator — deny if False
+  ├─ Create Cashier(no=0, is_administrator=False, is_active=False)
+  ├─ Set _editing_cashier = new empty Cashier
+  ├─ Set _is_adding_new_cashier = True
+  ├─ Clear all CASHIER panel textboxes in-place (no=0, bool fields=False, strings=empty)
+  ├─ Hide CASHIER_MGMT_LIST combobox (inside panel content widget)
+  └─ Hide ADD_NEW_CASHIER button (direct window child)
+
+Admin fills in fields → presses [SAVE]
+        │
+        ▼
+_save_changes_event()  (generic — no changes needed)
+  ├─ Reads panel textboxes
+  ├─ Detects Cashier model via panel name
+  ├─ Gets _editing_cashier (new empty instance, no id)
+  ├─ Updates fields from textboxes
+  ├─ Calls model_instance.save()  → SQLAlchemy INSERT (no id → new record)
+  └─ Calls _update_model_cache("Cashier", model_instance)
+
+_update_model_cache()
+  ├─ Sets _editing_cashier = saved instance (now has id)
+  ├─ Calls update_pos_data_cache(model_instance)  → adds to pos_data["Cashier"]
+  ├─ Detects _is_adding_new_cashier == True
+  ├─ Resets _is_adding_new_cashier = False
+  └─ Calls interface.redraw(form_name="CASHIER")
+       → Form redraws normally: combobox shows new cashier pre-selected,
+         ADD_NEW_CASHIER button reappears for admin
+```
+
+### Why In-Place Manipulation Instead of Redraw?
+
+Calling `interface.redraw()` in `_add_new_cashier_event` would clear and recreate all controls, making it feel like a **new form opened**. Instead, the event handler directly manipulates existing Qt widgets:
+
+| Action | Method |
+|--------|--------|
+| Clear textbox | `child.clear()` / `child.setText("0")` |
+| Hide combobox | `content.findChildren(ComboBox)` → `child.hide()` |
+| Hide button | `window.children()` → `child.hide()` |
+
+After the operator saves, `interface.redraw()` IS called (from `_update_model_cache`) to properly restore the combobox and button with updated data.
+
+### Session State
+
+`CurrentData._is_adding_new_cashier` (bool, default `False`) tracks add-new mode:
+- Set to `True` by `_add_new_cashier_event`
+- Reset to `False` by `_update_model_cache` after successful save
+- Also reset to `False` by `_cashier_form_event` (handles BACK-then-return case)
+
+### `no=0` Initial Value
+
+The new `Cashier` instance is initialized with `no=0` (integer) instead of `None`. This ensures the `_save_changes_event` type-detection logic (`type(old_value) is int`) correctly identifies the `no` field as integer and applies `int(stripped)` conversion when the operator enters a value.
+
+---
+
+## `_save_changes_event` — Type Conversion Rules
+
+The generic save handler uses the following priority order for type conversion. **Bool must be checked before int** because Python's `bool` is a subclass of `int` (`isinstance(False, int) == True`).
+
+```python
+# Priority order (most specific first)
+if type(old_value) is bool or field_type is bool:
+    # Boolean: "true"/"1"/"yes"/"on" → True, everything else → False
+    # Empty string → False  (never None, to satisfy NOT NULL constraints)
+    new_value = stripped.lower() in ('true', '1', 'yes', 'on')
+
+elif type(old_value) is int or field_type is int:
+    # Integer: parse with int()
+    # Empty string → skip field (continue)
+    new_value = int(stripped)
+
+else:
+    # String: use as-is (empty string stays "", not None)
+    # Empty string → ""  (avoids NOT NULL constraint violations)
+    new_value = stripped
+```
+
+**Key design decisions:**
+
+| Scenario | Old behaviour | New behaviour | Reason |
+|----------|--------------|---------------|--------|
+| `is_administrator` empty | `None` (int path, then error) | `False` | bool before int check |
+| `description` empty | `None` → DB NOT NULL error | `""` | string fields keep empty string |
+| `is_active = "True"` | `int("True")` → ValueError | `True` (bool) | bool path catches it first |
+| `no` empty | `None` | skip (continue) | can't default int meaningfully |
+
+**Dictionary iteration safety:**  
+`_save_changes_event` now copies `window._panels` before iterating (`dict(window._panels)`). This prevents `RuntimeError: dictionary changed size during iteration` when a redraw (triggered inside the loop by `_update_model_cache`) calls `window.clear()` and clears the original `_panels` dict.
 
 ## Future Enhancements
 

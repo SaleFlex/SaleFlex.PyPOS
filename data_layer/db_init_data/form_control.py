@@ -1407,7 +1407,45 @@ def _insert_form_controls(session: Session, cashier_id: str):
         fk_cashier_update_id=cashier_id
     )
     cashier_controls.append(cashier_mgmt_list)
-    
+
+    # ADD NEW CASHIER button (admin only - shown/hidden dynamically at runtime)
+    add_new_cashier_button = FormControl(
+        fk_form_id=cashier_form.id,
+        fk_parent_id=None,
+        parent_name=None,
+        name=ControlName.ADD_NEW_CASHIER.value,
+        form_control_function1=EventName.ADD_NEW_CASHIER.value,
+        form_control_function2=None,
+        type_no=1,
+        type="BUTTON",
+        width=300,
+        height=99,
+        location_x=20,
+        location_y=630,
+        start_position=None,
+        caption1="ADD NEW CASHIER",
+        caption2=None,
+        list_values=None,
+        dock=None,
+        alignment=None,
+        text_alignment="CENTER",
+        character_casing="UPPER",
+        font="Tahoma",
+        icon=None,
+        tool_tip="Add a new cashier account",
+        image=None,
+        image_selected=None,
+        font_auto_height=False,
+        font_size=14,
+        input_type="ALPHANUMERIC",
+        text_image_relation=None,
+        back_color="0x8B4513",  # SaddleBrown - distinct admin action color
+        fore_color="0xFFFFFF",
+        keyboard_value=None,
+        fk_cashier_create_id=cashier_id,
+        fk_cashier_update_id=cashier_id
+    )
+
     # Cashier field controls - all will be children of the panel
     # Field definitions with labels and field names (field names match model attributes)
     cashier_fields = [
@@ -1586,7 +1624,7 @@ def _insert_form_controls(session: Session, cashier_id: str):
     )
     
     # Combine all cashier form controls
-    cashier_form_controls = [cashier_mgmt_list, cashier_panel] + cashier_controls + [save_button, back_button]
+    cashier_form_controls = [cashier_mgmt_list, add_new_cashier_button, cashier_panel] + cashier_controls + [save_button, back_button]
     
     # Closure form controls
     closure_form_controls = [

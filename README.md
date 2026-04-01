@@ -29,7 +29,7 @@ SaleFlex.PyPOS POS system is designed to streamline the sales process and improv
 - **System Integration**: Connect with accounting software, warehouse management, and ERP systems
 - **️Returns & Exchanges**: Handle product returns and exchanges efficiently
 - **Employee Management**: Track employee time, attendance, and performance
-- **Cashier Management**: Role-based cashier account management with dynamic combobox selection. Admin users can view and edit all cashier accounts; non-admin cashiers can update only their own password. Field-level read-only protection enforced at the form layer (`is_administrator` flag)
+- **Cashier Management**: Role-based cashier account management with dynamic combobox selection. Admin users can view and edit all cashier accounts and create new cashier accounts directly from the Cashier Management form via the **ADD NEW CASHIER** button (admin-only, hidden for non-admin users). Non-admin cashiers can update only their own password. Field-level read-only protection enforced at the form layer (`is_administrator` flag). New cashier entry uses in-place form manipulation (no full redraw) for seamless UX
 - **Campaign & Promotion Management**: Flexible promotional campaigns with time-based, product-specific, and basket discounts
 - **Loyalty Programs**: Tiered membership rewards system with points earning, redemption, and customer segmentation
 - **Country-Specific Closure Templates**: Flexible template system for country-specific closure data (E-Fatura for Turkey, state tax for USA, VAT reporting for EU, etc.) stored as JSON templates in `static_files/closures/` directory
@@ -388,6 +388,7 @@ All models support:
 - [x] **Parent-Child Control Relationships** - Panel controls can contain child controls (textboxes, labels, buttons)
 - [x] **Generic Panel-Based Form Saving** - Automatic model updates from panel textbox values on SAVE button click. Works with any model via naming convention (panel name = model name, textbox name = model field). Automatically loads model data into form and saves changes to database
 - [x] **Cashier Management Form** - Role-aware cashier management with `CASHIER_MGMT_LIST` combobox for multi-cashier selection, `editing_cashier` session tracking, and field-level read-only enforcement based on `is_administrator` flag
+- [x] **Add New Cashier (Admin Only)** - `ADD_NEW_CASHIER` button on CASHIER form visible only to administrators. Clears panel textboxes in-place, hides combobox and button during entry. On save, cache is updated and form redraws with new cashier pre-selected. Includes `_is_adding_new_cashier` session flag for lifecycle management
 - [ ] **Dynamic Interface Interpreter** - Flexible UI rendering system
 - [ ] **Interface Functions** - Core UI interaction handlers
 - [ ] **Tables Layout Module** - Restaurant table management
