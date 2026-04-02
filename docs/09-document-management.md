@@ -78,19 +78,21 @@ This allows users to resume incomplete transactions seamlessly when navigating b
 During sales operations, the `document_data` is automatically updated:
 - **PLU Sales** (SALE_PLU_CODE, SALE_PLU_BARCODE): Automatically creates `TransactionProductTemp` records with product details, VAT calculations, and pricing
 - **Department Sales** (SALE_DEPARTMENT): Automatically creates `TransactionDepartmentTemp` records with department information, VAT rates, and totals
+- **Sale List Item REPEAT**: Clones the selected `TransactionProductTemp` / `TransactionDepartmentTemp` record with a new UUID and the next `line_no`, saves it to the database, and recalculates the document totals
+- **Sale List Item DELETE**: Marks the matching `TransactionProductTemp` / `TransactionDepartmentTemp` record as `is_cancel = True`, saves it to the database, and recalculates the document totals. If no active lines remain, the document is automatically cancelled (see [Empty Document Handling](#empty-document-handling))
 - **Payment Processing**: Automatically creates `TransactionPaymentTemp` records when payment buttons are clicked, updates `total_payment_amount`, and calculates change
 - **Change Recording**: Change is recorded manually when `CHANGE_PAYMENT` button is clicked, or via MessageForm dialog if button doesn't exist in form
 - **Transaction Head Updates**: Automatically updates `TransactionHeadTemp` fields including:
   - `transaction_date_time`: Set to current time if empty
-  - `transaction_status`: Changed from `DRAFT` to `ACTIVE` when first item is added, `COMPLETED` when fully paid
+  - `transaction_status`: Changed from `DRAFT` to `ACTIVE` when first item is added, `COMPLETED` when fully paid, `CANCELLED` when all items are deleted
   - `closure_number`: Set from active closure
   - `base_currency`: Set from `CurrentStatus.current_currency`
   - `order_source`: Set to "in_store"
   - `order_channel`: Set to "cashier"
-  - `total_amount` and `total_vat_amount`: Automatically calculated from products and departments
+  - `total_amount` and `total_vat_amount`: Automatically calculated from active (non-cancelled) products and departments
   - `total_payment_amount`: Updated with each payment
   - `total_change_amount`: Updated when change is recorded
-  - `is_closed`: Set to `True` when document is completed
+  - `is_closed`: Set to `True` when document is completed or all items are deleted
 - **Customer Assignment**: Automatically assigns a default walk-in customer if not set
 - **Batch Number**: Automatically set to match `closure_number`
 
@@ -332,6 +334,63 @@ SaleService.update_sale_screen_controls(
 # - amount_table displays current totals
 # - payment_list shows all payments in line_no order
 ```
+
+## Line Item Cancellation (Sale List DELETE)
+
+Individual transaction lines can be soft-cancelled during an active sale session via the **Item Actions** popup (DELETE button). This is distinct from cancelling an entire document.
+
+### How it works
+
+1. The cashier taps a row in the sale list → the **Item Actions** popup opens.
+2. Pressing **DELETE** marks that row's `TransactionProductTemp` (or `TransactionDepartmentTemp`) record as `is_cancel = True` and saves it to the database.
+3. The row remains visible in the current session with a strikethrough style.
+4. `SaleService.calculate_document_totals()` recalculates the document total, **skipping all cancelled lines**.
+5. `TransactionHeadTemp.total_amount` and `total_vat_amount` are updated and saved.
+6. The `amount_table` UI control is refreshed with the new totals.
+
+### Cancelled items on reload
+
+When the sale screen is re-entered (e.g. after navigating to the menu and back), `SaleService.update_sale_list_from_document()` is called. It **filters out** all records where `is_cancel = True`, so cancelled lines are **not displayed** in the restored sale list.
+
+### Empty Document Handling
+
+If the DELETE action cancels the **last remaining active line** in the document (i.e. there are no uncancelled products or departments left), the following automatic cleanup occurs:
+
+1. `TransactionHeadTemp.is_cancel` is set to `True`
+2. `TransactionHeadTemp.is_closed` is set to `True`
+3. `TransactionHeadTemp.transaction_status` is set to `CANCELLED`
+4. `total_amount` and `total_vat_amount` are set to `0`
+5. The head record is saved to the database
+6. `document_data` is reset to `None`
+7. The status bar is cleared
+8. The amount table is zeroed out
+
+After this cleanup, the next sale will trigger `_ensure_document_open()` which creates a **new empty document** automatically. No manual action is required from the cashier.
+
+**Summary of empty-document state combinations after last-item delete:**
+
+| Flag | Value |
+|------|-------|
+| `is_closed` | `True` |
+| `is_cancel` | `True` |
+| `is_pending` | `False` |
+| `transaction_status` | `CANCELLED` |
+| `document_data` in memory | `None` |
+
+## Line Item REPEAT (Sale List REPEAT)
+
+Pressing **REPEAT** in the Item Actions popup adds an identical new transaction line immediately below the existing items.
+
+### How it works
+
+1. The original `TransactionProductTemp` (or `TransactionDepartmentTemp`) record is found in `document_data` using the row's `reference_id`.
+2. A new record is cloned from the original with:
+   - A freshly generated UUID (`id`)
+   - `line_no` set to the next available line number
+   - `is_cancel = False`
+3. The clone is saved to the database and appended to `document_data["products"]` (or `["departments"]`).
+4. The new row's `reference_id` in the `SaleList` is updated to the new DB record's UUID so that future REPEAT/DELETE actions on that row are correctly linked.
+5. `calculate_document_totals()` recalculates the total and the `amount_table` is refreshed.
 
 ## Document Status Flags
 

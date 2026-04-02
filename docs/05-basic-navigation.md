@@ -118,6 +118,29 @@ Change is calculated if total was less than £100.00
    - Or enter a custom amount on the NumPad, then press **CASH** or **CREDIT CARD**
 5. Print a receipt for the customer
 
+## Sale List Item Actions
+
+Tapping (clicking) any row in the **sale list** opens an **Item Actions** popup with three options:
+
+| Button | Action |
+|--------|--------|
+| **REPEAT** | Adds an identical new line below all existing items. The repeated line is saved to the database and the document totals are updated immediately. |
+| **DELETE** | Soft-cancels the selected line — it remains visible in the list with a strikethrough style but is marked as cancelled (`is_cancel = True`) in the database. Totals are recalculated excluding the cancelled line. |
+| **CANCEL** | Closes the popup without any change. |
+
+### REPEAT behaviour
+
+- A new `TransactionProductTemp` (or `TransactionDepartmentTemp`) record is cloned from the original and saved to the database with the next available `line_no`.
+- The `Sales Amount` in the amount table increases immediately.
+- The repeated row has its own database ID and can itself be individually REPEAT-ed or DELETE-d later.
+
+### DELETE behaviour
+
+- The matching database record is marked `is_cancel = True` and saved immediately.
+- `Sales Amount` in the amount table decreases by the cancelled line's total.
+- The cancelled row remains visible in the sale list for the rest of the session (strikethrough style), but will **not** appear the next time the sale screen is loaded.
+- **If the last active line is deleted**, the document is automatically marked as `CANCELLED` and `is_closed = True`. `document_data` is reset to `None`, the status bar clears, and the amount table shows zeros. The next product sale will start a completely new document.
+
 ## Cashier Management
 
 Accessible from the main menu via the **Cashier Management** button.

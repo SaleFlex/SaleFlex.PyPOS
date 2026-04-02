@@ -244,6 +244,10 @@ class SaleList(QWidget):
         # Event handling callback function (set by external code)
         self.event_func = None
         
+        # Store pending action context so the event handler can sync business logic
+        self.last_action: str = None        # "REPEAT" or "DELETE"
+        self.last_action_data: SalesData = None  # The SalesData row that was acted on
+        
         # Core data storage for all sales list items
         self.custom_sales_data_list: List[SalesData] = []
         
@@ -412,14 +416,32 @@ class SaleList(QWidget):
         # Process the selected action internally
         if result == QDialog.Accepted and popup.action:
             if popup.action == "DELETE":
+                # Store action context before visual update so event handler can sync DB
+                self.last_action = "DELETE"
+                self.last_action_data = (
+                    self.custom_sales_data_list[selected_row]
+                    if selected_row < len(self.custom_sales_data_list) else None
+                )
                 # DELETE: Cancel transaction with strikethrough (soft delete)
                 self.delete_transaction(selected_row)
+                # Notify event handler to persist the cancellation to document_data / DB
+                if self.event_func:
+                    self.event_func()
             elif popup.action == "CANCEL":
                 # CANCEL: Just close the popup - no further action required
                 pass
             elif popup.action == "REPEAT":
+                # Store original row context before repeat adds a new row
+                self.last_action = "REPEAT"
+                self.last_action_data = (
+                    self.custom_sales_data_list[selected_row]
+                    if selected_row < len(self.custom_sales_data_list) else None
+                )
                 # REPEAT: Add a duplicate row with the same quantity
                 self.repeat_transaction(selected_row)
+                # Notify event handler to persist the new line to document_data / DB
+                if self.event_func:
+                    self.event_func()
             
     def add_product(self, product_name, quantity, unit_price, **kwargs):
         """

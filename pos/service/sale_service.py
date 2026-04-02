@@ -331,22 +331,30 @@ class SaleService:
                 - total_amount: Sum of all product and department totals
                 - total_vat_amount: Sum of all VAT amounts
         """
+        from data_layer.auto_save import AutoSaveModel
+
         total_amount = Decimal('0')
         total_vat_amount = Decimal('0')
         
-        # Sum products
+        # Sum products (skip cancelled lines)
         for prod in document_data.get("products", []):
-            if hasattr(prod, 'total_price'):
-                total_amount += Decimal(str(prod.total_price))
-            if hasattr(prod, 'total_vat'):
-                total_vat_amount += Decimal(str(prod.total_vat))
+            actual_prod = prod.unwrap() if isinstance(prod, AutoSaveModel) else prod
+            if getattr(actual_prod, 'is_cancel', False):
+                continue
+            if hasattr(actual_prod, 'total_price'):
+                total_amount += Decimal(str(actual_prod.total_price))
+            if hasattr(actual_prod, 'total_vat'):
+                total_vat_amount += Decimal(str(actual_prod.total_vat))
         
-        # Sum departments
+        # Sum departments (skip cancelled lines)
         for dept in document_data.get("departments", []):
-            if hasattr(dept, 'total_department'):
-                total_amount += Decimal(str(dept.total_department))
-            if hasattr(dept, 'total_department_vat'):
-                total_vat_amount += Decimal(str(dept.total_department_vat))
+            actual_dept = dept.unwrap() if isinstance(dept, AutoSaveModel) else dept
+            if getattr(actual_dept, 'is_cancel', False):
+                continue
+            if hasattr(actual_dept, 'total_department'):
+                total_amount += Decimal(str(actual_dept.total_department))
+            if hasattr(actual_dept, 'total_department_vat'):
+                total_vat_amount += Decimal(str(actual_dept.total_department_vat))
         
         return {
             "total_amount": total_amount,

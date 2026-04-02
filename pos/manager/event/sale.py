@@ -418,6 +418,10 @@ class SaleEvent:
                     line_no=line_no
                 )
                 
+                # Store the DB record ID in SalesData so REPEAT/DELETE can find it later
+                if self.document_data and self.document_data.get("departments") and sale_list.custom_sales_data_list:
+                    sale_list.custom_sales_data_list[-1].reference_id = str(self.document_data["departments"][-1].id)
+                
                 # Update amount_table with new totals
                 if hasattr(current_window, 'amount_table') and current_window.amount_table:
                     from pos.service import SaleService
@@ -592,6 +596,10 @@ class SaleEvent:
                     line_no=line_no
                 )
                 
+                # Store the DB record ID in SalesData so REPEAT/DELETE can find it later
+                if self.document_data and self.document_data.get("products") and sale_list.custom_sales_data_list:
+                    sale_list.custom_sales_data_list[-1].reference_id = str(self.document_data["products"][-1].id)
+                
                 # Update amount_table with new totals
                 if hasattr(current_window, 'amount_table') and current_window.amount_table:
                     from pos.service import SaleService
@@ -755,6 +763,10 @@ class SaleEvent:
                     line_no=line_no
                 )
                 
+                # Store the DB record ID in SalesData so REPEAT/DELETE can find it later
+                if self.document_data and self.document_data.get("products") and sale_list.custom_sales_data_list:
+                    sale_list.custom_sales_data_list[-1].reference_id = str(self.document_data["products"][-1].id)
+                
                 # Update amount_table with new totals
                 if hasattr(current_window, 'amount_table') and current_window.amount_table:
                     from pos.service import SaleService
@@ -904,6 +916,10 @@ class SaleEvent:
                     product_barcode=product_barcode,
                     line_no=line_no
                 )
+
+                # Store the DB record ID in SalesData so REPEAT/DELETE can find it later
+                if self.document_data and self.document_data.get("products") and sale_list.custom_sales_data_list:
+                    sale_list.custom_sales_data_list[-1].reference_id = str(self.document_data["products"][-1].id)
 
                 if hasattr(window, 'amount_table') and window.amount_table:
                     from pos.service import SaleService
@@ -1481,21 +1497,246 @@ class SaleEvent:
     
     def _sale_option_event(self):
         """
-        Handle additional sale options and modifiers.
+        Handle REPEAT and DELETE actions triggered from the sale list item popup.
         
-        Provides access to special sale options, modifiers,
-        or advanced transaction features.
+        Called automatically by SaleList.on_item_clicked after the visual update
+        has already been applied.  Syncs the chosen action with document_data and
+        the database, then refreshes the amount_table.
         
         Returns:
-            bool: True if sale option applied successfully, False otherwise
+            bool: True if the action was processed successfully, False otherwise
         """
         if not self.login_succeed:
             self._logout()
             return False
-            
-        # TODO: Implement sale options interface
-        logger.debug("Sale option - functionality to be implemented")
-        return False
+
+        from PySide6.QtWidgets import QApplication
+        from pos.service import SaleService
+        from data_layer.auto_save import AutoSaveModel
+
+        try:
+            # Locate the window that owns the sale_list
+            active_window = None
+            app_qt = QApplication.instance()
+            if app_qt:
+                active_window = app_qt.activeWindow()
+
+            if not active_window or not hasattr(active_window, 'sale_list'):
+                # Fallback: use the interface window
+                if hasattr(self, 'interface') and self.interface:
+                    active_window = getattr(self.interface, 'window', None)
+
+            if not active_window or not hasattr(active_window, 'sale_list'):
+                logger.error("[SALE_OPTION] No window with sale_list found")
+                return False
+
+            sale_list = active_window.sale_list
+            action = getattr(sale_list, 'last_action', None)
+            sales_data = getattr(sale_list, 'last_action_data', None)
+
+            if not action or not sales_data:
+                logger.debug("[SALE_OPTION] No pending action in sale_list")
+                return False
+
+            # Consume the pending action immediately to prevent double-processing
+            sale_list.last_action = None
+            sale_list.last_action_data = None
+
+            if not self.document_data or not self.document_data.get("head"):
+                logger.error("[SALE_OPTION] No document_data or head found")
+                return False
+
+            head = self.document_data["head"]
+            if isinstance(head, AutoSaveModel):
+                head = head.unwrap()
+
+            reference_id = str(sales_data.reference_id) if sales_data.reference_id else None
+            transaction_type = sales_data.transaction_type  # "PLU", "DEPARTMENT", "SUBTOTAL", …
+
+            logger.debug("[SALE_OPTION] action=%s type=%s ref=%s", action, transaction_type, reference_id)
+
+            # Only PLU / DEPARTMENT lines have matching DB records
+            if transaction_type not in ("PLU", "DEPARTMENT"):
+                logger.debug("[SALE_OPTION] Non-product row (%s) – no DB update needed", transaction_type)
+                return True
+
+            if action == "DELETE":
+                return self._handle_sale_item_delete(active_window, sale_list, head, reference_id, transaction_type)
+            elif action == "REPEAT":
+                return self._handle_sale_item_repeat(active_window, sale_list, head, reference_id, transaction_type)
+
+            return False
+
+        except Exception as e:
+            logger.error("[SALE_OPTION] Unexpected error: %s", e)
+            return False
+
+    def _handle_sale_item_delete(self, window, sale_list, head, reference_id, transaction_type):
+        """
+        Persist a DELETE (cancel) action to document_data and the database.
+
+        Marks the matching TransactionProductTemp / TransactionDepartmentTemp as
+        cancelled, recalculates the document totals, and – when the document is
+        left empty – marks the head as CANCELLED so a fresh document is created
+        on the next sale.
+        """
+        from decimal import Decimal
+        from pos.service import SaleService
+        from data_layer.auto_save import AutoSaveModel
+        from data_layer.model.definition.transaction_status import TransactionStatus
+
+        try:
+            # Locate and cancel the matching DB record
+            db_record = None
+            records = (
+                self.document_data.get("products", [])
+                if transaction_type == "PLU"
+                else self.document_data.get("departments", [])
+            )
+            for rec in records:
+                actual = rec.unwrap() if isinstance(rec, AutoSaveModel) else rec
+                if reference_id and str(actual.id) == reference_id:
+                    db_record = actual
+                    break
+
+            if db_record:
+                db_record.is_cancel = True
+                db_record.save()
+                logger.info("[SALE_OPTION] Cancelled %s record %s", transaction_type, db_record.id)
+            else:
+                logger.warning("[SALE_OPTION] DELETE: DB record not found (ref=%s type=%s)", reference_id, transaction_type)
+
+            # Recalculate totals skipping all cancelled lines
+            totals = SaleService.calculate_document_totals(self.document_data)
+            head.total_amount = totals["total_amount"]
+            head.total_vat_amount = totals["total_vat_amount"]
+
+            # Determine whether any active (non-cancelled) lines remain
+            def _is_active(rec):
+                actual = rec.unwrap() if isinstance(rec, AutoSaveModel) else rec
+                return not getattr(actual, 'is_cancel', False)
+
+            has_active = any(_is_active(p) for p in self.document_data.get("products", [])) or \
+                         any(_is_active(d) for d in self.document_data.get("departments", []))
+
+            if not has_active:
+                # Document is now empty – cancel and close it
+                logger.info("[SALE_OPTION] All items deleted – cancelling document")
+                head.is_cancel = True
+                head.is_closed = True
+                head.transaction_status = TransactionStatus.CANCELLED.value
+                head.total_amount = Decimal('0')
+                head.total_vat_amount = Decimal('0')
+                head.save()
+                self.document_data = None
+                self._update_statusbar()
+
+                # Zero out the amount_table
+                if hasattr(window, 'amount_table') and window.amount_table:
+                    window.amount_table.receipt_total_price = Decimal('0')
+                    window.amount_table.discount_total_amount = Decimal('0')
+                    window.amount_table.receipt_total_payment = Decimal('0')
+            else:
+                head.save()
+                if hasattr(window, 'amount_table') and window.amount_table:
+                    SaleService.update_amount_table_from_document(window.amount_table, head)
+
+            logger.info("[SALE_OPTION] DELETE complete – total_amount=%s",
+                        head.total_amount if self.document_data else Decimal('0'))
+            return True
+
+        except Exception as e:
+            logger.error("[SALE_OPTION] DELETE error: %s", e)
+            return False
+
+    def _handle_sale_item_repeat(self, window, sale_list, head, reference_id, transaction_type):
+        """
+        Persist a REPEAT action to document_data and the database.
+
+        Clones the original TransactionProductTemp / TransactionDepartmentTemp,
+        saves the new record, links its ID to the freshly-added SalesData row,
+        and refreshes the document totals and amount_table.
+        """
+        from uuid import uuid4
+        from pos.service import SaleService
+        from data_layer.auto_save import AutoSaveModel
+
+        try:
+            # Locate the original DB record
+            db_record = None
+            records = (
+                self.document_data.get("products", [])
+                if transaction_type == "PLU"
+                else self.document_data.get("departments", [])
+            )
+            for rec in records:
+                actual = rec.unwrap() if isinstance(rec, AutoSaveModel) else rec
+                if reference_id and str(actual.id) == reference_id:
+                    db_record = actual
+                    break
+
+            # line_no for the new record = total existing lines + 1
+            new_line_no = (
+                len(self.document_data.get("products", [])) +
+                len(self.document_data.get("departments", []))
+            ) + 1
+
+            new_db_id = None
+
+            if db_record and transaction_type == "PLU":
+                from data_layer.model import TransactionProductTemp
+                new_prod = TransactionProductTemp()
+                for col in db_record.__table__.columns.keys():
+                    if hasattr(db_record, col):
+                        setattr(new_prod, col, getattr(db_record, col))
+                new_prod.id = uuid4()
+                new_prod.line_no = new_line_no
+                new_prod.is_cancel = False
+                new_prod.save()
+                if "products" not in self.document_data:
+                    self.document_data["products"] = []
+                self.document_data["products"].append(new_prod)
+                new_db_id = str(new_prod.id)
+                logger.info("[SALE_OPTION] REPEAT: saved new product record %s (line_no=%s)", new_prod.id, new_line_no)
+
+            elif db_record and transaction_type == "DEPARTMENT":
+                from data_layer.model import TransactionDepartmentTemp
+                new_dept = TransactionDepartmentTemp()
+                for col in db_record.__table__.columns.keys():
+                    if hasattr(db_record, col):
+                        setattr(new_dept, col, getattr(db_record, col))
+                new_dept.id = uuid4()
+                new_dept.line_no = new_line_no
+                new_dept.is_cancel = False
+                new_dept.save()
+                if "departments" not in self.document_data:
+                    self.document_data["departments"] = []
+                self.document_data["departments"].append(new_dept)
+                new_db_id = str(new_dept.id)
+                logger.info("[SALE_OPTION] REPEAT: saved new department record %s (line_no=%s)", new_dept.id, new_line_no)
+
+            else:
+                logger.warning("[SALE_OPTION] REPEAT: DB record not found (ref=%s type=%s)", reference_id, transaction_type)
+
+            # Link the new DB record ID to the newly-appended SalesData row
+            if new_db_id and sale_list.custom_sales_data_list:
+                sale_list.custom_sales_data_list[-1].reference_id = new_db_id
+
+            # Recalculate and persist updated totals
+            totals = SaleService.calculate_document_totals(self.document_data)
+            head.total_amount = totals["total_amount"]
+            head.total_vat_amount = totals["total_vat_amount"]
+            head.save()
+
+            if hasattr(window, 'amount_table') and window.amount_table:
+                SaleService.update_amount_table_from_document(window.amount_table, head)
+
+            logger.info("[SALE_OPTION] REPEAT complete – total_amount=%s", head.total_amount)
+            return True
+
+        except Exception as e:
+            logger.error("[SALE_OPTION] REPEAT error: %s", e)
+            return False
     
     def _sale_shortcut_event(self):
         """

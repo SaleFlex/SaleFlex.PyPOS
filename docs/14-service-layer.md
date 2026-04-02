@@ -146,10 +146,10 @@ dept_temp = SaleService.create_transaction_department_temp(
     product_data=product_data  # Optional
 )
 
-# Calculate document totals
+# Calculate document totals (cancelled lines are excluded)
 totals = SaleService.calculate_document_totals(document_data)
 # Returns: {
-#     "total_amount": Decimal('100.00'),
+#     "total_amount": Decimal('100.00'),  # sum of non-cancelled lines only
 #     "total_vat_amount": Decimal('15.25')
 # }
 
@@ -189,11 +189,11 @@ SaleService.update_payment_list_from_document(
 - **`calculate_department_sale(quantity, unit_price, department, department_no, product_data, currency_sign=None)`**: Calculate department sale totals and VAT
 - **`create_transaction_product_temp(...)`**: Create a TransactionProductTemp record
 - **`create_transaction_department_temp(...)`**: Create a TransactionDepartmentTemp record
-- **`calculate_document_totals(document_data)`**: Calculate total amounts for a document
+- **`calculate_document_totals(document_data)`**: Calculate total amounts for a document. **Cancelled lines (`is_cancel=True`) are excluded from the sum.** Returns a dict with `total_amount` and `total_vat_amount` as `Decimal` values.
 - **`get_vat_rate_for_product(product, product_data)`**: Get VAT rate for a product
 - **`get_vat_rate_for_department(department, department_no, product_data)`**: Get VAT rate for a department
 - **`update_sale_screen_controls(window, document_data, pos_data=None)`**: Update all sale screen UI controls from document_data (orchestrator method)
-- **`update_sale_list_from_document(sale_list, document_data, pos_data=None)`**: Update sale_list control with products and departments ordered by line_no
+- **`update_sale_list_from_document(sale_list, document_data, pos_data=None)`**: Update sale_list control with products and departments ordered by line_no. **Cancelled items (`is_cancel=True`) are filtered out.**
 - **`update_amount_table_from_document(amount_table, head)`**: Update amount_table control with totals from TransactionHeadTemp
 - **`update_payment_list_from_document(payment_list, document_data)`**: Update payment_list control with payments ordered by line_no
 
@@ -272,6 +272,51 @@ if is_complete:
 - **`copy_temp_to_permanent(document_data)`**: Copy all temp models to permanent models
 - **`_safe_decimal(value)`**: Safely convert value to Decimal (handles None, string, int, float, Decimal)
 
+## Sale List Item Actions (REPEAT / DELETE)
+
+The **SALE_OPTION** event (`_sale_option_event` in `pos/manager/event/sale.py`) handles the REPEAT and DELETE actions triggered from the sale list item popup. It bridges the `SaleList` UI widget and the business logic / database layer.
+
+### Event Flow
+
+```
+SaleList.on_item_clicked()
+  └─ shows ItemActionPopup
+       └─ user presses REPEAT or DELETE
+            ├─ SaleList stores last_action / last_action_data
+            ├─ visual update applied (new row or strikethrough)
+            └─ SaleList.event_func() called  →  _sale_option_event()
+                  ├─ reads last_action from sale_list
+                  ├─ finds matching DB record via reference_id
+                  ├─ delegates to _handle_sale_item_repeat() or _handle_sale_item_delete()
+                  └─ refreshes amount_table
+```
+
+### reference_id Linking
+
+Each `SalesData` row in the `SaleList` stores a `reference_id` that points to the UUID of the corresponding `TransactionProductTemp` or `TransactionDepartmentTemp` database record. This ID is:
+
+- **Set when adding a new sale line**: After `SaleService.add_sale_to_document()` creates and saves the DB record, the event handler updates `sale_list.custom_sales_data_list[-1].reference_id` with the new record's UUID.
+- **Set when loading from the database**: `update_sale_list_from_document()` populates `reference_id` from `prod.id` / `dept.id`.
+- **Propagated on REPEAT**: After `_handle_sale_item_repeat()` creates the clone, the new DB record's UUID replaces the `reference_id` on the newly-added row.
+
+### DELETE helper — `_handle_sale_item_delete()`
+
+1. Locates the `TransactionProductTemp` or `TransactionDepartmentTemp` record by `reference_id`.
+2. Sets `is_cancel = True` and saves the record.
+3. Calls `calculate_document_totals()` (skips cancelled lines) and updates `head.total_amount`.
+4. Saves the updated head.
+5. **If no active lines remain**: marks the head as `CANCELLED`, sets `is_closed = True`, resets `document_data` to `None`, and zeros the amount table.
+6. Otherwise: calls `update_amount_table_from_document()` to refresh UI.
+
+### REPEAT helper — `_handle_sale_item_repeat()`
+
+1. Locates the original `TransactionProductTemp` or `TransactionDepartmentTemp` record by `reference_id`.
+2. Clones all columns into a new instance with a fresh UUID and the next `line_no`.
+3. Saves the clone and appends it to `document_data["products"]` / `["departments"]`.
+4. Updates `sale_list.custom_sales_data_list[-1].reference_id` with the new UUID.
+5. Calls `calculate_document_totals()` and updates `head.total_amount`, then saves the head.
+6. Calls `update_amount_table_from_document()` to refresh UI.
+
 ## Integration with Event Handlers
 
 Event handlers in `pos/manager/event/` use services to perform business operations:
@@ -347,8 +392,8 @@ Additional services may be added for:
 
 ---
 
-**Last Updated:** 2025-01-28  
-**Version:** 1.0.0b3
+**Last Updated:** 2026-04-02  
+**Version:** 1.0.0b5
 
 ## Sale Screen UI Restoration
 
