@@ -448,10 +448,12 @@ distinct interaction modes depending on which action follows the numeric input.
 
 Handler: `SaleEvent._sale_plu_numpad_enter_event(text)`
 
-1. Search `ProductBarcode.barcode` for an exact match.
-2. If not found, search `Product.code` for an exact match.
-3. On success: add product to sale list using `pending_quantity` (or 1).
-4. On failure: show an error dialog ("Product not found").
+1. If `self.awaiting_plu_inquiry` is **True** and the numpad text is non-empty,
+   clear the flag and run **PLU inquiry** (`_plu_inquiry_execute`) — no sale.
+2. Otherwise: search `ProductBarcode.barcode` for an exact match.
+3. If not found, search `Product.code` for an exact match.
+4. On success: add product to sale list using `pending_quantity` (or 1).
+5. On failure: show an error dialog ("Product not found").
 
 ```python
 # Triggered when numpad Enter is pressed with accumulated text
@@ -469,16 +471,43 @@ is called first.  Priority order:
 
 After reading, `pending_quantity` is reset to 1.0 and the numpad is cleared.
 
-### Mode 3 — X (Quantity Multiplier) Button
+### Mode 3 — PLU Inquiry and X (Quantity Multiplier) Buttons
 
-Button: `QTY_MULTIPLIER` — `form_control_function1 = INPUT_QUANTITY`
+The default **SALE** form uses **two** adjacent buttons (same row, 115×90 each;
+formerly a single 230×90 `QTY_MULTIPLIER` control).
+
+#### PLU inquiry — `PLU_INQUIRY` → `PLU_INQUIRY`
+
+Handler: `SaleEvent._plu_inquiry_event(button)`
+
+- If the numpad has text: resolve product (same rules as Mode 1), show
+  `MessageForm` with **price** (currency-aware via `VatService`) and **stock by
+  warehouse** (sums `WarehouseProductStock` by parent `Warehouse` name; if no
+  stock rows, falls back to `Product.stock`), clear the numpad.
+- If the numpad is empty: set `self.awaiting_plu_inquiry = True` so the next
+  **Enter** runs inquiry instead of a sale (see Mode 1 step 1).
+
+`awaiting_plu_inquiry` is cleared when a quantity is committed with **X**
+(`_input_quantity_event`).
+
+```python
+# State on EventHandler (event_handler.py __init__)
+self.awaiting_plu_inquiry = False
+```
+
+`base_window.py` / `dynamic_dialog.py` pass the button into `_plu_inquiry_event`
+because `PLU_INQUIRY` is in the `quantity_events` list (same pattern as
+`INPUT_QUANTITY`).
+
+#### X (quantity multiplier) — `QTY_MULTIPLIER` → `INPUT_QUANTITY`
 
 Handler: `SaleEvent._input_quantity_event(button)`
 
 1. Read the current numpad text as a float.
 2. Store as `self.pending_quantity` (persists until the next sale clears it).
-3. Clear the numpad.
-4. Refresh the status bar immediately (shows "x{qty}").
+3. Clear `awaiting_plu_inquiry`.
+4. Clear the numpad.
+5. Refresh the status bar immediately (shows "x{qty}").
 
 The status bar always shows the active multiplier:
 - Default: **x1**
@@ -489,19 +518,29 @@ The status bar always shows the active multiplier:
 self.pending_quantity = 1.0  # initialised in event_handler.py __init__
 ```
 
-> **Adding the X button to a form:**
+> **Seed data (split row):**
 > ```python
+> FormControl(
+>     name="PLU_INQUIRY",
+>     form_control_function1=EventName.PLU_INQUIRY.value,
+>     type="BUTTON",
+>     caption1="PLU",
+>     width=115, height=90, location_x=547, location_y=652,
+>     back_color="0x5CB85C",
+>     ...
+> )
 > FormControl(
 >     name="QTY_MULTIPLIER",
 >     form_control_function1=EventName.INPUT_QUANTITY.value,
 >     type="BUTTON",
 >     caption1="X",
->     back_color="0xFFD700",  # Gold
+>     width=115, height=90, location_x=662, location_y=652,
+>     back_color="0xFFD700",
 >     ...
 > )
 > ```
-> `base_window.py` automatically passes the button widget to `_input_quantity_event`
-> (because `INPUT_QUANTITY` is in the `quantity_events` list).
+> Existing databases keep old layout until `FormControl` rows are updated or
+> the DB is re-initialized from seed data.
 
 ### Mode 4 — Payment Amount from NumPad
 
@@ -532,6 +571,9 @@ def calculate_payment_amount(
 | `_get_and_reset_pending_quantity(window)` | `SaleEvent` | Read qty from `pending_quantity` or numpad, reset state |
 | `_refresh_status_bar()` | `SaleEvent` | Trigger immediate status bar redraw |
 | `_read_numpad_payment_amount(button)` | `PaymentEvent` | Parse numpad value for generic payment buttons |
+| `_resolve_product_by_barcode_or_code(lookup_text)` | `SaleEvent` | Shared barcode / product-code match for sale and PLU inquiry |
+| `_warehouse_stock_summary_text(product_id)` | `SaleEvent` | Aggregate `WarehouseProductStock` by warehouse name for dialogs |
+| `_plu_inquiry_execute(lookup_text, window=..., clear_numpad=...)` | `SaleEvent` | Show price + stock info without selling |
 
 ---
 

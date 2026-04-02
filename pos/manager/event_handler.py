@@ -86,6 +86,10 @@ class EventHandler(GeneralEvent, SaleEvent, PaymentEvent, ConfigurationEvent,
         # When > 1 the next sale will use this value instead of reading the numpad.
         # Resets to 1.0 after each sale.
         self.pending_quantity = 1.0
+
+        # After PLU (inquiry) is pressed with an empty numpad, the next Enter runs
+        # price/stock inquiry instead of selling.
+        self.awaiting_plu_inquiry = False
     
     def event_distributor(self, event_name):
         """
@@ -192,6 +196,7 @@ class EventHandler(GeneralEvent, SaleEvent, PaymentEvent, ConfigurationEvent,
                 # Input Events - From SaleEvent
                 EventName.INPUT_PRICE.name: self._input_price_event,
                 EventName.INPUT_QUANTITY.name: self._input_quantity_event,
+                EventName.PLU_INQUIRY.name: self._plu_inquiry_event,
                 EventName.INPUT_AMOUNT.name: self._input_amount_event,
                 EventName.PRICE_LOOKUP.name: self._price_lookup_event,
                 

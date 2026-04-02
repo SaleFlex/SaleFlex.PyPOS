@@ -39,6 +39,12 @@ Enter a number on the NumPad and press **ENTER** to search for and sell a produc
   multiplier set by the **X** button — see Mode 3).
 - On failure an error message is displayed.
 
+> **PLU inquiry (no sale):** If you pressed the green **PLU** button with an *empty*
+> NumPad first, the *next* **ENTER** does **not** sell — it opens an info dialog with
+> the product **price** and **stock totals per warehouse** (from `WarehouseProductStock`,
+> falling back to the product card stock when no rows exist). You can also type the
+> barcode or product code first, then press **PLU**, for the same dialog.
+
 **Example:**
 ```
 NumPad: 5000157070008  → ENTER
@@ -66,7 +72,11 @@ Result: 3× Coca-Cola added to sale list
 
 ---
 
-#### Mode 3 — X (Quantity Multiplier) Button
+#### Mode 3 — PLU (inquiry) and X (Quantity Multiplier) Buttons
+
+Below the payment list, the **SALE** form has **two** buttons on one row: **PLU** (left)
+and **X** (right). **PLU** is for **price / warehouse stock lookup** only (see the note
+under Mode 1 and the **PLU inquiry** example below). **X** is the quantity multiplier.
 
 For workflows that involve barcode scanning (where you cannot type then click
 simultaneously), pre-set the quantity using the **X** button:
@@ -82,6 +92,15 @@ NumPad: 3  → X button  → status bar shows "x3"
 NumPad: 5000157070008  → ENTER
 Result: 3× Coca-Cola added to sale
 Status bar returns to "x1"
+```
+
+**PLU inquiry examples (no line added to the sale):**
+```
+NumPad: 5000157070008  → PLU
+Result: Info dialog — price and stock per warehouse
+
+PLU (NumPad empty)  → NumPad: 5000157070008  → ENTER
+Result: Same info dialog
 ```
 
 ---
@@ -112,7 +131,7 @@ Change is calculated if total was less than £100.00
 2. Add products using one of these methods:
    - Click a **PLU / barcode product button** (optionally prefix with a NumPad quantity)
    - Type a **barcode or product code** on the NumPad and press **ENTER**
-3. To sell multiple units of the next scan, press the **X** button after typing the quantity
+3. To sell multiple units of the next scan, press the **X** button (right) after typing the quantity; use **PLU** (left) only to check price and stock without selling
 4. When all items are added, select the payment method:
    - Click a **denomination button** (e.g. "20 £") for exact cash amounts
    - Or enter a custom amount on the NumPad, then press **CASH** or **CREDIT CARD**

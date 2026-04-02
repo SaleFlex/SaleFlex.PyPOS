@@ -275,7 +275,12 @@ class DynamicDialog(QDialog):
             payment_events = ["CASH_PAYMENT", "CREDIT_PAYMENT", "CHECK_PAYMENT", "EXCHANGE_PAYMENT",
                              "PREPAID_PAYMENT", "CHARGE_SALE_PAYMENT", "OTHER_PAYMENT", "CHANGE_PAYMENT"]
             sale_events = ["SALE_PLU_CODE", "SALE_PLU_BARCODE", "SALE_DEPARTMENT"]
-            if function_name in sale_events or function_name in payment_events:
+            quantity_events = ["INPUT_QUANTITY", "PLU_INQUIRY"]
+            if (
+                function_name in sale_events
+                or function_name in payment_events
+                or function_name in quantity_events
+            ):
                 button.clicked.connect(lambda checked=False, btn=button: event_handler(btn))
             elif function_name.startswith("NAVIGATE_TO_FORM:"):
                 parts = function_name.split(':')

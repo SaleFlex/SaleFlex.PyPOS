@@ -108,6 +108,7 @@ class EventName(enum.Enum):
     SURCHARGE_BY_PERCENT = "SURCHARGE_BY_PERCENT"   # Surcharge by percent
     INPUT_PRICE = "INPUT_PRICE"                     # Input price
     INPUT_QUANTITY = "INPUT_QUANTITY"               # Input quantity
+    PLU_INQUIRY = "PLU_INQUIRY"                     # PLU: show price and stock by warehouse (no sale)
     INPUT_AMOUNT = "INPUT_AMOUNT"                   # Input amount
     PRICE_LOOKUP = "PRICE_LOOKUP"                   # Price lookup
     SUBTOTAL = "SUBTOTAL"                           # Calculate subtotal

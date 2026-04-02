@@ -304,8 +304,8 @@ class BaseWindow(QMainWindow):
             payment_events = ["CASH_PAYMENT", "CREDIT_PAYMENT", "CHECK_PAYMENT", "EXCHANGE_PAYMENT", 
                              "PREPAID_PAYMENT", "CHARGE_SALE_PAYMENT", "OTHER_PAYMENT", "CHANGE_PAYMENT"]
             sale_events = ["SALE_PLU_CODE", "SALE_PLU_BARCODE", "SALE_DEPARTMENT"]
-            # INPUT_QUANTITY (X button) also needs the button reference to find the NumPad widget
-            quantity_events = ["INPUT_QUANTITY"]
+            # INPUT_QUANTITY (X) and PLU_INQUIRY need the button to find the NumPad widget
+            quantity_events = ["INPUT_QUANTITY", "PLU_INQUIRY"]
             if function_name in sale_events or function_name in payment_events or function_name in quantity_events:
                 button.clicked.connect(lambda checked=False, btn=button: event_handler(btn))
             else:

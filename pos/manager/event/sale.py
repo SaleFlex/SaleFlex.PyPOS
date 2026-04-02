@@ -790,6 +790,178 @@ class SaleEvent:
             logger.error("[SALE_PLU_BARCODE] Error processing PLU barcode sale: %s", str(e))
             return False
 
+    def _resolve_product_by_barcode_or_code(self, lookup_text):
+        """
+        Match ProductBarcode.barcode then Product.code (same order as numpad sale).
+
+        Returns:
+            tuple: (product, product_barcode_or_none, sale_type) where sale_type is
+                   'PLU_BARCODE', 'PLU_CODE', or None if not found.
+        """
+        lookup_text = (lookup_text or "").strip()
+        if not lookup_text:
+            return None, None, None
+
+        barcode_records = [
+            pb for pb in self.product_data.get("ProductBarcode", [])
+            if pb.barcode == lookup_text and not (hasattr(pb, "is_deleted") and pb.is_deleted)
+        ]
+        if barcode_records:
+            product_barcode = barcode_records[0]
+            products = [
+                p for p in self.product_data.get("Product", [])
+                if p.id == product_barcode.fk_product_id
+            ]
+            if products:
+                return products[0], product_barcode, "PLU_BARCODE"
+
+        code_matches = [
+            p for p in self.product_data.get("Product", [])
+            if p.code == lookup_text and not (hasattr(p, "is_deleted") and p.is_deleted)
+        ]
+        if code_matches:
+            return code_matches[0], None, "PLU_CODE"
+
+        return None, None, None
+
+    def _warehouse_stock_summary_text(self, product_id):
+        """
+        Aggregate WarehouseProductStock quantities by warehouse name for display.
+        """
+        from collections import defaultdict
+
+        stocks = [
+            s for s in self.product_data.get("WarehouseProductStock", [])
+            if s.fk_product_id == product_id and not (hasattr(s, "is_deleted") and s.is_deleted)
+        ]
+        locations = {
+            loc.id: loc for loc in self.product_data.get("WarehouseLocation", [])
+            if not (hasattr(loc, "is_deleted") and loc.is_deleted)
+        }
+        warehouses = {
+            w.id: w for w in self.product_data.get("Warehouse", [])
+            if not (hasattr(w, "is_deleted") and w.is_deleted)
+        }
+
+        by_wh = defaultdict(int)
+        for s in stocks:
+            qty = int(s.quantity or 0)
+            loc = locations.get(s.fk_warehouse_location_id)
+            wh_name = "—"
+            if loc:
+                wh = warehouses.get(loc.fk_warehouse_id)
+                wh_name = (wh.name or wh.code or str(wh.id)) if wh else (loc.name or loc.code or "—")
+            by_wh[wh_name] += qty
+
+        if by_wh:
+            lines = [f"{name}: {qty}" for name, qty in sorted(by_wh.items(), key=lambda x: x[0])]
+            return "\n".join(lines)
+
+        products = [p for p in self.product_data.get("Product", []) if p.id == product_id]
+        if products:
+            p = products[0]
+            master = int(getattr(p, "stock", 0) or 0)
+            return f"Product card stock: {master}"
+        return "No stock information."
+
+    def _plu_inquiry_execute(self, lookup_text, window=None, clear_numpad=True):
+        """
+        Show price and warehouse stock for a barcode / product code. Does not sell.
+        """
+        from user_interface.control.numpad.numpad import NumPad
+        from user_interface.form.message_form import MessageForm
+        from pos.service.vat_service import VatService
+
+        if not self.login_succeed:
+            self._logout()
+            return False
+
+        if window is None:
+            window = self.interface.window if hasattr(self, "interface") else None
+        if not window:
+            logger.error("[PLU_INQUIRY] No window")
+            return False
+
+        product, product_barcode, sale_type = self._resolve_product_by_barcode_or_code(lookup_text)
+        if product is None:
+            try:
+                from data_layer.model import LabelValue
+
+                label_values = LabelValue.filter_by(
+                    key="ProductNotFound", culture_info="en-GB", is_deleted=False
+                )
+                error_msg = label_values[0].value if label_values else f"Product not found: {lookup_text}"
+                MessageForm.show_error(window, error_msg, "")
+            except Exception:
+                MessageForm.show_error(window, f"Product not found: {lookup_text}", "")
+            return False
+
+        if sale_type == "PLU_BARCODE" and product_barcode and product_barcode.sale_price:
+            sale_price = float(product_barcode.sale_price)
+        else:
+            sale_price = float(product.sale_price) if product.sale_price else 0.0
+
+        sign = self.current_currency if hasattr(self, "current_currency") and self.current_currency else "GBP"
+        decimals = VatService.get_currency_decimal_places(sign, self.product_data)
+        price_line = f"Price: {sale_price:.{decimals}f} {sign}"
+
+        pname = product.short_name if product.short_name else product.name
+        line1 = f"{pname}  ({lookup_text.strip()})"
+        line2 = f"{price_line}\n\nStock by warehouse:\n{self._warehouse_stock_summary_text(product.id)}"
+
+        MessageForm.show_info(window, line1, line2)
+
+        if clear_numpad:
+            numpads = window.findChildren(NumPad)
+            if numpads:
+                numpads[0].set_text("")
+
+        return True
+
+    def _plu_inquiry_event(self, key=None):
+        """
+        PLU button: if numpad has text, inquiry immediately; if empty, arm so the
+        next Enter runs inquiry instead of a sale.
+        """
+        if not self.login_succeed:
+            self._logout()
+            return False
+
+        try:
+            from user_interface.control.numpad.numpad import NumPad
+
+            window = None
+            if key is not None and hasattr(key, "parent"):
+                window = key.parent()
+            if window is None:
+                window = self.interface.window if hasattr(self, "interface") else None
+            if not window:
+                logger.error("[PLU_INQUIRY] Could not resolve parent window")
+                return False
+
+            numpad = None
+            numpads = window.findChildren(NumPad)
+            if numpads:
+                numpad = numpads[0]
+            if not numpad:
+                logger.error("[PLU_INQUIRY] NumPad not found")
+                return False
+
+            raw = numpad.get_text() or ""
+            text = raw.strip()
+            if text:
+                if hasattr(self, "awaiting_plu_inquiry"):
+                    self.awaiting_plu_inquiry = False
+                return self._plu_inquiry_execute(text, window=window, clear_numpad=True)
+
+            self.awaiting_plu_inquiry = True
+            logger.debug("[PLU_INQUIRY] Armed — next Enter will show price/stock")
+            return True
+
+        except Exception as e:
+            logger.error("[PLU_INQUIRY] Error: %s", str(e))
+            return False
+
     def _sale_plu_numpad_enter_event(self, text):
         """
         Handle product lookup and sale triggered by numpad Enter key.
@@ -806,6 +978,13 @@ class SaleEvent:
             bool: True if a product was found and sold, False otherwise
         """
         logger.debug("[NUMPAD_ENTER] Lookup for text: '%s'", text)
+
+        if hasattr(self, "awaiting_plu_inquiry") and self.awaiting_plu_inquiry:
+            self.awaiting_plu_inquiry = False
+            if text and str(text).strip():
+                return self._plu_inquiry_execute(str(text).strip(), clear_numpad=True)
+            logger.debug("[NUMPAD_ENTER] PLU inquiry armed but empty input")
+            return False
 
         if not text or not text.strip():
             logger.debug("[NUMPAD_ENTER] Empty text, nothing to do")
@@ -1378,6 +1557,9 @@ class SaleEvent:
 
             self.pending_quantity = qty_value
             logger.info("[INPUT_QTY] pending_quantity set to: %s", self.pending_quantity)
+
+            if hasattr(self, "awaiting_plu_inquiry"):
+                self.awaiting_plu_inquiry = False
 
             # Clear numpad and refresh status bar immediately
             numpad.set_text("")
