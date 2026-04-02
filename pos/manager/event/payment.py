@@ -97,60 +97,51 @@ class PaymentEvent:
     def _cash_payment_event(self, button=None, key=None):
         """
         Handle cash payment processing.
-        
-        Processes cash payment with change calculation and validation.
-        Handles cash drawer opening and change dispensing.
-        
-        Process:
-        1. Get cash amount tendered from input or button name
-        2. Validate amount is sufficient for transaction total
-        3. Calculate change due
-        4. Open cash drawer
-        5. Record payment and complete transaction
-        6. Print receipt if required
-        
+
+        If the button name has no digit suffix (e.g. button name is "PAYMENT_CASH"),
+        the current numpad value is read and used as the tendered amount.
+        The numpad value represents the amount in the currency's minor unit
+        (e.g. 10000 → £100.00 for GBP with 2 decimal places).
+
+        For preset buttons like "CASH2000" (£20.00) the digit-encoded amount is
+        used and the numpad is ignored.
+
         Parameters:
-            button: Optional button object with control_name and form_control_function1
+            button: Optional button object with control_name
             key: Optional parameter from numpad input
-        
+
         Returns:
             bool: True if cash payment processed successfully, False otherwise
         """
         if not self.login_succeed:
             self._logout()
             return False
-        
-        return self._process_payment(EventName.CASH_PAYMENT.value, button)
+
+        numpad_value = self._read_numpad_payment_amount(button)
+        return self._process_payment(EventName.CASH_PAYMENT.value, button, numpad_value)
     
     # ==================== ELECTRONIC PAYMENT EVENTS ====================
     
     def _credit_payment_event(self, button=None, key=None):
         """
         Handle credit card payment processing.
-        
-        Processes credit card transactions through payment gateway,
-        handles authorization, and manages transaction completion.
-        
-        Process:
-        1. Initiate credit card reader/input
-        2. Get card information (number, expiry, CVV)
-        3. Send authorization request to payment processor
-        4. Handle authorization response
-        5. Complete transaction or handle decline
-        6. Print receipt with signature line if required
-        
+
+        If the button has no digit-encoded amount, reads the numpad value as the
+        tendered amount (same minor-unit convention as cash: 10000 → £100.00).
+
         Parameters:
-            button: Optional button object with control_name and form_control_function1
+            button: Optional button object with control_name
             key: Optional parameter from numpad input
-        
+
         Returns:
             bool: True if credit payment processed successfully, False otherwise
         """
         if not self.login_succeed:
             self._logout()
             return False
-        
-        return self._process_payment(EventName.CREDIT_PAYMENT.value, button)
+
+        numpad_value = self._read_numpad_payment_amount(button)
+        return self._process_payment(EventName.CREDIT_PAYMENT.value, button, numpad_value)
     
     def _check_payment_event(self, button=None, key=None):
         """
@@ -310,18 +301,96 @@ class PaymentEvent:
             logger.error("[PAYMENT] Error processing change payment: %s", e)
             return False
     
-    def _process_payment(self, payment_type, button=None):
+    def _read_numpad_payment_amount(self, button=None):
         """
-        Process a payment based on payment type and button information.
-        
-        Handles payment button name parsing:
-        - PAYMENT prefix: Pay remaining balance
-        - CASH prefix: Pay specific amount (number after CASH divided by 100)
-        
+        Read the numpad value and convert it to a Decimal payment amount.
+
+        Only returns a value when the button does NOT have a digit-encoded amount
+        in its name (i.e. the button is a generic CASH/CREDIT button, not e.g.
+        CASH2000).  The numpad value is divided by 10^decimal_places to convert
+        from minor units to the currency's major unit.
+
+        The numpad is cleared after reading regardless of whether a valid amount
+        was found.
+
         Parameters:
-            payment_type: Payment type string (CASH_PAYMENT, CREDIT_PAYMENT, etc.)
-            button: Optional button object with control_name attribute
-        
+            button: Optional button widget
+
+        Returns:
+            Decimal | None: Parsed amount, or None if not applicable / empty
+        """
+        try:
+            # Detect preset buttons (have a digit suffix like CASH2000)
+            button_name = ""
+            if button and hasattr(button, 'control_name'):
+                button_name = button.control_name or ""
+
+            name_upper = button_name.upper()
+            # Only skip the numpad for preset denomination buttons
+            # (e.g. CASH2000, CASH5000, CASH10000).
+            # Generic buttons like PAYMENT_CASH, PAYMENT_CREDIT, CASH (no digits)
+            # should use the numpad value when one is entered.
+            has_preset_amount = (
+                name_upper.startswith("CASH") and len(name_upper) > 4 and name_upper[4:].isdigit()
+            )
+            if has_preset_amount:
+                return None
+
+            # Find current window and numpad
+            window = self.interface.window if hasattr(self, 'interface') else None
+            if not window:
+                return None
+
+            from user_interface.control.numpad.numpad import NumPad
+            numpads = window.findChildren(NumPad)
+            if not numpads:
+                return None
+            numpad = numpads[0]
+
+            numpad_text = numpad.get_text()
+            if not numpad_text or not numpad_text.strip():
+                return None
+
+            try:
+                raw_value = int(numpad_text)
+            except ValueError:
+                numpad.set_text("")
+                return None
+
+            # Clear numpad after reading
+            numpad.set_text("")
+
+            # Determine decimal places from current currency
+            decimal_places = 2
+            try:
+                current_currency_sign = self.current_currency if hasattr(self, 'current_currency') and self.current_currency else "GBP"
+                if hasattr(self, 'product_data') and self.product_data:
+                    all_currencies = self.product_data.get("Currency", [])
+                    currency = next((c for c in all_currencies if c.sign == current_currency_sign and not c.is_deleted), None)
+                    if currency and currency.decimal_places is not None:
+                        decimal_places = currency.decimal_places
+            except Exception:
+                pass
+
+            divisor = 10 ** decimal_places
+            from decimal import Decimal
+            amount = Decimal(str(raw_value)) / Decimal(str(divisor))
+            logger.debug("[PAYMENT] Numpad payment amount: %s (raw=%s / %s)", amount, raw_value, divisor)
+            return amount
+
+        except Exception as e:
+            logger.error("[PAYMENT] Error reading numpad payment amount: %s", e)
+            return None
+
+    def _process_payment(self, payment_type, button=None, numpad_value=None):
+        """
+        Process a payment based on payment type, button information and optional numpad amount.
+
+        Parameters:
+            payment_type:  Payment type string (CASH_PAYMENT, CREDIT_PAYMENT, etc.)
+            button:        Optional button object with control_name attribute
+            numpad_value:  Optional Decimal amount read from the numpad
+
         Returns:
             bool: True if payment processed successfully, False otherwise
         """
@@ -337,7 +406,7 @@ class PaymentEvent:
             
             # Use PaymentService to process payment
             success, payment_temp, error_message = PaymentService.process_payment(
-                self.document_data, payment_type, button_name
+                self.document_data, payment_type, button_name, numpad_value
             )
             
             if not success:

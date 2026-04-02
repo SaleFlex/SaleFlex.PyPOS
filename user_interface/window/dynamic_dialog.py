@@ -347,7 +347,7 @@ class DynamicDialog(QDialog):
                         foreground_color=foreground_color)
         
         numpad.setToolTip(design_data.get("caption", ""))
-        numpad.set_event(self.app.event_distributor(design_data.get("function", "NONE")))
+        numpad.set_enter_event(self.app.event_distributor(design_data.get("function", "NONE")))
     
     def _create_payment_list(self, design_data):
         """Create a payment list control."""

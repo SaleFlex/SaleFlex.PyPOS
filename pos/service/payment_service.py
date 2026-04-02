@@ -90,65 +90,77 @@ class PaymentService:
             return Decimal('0')
     
     @staticmethod
-    def calculate_payment_amount(button_name: str, remaining_amount: Decimal, payment_type: str) -> Decimal:
+    def calculate_payment_amount(button_name: str, remaining_amount: Decimal, payment_type: str,
+                                 numpad_value: Optional[Decimal] = None) -> Decimal:
         """
-        Calculate payment amount based on button name and payment type.
-        
+        Calculate payment amount based on button name, numpad input, and payment type.
+
         Button name parsing rules:
-        - PAYMENT prefix: Pay remaining balance
-        - CASH prefix: Pay specific amount (number after CASH divided by 100)
-        - Otherwise: Pay remaining balance
-        
+        - CASH + digits (e.g. CASH2000)   → Preset denomination: integer suffix / 100.
+                                            numpad_value is ignored for these buttons.
+        - Any other button name           → Use numpad_value if provided, else remaining balance.
+                                            Covers PAYMENT_CASH, PAYMENT_CREDIT, CASH (no suffix), etc.
+
         Payment type rules:
-        - CASH_PAYMENT, CHECK_PAYMENT, EXCHANGE_PAYMENT: Exact button amount
-        - CREDIT_PAYMENT, PREPAID_PAYMENT, CHARGE_SALE_PAYMENT, OTHER_PAYMENT: 
-          Min(button_amount, remaining_balance)
-        
+        - CASH_PAYMENT, CHECK_PAYMENT, EXCHANGE_PAYMENT: Exact amount (can exceed balance → change)
+        - CREDIT_PAYMENT, PREPAID_PAYMENT, CHARGE_SALE_PAYMENT, OTHER_PAYMENT:
+          Min(amount, remaining_balance)
+
         Args:
-            button_name: Button control name
+            button_name:      Button control name
             remaining_amount: Remaining balance to be paid
-            payment_type: Payment type string (CASH_PAYMENT, CREDIT_PAYMENT, etc.)
-        
+            payment_type:     Payment type string (CASH_PAYMENT, CREDIT_PAYMENT, etc.)
+            numpad_value:     Optional pre-parsed amount from the numpad (already divided by
+                              10^decimal_places). Honoured only for buttons without a digit suffix.
+
         Returns:
             Decimal: Calculated payment amount
         """
         payment_amount = Decimal('0')
-        
-        if button_name.upper().startswith("PAYMENT"):
-            # PAYMENT prefix: pay remaining balance
-            payment_amount = remaining_amount
-        elif button_name.upper().startswith("CASH"):
-            # CASH prefix: extract amount from button name
-            # Remove "CASH" prefix and parse number (divide by 100)
-            amount_str = button_name[4:]  # Remove "CASH" (4 characters)
+        name_upper = button_name.upper()
+
+        if name_upper.startswith("CASH") and len(name_upper) > 4 and name_upper[4:].isdigit():
+            # Preset denomination button (e.g. CASH2000 = £20.00, CASH5000 = £50.00).
+            # The encoded amount is the integer suffix divided by 100.
+            amount_str = button_name[4:]
             try:
                 amount_value = int(amount_str)
                 payment_amount = Decimal(str(amount_value)) / Decimal('100')
             except (ValueError, IndexError):
                 raise InvalidAmountError(f"Invalid CASH button name format: {button_name}")
+
+        elif numpad_value is not None and numpad_value > Decimal('0'):
+            # Cashier typed an amount on the numpad before pressing the payment button.
+            # This covers PAYMENT_CASH, PAYMENT_CREDIT and any other generic button.
+            payment_amount = numpad_value
+            logger.debug("[PAYMENT_SERVICE] Using numpad_value: %s", payment_amount)
+
         else:
-            # No special prefix: pay remaining balance
+            # No encoded amount and no numpad input → pay the full remaining balance.
             payment_amount = remaining_amount
-        
-        # For certain payment types, limit payment to remaining balance
+
+        # For non-cash types, cap at remaining balance (no overpayment/change)
         if payment_type in [EventName.CREDIT_PAYMENT.value, EventName.PREPAID_PAYMENT.value,
                            EventName.CHARGE_SALE_PAYMENT.value, EventName.OTHER_PAYMENT.value]:
             if payment_amount > remaining_amount:
                 payment_amount = remaining_amount
-        
+
         return payment_amount
     
     @staticmethod
-    def process_payment(document_data: Dict[str, Any], payment_type: str, 
-                       button_name: str = "") -> tuple[bool, Optional[TransactionPaymentTemp], Optional[str]]:
+    def process_payment(document_data: Dict[str, Any], payment_type: str,
+                       button_name: str = "",
+                       numpad_value: Optional[Decimal] = None) -> tuple[bool, Optional[TransactionPaymentTemp], Optional[str]]:
         """
         Process a payment and create TransactionPaymentTemp record.
-        
+
         Args:
             document_data: Document data dictionary with head and payments
-            payment_type: Payment type string (CASH_PAYMENT, CREDIT_PAYMENT, etc.)
-            button_name: Optional button control name for amount calculation
-        
+            payment_type:  Payment type string (CASH_PAYMENT, CREDIT_PAYMENT, etc.)
+            button_name:   Optional button control name for amount calculation
+            numpad_value:  Optional pre-parsed Decimal amount from the numpad.
+                           Only used for general buttons (no digit suffix in name).
+
         Returns:
             tuple: (success, payment_temp, error_message)
         """
@@ -169,7 +181,7 @@ class PaymentService:
             # Calculate payment amount
             try:
                 payment_amount = PaymentService.calculate_payment_amount(
-                    button_name, remaining_amount, payment_type
+                    button_name, remaining_amount, payment_type, numpad_value
                 )
             except (PaymentError, InvalidAmountError) as e:
                 return False, None, str(e)

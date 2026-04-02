@@ -303,8 +303,10 @@ class BaseWindow(QMainWindow):
             # Use default parameter to avoid closure issues
             payment_events = ["CASH_PAYMENT", "CREDIT_PAYMENT", "CHECK_PAYMENT", "EXCHANGE_PAYMENT", 
                              "PREPAID_PAYMENT", "CHARGE_SALE_PAYMENT", "OTHER_PAYMENT", "CHANGE_PAYMENT"]
-            sale_events = ["SALE_PLU_CODE", "SALE_PLU_BARCODE", "SALE_DEPARTMENT"] 
-            if function_name in sale_events or function_name in payment_events:
+            sale_events = ["SALE_PLU_CODE", "SALE_PLU_BARCODE", "SALE_DEPARTMENT"]
+            # INPUT_QUANTITY (X button) also needs the button reference to find the NumPad widget
+            quantity_events = ["INPUT_QUANTITY"]
+            if function_name in sale_events or function_name in payment_events or function_name in quantity_events:
                 button.clicked.connect(lambda checked=False, btn=button: event_handler(btn))
             else:
                 button.clicked.connect(event_handler)
@@ -393,7 +395,11 @@ class BaseWindow(QMainWindow):
                         foreground_color=foreground_color)
 
         numpad.setToolTip(design_data["caption"])
-        numpad.set_event(self.app.event_distributor(design_data["function"]))
+        # Wire the form function to the Enter-only callback so individual digit
+        # presses do NOT accidentally trigger sale/lookup events.
+        # set_event (regular callback) is left unset for the numpad in the SALE
+        # form; other forms that need per-key callbacks can override this.
+        numpad.set_enter_event(self.app.event_distributor(design_data["function"]))
 
     def _create_payment_list(self, design_data):
         # Ensure payment list has appropriate dimensions

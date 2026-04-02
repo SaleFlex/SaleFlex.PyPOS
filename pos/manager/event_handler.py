@@ -81,6 +81,11 @@ class EventHandler(GeneralEvent, SaleEvent, PaymentEvent, ConfigurationEvent,
         # External keyboard event handling state
         self.key_pressed_count = 0
         self.key_value = ""
+        
+        # Quantity multiplier set by the X (quantity) button.
+        # When > 1 the next sale will use this value instead of reading the numpad.
+        # Resets to 1.0 after each sale.
+        self.pending_quantity = 1.0
     
     def event_distributor(self, event_name):
         """

@@ -170,6 +170,16 @@ class StatusBar(QStatusBar):
         except Exception:
             pass
         
+        # Show pending quantity multiplier (set by X / quantity button)
+        try:
+            pending_qty = getattr(self.app, 'pending_quantity', 1.0)
+            if pending_qty and pending_qty != 1.0:
+                info_parts.append(f"x{pending_qty:g}")
+            else:
+                info_parts.append("x1")
+        except Exception:
+            info_parts.append("x1")
+
         # Set the info label text
         info_text = " | ".join(info_parts) if info_parts else ""
         self.info_label.setText(info_text)

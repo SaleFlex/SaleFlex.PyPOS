@@ -562,35 +562,9 @@ class SaleEvent:
                 logger.error("[SALE_PLU_CODE] SaleList widget not found in current window")
                 return False
             
-            # Get quantity from numpad if available
-            quantity = 1.0  # Default quantity
-            numpad = None
-            
-            # Search for NumPad widget using findChildren (searches nested widgets too)
-            from user_interface.control.numpad.numpad import NumPad
-            numpads = current_window.findChildren(NumPad)
-            if numpads:
-                numpad = numpads[0]
-            
-            if numpad:
-                numpad_text = numpad.get_text()
-                logger.debug("[SALE_PLU_CODE] NumPad text: '%s'", numpad_text)
-                
-                if numpad_text and numpad_text.strip():
-                    try:
-                        # Try to convert numpad text to quantity (as integer or float)
-                        quantity_value = float(numpad_text)
-                        if quantity_value > 0:
-                            quantity = quantity_value
-                            logger.debug("[SALE_PLU_CODE] Using quantity from numpad: %s", quantity)
-                        else:
-                            logger.debug("[SALE_PLU_CODE] NumPad value '%s' is not positive, using default quantity 1.0", quantity_value)
-                    except ValueError:
-                        logger.debug("[SALE_PLU_CODE] NumPad text '%s' is not a valid number, using default quantity 1.0", numpad_text)
-                    finally:
-                        # Always clear numpad after attempting to read quantity (whether valid or not)
-                        numpad.set_text("")
-                        logger.debug("[SALE_PLU_CODE] Cleared numpad")
+            # Determine quantity: pending_quantity (set by X button) takes priority over numpad
+            quantity = self._get_and_reset_pending_quantity(current_window)
+            logger.debug("[SALE_PLU_CODE] Using quantity: %s", quantity)
             
             # Add product to sale list
             product_name = product.short_name if product.short_name else product.name
@@ -645,16 +619,15 @@ class SaleEvent:
         """
         Handle PLU sale by barcode scanning/entry.
         
-        Processes sales using barcode from button names.
-        When a button with name starting with "PLU" and function SALE_PLU_BARCODE is clicked:
-        1. Extract barcode from button name (e.g., PLU5000157070008 -> 5000157070008)
-        2. Look up product_barcode table for matching barcode
-        3. Get product from product table using fk_product_id
-        4. Add item to sale list with product's sale_price
-        5. Update button text to show product.short_name
-        
+        Two call modes:
+        1. Button click: button is a widget with control_name starting with "PLU".
+           Extracts barcode from button name, looks up product, and sells.
+        2. Numpad Enter: button is a plain string (the full accumulated numpad text).
+           The numpad uses set_enter_event so this is only called on Enter, never
+           on individual digit presses. Delegates to _sale_plu_numpad_enter_event.
+
         Parameters:
-            button: Button object that was clicked (contains control_name attribute)
+            button: Button widget (control_name attribute) OR plain string from numpad Enter
         
         Returns:
             bool: True if barcode sale successful, False otherwise
@@ -662,7 +635,11 @@ class SaleEvent:
         if not self.login_succeed:
             self._logout()
             return False
-        
+
+        # When called from numpad Enter, button is a plain string
+        if isinstance(button, str):
+            return self._sale_plu_numpad_enter_event(button)
+
         # Ensure document is open (create new if None or closed)
         if not self._ensure_document_open():
             logger.error("[SALE_PLU_BARCODE] Failed to ensure document is open")
@@ -748,35 +725,8 @@ class SaleEvent:
                 logger.error("[SALE_PLU_BARCODE] SaleList widget not found in current window")
                 return False
             
-            # Get quantity from numpad if available
-            quantity = 1.0  # Default quantity
-            numpad = None
-            
-            # Search for NumPad widget using findChildren (searches nested widgets too)
-            from user_interface.control.numpad.numpad import NumPad
-            numpads = current_window.findChildren(NumPad)
-            if numpads:
-                numpad = numpads[0]
-            
-            if numpad:
-                numpad_text = numpad.get_text()
-                logger.debug("[SALE_PLU_BARCODE] NumPad text: '%s'", numpad_text)
-                
-                if numpad_text and numpad_text.strip():
-                    try:
-                        # Try to convert numpad text to quantity (as integer or float)
-                        quantity_value = float(numpad_text)
-                        if quantity_value > 0:
-                            quantity = quantity_value
-                            logger.debug("[SALE_PLU_BARCODE] Using quantity from numpad: %s", quantity)
-                        else:
-                            logger.debug("[SALE_PLU_BARCODE] NumPad value '%s' is not positive, using default quantity 1.0", quantity_value)
-                    except ValueError:
-                        logger.debug("[SALE_PLU_BARCODE] NumPad text '%s' is not a valid number, using default quantity 1.0", numpad_text)
-                    finally:
-                        # Always clear numpad after attempting to read quantity (whether valid or not)
-                        numpad.set_text("")
-                        logger.debug("[SALE_PLU_BARCODE] Cleared numpad")
+            # Determine quantity: pending_quantity (set by X button) takes priority over numpad
+            quantity = self._get_and_reset_pending_quantity(current_window)
             
             # Add product to sale list
             product_name = product.short_name if product.short_name else product.name
@@ -827,6 +777,217 @@ class SaleEvent:
         except Exception as e:
             logger.error("[SALE_PLU_BARCODE] Error processing PLU barcode sale: %s", str(e))
             return False
+
+    def _sale_plu_numpad_enter_event(self, text):
+        """
+        Handle product lookup and sale triggered by numpad Enter key.
+
+        Search order:
+          1. ProductBarcode.barcode  → exact match
+          2. Product.code            → exact match
+        Uses pending_quantity (set by X button) if > 1, otherwise defaults to 1.
+
+        Parameters:
+            text: String entered on the numpad before Enter was pressed
+
+        Returns:
+            bool: True if a product was found and sold, False otherwise
+        """
+        logger.debug("[NUMPAD_ENTER] Lookup for text: '%s'", text)
+
+        if not text or not text.strip():
+            logger.debug("[NUMPAD_ENTER] Empty text, nothing to do")
+            return False
+
+        if not self._ensure_document_open():
+            logger.error("[NUMPAD_ENTER] Failed to ensure document is open")
+            return False
+
+        try:
+            from user_interface.control.sale_list.sale_list import SaleList
+            from user_interface.control.numpad.numpad import NumPad
+            from user_interface.form.message_form import MessageForm
+
+            window = self.interface.window if hasattr(self, 'interface') else None
+            if not window:
+                logger.error("[NUMPAD_ENTER] No window found")
+                return False
+
+            # Find sale_list
+            sale_list = getattr(window, 'sale_list', None)
+            if not sale_list:
+                sale_lists = window.findChildren(SaleList)
+                sale_list = sale_lists[0] if sale_lists else None
+            if not sale_list:
+                logger.error("[NUMPAD_ENTER] SaleList not found")
+                return False
+
+            # Find numpad (to clear it on success)
+            numpad = None
+            numpads = window.findChildren(NumPad)
+            if numpads:
+                numpad = numpads[0]
+
+            lookup_text = text.strip()
+
+            # --- Step 1: search ProductBarcode ---
+            barcode_records = [
+                pb for pb in self.product_data.get("ProductBarcode", [])
+                if pb.barcode == lookup_text and not (hasattr(pb, 'is_deleted') and pb.is_deleted)
+            ]
+
+            product = None
+            product_barcode = None
+            sale_type = None
+
+            if barcode_records:
+                product_barcode = barcode_records[0]
+                products = [
+                    p for p in self.product_data.get("Product", [])
+                    if p.id == product_barcode.fk_product_id
+                ]
+                if products:
+                    product = products[0]
+                    sale_type = "PLU_BARCODE"
+                    logger.debug("[NUMPAD_ENTER] Found via barcode: %s", product.name)
+
+            # --- Step 2: search Product.code if barcode not found ---
+            if product is None:
+                code_matches = [
+                    p for p in self.product_data.get("Product", [])
+                    if p.code == lookup_text and not (hasattr(p, 'is_deleted') and p.is_deleted)
+                ]
+                if code_matches:
+                    product = code_matches[0]
+                    sale_type = "PLU_CODE"
+                    logger.debug("[NUMPAD_ENTER] Found via product code: %s", product.name)
+
+            # --- Product not found ---
+            if product is None:
+                logger.debug("[NUMPAD_ENTER] No product found for: '%s'", lookup_text)
+                try:
+                    from data_layer.model import LabelValue
+                    label_values = LabelValue.filter_by(key="ProductNotFound", culture_info="en-GB", is_deleted=False)
+                    error_msg = label_values[0].value if label_values else f"Product not found: {lookup_text}"
+                    MessageForm.show_error(window, error_msg, "")
+                except Exception:
+                    MessageForm.show_error(window, f"Product not found: {lookup_text}", "")
+                return False
+
+            # Determine sale price
+            if sale_type == "PLU_BARCODE" and product_barcode and product_barcode.sale_price:
+                sale_price = float(product_barcode.sale_price)
+            else:
+                sale_price = float(product.sale_price) if product.sale_price else 0.0
+
+            # Determine quantity: pending_quantity takes priority
+            quantity = self._get_and_reset_pending_quantity(window)
+
+            product_name = product.short_name if product.short_name else product.name
+
+            success = sale_list.add_product(
+                product_name=product_name,
+                quantity=quantity,
+                unit_price=sale_price,
+                barcode=lookup_text if sale_type == "PLU_BARCODE" else "",
+                reference_id=str(product_barcode.id) if product_barcode else str(product.id),
+                plu_no=product.code
+            )
+
+            if success:
+                line_no = len(sale_list.custom_sales_data_list)
+                self._update_document_data_for_sale(
+                    sale_type=sale_type,
+                    product=product,
+                    quantity=quantity,
+                    unit_price=sale_price,
+                    product_barcode=product_barcode,
+                    line_no=line_no
+                )
+
+                if hasattr(window, 'amount_table') and window.amount_table:
+                    from pos.service import SaleService
+                    if self.document_data and self.document_data.get("head"):
+                        SaleService.update_amount_table_from_document(
+                            window.amount_table,
+                            self.document_data["head"]
+                        )
+
+                # Clear numpad after successful sale
+                if numpad:
+                    numpad.set_text("")
+
+                logger.info("[NUMPAD_ENTER] ✓ Sold '%s' qty=%s via %s", product_name, quantity, sale_type)
+                return True
+            else:
+                logger.error("[NUMPAD_ENTER] Failed to add product '%s' to sale list", product_name)
+                return False
+
+        except Exception as e:
+            logger.error("[NUMPAD_ENTER] Error: %s", str(e))
+            return False
+
+    # ==================== QUANTITY HELPER ====================
+
+    def _get_and_reset_pending_quantity(self, window=None):
+        """
+        Return the effective sale quantity and reset pending state.
+
+        Priority order:
+          1. self.pending_quantity if > 1  (set by X / quantity button)
+          2. Numpad value (if numeric and positive)
+          3. Default: 1.0
+
+        After reading, pending_quantity is reset to 1.0, the numpad is cleared,
+        and the status bar is refreshed to show 'x1'.
+
+        Parameters:
+            window: The current BaseWindow (used to locate the NumPad widget)
+
+        Returns:
+            float: Quantity to use for the sale
+        """
+        from user_interface.control.numpad.numpad import NumPad
+
+        quantity = 1.0
+
+        # Priority 1: pending_quantity set by X button
+        if hasattr(self, 'pending_quantity') and self.pending_quantity > 1.0:
+            quantity = self.pending_quantity
+            logger.debug("[QTY] Using pending_quantity: %s", quantity)
+        elif window:
+            # Priority 2: read from numpad
+            numpad = None
+            numpads = window.findChildren(NumPad)
+            if numpads:
+                numpad = numpads[0]
+            if numpad:
+                numpad_text = numpad.get_text()
+                if numpad_text and numpad_text.strip():
+                    try:
+                        qty_val = float(numpad_text)
+                        if qty_val > 0:
+                            quantity = qty_val
+                            logger.debug("[QTY] Using numpad quantity: %s", quantity)
+                    except ValueError:
+                        pass
+                # Always clear numpad after reading
+                numpad.set_text("")
+
+        # Reset pending_quantity and refresh status bar
+        self.pending_quantity = 1.0
+        self._refresh_status_bar()
+
+        return quantity
+
+    def _refresh_status_bar(self):
+        """Trigger an immediate status bar refresh if the window is available."""
+        try:
+            window = self.interface.window if hasattr(self, 'interface') else None
+            if window and hasattr(window, 'statusbar') and window.statusbar:
+                window.statusbar.update_display()
+        except Exception:
+            pass
     
     def _get_plu_from_maingroup_event(self):
         """
@@ -1140,27 +1301,77 @@ class SaleEvent:
     
     def _input_quantity_event(self, key=None):
         """
-        Handle manual quantity entry or modification.
-        
-        Allows entry of specific quantities for items,
-        useful for bulk sales or fractional quantities.
-        
+        Handle the X (quantity multiplier) button.
+
+        Reads the current numpad value and stores it as pending_quantity so the
+        next sale operation (PLU button or barcode Enter) uses that quantity.
+        Clears the numpad and updates the status bar to show 'x{qty}'.
+
         Parameters:
-            key: Optional parameter from numpad input
-        
+            key: Button widget passed when called from a button click event.
+                 Also accepts a plain string (e.g. from numpad callback) but
+                 individual digit presses are ignored.
+
         Returns:
-            bool: True if quantity input successful, False otherwise
+            bool: True if quantity was set, False otherwise
         """
         if not self.login_succeed:
             self._logout()
             return False
-            
-        # TODO: Implement quantity entry logic
-        if key is not None:
-            logger.debug("Input quantity - key pressed: %s", key)
-        else:
-            logger.debug("Input quantity - functionality to be implemented")
-        return False
+
+        try:
+            from user_interface.control.numpad.numpad import NumPad
+
+            # Resolve the parent window regardless of how we were called
+            window = None
+            if key is not None and hasattr(key, 'parent'):
+                window = key.parent()
+            if window is None:
+                window = self.interface.window if hasattr(self, 'interface') else None
+
+            if not window:
+                logger.error("[INPUT_QTY] Could not resolve parent window")
+                return False
+
+            # Find numpad
+            numpad = None
+            numpads = window.findChildren(NumPad)
+            if numpads:
+                numpad = numpads[0]
+
+            if not numpad:
+                logger.error("[INPUT_QTY] NumPad not found")
+                return False
+
+            numpad_text = numpad.get_text()
+            logger.debug("[INPUT_QTY] NumPad text: '%s'", numpad_text)
+
+            if not numpad_text or not numpad_text.strip():
+                logger.debug("[INPUT_QTY] No quantity entered in numpad")
+                return False
+
+            try:
+                qty_value = float(numpad_text)
+            except ValueError:
+                logger.debug("[INPUT_QTY] Invalid quantity: '%s'", numpad_text)
+                return False
+
+            if qty_value <= 0:
+                logger.debug("[INPUT_QTY] Quantity must be positive, got: %s", qty_value)
+                return False
+
+            self.pending_quantity = qty_value
+            logger.info("[INPUT_QTY] pending_quantity set to: %s", self.pending_quantity)
+
+            # Clear numpad and refresh status bar immediately
+            numpad.set_text("")
+            self._refresh_status_bar()
+
+            return True
+
+        except Exception as e:
+            logger.error("[INPUT_QTY] Error: %s", str(e))
+            return False
     
     def _input_amount_event(self, key=None):
         """

@@ -20,30 +20,103 @@ The NumPad interface allows for quick numeric input:
 3. "Clear" will reset the entire input
 4. "Enter" confirms your entry
 
-### Quantity Input for PLU Sales
+The current status bar (bottom of the screen) always shows the active quantity
+multiplier as **x1**, **x3**, etc.
 
-When selling products by PLU code or barcode, you can specify the quantity using the NumPad:
+### NumPad — Four Operating Modes
 
-1. **Enter quantity**: Type the desired quantity (e.g., "2" for 2 items) on the NumPad
-2. **Select product**: Click the PLU code or barcode button for the product
-3. **Automatic processing**: The system will add the specified quantity of that product to the sale
-4. **Auto-clear**: After the sale, the NumPad is automatically cleared for the next entry
+The NumPad in the **SALE** form supports four distinct workflows:
+
+---
+
+#### Mode 1 — Barcode / PLU Code Lookup (ENTER key)
+
+Enter a number on the NumPad and press **ENTER** to search for and sell a product.
+
+- The system first searches the **barcode** table for an exact match.
+- If no barcode match is found it then searches **product codes**.
+- On success the product is added to the sale list (quantity = 1 or the active
+  multiplier set by the **X** button — see Mode 3).
+- On failure an error message is displayed.
 
 **Example:**
-- Enter "3" on the NumPad
-- Click a product button (PLU code or barcode)
-- Result: 3 units of that product are added to the sale list
+```
+NumPad: 5000157070008  → ENTER
+Result: 1× Coca-Cola added to sale (barcode match)
 
-**Note:** If no quantity is entered (NumPad is empty), the default quantity of 1 is used.
+NumPad: 1001           → ENTER
+Result: 1× Salted Crisps added (product code match)
+```
+
+---
+
+#### Mode 2 — Inline Quantity × PLU Button
+
+Enter a quantity on the NumPad and immediately press a **PLU / barcode product button**.
+
+The NumPad value is consumed as the sale quantity; the button supplies the product.
+
+**Example:**
+```
+NumPad: 3  → click [Coca-Cola] button
+Result: 3× Coca-Cola added to sale list
+```
+
+> **Note:** If the NumPad is empty, the default quantity of **1** is used.
+
+---
+
+#### Mode 3 — X (Quantity Multiplier) Button
+
+For workflows that involve barcode scanning (where you cannot type then click
+simultaneously), pre-set the quantity using the **X** button:
+
+1. Enter the desired quantity on the NumPad (e.g. `3`)
+2. Press the **X** button — the NumPad clears and the status bar shows **x3**
+3. The next sale (PLU button click *or* barcode ENTER) uses that quantity
+4. After the sale the multiplier resets to **x1**
+
+**Example:**
+```
+NumPad: 3  → X button  → status bar shows "x3"
+NumPad: 5000157070008  → ENTER
+Result: 3× Coca-Cola added to sale
+Status bar returns to "x1"
+```
+
+---
+
+#### Mode 4 — Payment Amount (CASH / CREDIT buttons)
+
+Enter a tender amount on the NumPad before pressing **CASH** or **CREDIT CARD**.
+
+The value is interpreted in the currency's **minor unit**
+(e.g. for GBP with 2 decimal places: enter **10000** for £100.00).
+
+- This applies only to **generic** payment buttons (e.g. the "CASH" button).
+- **Preset** denomination buttons (e.g. "20 £", "50 £", "100 £") always use their
+  encoded amount and ignore the NumPad.
+
+**Example (GBP):**
+```
+NumPad: 10000  → CASH
+Result: £100.00 cash payment recorded
+Change is calculated if total was less than £100.00
+```
+
+---
 
 ## Processing a Sale
 
-1. From the main menu, select "Sales"
-2. Scan products using a barcode scanner or enter item codes manually using the NumPad
-3. **For multiple quantities**: Enter quantity on NumPad, then click the product button
-4. Adjust quantities as needed
-5. When all items are added, complete the transaction
-6. Print a receipt for the customer
+1. From the main menu, select **Sales**
+2. Add products using one of these methods:
+   - Click a **PLU / barcode product button** (optionally prefix with a NumPad quantity)
+   - Type a **barcode or product code** on the NumPad and press **ENTER**
+3. To sell multiple units of the next scan, press the **X** button after typing the quantity
+4. When all items are added, select the payment method:
+   - Click a **denomination button** (e.g. "20 £") for exact cash amounts
+   - Or enter a custom amount on the NumPad, then press **CASH** or **CREDIT CARD**
+5. Print a receipt for the customer
 
 ## Cashier Management
 

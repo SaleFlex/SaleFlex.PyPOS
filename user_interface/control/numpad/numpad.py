@@ -46,6 +46,10 @@ class NumPad(QWidget):
         self.location_x = location_x
         self.location_y = location_y
         self.callback_function = None
+        # Separate callback invoked ONLY when the Enter key is pressed.
+        # Receives the full accumulated text (self.current_text).
+        # When set, it is called instead of callback_function for Enter.
+        self.enter_callback_function = None
         self.current_text = ""
         
         # Set a flag to track if we're in the process of regaining focus
@@ -552,17 +556,27 @@ class NumPad(QWidget):
             self.current_text = self.current_text[:-1]
             self.text_display.setText(self.current_text)
         elif key == 'Enter':
-            # If a callback function is set, call it with the current text
-            if self.callback_function:
-                self.callback_function(self.current_text)
-            # Emit the signal with the current text
-            self.numpad_signal.emit(self.current_text)
+            # Capture the accumulated text, then clear the display BEFORE invoking
+            # any callback.  This prevents downstream code (e.g. quantity helpers)
+            # from mistakenly re-reading the barcode/code as a numeric quantity.
+            text_to_process = self.current_text
+            self.current_text = ""
+            self.text_display.setText("")
+            # If a dedicated enter callback is set, use it (receives full text only).
+            # Fall back to the regular callback for backward compatibility.
+            if self.enter_callback_function:
+                self.enter_callback_function(text_to_process)
+            elif self.callback_function:
+                self.callback_function(text_to_process)
+            # Emit the signal with the original text
+            self.numpad_signal.emit(text_to_process)
         else:
             # For digits and other keys, add to current text
             self.current_text += key
             self.text_display.setText(self.current_text)
         
-        # If a callback function is set, also call it with the key
+        # Regular callback receives individual key presses (not Enter).
+        # enter_callback_function is intentionally NOT called for non-Enter keys.
         if self.callback_function and key != 'Enter':
             self.callback_function(key)
         
@@ -571,14 +585,29 @@ class NumPad(QWidget):
             self.numpad_signal.emit(key)
 
     def set_event(self, function):
-        """Set the callback function for button clicks
-        
+        """Set the callback function for individual key presses (digits, Backspace, Clear).
+
         Parameters
         ----------
         function : callable
-            The function to call when a button is clicked
+            Called with the pressed key character each time a non-Enter key is pressed.
+            Also called with the accumulated text when Enter is pressed if no
+            enter_callback_function has been set (backward compatibility).
         """
         self.callback_function = function
+
+    def set_enter_event(self, function):
+        """Set a dedicated callback invoked ONLY when the Enter key is pressed.
+
+        When this is set it takes priority over callback_function for Enter.
+        The function receives the full accumulated numpad text as its sole argument.
+
+        Parameters
+        ----------
+        function : callable
+            Called with self.current_text when Enter is pressed.
+        """
+        self.enter_callback_function = function
         
     def get_text(self):
         """Get the current text in display

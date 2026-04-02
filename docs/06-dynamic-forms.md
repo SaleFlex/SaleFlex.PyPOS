@@ -429,6 +429,112 @@ customer_button = FormControl(
 customer_button.save()
 ```
 
+## NUMPAD Control — Operating Modes
+
+The `NUMPAD` custom control (`type="NUMPAD"`) in the **SALE** form supports four
+distinct interaction modes depending on which action follows the numeric input.
+
+### How the NUMPAD Callback Works
+
+`base_window.py` wires the numpad's callback to the event function specified in
+`form_control_function1`.  For the SALE form this is `SALE_PLU_BARCODE`.
+
+- **Digit key press** → the callback is called with the individual character
+  (e.g. `"3"`).  The handler ignores single-character calls.
+- **Enter key press** → the callback is called with the full accumulated string
+  (e.g. `"5000157070008"`).  This triggers **Mode 1** barcode/code lookup.
+
+### Mode 1 — Barcode / PLU Code Search via ENTER
+
+Handler: `SaleEvent._sale_plu_numpad_enter_event(text)`
+
+1. Search `ProductBarcode.barcode` for an exact match.
+2. If not found, search `Product.code` for an exact match.
+3. On success: add product to sale list using `pending_quantity` (or 1).
+4. On failure: show an error dialog ("Product not found").
+
+```python
+# Triggered when numpad Enter is pressed with accumulated text
+def _sale_plu_numpad_enter_event(self, text): ...
+```
+
+### Mode 2 — Inline Quantity × PLU Button
+
+When a PLU or barcode **button** is clicked, `_get_and_reset_pending_quantity`
+is called first.  Priority order:
+
+1. `self.pending_quantity` if > 1 (set by X button, Mode 3)
+2. Current numpad text converted to float
+3. Default: 1.0
+
+After reading, `pending_quantity` is reset to 1.0 and the numpad is cleared.
+
+### Mode 3 — X (Quantity Multiplier) Button
+
+Button: `QTY_MULTIPLIER` — `form_control_function1 = INPUT_QUANTITY`
+
+Handler: `SaleEvent._input_quantity_event(button)`
+
+1. Read the current numpad text as a float.
+2. Store as `self.pending_quantity` (persists until the next sale clears it).
+3. Clear the numpad.
+4. Refresh the status bar immediately (shows "x{qty}").
+
+The status bar always shows the active multiplier:
+- Default: **x1**
+- After pressing X with 3 on the numpad: **x3** (until the next sale)
+
+```python
+# State persisted on EventHandler
+self.pending_quantity = 1.0  # initialised in event_handler.py __init__
+```
+
+> **Adding the X button to a form:**
+> ```python
+> FormControl(
+>     name="QTY_MULTIPLIER",
+>     form_control_function1=EventName.INPUT_QUANTITY.value,
+>     type="BUTTON",
+>     caption1="X",
+>     back_color="0xFFD700",  # Gold
+>     ...
+> )
+> ```
+> `base_window.py` automatically passes the button widget to `_input_quantity_event`
+> (because `INPUT_QUANTITY` is in the `quantity_events` list).
+
+### Mode 4 — Payment Amount from NumPad
+
+For **generic** payment buttons (no digit suffix in the button name, e.g.
+`PAYMENT_CASH`, `PAYMENT_CREDIT`), `_cash_payment_event` /
+`_credit_payment_event` read the current numpad value **before** calling
+`_process_payment`:
+
+- The raw integer from the numpad is divided by `10^decimal_places` to produce
+  the monetary amount (e.g. 10000 → £100.00 for GBP with `decimal_places=2`).
+- **Preset denomination buttons** (e.g. `CASH2000` = £20.00, `CASH5000` = £50.00)
+  always use their encoded amount; the numpad is ignored.
+
+```python
+# PaymentService.calculate_payment_amount signature
+def calculate_payment_amount(
+    button_name: str,
+    remaining_amount: Decimal,
+    payment_type: str,
+    numpad_value: Optional[Decimal] = None,   # ← new parameter
+) -> Decimal: ...
+```
+
+### Helpers
+
+| Method | Location | Purpose |
+|--------|----------|---------|
+| `_get_and_reset_pending_quantity(window)` | `SaleEvent` | Read qty from `pending_quantity` or numpad, reset state |
+| `_refresh_status_bar()` | `SaleEvent` | Trigger immediate status bar redraw |
+| `_read_numpad_payment_amount(button)` | `PaymentEvent` | Parse numpad value for generic payment buttons |
+
+---
+
 ## Testing and Debugging
 
 ### Form Rendering Test
