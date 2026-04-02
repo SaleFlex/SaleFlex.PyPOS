@@ -19,10 +19,11 @@
 15. [Closure Operation (End-of-Day)](15-closure-operation.md)
 16. [Central Logging](16-logging.md)
 17. [Centralized Exception Handling](17-exception-handling.md)
+18. [Peripherals (OPOS-style devices)](18-peripherals.md)
 
 ---
 
-**Last Updated:** 2026-04-02  
+**Last Updated:** 2026-04-03  
 **Version:** 1.0.0b5  
 **License:** MIT
 
@@ -35,5 +36,6 @@
 - [Developer Guide](06-dynamic-forms.md) - Advanced features for developers
 - [Central Logging](16-logging.md) - Logging configuration and usage
 - [Exception Handling](17-exception-handling.md) - Centralized exception hierarchy
+- [Peripherals](18-peripherals.md) - OPOS-style cash drawer, printer, line display (log-only stubs)
 - [Troubleshooting](12-troubleshooting.md) - Common issues and solutions
 

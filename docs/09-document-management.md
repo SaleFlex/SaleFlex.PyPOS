@@ -186,6 +186,8 @@ self.complete_document(is_cancel=True, cancel_reason="Customer cancelled")
 7. Clears UI controls (PaymentList, AmountTable, SaleList)
 8. Resets `document_data` to `None`
 
+On the **SALE** form, the event layer also triggers **peripheral hooks** after a successful paid completion (log-only today): a full receipt snapshot is sent to the default `POSPrinter`, then the default `CashDrawer` open command runs. See [Peripherals](18-peripherals.md).
+
 **Automatic Document Completion:**
 Documents are automatically completed when fully paid. The completion check happens after each payment:
 - **Condition**: `total_amount = total_payment_amount - total_change_amount`

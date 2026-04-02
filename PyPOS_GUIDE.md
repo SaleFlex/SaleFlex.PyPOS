@@ -30,6 +30,7 @@
 15. [Closure Operation (End-of-Day)](docs/15-closure-operation.md)
 16. [Central Logging](docs/16-logging.md)
 17. [Centralized Exception Handling](docs/17-exception-handling.md)
+18. [Peripherals (OPOS-style devices)](docs/18-peripherals.md)
 
 ---
 

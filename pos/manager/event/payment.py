@@ -1,7 +1,7 @@
 """
 SaleFlex.PyPOS - Point of Sale Application
 
-Copyright (c) 2025 Ferhat Mousavi
+Copyright (c) 2025-2026 Ferhat Mousavi
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -23,7 +23,11 @@ SOFTWARE.
 """
 
 from decimal import Decimal
+
+from data_layer.enums import FormName
 from data_layer.enums.event_name import EventName
+from pos.peripherals import get_default_cash_drawer, get_default_pos_printer
+from pos.peripherals.hooks import sync_line_display_from_document, sync_line_display_payment
 from pos.service.payment_service import PaymentService
 
 
@@ -31,6 +35,15 @@ from pos.service.payment_service import PaymentService
 from core.logger import get_logger
 
 logger = get_logger(__name__)
+
+
+def _unwrap_head(head):
+    from data_layer.auto_save import AutoSaveModel
+
+    if isinstance(head, AutoSaveModel):
+        return head.unwrap()
+    return head
+
 
 class PaymentEvent:
     """
@@ -93,7 +106,28 @@ class PaymentEvent:
         return False
     
     # ==================== CASH PAYMENT EVENTS ====================
-    
+
+    def _cash_opens_drawer_without_payment(self) -> bool:
+        """
+        True when CASH should only kick the drawer (log) and not call PaymentService.
+
+        The session almost always has a TransactionHeadTemp after startup or after a
+        completed sale (pre-created empty document), so "no head" is not enough.
+        We treat "no document to pay" as: missing head, or zero balance with no
+        payments recorded (empty / zero ticket).
+        """
+        if not self.document_data or not self.document_data.get("head"):
+            return True
+        head = _unwrap_head(self.document_data["head"])
+        total = PaymentService._safe_decimal(getattr(head, "total_amount", 0))
+        paid = PaymentService._safe_decimal(getattr(head, "total_payment_amount", 0))
+        balance = total - paid
+        if balance > 0:
+            return False
+        if paid == 0:
+            return True
+        return False
+
     def _cash_payment_event(self, button=None, key=None):
         """
         Handle cash payment processing.
@@ -116,6 +150,10 @@ class PaymentEvent:
         if not self.login_succeed:
             self._logout()
             return False
+
+        if self.current_form_type == FormName.SALE and self._cash_opens_drawer_without_payment():
+            get_default_cash_drawer().open_drawer("CASH_PAYMENT_no_open_sale_or_nothing_to_pay")
+            return True
 
         numpad_value = self._read_numpad_payment_amount(button)
         return self._process_payment(EventName.CASH_PAYMENT.value, button, numpad_value)
@@ -456,40 +494,40 @@ class PaymentEvent:
         try:
             # Get current window
             window = self.interface.window if hasattr(self, 'interface') else None
-            if not window:
-                return
-            
-            # Update PaymentList if it exists
-            if hasattr(window, 'payment_list') and window.payment_list:
-                payment_list = window.payment_list
-                # Get currency from document
-                currency = "GBP"
-                if self.document_data and self.document_data.get("head"):
-                    currency = self.document_data["head"].base_currency or "GBP"
+            if window:
+                # Update PaymentList if it exists
+                if hasattr(window, 'payment_list') and window.payment_list:
+                    payment_list = window.payment_list
+                    # Get currency from document
+                    currency = "GBP"
+                    if self.document_data and self.document_data.get("head"):
+                        currency = self.document_data["head"].base_currency or "GBP"
+                    
+                    # Add payment to list
+                    payment_list.add_payment(
+                        payment_type=payment_type,
+                        amount=float(payment_amount),
+                        currency=currency,
+                        rate=1.0,
+                        payment_id=len(payment_list._payment_data_list)
+                    )
                 
-                # Add payment to list
-                payment_list.add_payment(
-                    payment_type=payment_type,
-                    amount=float(payment_amount),
-                    currency=currency,
-                    rate=1.0,
-                    payment_id=len(payment_list._payment_data_list)
-                )
-            
-            # Update AmountTable if it exists
-            if hasattr(window, 'amount_table') and window.amount_table:
-                amount_table = window.amount_table
-                if self.document_data and self.document_data.get("head"):
-                    head_temp = self.document_data["head"]
-                    
-                    # Update payment amount
-                    from decimal import Decimal
-                    amount_table.receipt_total_payment = Decimal(str(head_temp.total_payment_amount))
-                    
-                    # Update balance
-                    remaining = Decimal(str(head_temp.total_amount)) - Decimal(str(head_temp.total_payment_amount))
-                    amount_table._set_amount_value(amount_table.BALANCE_AMOUNT_ROW, remaining)
-                    
+                # Update AmountTable if it exists
+                if hasattr(window, 'amount_table') and window.amount_table:
+                    amount_table = window.amount_table
+                    if self.document_data and self.document_data.get("head"):
+                        head_temp = self.document_data["head"]
+                        
+                        # Update payment amount
+                        amount_table.receipt_total_payment = Decimal(str(head_temp.total_payment_amount))
+                        
+                        # Update balance
+                        remaining = Decimal(str(head_temp.total_amount)) - Decimal(str(head_temp.total_payment_amount))
+                        amount_table._set_amount_value(amount_table.BALANCE_AMOUNT_ROW, remaining)
+
+            if self.current_form_type == FormName.SALE:
+                sync_line_display_payment(self, self.document_data, Decimal(str(payment_amount)))
+
         except Exception as e:
             logger.error("[PAYMENT] Error updating UI: %s", e)
     
@@ -519,6 +557,8 @@ class PaymentEvent:
             
             # Copy temp models to permanent models
             PaymentService.copy_temp_to_permanent(self.document_data)
+
+            get_default_pos_printer().print_sale_document(self.document_data)
             
             # Increment receipt number AFTER copying to permanent so the next
             # document gets a fresh number.
@@ -532,6 +572,8 @@ class PaymentEvent:
             
             logger.info("[PAYMENT] Document completed successfully")
 
+            get_default_cash_drawer().open_drawer("document_completed")
+
             # Immediately create the next empty document so the cashier can
             # start the next sale without any additional action.
             new_doc = self.create_empty_document()
@@ -539,6 +581,9 @@ class PaymentEvent:
                 logger.info("[PAYMENT] New empty document ready for next sale")
             else:
                 logger.warning("[PAYMENT] Could not pre-create next empty document")
+
+            if self.current_form_type == FormName.SALE:
+                sync_line_display_from_document(self, self.document_data)
 
             return True
             

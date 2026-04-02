@@ -37,6 +37,7 @@ SaleFlex.PyPOS POS system is designed to streamline the sales process and improv
 - **Active Closure Management**: Session-based closure tracking system that automatically loads open closures at startup and manages closure lifecycle (open → active → closed). Closure data is maintained in memory during operations and saved to database when closed
 - **Document Management System**: Complete transaction lifecycle management with temporary models during processing and automatic conversion to permanent models upon completion. Automatically updates document data during sales operations (PLU and department sales). Supports per-line REPEAT (clone line, save new DB record, update totals) and DELETE (soft-cancel line, mark `is_cancel=True` in DB, recalculate totals) actions from the sale list item popup; if the last active line is deleted the document is automatically cancelled and reset. Supports document suspension/resumption for restaurant mode (table/order management) and automatic recovery of incomplete transactions at startup. Automatically restores sale screen UI controls (sale_list, amount_table, payment_list) when entering sale screen with ACTIVE transaction status, enabling seamless resumption of incomplete transactions
 - **Auto-Save Functionality**: Automatic database persistence system using descriptor pattern and wrapper classes. Model instances and dictionaries are automatically saved to the database when attributes are modified, ensuring data integrity and reducing manual save operations. Supports nested model wrapping and skip flags for batch operations
+- **Peripherals (OPOS-style)**: `pos/peripherals/` defines cash drawer, receipt printer, line display, scanner, scale, customer display, and remote order display classes. Wired behaviours on **SALE** (log-only until drivers exist): completed sale → receipt text + drawer open; CASH with no document → drawer open; selling and payment steps → three-line customer display updates. See [docs/18-peripherals.md](docs/18-peripherals.md)
 - **Central Logging**: Configurable logging via `core/logger.py` with a single `saleflex` root logger. Log level (DEBUG/INFO/WARNING/ERROR/CRITICAL), console output, and file output are controlled from the `[logging]` section in `settings.toml`. All modules use `get_logger(__name__)` for consistent, hierarchical log records
 - **Centralized Exception Handling**: Typed exception hierarchy rooted at `SaleFlexError` (`pos/exceptions.py`). Domain-specific subclasses (`PaymentError`, `FiscalDeviceError`, `GATEConnectionError`, `TaxCalculationError`, `DatabaseError`, etc.) replace bare `Exception` raises throughout the codebase. All exceptions are chained with `raise ... from e` to preserve the full traceback
 - **Optimized Performance**: In-memory caching of reference data (`pos_data`) and product data (`product_data`) minimizes disk I/O, extending disk life for POS devices with limited write cycles. All product lookups, currency calculations, VAT rate lookups, button rendering, and sale operations use cached data instead of database queries
@@ -48,6 +49,7 @@ SaleFlex.PyPOS follows a layered architecture pattern with clear separation of c
 
 - **Application Layer** (`pos/manager/application.py`): Main application class implementing Singleton pattern, combining CurrentStatus, CurrentData, and EventHandler
 - **Business Logic Layer** (`pos/service/`): Service classes (VatService, SaleService, PaymentService) for centralized business operations
+- **Peripherals Layer** (`pos/peripherals/`): OPOS-style device abstractions (cash drawer, receipt printer, line display, scanner, scale, customer display, remote order display). Current implementation is **log-only** (no device probing); see [docs/18-peripherals.md](docs/18-peripherals.md)
 - **Event Handling Layer** (`pos/manager/event/`): 9 specialized event handler classes for modular event processing. Event handler methods use `_event` suffix naming convention (e.g., `_sales_form_event`, `_closure_event`) to distinguish them from properties
 - **Data Access Layer** (`data_layer/model/`): 98+ SQLAlchemy models with CRUD operations and auto-save functionality
 - **UI Layer** (`user_interface/`): PySide6-based UI components with dynamic form rendering
@@ -156,6 +158,13 @@ SaleFlex.PyPOS/
 │   │
 │   ├── hardware/           # Hardware integration
 │   │   └── device_info.py  # Device information detection
+│   │
+│   ├── peripherals/        # OPOS-style peripherals (log-only until drivers are added)
+│   │   ├── cash_drawer.py
+│   │   ├── pos_printer.py
+│   │   ├── line_display.py
+│   │   ├── hooks.py        # SALE form line-display sync helpers
+│   │   └── ...             # scanner, scale, customer_display, remote_order_display stubs
 │   │
 │   ├── service/            # Business logic services
 │   │   ├── vat_service.py     # VAT calculation service

@@ -199,7 +199,7 @@ SaleService.update_payment_list_from_document(
 
 ### PaymentService
 
-The `PaymentService` provides business logic for processing payments, calculating change, and managing document completion.
+The `PaymentService` provides business logic for processing payments, calculating change, and managing document completion. When the UI marks a document complete on the SALE form, `PaymentEvent` calls into `pos/peripherals` for receipt logging and cash-drawer kick-out (currently log-only); see [Peripherals](18-peripherals.md).
 
 #### Key Features
 

@@ -1,7 +1,7 @@
 """
 SaleFlex.PyPOS - Point of Sale Application
 
-Copyright (c) 2025 Ferhat Mousavi
+Copyright (c) 2025-2026 Ferhat Mousavi
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -145,6 +145,8 @@ class SaleEvent:
                 # Save document_data (AutoSaveDescriptor will handle saving)
                 self.document_data = self.document_data
                 logger.info("[UPDATE_DOCUMENT_DATA] ✓ Updated document_data for %s sale", sale_type)
+                from pos.peripherals.hooks import sync_line_display_from_document
+                sync_line_display_from_document(self, self.document_data)
             
             return success
             
@@ -1825,6 +1827,11 @@ class SaleEvent:
 
             logger.info("[SALE_OPTION] DELETE complete – total_amount=%s",
                         head.total_amount if self.document_data else Decimal('0'))
+            from pos.peripherals.hooks import sync_line_display_cleared, sync_line_display_from_document
+            if self.document_data:
+                sync_line_display_from_document(self, self.document_data)
+            else:
+                sync_line_display_cleared(self)
             return True
 
         except Exception as e:
@@ -1914,6 +1921,8 @@ class SaleEvent:
                 SaleService.update_amount_table_from_document(window.amount_table, head)
 
             logger.info("[SALE_OPTION] REPEAT complete – total_amount=%s", head.total_amount)
+            from pos.peripherals.hooks import sync_line_display_from_document
+            sync_line_display_from_document(self, self.document_data)
             return True
 
         except Exception as e:

@@ -1,7 +1,7 @@
 """
 SaleFlex.PyPOS - Point of Sale Application
 
-Copyright (c) 2025 Ferhat Mousavi
+Copyright (c) 2025-2026 Ferhat Mousavi
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,6 +26,7 @@ SOFTWARE.
 
 from core.logger import get_logger
 from core.exceptions import HardwareError, FiscalDeviceError, CashDrawerError
+from pos.peripherals import get_default_cash_drawer
 
 logger = get_logger(__name__)
 
@@ -68,18 +69,7 @@ class HardwareEvent:
             return False
             
         try:
-            # TODO: Implement actual cash drawer hardware interface
-            # This would typically involve:
-            # - Serial port communication
-            # - Parallel port signals
-            # - USB device commands
-            # - Network-connected drawer controls
-            
-            logger.debug("Opening cash drawer - functionality to be implemented")
-            
-            # Log the drawer opening event
-            # TODO: Add audit logging for drawer operations
-            
+            get_default_cash_drawer().open_drawer("OPEN_CASH_DRAWER_event")
             return True
             
         except CashDrawerError:
