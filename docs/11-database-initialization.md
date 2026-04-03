@@ -29,7 +29,7 @@ The `insert_initial_data()` function in `db_init_data/__init__.py` orchestrates 
 21. **Transaction Sequences** (`_insert_transaction_sequences`): Sets up transaction numbering sequences
 22. **Product Barcode Masks** (`_insert_product_barcode_masks`): Defines barcode format rules
 23. **Default Forms** (`_insert_default_forms`): Creates LOGIN and MAIN_MENU forms
-24. **Form Controls** (`_insert_form_controls`): Populates forms with controls (buttons, textboxes, etc.)
+24. **Form Controls** (`_insert_form_controls`): Populates forms with controls (buttons, textboxes, checkboxes, comboboxes, panels, etc.). Seeded SETTING and CASHIER forms use **CHECKBOX** (`type_no=11`) for boolean fields (`force_to_work_online`, `is_administrator`, `is_active`).
 25. **Label Values** (`_insert_label_values`): Inserts translation labels and configuration values
 26. **Cashier Performance Targets** (`_insert_cashier_performance_targets`): Sets up performance targets
 27. **Virtual Keyboard Settings** (`_insert_virtual_keyboard_settings`): Creates default keyboard theme

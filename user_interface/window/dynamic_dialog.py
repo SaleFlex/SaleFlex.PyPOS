@@ -1,7 +1,7 @@
 """
 SaleFlex.PyPOS - Point of Sale Application
 
-Copyright (c) 2025 Ferhat Mousavi
+Copyright (c) 2025-2026 Ferhat Mousavi
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -31,7 +31,7 @@ from core.logger import get_logger
 logger = get_logger(__name__)
 from PySide6.QtGui import QIcon, QColor, QLinearGradient, QBrush, QPalette
 
-from user_interface.control import TextBox, Button, NumPad, PaymentList, SaleList, ComboBox, AmountTable, Label, DataGrid, Panel
+from user_interface.control import TextBox, CheckBox, Button, NumPad, PaymentList, SaleList, ComboBox, AmountTable, Label, DataGrid, Panel
 from user_interface.control import VirtualKeyboard
 
 
@@ -104,6 +104,8 @@ class DynamicDialog(QDialog):
             
             if control_type == "textbox":
                 self._create_textbox(control_design_data)
+            elif control_type == "checkbox":
+                self._create_checkbox(control_design_data)
             elif control_type == "button":
                 self._create_button(control_design_data)
             elif control_type == "label":
@@ -229,6 +231,16 @@ class DynamicDialog(QDialog):
                     if textbox_name:
                         field_name = textbox_name.lower()
                         values[field_name] = child.text()
+                
+                for child in content_widget.findChildren(CheckBox):
+                    try:
+                        _ = child.isChecked()
+                    except RuntimeError:
+                        continue
+                    cb_name = getattr(child, 'name', None) or getattr(child, '__name__', None)
+                    if cb_name:
+                        field_name = cb_name.lower()
+                        values[field_name] = "true" if child.isChecked() else "false"
             except RuntimeError as e:
                 logger.warning("[GET_PANEL_VALUES] Error accessing panel '%s': %s", panel_name, e)
                 return values
@@ -245,7 +257,7 @@ class DynamicDialog(QDialog):
     def clear(self):
         """Clear and cleanup all child widgets."""
         for item in self.children():
-            if type(item) in [TextBox, Button, Label, NumPad, PaymentList, SaleList, ComboBox, AmountTable, DataGrid, Panel]:
+            if type(item) in [TextBox, CheckBox, Button, Label, NumPad, PaymentList, SaleList, ComboBox, AmountTable, DataGrid, Panel]:
                 item.deleteLater()
                 item.setParent(None)
     
@@ -519,6 +531,67 @@ class DynamicDialog(QDialog):
                             textbox.setText(str(value))
                     except Exception:
                         pass
+
+    def _create_checkbox(self, design_data):
+        """Create a checkbox with the same panel/model loading rules as this dialog's textboxes."""
+        parent_panel = None
+        if design_data.get('parent_name'):
+            parent_panel = self._panels.get(design_data['parent_name'])
+        parent_widget = parent_panel.get_content_widget() if parent_panel else self
+
+        checkbox = CheckBox(parent_widget)
+        cb_name = design_data.get('name') or design_data.get('field_name')
+        checkbox.__name__ = cb_name
+        checkbox.name = cb_name
+        checkbox.setGeometry(
+            design_data["location_x"],
+            design_data["location_y"],
+            design_data["width"],
+            design_data["height"],
+        )
+        checkbox.set_font_size(design_data.get('font_size'))
+        checkbox.field_name = design_data.get('caption', '')
+        if design_data.get('caption'):
+            checkbox.setText(design_data['caption'])
+        checkbox.set_color(
+            design_data.get('background_color', 0xFFFFFF),
+            design_data.get('foreground_color', 0x000000),
+        )
+        if parent_panel:
+            parent_panel.add_child_control(checkbox)
+
+        if parent_panel and getattr(parent_panel, 'name', None) and cb_name:
+            panel_name = parent_panel.name
+            field_name = cb_name.lower()
+            parts = panel_name.lower().split('_')
+            model_class_name = ''.join(word.capitalize() for word in parts)
+            model_instance = None
+            cache_attr_name = None
+            if model_class_name == "PosSettings":
+                cache_attr_name = "pos_settings"
+            elif model_class_name == "Cashier":
+                cache_attr_name = "cashier_data"
+            if cache_attr_name and hasattr(self.app, cache_attr_name):
+                model_instance = getattr(self.app, cache_attr_name)
+                if model_instance and hasattr(model_instance, 'unwrap'):
+                    model_instance = model_instance.unwrap()
+            if not model_instance:
+                try:
+                    import data_layer.model.definition as model_module
+                    from data_layer.model.definition import __all__ as model_names
+                    if model_class_name in model_names:
+                        model_class = getattr(model_module, model_class_name)
+                        instances = model_class.get_all(is_deleted=False)
+                        if instances:
+                            model_instance = instances[0]
+                except Exception:
+                    pass
+            if model_instance:
+                try:
+                    value = getattr(model_instance, field_name, None)
+                    checkbox.setChecked(bool(value) if value is not None else False)
+                except Exception:
+                    pass
     
     def _create_combobox(self, design_data):
         """Create a combobox control with optional panel parent and item source."""

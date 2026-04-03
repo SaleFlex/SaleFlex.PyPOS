@@ -244,6 +244,12 @@ class DynamicFormRenderer:
                 'use_keyboard': self.form.use_virtual_keyboard if self.form else False
             })
         
+        elif control.type.lower() == 'checkbox':
+            design.update({
+                'field_name': control.name,
+                'font_size': int(control.font_size) if control.font_size else 12,
+            })
+        
         elif control.type.lower() == 'button':
             # Check if button has form navigation
             if control.fk_target_form_id:

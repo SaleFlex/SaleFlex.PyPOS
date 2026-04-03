@@ -31,7 +31,7 @@ logger = get_logger(__name__)
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon, QColor, QLinearGradient, QBrush, QPalette
 
-from user_interface.control import TextBox, Button, ToolBar, StatusBar, NumPad, PaymentList, SaleList, ComboBox, AmountTable, Label, DataGrid, Panel
+from user_interface.control import TextBox, CheckBox, Button, ToolBar, StatusBar, NumPad, PaymentList, SaleList, ComboBox, AmountTable, Label, DataGrid, Panel
 from user_interface.control import VirtualKeyboard
 
 
@@ -78,6 +78,9 @@ class BaseWindow(QMainWindow):
         for control_design_data in design:
             if control_design_data["type"] == "textbox":
                 self._create_textbox(control_design_data)
+
+            if control_design_data["type"] == "checkbox":
+                self._create_checkbox(control_design_data)
 
             if control_design_data["type"] == "button":
                 self._create_button(control_design_data)
@@ -163,13 +166,13 @@ class BaseWindow(QMainWindow):
     
     def get_panel_textbox_values(self, panel_name):
         """
-        Get all textbox values from a specific panel.
+        Get field values from a panel: textbox strings and checkbox true/false strings.
         
         Args:
             panel_name (str): Name of the panel (e.g., "POS_SETTINGS")
             
         Returns:
-            dict: Dictionary mapping field names (lowercase) to textbox values
+            dict: Field name (lowercase) -> value (str; checkboxes as "true"/"false")
         """
         values = {}
         try:
@@ -222,6 +225,16 @@ class BaseWindow(QMainWindow):
                         # Model attributes are lowercase (e.g., "pos_no_in_store")
                         field_name = textbox_name.lower()
                         values[field_name] = child.text()
+                
+                for child in content_widget.findChildren(CheckBox):
+                    try:
+                        _ = child.isChecked()
+                    except RuntimeError:
+                        continue
+                    cb_name = getattr(child, 'name', None) or getattr(child, '__name__', None)
+                    if cb_name:
+                        field_name = cb_name.lower()
+                        values[field_name] = "true" if child.isChecked() else "false"
             except RuntimeError as e:
                 # Widget already deleted
                 logger.warning("[GET_PANEL_VALUES] Error accessing panel '%s': %s", panel_name, e)
@@ -257,7 +270,7 @@ class BaseWindow(QMainWindow):
             self._panels.clear()
 
         for item in list(self.children()):
-            if type(item) in [TextBox, Button, Label, ToolBar, StatusBar, NumPad, PaymentList, SaleList, ComboBox, AmountTable, DataGrid, Panel]:
+            if type(item) in [TextBox, CheckBox, Button, Label, ToolBar, StatusBar, NumPad, PaymentList, SaleList, ComboBox, AmountTable, DataGrid, Panel]:
                 try:
                     item.blockSignals(True)
                     item.setParent(None)
@@ -638,6 +651,77 @@ class BaseWindow(QMainWindow):
                                 textbox.styleSheet() +
                                 "QLineEdit { background-color: #D3D3D3; color: #555555; }"
                             )
+
+    def _create_checkbox(self, design_data):
+        parent_panel = None
+        if 'parent_name' in design_data and design_data['parent_name']:
+            parent_panel = self._panels.get(design_data['parent_name'])
+        parent_widget = parent_panel.get_content_widget() if parent_panel else self
+
+        checkbox = CheckBox(parent_widget)
+        cb_name = design_data.get('name') or design_data.get('field_name')
+        checkbox.__name__ = cb_name
+        checkbox.name = cb_name
+        checkbox.setGeometry(
+            design_data["location_x"],
+            design_data["location_y"],
+            design_data["width"],
+            design_data["height"],
+        )
+        checkbox.set_font_size(design_data.get('font_size'))
+        checkbox.field_name = design_data.get('caption', '')
+        if design_data.get('caption'):
+            checkbox.setText(design_data['caption'])
+        checkbox.set_color(
+            design_data.get('background_color', 0xFFFFFF),
+            design_data.get('foreground_color', 0x000000),
+        )
+        if parent_panel:
+            parent_panel.add_child_control(checkbox)
+
+        if parent_panel and hasattr(parent_panel, 'name') and parent_panel.name and cb_name:
+            panel_name = parent_panel.name
+            field_name = cb_name.lower()
+            parts = panel_name.lower().split('_')
+            model_class_name = ''.join(word.capitalize() for word in parts)
+            model_instance = None
+            cache_attr_name = None
+            if model_class_name == "PosSettings":
+                cache_attr_name = "pos_settings"
+            elif model_class_name == "Cashier":
+                editing = getattr(self.app, '_editing_cashier', None)
+                cache_attr_name = None
+                model_instance = editing or getattr(self.app, 'cashier_data', None)
+                if model_instance and hasattr(model_instance, 'unwrap'):
+                    model_instance = model_instance.unwrap()
+            if cache_attr_name and hasattr(self.app, cache_attr_name):
+                model_instance = getattr(self.app, cache_attr_name)
+                if model_instance and hasattr(model_instance, 'unwrap'):
+                    model_instance = model_instance.unwrap()
+            if not model_instance:
+                try:
+                    from data_layer.model.definition import __all__ as model_names
+                    import data_layer.model.definition as model_module
+                    if model_class_name in model_names:
+                        model_class = getattr(model_module, model_class_name)
+                        instances = model_class.get_all(is_deleted=False)
+                        if instances and len(instances) > 0:
+                            model_instance = instances[0]
+                except Exception as e:
+                    logger.error("[LOAD_DATA] Error loading model class %s: %s", model_class_name, e)
+            if model_instance:
+                try:
+                    value = getattr(model_instance, field_name, None)
+                    checkbox.setChecked(bool(value) if value is not None else False)
+                except Exception as e:
+                    logger.error("[LOAD_DATA] Error loading %s from %s: %s", field_name, model_class_name, e)
+                if model_class_name == "Cashier":
+                    logged_in_cashier = getattr(self.app, 'cashier_data', None)
+                    if logged_in_cashier and hasattr(logged_in_cashier, 'unwrap'):
+                        logged_in_cashier = logged_in_cashier.unwrap()
+                    is_logged_in_admin = getattr(logged_in_cashier, 'is_administrator', False) if logged_in_cashier else False
+                    if not is_logged_in_admin and field_name in ('is_administrator', 'is_active'):
+                        checkbox.setEnabled(False)
 
     def _create_combobox(self, design_data):
         # Resolve parent: panel content widget or window

@@ -125,6 +125,7 @@ SaleFlex.PyPOS/
 │   ├── control/            # Custom UI controls
 │   │   ├── button.py
 │   │   ├── textbox.py
+│   │   ├── checkbox.py
 │   │   ├── combobox.py
 │   │   ├── label.py
 │   │   ├── datagrid.py
@@ -395,8 +396,8 @@ All models support:
 
 ### User Interface
 - [x] **Panel Control** - Scrollable container control with parent-child support for complex forms
-- [x] **Parent-Child Control Relationships** - Panel controls can contain child controls (textboxes, labels, buttons)
-- [x] **Generic Panel-Based Form Saving** - Automatic model updates from panel textbox values on SAVE button click. Works with any model via naming convention (panel name = model name, textbox name = model field). Automatically loads model data into form and saves changes to database
+- [x] **Parent-Child Control Relationships** - Panel controls can contain child controls (textboxes, checkboxes, labels, buttons)
+- [x] **Generic Panel-Based Form Saving** - Automatic model updates from panel textbox and checkbox values on SAVE button click. Works with any model via naming convention (panel name = model name, control name = model field). Automatically loads model data into form and saves changes to database
 - [x] **Cashier Management Form** - Role-aware cashier management with `CASHIER_MGMT_LIST` combobox for multi-cashier selection, `editing_cashier` session tracking, and field-level read-only enforcement based on `is_administrator` flag
 - [x] **Add New Cashier (Admin Only)** - `ADD_NEW_CASHIER` button on CASHIER form visible only to administrators. Clears panel textboxes in-place, hides combobox and button during entry. On save, cache is updated and form redraws with new cashier pre-selected. Includes `_is_adding_new_cashier` session flag for lifecycle management
 - [ ] **Dynamic Interface Interpreter** - Flexible UI rendering system

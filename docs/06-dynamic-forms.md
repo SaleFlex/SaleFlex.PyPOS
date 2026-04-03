@@ -61,7 +61,7 @@ result = interface.show_modal(form_name='CUSTOMER_FORM')
 **Features:**
 - Modal (temporary) form display
 - Works without closing the main window
-- Supports all standard controls (button, textbox, combobox, panel, etc.)
+- Supports all standard controls (button, textbox, checkbox, combobox, panel, etc.)
 - Automatic cleanup
 
 ### Panel Control
@@ -73,7 +73,7 @@ A scrollable container control that can hold child controls. Designed for touch 
 **Features:**
 - QScrollArea-based with vertical and horizontal scrollbars
 - Touch-optimized 30px scrollbar width/height
-- Supports child controls (textboxes, labels, buttons, comboboxes)
+- Supports child controls (textboxes, checkboxes, labels, buttons, comboboxes)
 - Parent-child relationship support via `fk_parent_id` and `parent_name`
 - Automatic content sizing based on child controls
 
@@ -103,11 +103,26 @@ textbox = FormControl(
 )
 ```
 
+### CheckBox control
+
+**File:** `user_interface/control/checkbox.py`
+
+`CheckBox` is a `QCheckBox` subclass used for **boolean** model fields on dynamic forms. Checked means `True`, unchecked means `False`. Values are collected on SAVE as the strings `"true"` / `"false"` and converted with the same bool logic as text fields in `GeneralEvent._save_changes_event()`.
+
+**FormControl (database):**
+- `type="CHECKBOX"`, `type_no=11`
+- `input_type="BOOLEAN"` (metadata; renderer uses `type` for the widget)
+- Control `name` is uppercase and maps to the model attribute via `.lower()` (same rule as textboxes)
+
+**Seeded forms:** In `data_layer/db_init_data/form_control.py`, the SETTING form (`POS_SETTINGS` panel) uses a checkbox for `force_to_work_online`; the CASHIER form uses checkboxes for `is_administrator` and `is_active`.
+
+**Rendering:** `DynamicFormRenderer` emits `type: "checkbox"` in the design dict. `BaseWindow._create_checkbox()` and `DynamicDialog._create_checkbox()` bind to the panel model and load/save like textboxes. Non-admin users: `is_administrator` and `is_active` checkboxes are **disabled** (not only read-only text) on the main window’s CASHIER form.
+
 **Panel-Based Form Saving:**
 When a form contains a SAVE button and panels, the system automatically:
-1. Collects all textbox values from each panel
+1. Collects all **textbox** and **checkbox** values from each panel (`BaseWindow.get_panel_textbox_values()`)
 2. Maps panel names to model classes (e.g., "POS_SETTINGS" → "PosSettings")
-3. Updates model instances with textbox values
+3. Updates model instances with collected field values
 4. Saves changes to database
 
 **Generic Model Form Pattern:**
@@ -119,17 +134,18 @@ The system implements a generic panel-based form save mechanism that works with 
    - `CASHIER` → `Cashier` model
    - `CUSTOMER_INFO` → `CustomerInfo` model
 
-2. **Textbox Name = Model Field**: Textbox names inside panel must match model field names (uppercase → lowercase)
+2. **Control Name = Model Field**: Names of **TEXTBOX** and **CHECKBOX** children inside the panel must match model field names (uppercase → lowercase)
    - `BACKEND_IP1` textbox → `backend_ip1` model field
    - `USER_NAME` textbox → `user_name` model field
-   - `IS_ACTIVE` textbox → `is_active` model field
+   - `FORCE_TO_WORK_ONLINE` checkbox → `force_to_work_online` model field
+   - `IS_ACTIVE` checkbox → `is_active` model field
 
-3. **Automatic Data Loading**: On form open, textbox values are automatically loaded from:
+3. **Automatic Data Loading**: On form open, textbox and checkbox values are automatically loaded from:
    - CurrentData cache (if model is cached: `pos_settings`, `cashier_data`)
    - Database (first instance found or new instance created)
 
 4. **Automatic Data Saving**: On SAVE button click:
-   - All panel textbox values are collected
+   - All panel textbox and checkbox values are collected
    - Model instance is found or created
    - Values are converted to appropriate types (int, bool, string)
    - Model is updated and saved to database
@@ -139,13 +155,14 @@ The system implements a generic panel-based form save mechanism that works with 
 
 **PosSettings Configuration Form:**
 - Panel name: `POS_SETTINGS` (matches model name)
-- Textbox names: Uppercase (e.g., `POS_NO_IN_STORE`) but map to lowercase model attributes (`pos_no_in_store`)
-- On form load: Values from `CurrentData.pos_settings` are automatically loaded into panel textboxes
-- On SAVE: All panel textbox values are saved to `PosSettings` model
+- Mostly **TEXTBOX** controls; boolean `force_to_work_online` is a **CHECKBOX**
+- On form load: Values from `CurrentData.pos_settings` are automatically loaded into panel controls
+- On SAVE: All panel field values are saved to `PosSettings` model
 
 **Cashier Management Form:**
 - Panel name: `CASHIER` (matches model name)
-- Textbox names inside panel: `NO`, `USER_NAME`, `NAME`, `LAST_NAME`, `PASSWORD`, `IDENTITY_NUMBER`, `DESCRIPTION`, `IS_ADMINISTRATOR`, `IS_ACTIVE`
+- Text fields: `NO`, `USER_NAME`, `NAME`, `LAST_NAME`, `PASSWORD`, `IDENTITY_NUMBER`, `DESCRIPTION`
+- Boolean fields: `IS_ADMINISTRATOR`, `IS_ACTIVE` as **CHECKBOX** controls
 - On form load: Values from `CurrentData.editing_cashier` (or fallback `cashier_data`) are loaded automatically
 - On SAVE: Values are saved to the currently selected cashier (`editing_cashier`)
 
@@ -158,10 +175,10 @@ A combobox placed above the CASHIER panel enables multi-cashier management:
 
 **Field Read-Only Rules:**
 
-| Cashier being edited | Password field | All other fields |
-|---|---|---|
-| `is_administrator = True` | Editable | Editable |
-| `is_administrator = False` | Editable | **Read-only** (grey background) |
+| Cashier being edited | Password field | Other text fields | `IS_ADMINISTRATOR` / `IS_ACTIVE` checkboxes |
+|---|---|---|---|
+| `is_administrator = True` | Editable | Editable | Editable |
+| `is_administrator = False` | Editable | **Read-only** (grey background) | **Disabled** |
 
 This means a non-admin cashier can only update their own password. An admin cashier can edit all fields of any account.
 
@@ -173,7 +190,7 @@ This means a non-admin cashier can only update their own password. An admin cash
 To create a form for any model, simply:
 1. Create a form with a SAVE button
 2. Add a PANEL with name matching the model (e.g., `MY_MODEL` → `MyModel`)
-3. Add labels and textboxes inside the panel with names matching model fields
+3. Add labels and **TEXTBOX** / **CHECKBOX** controls inside the panel with names matching model fields (booleans → checkbox)
 4. The system automatically handles data loading and saving!
 
 ## Updated Classes
@@ -687,7 +704,7 @@ for panel_name, panel_widget in panels.items():
 
 ### Panel Control Support
 
-Panels can contain child controls (textboxes, labels, buttons, etc.) through parent-child relationships:
+Panels can contain child controls (textboxes, checkboxes, labels, buttons, etc.) through parent-child relationships:
 
 **Database Structure:**
 - Panel control has `fk_parent_id = None` (top-level control)
@@ -703,27 +720,27 @@ Panels can contain child controls (textboxes, labels, buttons, etc.) through par
 - Keyboard positioning accounts for panel scroll position using global coordinates
 
 **Data Loading:**
-- On form open, panel textboxes are automatically populated from model data
+- On form open, panel textboxes and checkboxes are automatically populated from model data
 - System tries to load from CurrentData cache first (for cached models like `pos_settings`, `cashier_data`)
 - If not in cache, loads from database (first instance found)
 - Panel name is converted to model class name (e.g., "POS_SETTINGS" → "PosSettings")
-- Textbox names are converted to model field names (uppercase → lowercase)
-- Example: `POS_SETTINGS` panel textboxes load from `CurrentData.pos_settings`
-- Example: `CASHIER` panel textboxes load from `CurrentData.editing_cashier` (falls back to `cashier_data`)
+- Control names are converted to model field names (uppercase → lowercase)
+- Example: `POS_SETTINGS` panel controls load from `CurrentData.pos_settings`
+- Example: `CASHIER` panel controls load from `CurrentData.editing_cashier` (falls back to `cashier_data`)
 
 **Cashier Panel — Read-Only Rules:**
 After loading data, the CASHIER panel applies field-level read-only protection:
 - If loaded cashier has `is_administrator = True` → all fields are **editable**
 - If loaded cashier has `is_administrator = False` → all fields are **read-only** *except* `PASSWORD`
 
-This is enforced inside `base_window._create_textbox()` immediately after the field value is loaded.
+Text fields are enforced in `base_window._create_textbox()`; `IS_ADMINISTRATOR` / `IS_ACTIVE` checkboxes are disabled for non-admin **logged-in** users in `base_window._create_checkbox()`.
 
 **Data Saving:**
-- When SAVE button is clicked, panel textbox values are collected
+- When SAVE button is clicked, panel textbox and checkbox values are collected (`get_panel_textbox_values()`)
 - Panel name is converted to model class name (e.g., "POS_SETTINGS" → "PosSettings")
 - For `CASHIER` panel: saves to `CurrentData.editing_cashier` (the cashier currently displayed), not necessarily the logged-in user
 - Values are converted to appropriate types (int, bool, string, None)
-- Model instance is updated with textbox values
+- Model instance is updated with collected field values
 - Model is saved to database
 - If the saved cashier is also the logged-in cashier, `cashier_data` cache is updated too
 - Works with any model following the naming convention!
@@ -756,7 +773,7 @@ FormControl(
 2. Combobox created → signals blocked → items populated → editing cashier pre-selected → signals unblocked
 3. User changes selection → `SELECT_CASHIER` event → `_select_cashier_event(index)` called
 4. `_select_cashier_event` → updates `editing_cashier` → calls `interface.redraw()`
-5. Form redraws with new cashier's data loaded into panel textboxes
+5. Form redraws with new cashier's data loaded into panel controls
 
 **New enums added:**
 
@@ -812,7 +829,7 @@ _add_new_cashier_event()
   ├─ Create Cashier(no=0, is_administrator=False, is_active=False)
   ├─ Set _editing_cashier = new empty Cashier
   ├─ Set _is_adding_new_cashier = True
-  ├─ Clear all CASHIER panel textboxes in-place (no=0, bool fields=False, strings=empty)
+  ├─ Clear CASHIER panel textboxes in-place; reset `IS_ADMINISTRATOR` / `IS_ACTIVE` checkboxes unchecked
   ├─ Hide CASHIER_MGMT_LIST combobox (inside panel content widget)
   └─ Hide ADD_NEW_CASHIER button (direct window child)
 
@@ -820,10 +837,10 @@ Admin fills in fields → presses [SAVE]
         │
         ▼
 _save_changes_event()  (generic — no changes needed)
-  ├─ Reads panel textboxes
+  ├─ Reads panel textboxes and checkboxes
   ├─ Detects Cashier model via panel name
   ├─ Gets _editing_cashier (new empty instance, no id)
-  ├─ Updates fields from textboxes
+  ├─ Updates fields from collected values
   ├─ Calls model_instance.save()  → SQLAlchemy INSERT (no id → new record)
   └─ Calls _update_model_cache("Cashier", model_instance)
 
@@ -844,6 +861,7 @@ Calling `interface.redraw()` in `_add_new_cashier_event` would clear and recreat
 | Action | Method |
 |--------|--------|
 | Clear textbox | `child.clear()` / `child.setText("0")` |
+| Uncheck bool checkboxes | `content.findChildren(CheckBox)` → `setChecked(False)` for `is_administrator` / `is_active` |
 | Hide combobox | `content.findChildren(ComboBox)` → `child.hide()` |
 | Hide button | `window.children()` → `child.hide()` |
 

@@ -1224,7 +1224,7 @@ def _insert_form_controls(session: Session, cashier_id: str):
         ("Backend Type", "backend_type", "ALPHANUMERIC"),
         ("Device Serial Number", "device_serial_number", "ALPHANUMERIC"),
         ("Device OS", "device_operation_system", "ALPHANUMERIC"),
-        ("Force Online", "force_to_work_online", "ALPHANUMERIC"),  # Boolean - will be checkbox later
+        ("Force Online", "force_to_work_online", "CHECKBOX"),
         ("PLU Update No", "plu_update_no", "NUMERIC"),
     ]
     
@@ -1279,45 +1279,82 @@ def _insert_form_controls(session: Session, cashier_id: str):
         )
         pos_settings_controls.append(label_control)
         
-        # TextBox - name is uppercase but lower() gives model field name
-        # e.g., "POS_NO_IN_STORE" -> lower() -> "pos_no_in_store" (matches model attribute)
-        textbox_control = FormControl(
-            fk_form_id=config_form.id,
-            fk_parent_id=None,  # Will be set to panel ID after panel is created
-            parent_name="POS_SETTINGS",  # Panel name matches model name
-            name=field_name.upper(),  # Uppercase name, but lower() gives model field name
-            form_control_function1=EventName.NONE.value,
-            form_control_function2=None,
-            type_no=2,
-            type="TEXTBOX",
-            width=textbox_width,
-            height=control_height,
-            location_x=label_width + 20,
-            location_y=y_pos,
-            start_position=None,
-            caption1="",
-            caption2=None,
-            list_values=None,
-            dock=None,
-            alignment=None,
-            text_alignment="LEFT",
-            character_casing="NORMAL",
-            font="Tahoma",
-            icon=None,
-            tool_tip=f"Enter {label_text.lower()}",
-            image=None,
-            image_selected=None,
-            font_auto_height=False,
-            font_size=12,
-            input_type=input_type,
-            text_image_relation=None,
-            back_color="0xFFFFFF",
-            fore_color="0x000000",
-            keyboard_value=None,
-            fk_cashier_create_id=cashier_id,
-            fk_cashier_update_id=cashier_id
-        )
-        pos_settings_controls.append(textbox_control)
+        # TextBox or CheckBox — name uppercase maps to model attribute via .lower()
+        if input_type == "CHECKBOX":
+            field_control = FormControl(
+                fk_form_id=config_form.id,
+                fk_parent_id=None,
+                parent_name="POS_SETTINGS",
+                name=field_name.upper(),
+                form_control_function1=EventName.NONE.value,
+                form_control_function2=None,
+                type_no=11,
+                type="CHECKBOX",
+                width=80,
+                height=control_height,
+                location_x=label_width + 20,
+                location_y=y_pos,
+                start_position=None,
+                caption1="",
+                caption2=None,
+                list_values=None,
+                dock=None,
+                alignment=None,
+                text_alignment="LEFT",
+                character_casing="NORMAL",
+                font="Tahoma",
+                icon=None,
+                tool_tip=label_text,
+                image=None,
+                image_selected=None,
+                font_auto_height=False,
+                font_size=12,
+                input_type="BOOLEAN",
+                text_image_relation=None,
+                back_color="0xFFFFFF",
+                fore_color="0x000000",
+                keyboard_value=None,
+                fk_cashier_create_id=cashier_id,
+                fk_cashier_update_id=cashier_id
+            )
+        else:
+            field_control = FormControl(
+                fk_form_id=config_form.id,
+                fk_parent_id=None,
+                parent_name="POS_SETTINGS",
+                name=field_name.upper(),
+                form_control_function1=EventName.NONE.value,
+                form_control_function2=None,
+                type_no=2,
+                type="TEXTBOX",
+                width=textbox_width,
+                height=control_height,
+                location_x=label_width + 20,
+                location_y=y_pos,
+                start_position=None,
+                caption1="",
+                caption2=None,
+                list_values=None,
+                dock=None,
+                alignment=None,
+                text_alignment="LEFT",
+                character_casing="NORMAL",
+                font="Tahoma",
+                icon=None,
+                tool_tip=f"Enter {label_text.lower()}",
+                image=None,
+                image_selected=None,
+                font_auto_height=False,
+                font_size=12,
+                input_type=input_type,
+                text_image_relation=None,
+                back_color="0xFFFFFF",
+                fore_color="0x000000",
+                keyboard_value=None,
+                fk_cashier_create_id=cashier_id,
+                fk_cashier_update_id=cashier_id
+            )
+        pos_settings_controls.append(field_control)
     
     # SAVE button (outside panel)
     save_button = FormControl(
@@ -1528,8 +1565,8 @@ def _insert_form_controls(session: Session, cashier_id: str):
         ("Password", "password", "PASSWORD"),
         ("Identity Number", "identity_number", "ALPHANUMERIC"),
         ("Description", "description", "ALPHANUMERIC"),
-        ("Is Administrator", "is_administrator", "ALPHANUMERIC"),  # Boolean - will be checkbox later
-        ("Is Active", "is_active", "ALPHANUMERIC"),  # Boolean - will be checkbox later
+        ("Is Administrator", "is_administrator", "CHECKBOX"),
+        ("Is Active", "is_active", "CHECKBOX"),
     ]
     
     start_y = 70  # Starting Y position inside panel
@@ -1581,45 +1618,81 @@ def _insert_form_controls(session: Session, cashier_id: str):
         )
         cashier_controls.append(label_control)
         
-        # TextBox - name is uppercase but lower() gives model field name
-        # e.g., "USER_NAME" -> lower() -> "user_name" (matches model attribute)
-        textbox_control = FormControl(
-            fk_form_id=cashier_form.id,
-            fk_parent_id=None,  # Will be set to panel ID after panel is created
-            parent_name="CASHIER",  # Panel name matches model name
-            name=field_name.upper(),  # Uppercase name, but lower() gives model field name
-            form_control_function1=EventName.NONE.value,
-            form_control_function2=None,
-            type_no=2,
-            type="TEXTBOX",
-            width=textbox_width,
-            height=control_height,
-            location_x=label_width + 20,
-            location_y=y_pos,
-            start_position=None,
-            caption1="",
-            caption2=None,
-            list_values=None,
-            dock=None,
-            alignment=None,
-            text_alignment="LEFT",
-            character_casing="NORMAL",
-            font="Tahoma",
-            icon=None,
-            tool_tip=f"Enter {label_text.lower()}",
-            image=None,
-            image_selected=None,
-            font_auto_height=False,
-            font_size=12,
-            input_type=input_type,
-            text_image_relation=None,
-            back_color="0xFFFFFF",
-            fore_color="0x000000",
-            keyboard_value=None,
-            fk_cashier_create_id=cashier_id,
-            fk_cashier_update_id=cashier_id
-        )
-        cashier_controls.append(textbox_control)
+        if input_type == "CHECKBOX":
+            field_control = FormControl(
+                fk_form_id=cashier_form.id,
+                fk_parent_id=None,
+                parent_name="CASHIER",
+                name=field_name.upper(),
+                form_control_function1=EventName.NONE.value,
+                form_control_function2=None,
+                type_no=11,
+                type="CHECKBOX",
+                width=80,
+                height=control_height,
+                location_x=label_width + 20,
+                location_y=y_pos,
+                start_position=None,
+                caption1="",
+                caption2=None,
+                list_values=None,
+                dock=None,
+                alignment=None,
+                text_alignment="LEFT",
+                character_casing="NORMAL",
+                font="Tahoma",
+                icon=None,
+                tool_tip=label_text,
+                image=None,
+                image_selected=None,
+                font_auto_height=False,
+                font_size=12,
+                input_type="BOOLEAN",
+                text_image_relation=None,
+                back_color="0xFFFFFF",
+                fore_color="0x000000",
+                keyboard_value=None,
+                fk_cashier_create_id=cashier_id,
+                fk_cashier_update_id=cashier_id
+            )
+        else:
+            field_control = FormControl(
+                fk_form_id=cashier_form.id,
+                fk_parent_id=None,
+                parent_name="CASHIER",
+                name=field_name.upper(),
+                form_control_function1=EventName.NONE.value,
+                form_control_function2=None,
+                type_no=2,
+                type="TEXTBOX",
+                width=textbox_width,
+                height=control_height,
+                location_x=label_width + 20,
+                location_y=y_pos,
+                start_position=None,
+                caption1="",
+                caption2=None,
+                list_values=None,
+                dock=None,
+                alignment=None,
+                text_alignment="LEFT",
+                character_casing="NORMAL",
+                font="Tahoma",
+                icon=None,
+                tool_tip=f"Enter {label_text.lower()}",
+                image=None,
+                image_selected=None,
+                font_auto_height=False,
+                font_size=12,
+                input_type=input_type,
+                text_image_relation=None,
+                back_color="0xFFFFFF",
+                fore_color="0x000000",
+                keyboard_value=None,
+                fk_cashier_create_id=cashier_id,
+                fk_cashier_update_id=cashier_id
+            )
+        cashier_controls.append(field_control)
     
     # SAVE button (outside panel)
     save_button = FormControl(

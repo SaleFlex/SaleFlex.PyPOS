@@ -22,18 +22,28 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-from user_interface.control.button import Button
-from user_interface.control.label import Label
-from user_interface.control.textbox import TextBox
-from user_interface.control.checkbox import CheckBox
-from user_interface.control.toolbar import ToolBar
-from user_interface.control.statusbar import StatusBar
-from user_interface.control.transaction_status import TransactionStatus
-from user_interface.control.payment_list import PaymentList
-from user_interface.control.sale_list import SaleList
-from user_interface.control.numpad import NumPad
-from user_interface.control.virtual_keyboard import VirtualKeyboard
-from user_interface.control.amount_table import AmountTable
-from user_interface.control.combobox import ComboBox
-from user_interface.control.datagrid import DataGrid
-from user_interface.control.panel import Panel
+from PySide6.QtWidgets import QCheckBox
+from PySide6.QtGui import QFont
+
+
+class CheckBox(QCheckBox):
+    """Boolean field control for dynamic forms; checked = True, unchecked = False."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setFont(QFont("Verdana", 20))
+        self.setStyleSheet("QCheckBox { spacing: 10px; }")
+        self.field_name = ""
+
+    def set_font_size(self, font_size):
+        if font_size:
+            self.setFont(QFont("Verdana", int(font_size)))
+
+    def set_color(self, background_color, foreground_color):
+        self.setStyleSheet(
+            f"QCheckBox {{ spacing: 10px; background-color: #{background_color:06X};"
+            f"color: #{foreground_color:06X}; }}"
+        )
+
+    def bool_value(self) -> bool:
+        return self.isChecked()

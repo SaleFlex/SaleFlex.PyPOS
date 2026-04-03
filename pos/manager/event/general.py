@@ -607,7 +607,7 @@ class GeneralEvent:
                     logger.error("[SAVE_CHANGES] ⚠ Error getting textbox values from panel '%s': %s", panel_name, e)
                     all_saved = False
                     continue
-                logger.debug("[SAVE_CHANGES] Collected %s textbox values from panel %s", len(textbox_values), panel_name)
+                logger.debug("[SAVE_CHANGES] Collected %s field values from panel %s", len(textbox_values), panel_name)
                 
                 if not textbox_values:
                     logger.warning("[SAVE_CHANGES] ⚠ No textbox values found in panel %s", panel_name)
@@ -1107,9 +1107,9 @@ class GeneralEvent:
             return False
 
         try:
-            from user_interface.control import TextBox, ComboBox, Button
+            from user_interface.control import TextBox, CheckBox, ComboBox, Button
 
-            # 1. Clear all textboxes inside the CASHIER panel
+            # 1. Clear all textboxes / reset checkboxes inside the CASHIER panel
             panel = window._panels.get('CASHIER') if hasattr(window, '_panels') else None
             if panel:
                 content = panel.get_content_widget()
@@ -1122,6 +1122,10 @@ class GeneralEvent:
                             child.setText('False')
                         else:
                             child.clear()
+                    for child in content.findChildren(CheckBox):
+                        field = getattr(child, 'name', '').lower()
+                        if field in ('is_administrator', 'is_active'):
+                            child.setChecked(False)
 
                     # 2. Hide CASHIER_MGMT_LIST combobox (inside panel)
                     for child in content.findChildren(ComboBox):
