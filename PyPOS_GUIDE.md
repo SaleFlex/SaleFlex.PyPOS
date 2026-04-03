@@ -11,6 +11,8 @@
 
 **Suspend / parked sales (market):** On the **SALE** screen, **SUSPEND** holds the current cart in the database (`is_pending`) and clears the register; with no open sale it opens the **Suspended Sales (Market)** list. See [Basic Navigation — SUSPEND](docs/05-basic-navigation.md) and [Document Management](docs/09-document-management.md).
 
+**Cancel transaction (CANCEL button):** On the **SALE** screen, the red **CANCEL** button (below the denomination buttons, same row as PLU / X / SUSPEND) immediately voids the entire active transaction — sets `is_cancel=True`, `cancel_reason="Canceled by cashier: {username}"`, copies to permanent models, and opens a confirmation dialog. If no open document exists an info dialog is shown. See [Basic Navigation — CANCEL](docs/05-basic-navigation.md) and [Document Management — Full Document Cancellation](docs/09-document-management.md).
+
 ---
 
 ## Table of Contents

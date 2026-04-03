@@ -138,6 +138,19 @@ Other business types (for example restaurants) can use different list forms in t
 
 ---
 
+#### CANCEL (cancel the entire transaction document)
+
+Below **20 £**, **50 £** and **100 £** denomination buttons, the **CANCEL** button sits on the same row as **PLU**, **X**, and **SUSPEND**, aligned at the bottom of the payment area.
+
+| Situation | What happens |
+|-----------|----------------|
+| Open sale with at least one active line | The document is immediately **cancelled**: `transaction_status = CANCELLED`, `is_cancel = True`, `is_closed = True`, and `cancel_reason = "Canceled by cashier: {username}"` are persisted to the database. A confirmation message box is shown with the **Receipt No**, **Closure No**, **Total**, and the cancel reason. After dismissal, a new empty draft document is created automatically for the next sale. |
+| No open document, empty draft, already closed/pending/cancelled | An information message box is shown: *"There is no open document to cancel."* No database changes are made. |
+
+> **Note:** The CANCEL button voids the **entire** transaction. To cancel only a single line item, tap the row in the sale list and choose **DELETE** from the Item Actions popup instead.
+
+---
+
 ## Processing a Sale
 
 1. From the main menu, select **Sales**

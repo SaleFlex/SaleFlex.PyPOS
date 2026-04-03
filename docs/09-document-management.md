@@ -386,6 +386,49 @@ After this cleanup, the next sale will trigger `_ensure_document_open()` which c
 | `transaction_status` | `CANCELLED` |
 | `document_data` in memory | `None` |
 
+## Full Document Cancellation (CANCEL Button)
+
+Pressing the **CANCEL** button on the SALE form immediately voids the entire active transaction.
+
+### How it works
+
+1. The handler checks that an open document with at least one active (non-cancelled) line exists.
+   - If no open document is found, an information dialog is shown and no changes are made.
+2. The cashier's username is read from `cashier_data`.
+3. `cancel_reason` is set to `"Canceled by cashier: {username}"`.
+4. `complete_document(is_cancel=True, cancel_reason=...)` is called, which:
+   - Sets `TransactionHeadTemp.transaction_status = CANCELLED`
+   - Sets `TransactionHeadTemp.is_cancel = True`, `is_closed = True`
+   - Copies all temp models to permanent models (`TransactionHead`, `TransactionProduct`, etc.)
+   - Resets `document_data` to `None`
+5. The UI controls (`sale_list`, `payment_list`, `amount_table`) are cleared.
+6. A confirmation message box is displayed showing:
+   - Receipt No
+   - Closure No
+   - Total amount
+   - The cancel reason (cashier name)
+7. A **new empty draft document** is created automatically for the next sale.
+
+### When there is no open document
+
+If `document_data` is `None`, the document is already closed/pending/cancelled, or there are no active lines, an info dialog is shown: *"There is no open document to cancel."* No database changes are made.
+
+### Database state after cancellation
+
+| Field | Value |
+|-------|-------|
+| `TransactionHeadTemp.transaction_status` | `cancelled` |
+| `TransactionHeadTemp.is_cancel` | `True` |
+| `TransactionHeadTemp.is_closed` | `True` |
+| `TransactionHeadTemp.cancel_reason` | `"Canceled by cashier: {username}"` |
+| `TransactionHead.transaction_status` | `cancelled` (permanent copy) |
+| `TransactionHead.is_cancel` | `True` (permanent copy) |
+| `TransactionHead.cancel_reason` | `"Canceled by cashier: {username}"` (permanent copy) |
+
+> **Note:** This is different from the line-item **DELETE** action (which soft-cancels a single line). The CANCEL button voids the full document in one step.
+
+---
+
 ## Line Item REPEAT (Sale List REPEAT)
 
 Pressing **REPEAT** in the Item Actions popup adds an identical new transaction line immediately below the existing items.

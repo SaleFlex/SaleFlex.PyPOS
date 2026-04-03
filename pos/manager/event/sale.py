@@ -1316,23 +1316,167 @@ class SaleEvent:
         logger.debug("Cancel sale - functionality to be implemented")
         return False
     
-    def _cancel_document_event(self):
+    def _cancel_document_event(self, button=None):
         """
-        Handle cancellation of entire transaction document.
-        
-        Voids the complete current transaction, clearing all items
-        and resetting to new transaction state.
-        
+        Handle cancellation of the entire transaction document (CANCEL button).
+
+        Behaviour:
+        - Open document with at least one active line:
+            * Sets transaction_status = CANCELLED, is_cancel = True, is_closed = True
+            * Sets cancel_reason = "Canceled by cashier: {username}"
+            * Persists via complete_document(is_cancel=True, cancel_reason=...)
+            * Shows a confirmation message box with receipt/closure number and total
+            * Creates a new empty draft document for the next sale
+        - No open document (or only an empty draft):
+            * Shows a warning message box — no open document found
+
         Returns:
-            bool: True if document cancellation successful, False otherwise
+            bool: True if document cancelled successfully, False otherwise
         """
         if not self.login_succeed:
             self._logout()
             return False
-            
-        # TODO: Implement complete transaction void
-        logger.debug("Cancel document - functionality to be implemented")
-        return False
+
+        from user_interface.form.message_form import MessageForm
+        from data_layer.auto_save import AutoSaveModel
+        from PySide6.QtWidgets import QApplication
+
+        window = None
+        try:
+            app_qt = QApplication.instance()
+            if app_qt:
+                window = app_qt.activeWindow()
+        except Exception:
+            pass
+        if window is None and hasattr(self, "interface") and self.interface:
+            window = getattr(self.interface, "window", None)
+
+        try:
+            dd = self.document_data
+            if not dd or not dd.get("head"):
+                MessageForm.show_info(
+                    window,
+                    "No Open Document",
+                    "There is no open document to cancel."
+                )
+                return False
+
+            head = dd["head"]
+            head_obj = head.unwrap() if isinstance(head, AutoSaveModel) else head
+
+            from data_layer.model.definition.transaction_status import TransactionStatus
+
+            status = getattr(head_obj, "transaction_status", None)
+            is_closed = getattr(head_obj, "is_closed", False)
+            is_pending = getattr(head_obj, "is_pending", False)
+
+            if is_closed or is_pending or status in (
+                TransactionStatus.COMPLETED.value,
+                TransactionStatus.CANCELLED.value,
+            ):
+                MessageForm.show_info(
+                    window,
+                    "No Open Document",
+                    "There is no open document to cancel."
+                )
+                return False
+
+            products = dd.get("products") or []
+            departments = dd.get("departments") or []
+
+            def _is_active(rec):
+                actual = rec.unwrap() if isinstance(rec, AutoSaveModel) else rec
+                return not getattr(actual, "is_cancel", False)
+
+            has_active_lines = any(_is_active(p) for p in products) or \
+                               any(_is_active(d) for d in departments)
+
+            if not has_active_lines:
+                MessageForm.show_info(
+                    window,
+                    "No Open Document",
+                    "There is no open document to cancel."
+                )
+                return False
+
+            # Build cancellation info for the message box
+            receipt_no = getattr(head_obj, "receipt_number", "—")
+            closure_no = getattr(head_obj, "closure_number", "—")
+            total_amt = getattr(head_obj, "total_amount", 0) or 0
+            try:
+                total_str = f"{float(total_amt):.2f}"
+            except Exception:
+                total_str = str(total_amt)
+
+            # Determine cashier username
+            cashier_username = "unknown"
+            if hasattr(self, "cashier_data") and self.cashier_data:
+                cd = self.cashier_data
+                if isinstance(cd, AutoSaveModel):
+                    cd = cd.unwrap()
+                cashier_username = getattr(cd, "user_name", None) or \
+                                   getattr(cd, "name", None) or "unknown"
+
+            cancel_reason = f"Canceled by cashier: {cashier_username}"
+
+            # Persist cancellation via complete_document
+            success = self.complete_document(is_cancel=True, cancel_reason=cancel_reason)
+
+            if not success:
+                MessageForm.show_error(
+                    window,
+                    "Cancel Failed",
+                    "An error occurred while cancelling the document."
+                )
+                return False
+
+            # Clear UI controls
+            if window:
+                if hasattr(window, "sale_list") and window.sale_list:
+                    window.sale_list.clear_products()
+                if hasattr(window, "payment_list") and window.payment_list:
+                    window.payment_list.clear_payments()
+                if hasattr(window, "amount_table") and window.amount_table:
+                    from decimal import Decimal
+                    window.amount_table.receipt_total_price = Decimal("0")
+                    window.amount_table.discount_total_amount = Decimal("0")
+                    window.amount_table.receipt_total_payment = Decimal("0")
+
+            self._update_statusbar()
+            from pos.peripherals.hooks import sync_line_display_cleared
+            sync_line_display_cleared(self)
+
+            # Show confirmation message
+            MessageForm.show_info(
+                window,
+                "Transaction Cancelled",
+                f"Receipt No: {receipt_no}\n"
+                f"Closure No: {closure_no}\n"
+                f"Total: {total_str}\n\n"
+                f"The transaction has been cancelled.\n"
+                f"{cancel_reason}"
+            )
+
+            # Create a new draft for the next sale
+            self.create_empty_document()
+
+            logger.info(
+                "[CANCEL_DOCUMENT] Document cancelled — receipt=%s closure=%s total=%s reason=%s",
+                receipt_no, closure_no, total_str, cancel_reason
+            )
+            return True
+
+        except Exception as e:
+            logger.error("[CANCEL_DOCUMENT] Unexpected error: %s", e)
+            try:
+                MessageForm.show_error(
+                    window,
+                    "Cancel Failed",
+                    f"An unexpected error occurred: {e}"
+                )
+            except Exception:
+                pass
+            return False
     
     # ==================== TRANSACTION MODIFICATION EVENTS ====================
     
