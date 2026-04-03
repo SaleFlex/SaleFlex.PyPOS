@@ -48,10 +48,11 @@ class FormName(enum.Enum):
         - Controls in these forms typically use ControlName.CASHIER_NAME,
           ControlName.PASSWORD, ControlName.LOGIN, ControlName.LOGOUT
     
-    Transaction Forms (SALE, REFUND, VOID):
+    Transaction Forms (SALE, REFUND, VOID, SUSPENDED_SALES_MARKET):
         - SALE: Main sales transaction form
         - REFUND: Product/transaction refund form
         - VOID: Transaction voiding form
+        - SUSPENDED_SALES_MARKET: List of suspended receipts (market retail); other sectors may use dedicated forms later (e.g. tables for restaurants)
     
     Configuration Forms (SETTING, PARAMETER, CASHIER_CONFIG):
         - SETTING: System settings and configuration
@@ -111,3 +112,4 @@ class FormName(enum.Enum):
     MAIN_MENU = 23     # Main menu form with navigation to other forms.
     SUB_MENU = 24      # Sub menu form with navigation to other forms.
     CASHIER = 25       # Cashier management form for adding/editing cashier information.
+    SUSPENDED_SALES_MARKET = 26  # Market sector: list suspended (pending) sale documents.

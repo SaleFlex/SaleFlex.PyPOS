@@ -22,8 +22,10 @@ The **closure operation** is triggered when an authorized cashier presses the CL
 
 3. **Load transactions**  
    - All `TransactionHead` with `closure_number == current_closure_number` and `is_deleted == False`.  
-   - **If no such records exist:** show error ("No transactions found for closure number …"), stop and return `False`. Closure is not performed.
-   - Otherwise these heads are the sales that belong to this closure batch.
+   - Heads with **`is_pending == True`** are **excluded** from sales totals, payment/tax/discount aggregation, and document counts used for the closure batch.  
+   - Additionally, **`TransactionHeadTemp`** rows with the same `closure_number`, `is_pending == True`, `is_closed == False`, and not deleted are counted as suspended but **not** included in those totals.  
+   - **`suspended_transaction_count`** on the `Closure` record = count of pending permanent heads in the batch + count of such temp pending heads.  
+   - **If there are no non-pending heads and no suspended documents (temp or permanent):** show error ("No transactions found …"), return `False`. If there are only suspended documents, closure is still allowed with zero financial totals and a non-zero `suspended_transaction_count`.
 
 4. **Resolve context**  
    - Store, POS, and base currency from the first transaction or from `pos_data` / `pos_settings` / `product_data` as fallback.  
@@ -39,7 +41,7 @@ The **closure operation** is triggered when an authorized cashier presses the CL
    - **Document type**: from head `document_type` (valid/canceled counts and amounts).
 
 6. **Create main Closure record**  
-   - `closure_number`, `fk_store_id`, `fk_pos_id`, `closure_date`, `closure_start_time`, `closure_end_time`, `fk_base_currency_id`, cashier opened/closed, and all aggregated totals (document count, gross/net, tax, discount, tip, valid/canceled/return counts, expected cash, etc.).
+   - `closure_number`, `fk_store_id`, `fk_pos_id`, `closure_date`, `closure_start_time`, `closure_end_time`, `fk_base_currency_id`, cashier opened/closed, and all aggregated totals (document count, gross/net, tax, discount, tip, valid/canceled/return counts, **`suspended_transaction_count`**, expected cash, etc.).
 
 7. **Create summary records**  
    - **ClosureVATSummary**: one row per (tax rate, name, jurisdiction) from tax aggregation.  

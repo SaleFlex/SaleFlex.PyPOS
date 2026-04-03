@@ -327,6 +327,23 @@ class CurrentStatus:
         if self.__form_history:
             return self.__form_history.pop()
         return None
+
+    def prepare_navigation_resume_sale_from_suspended_market(self):
+        """
+        Call before drawing SALE after ACTIVATE on SUSPENDED_SALES_MARKET.
+
+        Opening the suspended list from SALE pushes SALE onto the history stack.
+        Popping that entry matches "BACK on the list" so the next BACK from SALE
+        returns to the prior screen (e.g. MAIN_MENU), not the suspended list again.
+        """
+        if self.__current_form_type != FormName.SUSPENDED_SALES_MARKET:
+            return
+        if self.__form_history and self.__form_history[-1] == FormName.SALE:
+            removed = self.__form_history.pop()
+            logger.debug(
+                "[FORM_HISTORY] Resume from suspended: popped %s (BACK from SALE will not reopen list)",
+                removed.name,
+            )
     
     @property
     def current_currency(self):

@@ -128,9 +128,9 @@ self.load_pending_documents()
 
 Pending documents are used in restaurant mode for managing tables/orders that are temporarily suspended.
 
-### 3. Document Suspension (Restaurant Mode)
+### 3. Document Suspension (Restaurant and market retail)
 
-In restaurant mode, documents can be suspended (put on hold) to allow adding more items later:
+Documents can be suspended (put on hold) to allow completing the sale later—for example tables/orders in restaurants, or parked carts in market retail.
 
 ```python
 # Suspend current document
@@ -144,6 +144,13 @@ When suspended:
 - `is_pending` is set to `True`
 - `transaction_status` is set to `TransactionStatus.PENDING`
 - Document is saved to database and added to `pending_documents_data` list
+
+**Market retail — SALE form `SUSPEND` button (`EventName.SUSPEND_SALE`):**
+
+- If there is an open document with at least one sale line (`TransactionProductTemp` and/or `TransactionDepartmentTemp`), the handler calls `set_document_pending(True)`, clears `document_data`, then **`create_empty_document()`** so the next sale uses a new draft and receipt slot (suspended temp heads are skipped in `create_empty_document`’s open-document reuse logic when `is_pending=True`). The **SALE** form is redrawn and sale controls refreshed.
+- If the open document has **no lines** (typical **DRAFT** before the first item), **SUSPEND** opens **`SUSPENDED_SALES_MARKET`** so the operator can review or **ACTIVATE** parked carts without suspending an empty ticket.
+- If there is no open document, the app navigates to form **`SUSPENDED_SALES_MARKET`** (`FormName.SUSPENDED_SALES_MARKET`), which shows a DataGrid (`ControlName.SUSPENDED_SALES_DATAGRID`) with a hidden **Id** column plus **Receipt No**, **Line count**, and **Total**. The **ACTIVATE** button (`EventName.RESUME_SALE`) loads the selected row’s head via `DocumentManager.resume_suspended_market_document`, sets `is_pending=False` and `transaction_status=active`, redraws **SALE** with `skip_history_update=True`, and calls `CurrentStatus.prepare_navigation_resume_sale_from_suspended_market()` so **BACK** on the sale screen does not return to the suspended list (same history as pressing **BACK** on the list, then continuing on **SALE**).
+- Startup recovery via `load_incomplete_document()` still only loads documents with `is_pending = False`; suspended carts are not auto-restored as the “current” sale.
 
 ### 4. Document Completion
 

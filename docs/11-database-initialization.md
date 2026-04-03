@@ -112,17 +112,24 @@ Inserts default transaction discount types:
 - **PRODUCT**: Product-specific discount
 
 ### `_insert_default_forms(session, cashier_id)`
-Creates essential forms (form_no 1–6):
+Creates essential forms (form_no 1–7):
 - **LOGIN** (1): Login screen with cashier selection combobox, password, and login/exit buttons
 - **MAIN_MENU** (2): Main menu with navigation buttons (Sales, Closure, Settings, Cashier Management, Logout)
 - **SETTING** (3): POS configuration form
 - **CASHIER** (4): Cashier management form with combobox-based multi-cashier selection
 - **SALE** (5): Point-of-sale transaction screen
 - **CLOSURE** (6): End-of-day closure screen
+- **SUSPENDED_SALES_MARKET** (7): Market-sector screen listing suspended (pending) sale documents in a DataGrid; **BACK** returns using form history
 - Forms include layout, colors, and display settings
 
 ### `_insert_form_controls(session, cashier_id)`
 Populates forms with controls (buttons, textboxes, labels, comboboxes, panels, etc.).
+
+**SALE form — payment column:** **CASH** and **CREDIT CARD** share the column with **SUSPEND** below them; **SUSPEND** uses the same height as **PLU** / **X** (90px) and fires `SUSPEND_SALE`.
+
+**SUSPENDED_SALES_MARKET form:** `SUSPENDED_SALES_DATAGRID` (hidden id + receipt no, line count, total), **ACTIVATE** (`RESUME_SALE`), and **BACK** button.
+
+**Closure model:** `Closure.suspended_transaction_count` stores how many suspended documents belonged to the closed period (pending permanent heads + pending temp heads for that closure number); they are not included in closure financial totals.
 
 **CASHIER form controls in detail:**
 - `CASHIER_MGMT_LIST` (COMBOBOX): Appears above the data panel. Admin users see all cashiers; non-admin users see only themselves. Fires `SELECT_CASHIER` event on selection change. Signals are blocked during initial population to prevent spurious redraws. Hidden during new-cashier entry mode.

@@ -1,7 +1,7 @@
 """
 SaleFlex.PyPOS - Point of Sale Application
 
-Copyright (c) 2025 Ferhat Mousavi
+Copyright (c) 2025-2026 Ferhat Mousavi
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -51,8 +51,9 @@ def _insert_form_controls(session: Session, cashier_id: str):
     cashier_form = session.query(Form).filter(Form.form_no == 4).first()
     sale_form = session.query(Form).filter(Form.form_no == 5).first()
     closure_form = session.query(Form).filter(Form.form_no == 6).first()
+    suspended_sales_market_form = session.query(Form).filter(Form.form_no == 7).first()
     
-    if not login_form or not sale_form or not main_menu_form or not config_form or not cashier_form or not closure_form:
+    if not login_form or not sale_form or not main_menu_form or not config_form or not cashier_form or not closure_form or not suspended_sales_market_form:
         logger.warning("Forms not found. Cannot insert form controls.")
         return
     
@@ -845,7 +846,7 @@ def _insert_form_controls(session: Session, cashier_id: str):
             type_no=1,
             type="BUTTON",
             width=150,
-            height=187,
+            height=137,
             location_x=396,
             location_y=404,
             start_position=None,
@@ -880,9 +881,9 @@ def _insert_form_controls(session: Session, cashier_id: str):
             type_no=1,
             type="BUTTON",
             width=150,
-            height=151,
+            height=111,
             location_x=396,
-            location_y=592,
+            location_y=541,
             start_position=None,
             caption1="CREDIT CARD",
             caption2=None,
@@ -901,6 +902,41 @@ def _insert_form_controls(session: Session, cashier_id: str):
             input_type="ALPHANUMERIC",
             text_image_relation=None,
             back_color="0xDDA0DD",  # Plum
+            fore_color="0x000000",
+            keyboard_value=None,
+            fk_cashier_create_id=cashier_id,
+            fk_cashier_update_id=cashier_id
+        ),
+        FormControl(
+            fk_form_id=sale_form.id,
+            fk_parent_id=None,
+            name="PAYMENT_SUSPEND",
+            form_control_function1=EventName.SUSPEND_SALE.value,
+            form_control_function2=None,
+            type_no=1,
+            type="BUTTON",
+            width=150,
+            height=90,
+            location_x=396,
+            location_y=652,
+            start_position=None,
+            caption1="SUSPEND",
+            caption2=None,
+            list_values=None,
+            dock=None,
+            alignment=None,
+            text_alignment="CENTER",
+            character_casing="UPPER",
+            font="Tahoma",
+            icon=None,
+            tool_tip="Suspend current sale or open suspended receipts list",
+            image=None,
+            image_selected=None,
+            font_auto_height=False,
+            font_size=14,
+            input_type="ALPHANUMERIC",
+            text_image_relation=None,
+            back_color="0xFF8C00",  # DarkOrange
             fore_color="0x000000",
             keyboard_value=None,
             fk_cashier_create_id=cashier_id,
@@ -1882,6 +1918,115 @@ def _insert_form_controls(session: Session, cashier_id: str):
             fk_cashier_update_id=cashier_id
         )
     ]
+
+    # Suspended sales list (market sector) — receipt no, line count, total
+    suspended_sales_market_controls = [
+        FormControl(
+            fk_form_id=suspended_sales_market_form.id,
+            fk_parent_id=None,
+            name=ControlName.SUSPENDED_SALES_DATAGRID.value,
+            form_control_function1=EventName.NONE.value,
+            form_control_function2=None,
+            type_no=9,
+            type="DATAGRID",
+            width=900,
+            height=520,
+            location_x=62,
+            location_y=50,
+            start_position=None,
+            caption1="Suspended receipts",
+            caption2=None,
+            list_values=None,
+            dock=None,
+            alignment=None,
+            text_alignment="CENTER",
+            character_casing="NORMAL",
+            font="Tahoma",
+            icon=None,
+            tool_tip="Pending suspended sale documents",
+            image=None,
+            image_selected=None,
+            font_auto_height=False,
+            font_size=11,
+            input_type="ALPHANUMERIC",
+            text_image_relation=None,
+            back_color="0xFFFFFF",
+            fore_color="0x000000",
+            keyboard_value=None,
+            fk_cashier_create_id=cashier_id,
+            fk_cashier_update_id=cashier_id
+        ),
+        FormControl(
+            fk_form_id=suspended_sales_market_form.id,
+            fk_parent_id=None,
+            name="ACTIVATE_SUSPENDED",
+            form_control_function1=EventName.RESUME_SALE.value,
+            form_control_function2=None,
+            type_no=1,
+            type="BUTTON",
+            width=200,
+            height=99,
+            location_x=62,
+            location_y=630,
+            start_position=None,
+            caption1="ACTIVATE",
+            caption2=None,
+            list_values=None,
+            dock=None,
+            alignment=None,
+            text_alignment="CENTER",
+            character_casing="UPPER",
+            font="Tahoma",
+            icon=None,
+            tool_tip="Resume selected suspended sale on the register",
+            image=None,
+            image_selected=None,
+            font_auto_height=False,
+            font_size=14,
+            input_type="ALPHANUMERIC",
+            text_image_relation=None,
+            back_color="0x228B22",
+            fore_color="0xFFFFFF",
+            keyboard_value=None,
+            fk_cashier_create_id=cashier_id,
+            fk_cashier_update_id=cashier_id
+        ),
+        FormControl(
+            fk_form_id=suspended_sales_market_form.id,
+            fk_parent_id=None,
+            name=ControlName.BACK.value,
+            form_control_function1=EventName.BACK.value,
+            form_control_function2=None,
+            type_no=1,
+            type="BUTTON",
+            width=125,
+            height=99,
+            location_x=880,
+            location_y=630,
+            start_position=None,
+            caption1="BACK",
+            caption2=None,
+            list_values=None,
+            dock=None,
+            alignment=None,
+            text_alignment="CENTER",
+            character_casing="UPPER",
+            font="Tahoma",
+            icon=None,
+            tool_tip="Return to previous screen",
+            image=None,
+            image_selected=None,
+            font_auto_height=False,
+            font_size=14,
+            input_type="ALPHANUMERIC",
+            text_image_relation=None,
+            back_color="0x4682B4",
+            fore_color="0xFFFFFF",
+            keyboard_value=None,
+            fk_cashier_create_id=cashier_id,
+            fk_cashier_update_id=cashier_id
+        ),
+    ]
     
     # Combine all controls
     all_controls = (
@@ -1894,7 +2039,8 @@ def _insert_form_controls(session: Session, cashier_id: str):
         main_menu_form_controls +
         config_form_controls +
         cashier_form_controls +
-        closure_form_controls
+        closure_form_controls +
+        suspended_sales_market_controls
     )
     
     # Add all controls to session

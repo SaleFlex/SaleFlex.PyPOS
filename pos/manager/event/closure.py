@@ -33,6 +33,7 @@ logger = get_logger(__name__)
 
 from data_layer.model import (
     TransactionHead,
+    TransactionHeadTemp,
     TransactionSequence,
     TransactionPayment,
     TransactionTax,
@@ -121,37 +122,69 @@ class ClosureEvent:
                 self._show_closure_error("Configuration error", "ClosureNumber sequence not found.")
                 return False
 
-            # Load transactions for this closure number
-            heads = TransactionHead.filter_by(
+            # Load transaction_head rows for this closure; pending (suspended) permanent
+            # heads are excluded from financial totals but counted separately.
+            heads_all = TransactionHead.filter_by(
                 closure_number=current_closure_number,
                 is_deleted=False,
             )
-            if not heads:
-                logger.debug("[CLOSURE] No transactions found for closure number", current_closure_number)
+            if heads_all is None:
+                heads_all = []
+            active_heads = [h for h in heads_all if not getattr(h, "is_pending", False)]
+            pending_perm_heads = [h for h in heads_all if getattr(h, "is_pending", False)]
+
+            with Engine().get_session() as session:
+                temp_pending_heads = (
+                    session.query(TransactionHeadTemp)
+                    .filter(
+                        TransactionHeadTemp.closure_number == current_closure_number,
+                        TransactionHeadTemp.is_pending == True,
+                        TransactionHeadTemp.is_deleted == False,
+                        TransactionHeadTemp.is_closed == False,
+                    )
+                    .all()
+                )
+
+            suspended_transaction_count = len(pending_perm_heads) + len(temp_pending_heads)
+
+            if not active_heads and suspended_transaction_count == 0:
+                logger.debug("[CLOSURE] No transactions found for closure number %s", current_closure_number)
                 self._show_closure_error(
                     "Closure not allowed",
                     f"No transactions found for closure number {current_closure_number}. Closure cannot be performed.",
                 )
                 return False
 
+            heads = active_heads
             head_ids = [h.id for h in heads]
 
             # Resolve store, pos, base currency from first transaction or pos_data
-            store_id, pos_id, base_currency_id = self._resolve_closure_context(heads)
+            store_id, pos_id, base_currency_id = self._resolve_closure_context(heads if heads else heads_all)
             if not store_id or not pos_id or not base_currency_id:
                 self._show_closure_error("Configuration error", "Store, POS or base currency not found.")
                 return False
 
-            # Compute period start/end from transactions or use now
+            # Period start/end from non-pending heads and suspended documents (temp + pending perm)
+            dates = []
+            for h in active_heads:
+                if getattr(h, "transaction_date_time", None):
+                    dates.append(h.transaction_date_time)
+            for h in pending_perm_heads:
+                if getattr(h, "transaction_date_time", None):
+                    dates.append(h.transaction_date_time)
+            for h in temp_pending_heads:
+                if getattr(h, "transaction_date_time", None):
+                    dates.append(h.transaction_date_time)
+
             closure_start_time = datetime.now()
             closure_end_time = datetime.now()
-            if heads:
-                dates = [h.transaction_date_time for h in heads]
+            if dates:
                 closure_start_time = min(dates)
                 closure_end_time = max(dates)
 
-            # Aggregate totals from transaction heads and related tables
+            # Aggregate totals from non-pending heads only
             totals = self._aggregate_closure_totals(head_ids, heads)
+            totals["suspended_transaction_count"] = suspended_transaction_count
 
             # Create main Closure record
             closure = self._create_closure_record(
@@ -403,6 +436,7 @@ class ClosureEvent:
             c.valid_transaction_count = totals["valid_transaction_count"]
             c.canceled_transaction_count = totals["canceled_transaction_count"]
             c.return_transaction_count = totals["return_transaction_count"]
+            c.suspended_transaction_count = totals.get("suspended_transaction_count", 0)
             c.expected_cash_amount = totals["expected_cash_amount"]
 
             if c.id:

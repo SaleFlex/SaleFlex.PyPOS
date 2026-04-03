@@ -67,6 +67,7 @@ class Closure(Model, CRUD, AuditMixin, SoftDeleteMixin):
     valid_transaction_count = Column(Integer, nullable=False, default=0)
     canceled_transaction_count = Column(Integer, nullable=False, default=0)
     return_transaction_count = Column(Integer, nullable=False, default=0)
+    suspended_transaction_count = Column(Integer, nullable=False, default=0)
     
     # Cash Management
     opening_cash_amount = Column(Numeric(15, 4), nullable=False, default=0)

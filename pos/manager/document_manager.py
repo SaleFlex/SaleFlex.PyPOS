@@ -226,7 +226,17 @@ class DocumentManager:
                     if conflict is None:
                         break  # This receipt_number is free
                     if not conflict.is_closed:
-                        # An open (unfinished) document already owns this number — reuse it
+                        if getattr(conflict, "is_pending", False):
+                            # Suspended cart still holds this receipt slot — take next number
+                            receipt_number += 1
+                            transaction_unique_id = f"{today_str}-{receipt_number:06d}"
+                            logger.debug(
+                                "[DEBUG] transaction_unique_id held by suspended document — "
+                                "trying receipt_number %s",
+                                receipt_number,
+                            )
+                            continue
+                        # An open active (non-pending) document owns this number — reuse it
                         conflict_head_id = conflict.id
                         logger.warning(
                             "[DEBUG] transaction_unique_id %s already exists (open) — "
@@ -469,12 +479,132 @@ class DocumentManager:
                 ),
                 "tips": TransactionTipTemp.filter_by(
                     fk_transaction_head_id=head_id, is_deleted=False
-                )
+                ),
+                "changes": TransactionChangeTemp.filter_by(
+                    fk_transaction_head_id=head_id, is_deleted=False
+                ),
             }
             
         except Exception as e:
             logger.error("[DEBUG] Error loading document data: %s", e)
     
+    def abandon_empty_open_document_if_any(self):
+        """
+        Soft-delete an empty non-pending open draft head if present.
+
+        Used before resuming a suspended document so two active temp heads are not left open.
+
+        Line counts and flags are read from the database — not only from in-memory
+        document_data lists, which can be stale after redraws and would otherwise
+        risk soft-deleting a suspended or active ticket (is_deleted=True on the head).
+        """
+        from data_layer.auto_save import AutoSaveModel
+        from data_layer.engine import Engine
+
+        dd = self.document_data
+        if not dd or not dd.get("head"):
+            return
+        head = dd["head"]
+        h = head.unwrap() if isinstance(head, AutoSaveModel) else head
+        hid = getattr(h, "id", None)
+        if not hid:
+            return
+
+        try:
+            with Engine().get_session() as session:
+                db_head = (
+                    session.query(TransactionHeadTemp)
+                    .filter(TransactionHeadTemp.id == hid)
+                    .first()
+                )
+                if not db_head or db_head.is_deleted:
+                    return
+                if db_head.is_pending or db_head.is_closed:
+                    return
+                if db_head.transaction_status == TransactionStatus.PENDING.value:
+                    return
+                n_prod = (
+                    session.query(TransactionProductTemp)
+                    .filter(
+                        TransactionProductTemp.fk_transaction_head_id == hid,
+                        TransactionProductTemp.is_deleted == False,
+                    )
+                    .count()
+                )
+                n_dept = (
+                    session.query(TransactionDepartmentTemp)
+                    .filter(
+                        TransactionDepartmentTemp.fk_transaction_head_id == hid,
+                        TransactionDepartmentTemp.is_deleted == False,
+                    )
+                    .count()
+                )
+                if n_prod + n_dept > 0:
+                    logger.debug(
+                        "[DOC] Skip abandon draft: head %s has DB lines (products=%s departments=%s)",
+                        hid,
+                        n_prod,
+                        n_dept,
+                    )
+                    return
+                db_head.is_deleted = True
+                session.add(db_head)
+                session.commit()
+            logger.info("[DOC] Abandoned empty draft head %s", hid)
+        except Exception as e:
+            logger.warning("[DOC] Could not abandon empty draft: %s", e)
+            return
+
+        self.document_data = None
+
+    def resume_suspended_market_document(self, head_id):
+        """
+        Clear pending flag and load a suspended TransactionHeadTemp as the active document.
+
+        Args:
+            head_id: UUID of the suspended temp head
+
+        Returns:
+            bool: True if resumed and loaded into document_data
+        """
+        from uuid import UUID
+        from data_layer.engine import Engine
+
+        try:
+            hid = head_id if isinstance(head_id, UUID) else UUID(str(head_id))
+        except (ValueError, TypeError) as e:
+            logger.warning("[RESUME] Invalid head id: %s (%s)", head_id, e)
+            return False
+
+        try:
+            with Engine().get_session() as session:
+                head = (
+                    session.query(TransactionHeadTemp)
+                    .filter(
+                        TransactionHeadTemp.id == hid,
+                        TransactionHeadTemp.is_deleted == False,
+                    )
+                    .first()
+                )
+                if not head:
+                    logger.warning("[RESUME] Head not found: %s", hid)
+                    return False
+                if not head.is_pending:
+                    logger.warning("[RESUME] Head is not pending: %s", hid)
+                    return False
+                head.is_pending = False
+                head.transaction_status = TransactionStatus.ACTIVE.value
+                session.add(head)
+                session.commit()
+
+            self._load_document_data(hid)
+            self._update_statusbar()
+            logger.info("[RESUME] Loaded suspended document %s as active", hid)
+            return bool(self.document_data)
+        except Exception as e:
+            logger.error("[RESUME] Error resuming document: %s", e)
+            return False
+
     def _load_document_data_dict(self, head_id):
         """
         Load all transaction temp models for a given transaction head ID.
@@ -891,4 +1021,61 @@ class DocumentManager:
         except Exception as e:
             logger.error("[DEBUG] Error setting document pending: %s", e)
             return False
+
+    def get_suspended_market_receipt_rows(self):
+        """
+        Build column headers and grid rows for pending (suspended) temp sale documents.
+
+        Used by the SUSPENDED_SALES_MARKET form DataGrid: receipt number, combined
+        product/department line count, and document total.
+
+        Returns:
+            tuple: (list of column titles, list of row value lists)
+        """
+        from data_layer.engine import Engine
+
+        columns = ["Id", "Receipt No", "Line count", "Total"]
+        rows = []
+        try:
+            with Engine().get_session() as session:
+                pending_heads = (
+                    session.query(TransactionHeadTemp)
+                    .filter(
+                        TransactionHeadTemp.is_pending == True,
+                        TransactionHeadTemp.is_deleted == False,
+                        TransactionHeadTemp.is_closed == False,
+                    )
+                    .order_by(TransactionHeadTemp.transaction_date_time.desc())
+                    .all()
+                )
+                for head in pending_heads:
+                    n_prod = (
+                        session.query(TransactionProductTemp)
+                        .filter(TransactionProductTemp.fk_transaction_head_id == head.id)
+                        .count()
+                    )
+                    n_dept = (
+                        session.query(TransactionDepartmentTemp)
+                        .filter(TransactionDepartmentTemp.fk_transaction_head_id == head.id)
+                        .count()
+                    )
+                    line_count = n_prod + n_dept
+                    total = head.total_amount
+                    if total is None:
+                        total_amt = 0.0
+                    else:
+                        total_amt = float(total)
+                    rows.append(
+                        [
+                            str(head.id),
+                            str(head.receipt_number),
+                            str(line_count),
+                            f"{total_amt:.2f}",
+                        ]
+                    )
+        except Exception as e:
+            logger.error("[DEBUG] get_suspended_market_receipt_rows: %s", e)
+            return columns, []
+
+        return columns, rows
 

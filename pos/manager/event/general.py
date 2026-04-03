@@ -1,7 +1,7 @@
 """
 SaleFlex.PyPOS - Point of Sale Application
 
-Copyright (c) 2025 Ferhat Mousavi
+Copyright (c) 2025-2026 Ferhat Mousavi
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -45,6 +45,17 @@ class GeneralEvent:
     All methods follow the pattern of returning True on success, False on failure,
     and handle authentication checks where appropriate.
     """
+    
+    def show_form(self, form_name: str) -> bool:
+        """
+        Navigate the main window to a form by its database name (e.g. FormName.CLOSURE.name).
+        """
+        try:
+            self.interface.redraw(form_name=form_name)
+            return True
+        except Exception as e:
+            logger.error("show_form failed for %s: %s", form_name, e)
+            return False
     
     # ==================== APPLICATION LIFECYCLE EVENTS ====================
     

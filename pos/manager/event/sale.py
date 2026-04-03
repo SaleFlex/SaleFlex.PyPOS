@@ -2202,8 +2202,54 @@ class SaleEvent:
         Returns:
             bool: True if sale suspended successfully, False otherwise
         """
-        logger.warning("Suspend sale event - method not implemented yet")
-        return False
+        from data_layer.enums import FormName
+        from data_layer.auto_save import AutoSaveModel
+        from data_layer.model.definition.transaction_status import TransactionStatus
+
+        if not self.login_succeed:
+            return False
+
+        dd = self.document_data
+        if dd and dd.get("head"):
+            products = dd.get("products") or []
+            departments = dd.get("departments") or []
+            line_count = len(products) + len(departments)
+            if line_count == 0:
+                # New DRAFT (or any empty open document) before first line: show parked-sales list
+                self.interface.redraw(form_name=FormName.SUSPENDED_SALES_MARKET.name)
+                logger.info("[SUSPEND_SALE] Empty cart — opened suspended sales list")
+                return True
+
+            head = dd["head"]
+            head_obj = head.unwrap() if isinstance(head, AutoSaveModel) else head
+            if getattr(head_obj, "is_pending", False):
+                logger.warning("[SUSPEND_SALE] Document already marked pending")
+                return False
+
+            status = getattr(head_obj, "transaction_status", None)
+            if status not in (
+                TransactionStatus.ACTIVE.value,
+                TransactionStatus.DRAFT.value,
+            ):
+                logger.info("[SUSPEND_SALE] Not in suspendable status: %s", status)
+                return False
+
+            if not self.set_document_pending(True):
+                logger.error("[SUSPEND_SALE] set_document_pending failed")
+                return False
+
+            self.document_data = None
+            if not self.create_empty_document():
+                logger.error("[SUSPEND_SALE] Failed to create new draft after suspend")
+            self.interface.redraw(form_name=FormName.SALE.name)
+            from PySide6.QtCore import QTimer
+            QTimer.singleShot(100, self._update_sale_screen_controls)
+            logger.info("[SUSPEND_SALE] Sale suspended; new draft created and UI refreshed")
+            return True
+
+        self.interface.redraw(form_name=FormName.SUSPENDED_SALES_MARKET.name)
+        logger.info("[SUSPEND_SALE] Opened suspended sales list (market)")
+        return True
     
     def _resume_sale_event(self):
         """
@@ -2215,8 +2261,46 @@ class SaleEvent:
         Returns:
             bool: True if sale resumed successfully, False otherwise
         """
-        logger.warning("Resume sale event - method not implemented yet")
-        return False
+        from data_layer.enums import FormName, ControlName
+        from user_interface.control.datagrid import DataGrid
+        from PySide6.QtWidgets import QApplication
+
+        if not self.login_succeed:
+            return False
+
+        window = QApplication.instance().activeWindow() if QApplication.instance() else None
+        if not window:
+            return False
+
+        grid = None
+        for w in window.findChildren(DataGrid):
+            if getattr(w, "name", None) == ControlName.SUSPENDED_SALES_DATAGRID.value:
+                grid = w
+                break
+        if not grid:
+            logger.warning("[RESUME_SALE] Suspended sales grid not found")
+            return False
+
+        row = grid.get_selected_row()
+        if not row:
+            logger.info("[RESUME_SALE] No row selected")
+            return False
+
+        head_id_str = row[0].strip() if row[0] else ""
+        if not head_id_str:
+            return False
+
+        self.abandon_empty_open_document_if_any()
+
+        if not self.resume_suspended_market_document(head_id_str):
+            return False
+
+        self.prepare_navigation_resume_sale_from_suspended_market()
+        self.interface.redraw(form_name=FormName.SALE.name, skip_history_update=True)
+        from PySide6.QtCore import QTimer
+        QTimer.singleShot(100, self._update_sale_screen_controls)
+        logger.info("[RESUME_SALE] Resumed document %s", head_id_str)
+        return True
     
     def _suspend_list_event(self):
         """

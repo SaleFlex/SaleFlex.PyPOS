@@ -1,7 +1,7 @@
 """
 SaleFlex.PyPOS - Point of Sale Application
 
-Copyright (c) 2025 Ferhat Mousavi
+Copyright (c) 2025-2026 Ferhat Mousavi
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -922,6 +922,17 @@ class BaseWindow(QMainWindow):
             except Exception as e:
                 import traceback
                 logger.exception("Error loading closure data: %s", e)
+                datagrid.set_columns(["No Data Available"])
+                datagrid.set_data([])
+        
+        elif name_key == ControlName.SUSPENDED_SALES_DATAGRID.value:
+            try:
+                cols, data_rows = self.app.get_suspended_market_receipt_rows()
+                datagrid.set_columns(cols)
+                datagrid.set_data(data_rows)
+                datagrid.setColumnHidden(0, True)
+            except Exception as e:
+                logger.exception("Error loading suspended sales list: %s", e)
                 datagrid.set_columns(["No Data Available"])
                 datagrid.set_data([])
         

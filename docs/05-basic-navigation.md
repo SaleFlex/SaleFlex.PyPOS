@@ -75,7 +75,7 @@ Result: 3× Coca-Cola added to sale list
 #### Mode 3 — PLU (inquiry) and X (Quantity Multiplier) Buttons
 
 Below the payment list, the **SALE** form has **two** buttons on one row: **PLU** (left)
-and **X** (right). **PLU** is for **price / warehouse stock lookup** only (see the note
+and **X** (right), and **SUSPEND** aligns with that row in the payment column (under **CASH** / **CREDIT CARD**). **PLU** is for **price / warehouse stock lookup** only (see the note
 under Mode 1 and the **PLU inquiry** example below). **X** is the quantity multiplier.
 
 For workflows that involve barcode scanning (where you cannot type then click
@@ -122,6 +122,19 @@ NumPad: 10000  → CASH
 Result: £100.00 cash payment recorded
 Change is calculated if total was less than £100.00
 ```
+
+---
+
+#### SUSPEND (market — hold sale or open suspended list)
+
+Below **CASH** and **CREDIT CARD**, the **SUSPEND** button matches the height of **PLU** and **X** on the same row.
+
+| Situation | What happens |
+|-----------|----------------|
+| Open sale with at least one line (product or department) | The document is marked **pending** in the database (`is_pending = True`, `transaction_status = pending`). A **new empty draft** is created for the next sale, and the sale screen is refreshed so you are not still tied to the suspended receipt number. |
+| No open document (or only an empty document with no lines) | The **Suspended Sales (Market)** form opens: a table of suspended receipts with **Receipt No**, **Line count**, and **Total** (an internal **Id** column is hidden). Select a row and press **ACTIVATE** to resume that cart on the sale screen (`is_pending` cleared, status **active**). Use **BACK** to return to the previous screen. |
+
+Other business types (for example restaurants) can use different list forms in the future; the default seeded form targets **market / retail** suspended carts.
 
 ---
 

@@ -729,6 +729,17 @@ class DynamicDialog(QDialog):
                 datagrid.set_columns(["No Data Available"])
                 datagrid.set_data([])
         
+        elif name_key == ControlName.SUSPENDED_SALES_DATAGRID.value:
+            try:
+                cols, data_rows = self.app.get_suspended_market_receipt_rows()
+                datagrid.set_columns(cols)
+                datagrid.set_data(data_rows)
+                datagrid.setColumnHidden(0, True)
+            except Exception as e:
+                logger.exception("Error loading suspended sales list: %s", e)
+                datagrid.set_columns(["No Data Available"])
+                datagrid.set_data([])
+        
         datagrid.show()
 
     def _create_panel(self, design_data):

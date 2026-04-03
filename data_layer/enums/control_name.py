@@ -160,4 +160,5 @@ class ControlName(enum.Enum):
     BACKCOLOR_TOTAL = "BACKCOLOR_TOTAL"
     
     # Data Display Controls
-    DATAGRID = "DATAGRID" 
+    DATAGRID = "DATAGRID"
+    SUSPENDED_SALES_DATAGRID = "SUSPENDED_SALES_DATAGRID"
