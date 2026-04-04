@@ -60,6 +60,28 @@ control.form_transition_mode = "MODAL"  # Correct (uppercase)
 2. Check that theme name doesn't conflict with existing themes
 3. Activate the theme by setting `is_active=True`
 
+## Closure Issues
+
+### Closure Number Resets to 1 After a New Day
+
+**Symptom:** After midnight (or after restarting the application on a new calendar day), the first closure of the new day is numbered 1 instead of continuing from where it left off.
+
+**Root cause (fixed in `closure_manager.py`):** The old implementation of `create_empty_closure()` calculated the next closure number as `max(closure_number WHERE closure_date = today) + 1`. On a new day there are no closures yet, so the query returned `None` and the number defaulted to 1. `_sync_closure_number_sequence()` then synchronised `transaction_sequence.ClosureNumber` down to 1, overwriting the correctly incremented global counter.
+
+**Fix:** `create_empty_closure()` now reads the next closure number directly from `transaction_sequence.ClosureNumber` (the global monotonic counter). `_sync_closure_number_sequence()` also guards against syncing downward — it only corrects the DB value upward.
+
+**If you observe this in an existing database**, the `transaction_sequence.ClosureNumber` row may already have been reset. You can correct it manually:
+
+```sql
+-- Find the real highest closure_number across all days
+SELECT MAX(closure_number) FROM closure WHERE is_deleted = 0;
+
+-- Update the sequence to match
+UPDATE transaction_sequence SET value = <result above> WHERE name = 'ClosureNumber';
+```
+
+After the fix is applied, the counter will be maintained correctly across day boundaries and restarts.
+
 ---
 
 [← Back to Table of Contents](README.md) | [Previous: Database Initialization Functions](11-database-initialization.md) | [Next: Support and Resources →](13-support.md)

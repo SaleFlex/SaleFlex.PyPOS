@@ -59,8 +59,10 @@ The **closure operation** is triggered when an authorized cashier presses the CL
      - Row with `name = "ReceiptNumber"`: set `value = 1`.  
    - Then refresh `pos_data` for `TransactionSequence` so the next document uses the new values.
 
-9. **Update current_data**  
-   - Call `create_empty_closure()` so that the in-memory closure (`CurrentData.closure`) is set to a new open closure for the next period.
+9. **Create new open closure**  
+   - Call `create_empty_closure()` which reads the new `ClosureNumber` value directly from `transaction_sequence` (the global monotonic counter just incremented in step 8) and creates a new open `Closure` row with that number.  
+   - This sets `CurrentData.closure` to the new open closure for the next period.  
+   - **Important:** `create_empty_closure()` must always source the next closure number from `transaction_sequence.ClosureNumber`, not from `max(closure_number WHERE closure_date = today)`. The per-day approach resets to 1 at the start of each new calendar day, overwriting the global counter.
 
 10. **Return**  
    - On success: `True`.  
@@ -81,6 +83,18 @@ The **closure operation** is triggered when an authorized cashier presses the CL
 
 ## Result
 
-- One new `Closure` row and multiple summary rows are stored.  
-- The next sale will use `ClosureNumber = current + 1` and `ReceiptNumber = 1`.  
-- In-memory closure (e.g. in `CurrentData.closure`) is not modified by this flow; this operation only writes the closure batch to the database and advances sequences.
+- One closed `Closure` row and multiple summary rows are stored in the database.  
+- A new open `Closure` row is created for the next period (see step 9).  
+- `CurrentData.closure` is updated to the new open closure.  
+- The next sale will use `ClosureNumber = current + 1` and `ReceiptNumber = 1`.
+
+## Closure Number Sequencing
+
+`transaction_sequence.ClosureNumber` is a **global monotonic counter** — it never resets across calendar days or application restarts.
+
+| Who reads it | When | Purpose |
+|---|---|---|
+| `ClosureEvent._closure_event()` | On CLOSURE button press | Identifies which transactions belong to the batch being closed |
+| `ClosureManager.create_empty_closure()` | After closure or at startup | Sets the `closure_number` on the new open closure |
+
+**`_sync_closure_number_sequence()`** (called from `load_open_closure` and `create_empty_closure`) synchronises the DB row **upward only** — if the active closure's number is greater than the DB value, it corrects the DB. It never decreases the counter, preventing any per-day reset from corrupting the sequence.

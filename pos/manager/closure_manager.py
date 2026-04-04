@@ -229,20 +229,19 @@ class ClosureManager:
                     # In production, you might want to create a system cashier or handle this differently
                     return
             
-            # Get next closure number (daily sequence)
             today = date.today()
-            
-            # Find the highest closure_number for today using Engine for complex query
-            # CRUD.filter_by() doesn't support date comparison and ordering yet
+
+            # Read the next closure number from transaction_sequence (global monotonic counter).
+            # This avoids a per-day reset: querying max(closure_number WHERE date=today)
+            # returns None on a new day, which would reset the counter to 1 and cause
+            # _sync_closure_number_sequence() to overwrite the correctly-incremented DB value.
+            from data_layer.model import TransactionSequence
             with Engine().get_session() as session:
-                max_closure = session.query(Closure).filter(
-                    Closure.closure_date == today,
-                    Closure.is_deleted == False
-                ).order_by(Closure.closure_number.desc()).first()
-            
-            next_closure_number = 1
-            if max_closure:
-                next_closure_number = max_closure.closure_number + 1
+                seq = session.query(TransactionSequence).filter(
+                    TransactionSequence.name == "ClosureNumber",
+                    TransactionSequence.is_deleted == False
+                ).first()
+                next_closure_number = seq.value if (seq and seq.value) else 1
             
             # Create unique ID
             closure_unique_id = f"{today.strftime('%Y%m%d')}-{next_closure_number:04d}"
@@ -312,12 +311,20 @@ class ClosureManager:
                     return
 
                 if seq.value != active_closure_number:
-                    logger.info(
-                        "[ClosureManager] Syncing ClosureNumber sequence: %s -> %s",
-                        seq.value, active_closure_number
-                    )
-                    seq.value = active_closure_number
-                    session.commit()
+                    if active_closure_number > seq.value:
+                        # Only sync upward — the global counter must never decrease.
+                        logger.info(
+                            "[ClosureManager] Syncing ClosureNumber sequence UP: %s -> %s",
+                            seq.value, active_closure_number
+                        )
+                        seq.value = active_closure_number
+                        session.commit()
+                    else:
+                        logger.warning(
+                            "[ClosureManager] Skipping ClosureNumber sync DOWN: DB=%s, active=%s. "
+                            "create_empty_closure should always read from transaction_sequence.",
+                            seq.value, active_closure_number
+                        )
 
             # Refresh in-memory pos_data cache so document creation picks up the new value
             if hasattr(self, 'refresh_pos_data_model'):

@@ -38,6 +38,6 @@
 
 ---
 
-**Last Updated:** 2026-04-03  
+**Last Updated:** 2026-04-04  
 **Version:** 1.0.0b5  
 **License:** MIT
