@@ -926,5 +926,5 @@ else:
 
 ---
 
-[← Back to Table of Contents](README.md) | [Previous: Basic Navigation](05-basic-navigation.md) | [Next: Virtual Keyboard Configuration →](07-virtual-keyboard.md)
+[← Back to Table of Contents](README.md) | [Previous: Database Models](21-database-models.md) | [Next: UI Controls Catalog →](23-ui-controls.md)
 

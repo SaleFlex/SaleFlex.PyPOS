@@ -319,3 +319,7 @@ inside `DynamicDialog`.
 | `user_interface/render/dynamic_renderer.py` | Modified | Handles `TABCONTROL` type + `FormControlTab` loading |
 | `user_interface/window/base_window.py` | Modified | `_create_tab_control()` (QVBoxLayout pages), `keyboard.hide()`, `_get_current_product()` + populate helpers |
 | `user_interface/window/dynamic_dialog.py` | Modified | Same as `base_window.py`; also `keyboard.hide()` |
+
+---
+
+[← Back to Table of Contents](README.md) | [Previous: Cashier Management](14-cashier-management.md) | [Next: Project Structure →](20-project-structure.md)

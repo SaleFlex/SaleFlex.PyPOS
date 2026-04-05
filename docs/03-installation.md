@@ -80,5 +80,5 @@ pip install -r requirements.txt
 
 ---
 
-[← Back to Table of Contents](README.md) | [Previous: System Requirements](02-system-requirements.md) | [Next: First Login →](04-first-login.md)
+[← Back to Table of Contents](README.md) | [Previous: System Requirements](02-system-requirements.md) | [Next: Configuration →](04-configuration.md)
 

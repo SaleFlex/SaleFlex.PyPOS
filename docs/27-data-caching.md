@@ -331,5 +331,5 @@ self.close_closure(
 
 ---
 
-[← Back to Table of Contents](README.md) | [Previous: Virtual Keyboard Configuration](07-virtual-keyboard.md) | [Next: Document Management System →](09-document-management.md)
+[← Back to Table of Contents](README.md) | [Previous: Document Management](26-document-management.md) | [Next: Peripherals →](30-peripherals.md)
 

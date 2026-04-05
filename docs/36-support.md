@@ -44,4 +44,4 @@ Copyright (c) 2026 Ferhat Mousavi
 
 ---
 
-[← Back to Table of Contents](README.md) | [Previous: Troubleshooting](12-troubleshooting.md)
+[← Back to Table of Contents](README.md) | [Previous: Troubleshooting](35-troubleshooting.md)

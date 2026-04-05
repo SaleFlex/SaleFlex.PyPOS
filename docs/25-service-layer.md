@@ -429,3 +429,7 @@ When `update_sale_screen_controls()` is called:
 
 This functionality is automatically triggered when entering the sale screen (`_sales_form()` method). The restoration happens after the form is redrawn using a `QTimer` to ensure controls are created before updating.
 
+---
+
+[← Back to Table of Contents](README.md) | [Previous: Event System](24-event-system.md) | [Next: Document Management →](26-document-management.md)
+

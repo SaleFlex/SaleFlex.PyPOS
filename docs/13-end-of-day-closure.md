@@ -98,3 +98,7 @@ The **closure operation** is triggered when an authorized cashier presses the CL
 | `ClosureManager.create_empty_closure()` | After closure or at startup | Sets the `closure_number` on the new open closure |
 
 **`_sync_closure_number_sequence()`** (called from `load_open_closure` and `create_empty_closure`) synchronises the DB row **upward only** — if the active closure's number is greater than the DB value, it corrects the DB. It never decreases the counter, preventing any per-day reset from corrupting the sequence.
+
+---
+
+[← Back to Table of Contents](README.md) | [Previous: Cancellations](12-cancellations.md) | [Next: Cashier Management →](14-cashier-management.md)

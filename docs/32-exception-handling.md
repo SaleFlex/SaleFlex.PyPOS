@@ -129,3 +129,7 @@ except TaxCalculationError as e:
 ---
 
 **See also:** [Central Logging](16-logging.md) | [Service Layer Architecture](14-service-layer.md) | [Troubleshooting](12-troubleshooting.md)
+
+---
+
+[← Back to Table of Contents](README.md) | [Previous: Central Logging](31-logging.md) | [Next: Database Initialization →](33-database-initialization.md)

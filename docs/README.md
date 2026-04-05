@@ -1,52 +1,83 @@
-# SaleFlex.PyPOS Documentation
+﻿# SaleFlex.PyPOS Documentation
 
-Welcome to the SaleFlex.PyPOS documentation. This directory contains the complete user and developer guide for the SaleFlex.PyPOS point-of-sale application.
-
-## Table of Contents
-
-1. [Introduction](01-introduction.md) — Overview, key features, default credentials
-2. [System Requirements](02-system-requirements.md) — Hardware, software, and database requirements
-3. [Installation Guide](03-installation.md) — Step-by-step setup instructions
-4. [First Login](04-first-login.md) — Default credentials, role differences, and post-login flow
-5. [Basic Navigation](05-basic-navigation.md) — Main menu, NumPad modes, sale processing, SUSPEND/CANCEL/REPEAT/DELETE, cashier management
-6. [Dynamic Forms System](06-dynamic-forms.md) — Database-driven UI forms, Panel controls, CheckBox, form transitions, generic save pattern
-7. [Virtual Keyboard Configuration](07-virtual-keyboard.md) — Database-driven keyboard themes, enable/disable, custom themes
-8. [Data Caching Strategy](08-data-caching.md) — `pos_data` and `product_data` caches, closure management, auto-save system
-9. [Document Management System](09-document-management.md) — Transaction lifecycle, suspend/resume, line cancellation, full document cancellation, payment flow
-10. [Database Models Overview](10-database-models.md) — 98+ models, country-specific closure templates, model features
-11. [Database Initialization Functions](11-database-initialization.md) — Seed data, initialization order, function details
-12. [Troubleshooting](12-troubleshooting.md) — Common issues, database problems, closure issues, sale issues
-13. [Support and Resources](13-support.md) — GitHub, issue tracker, donations, legal
-14. [Service Layer Architecture](14-service-layer.md) — VatService, SaleService, PaymentService, REPEAT/DELETE handlers
-15. [Closure Operation (End-of-Day)](15-closure-operation.md) — Authorization, aggregation flow, sequence management
-16. [Central Logging](16-logging.md) — `core/logger.py` configuration, log format, usage
-17. [Centralized Exception Handling](17-exception-handling.md) — `SaleFlexError` hierarchy, usage patterns, design guidelines
-18. [Peripherals (OPOS-style devices)](18-peripherals.md) — Cash drawer, receipt printer, line display, stubs
-19. [Startup Entry Point](19-startup-entry-point.md) — Working-directory fix, Python version guard, single-instance lock, global exception handler
-20. [Product Management](20-product-management.md) — TabControl widget, FormControlTab model, Product List form (search), Product Detail dialog (DB-driven, 4-tab view), UUID handling, VirtualKeyboard hide fix
+Complete user and developer guide for the SaleFlex.PyPOS point-of-sale application.
 
 ---
 
-## Quick Links
+## Part 1 — Getting Started
+
+| # | Document | Summary |
+|---|----------|---------|
+| 1 | [Introduction](01-introduction.md) | Overview, key features, application screens, default credentials |
+| 2 | [System Requirements](02-system-requirements.md) | Hardware, software, and supported database backends |
+| 3 | [Installation Guide](03-installation.md) | Step-by-step setup (Python, venv, pip, first run) |
+| 4 | [Configuration](04-configuration.md) | `settings.toml` reference + POS Settings (database) |
+| 5 | [First Login](05-first-login.md) | Default credentials, role differences, automatic document recovery |
+| 6 | [Virtual Keyboard Configuration](06-virtual-keyboard.md) | DB-driven keyboard themes, enable/disable, custom themes |
+
+---
+
+## Part 2 — Daily Operations
+
+| # | Document | Summary |
+|---|----------|---------|
+| 10 | [Sale Transactions](10-sale-transactions.md) | NumPad modes, adding products, payments, Item Actions (REPEAT / DELETE) |
+| 11 | [Suspend and Resume Sales](11-suspend-resume.md) | SUSPEND button, parked carts, market mode, Suspended Sales list |
+| 12 | [Cancellations](12-cancellations.md) | Line cancellation (DELETE), full document cancellation (CANCEL) |
+| 13 | [End-of-Day Closure](13-end-of-day-closure.md) | Authorization, aggregation flow, sequence management |
+| 14 | [Cashier Management](14-cashier-management.md) | Create/edit cashiers, role permissions, ADD NEW CASHIER |
+| 15 | [Product Management](15-product-management.md) | Product List search, Product Detail tabbed dialog |
+
+---
+
+## Part 3 — Architecture (Developer)
+
+| # | Document | Summary |
+|---|----------|---------|
+| 20 | [Project Structure](20-project-structure.md) | Folder layout, class inheritance chain, startup sequence, design patterns |
+| 21 | [Database Models Overview](21-database-models.md) | 98+ models organized by domain, temp/permanent split, country-specific templates |
+| 22 | [Dynamic Forms System](22-dynamic-forms-system.md) | DB-driven UI forms, Panel controls, CheckBox, form transitions, generic save pattern |
+| 23 | [UI Controls Catalog](23-ui-controls.md) | All custom Qt widgets: Button, TextBox, NumPad, SaleList, TabControl, ... |
+| 24 | [Event System](24-event-system.md) | EventHandler, `event_distributor()`, all event categories with handler mapping |
+| 25 | [Service Layer](25-service-layer.md) | VatService, SaleService, PaymentService, REPEAT/DELETE handlers |
+| 26 | [Document Management](26-document-management.md) | Transaction lifecycle, suspend/resume, line cancellation, payment flow |
+| 27 | [Data Caching](27-data-caching.md) | `pos_data` / `product_data` caches, AutoSave system, closure management |
+
+---
+
+## Part 4 — Operations & Maintenance
+
+| # | Document | Summary |
+|---|----------|---------|
+| 30 | [Peripherals](30-peripherals.md) | Cash drawer, receipt printer, line display, scanner, scale — OPOS-style stubs |
+| 31 | [Central Logging](31-logging.md) | `core/logger.py` configuration, log format, usage patterns |
+| 32 | [Exception Handling](32-exception-handling.md) | `SaleFlexError` hierarchy, usage patterns, design guidelines |
+| 33 | [Database Initialization](33-database-initialization.md) | Seed data functions, initialization order, adding new seed data |
+| 34 | [Startup Entry Point](34-startup-entry-point.md) | Working-directory fix, Python version guard, single-instance lock, global exception handler |
+| 35 | [Troubleshooting](35-troubleshooting.md) | Common issues, database problems, closure issues, sale issues |
+| 36 | [Support and Resources](36-support.md) | GitHub, issue tracker, donations, license |
+
+---
+
+## Quick Reference
 
 | Topic | Document |
 |-------|----------|
-| Getting started | [Installation Guide](03-installation.md) |
-| First time use | [First Login](04-first-login.md) |
-| Processing sales | [Basic Navigation](05-basic-navigation.md) |
-| End-of-day | [Closure Operation](15-closure-operation.md) |
-| Cashier accounts | [Basic Navigation — Cashier Management](05-basic-navigation.md#cashier-management) |
-| UI customization | [Dynamic Forms System](06-dynamic-forms.md) |
-| Database schema | [Database Models Overview](10-database-models.md) |
-| Logging setup | [Central Logging](16-logging.md) |
-| Error handling | [Centralized Exception Handling](17-exception-handling.md) |
-| Hardware devices | [Peripherals](18-peripherals.md) |
-| Startup guards | [Startup Entry Point](19-startup-entry-point.md) |
-| Common errors | [Troubleshooting](12-troubleshooting.md) |
-| Product management | [Product Management](20-product-management.md) |
+| First time setup | [Installation Guide](03-installation.md) -> [Configuration](04-configuration.md) -> [First Login](05-first-login.md) |
+| Processing a sale | [Sale Transactions](10-sale-transactions.md) |
+| End-of-day | [End-of-Day Closure](13-end-of-day-closure.md) |
+| Cashier accounts | [Cashier Management](14-cashier-management.md) |
+| UI customization | [Dynamic Forms System](22-dynamic-forms-system.md) |
+| Database schema | [Database Models Overview](21-database-models.md) |
+| Event wiring | [Event System](24-event-system.md) |
+| Logging setup | [Central Logging](31-logging.md) |
+| Error handling | [Exception Handling](32-exception-handling.md) |
+| Hardware devices | [Peripherals](30-peripherals.md) |
+| Startup guards | [Startup Entry Point](34-startup-entry-point.md) |
+| Common errors | [Troubleshooting](35-troubleshooting.md) |
 
 ---
 
-**Last Updated:** 2026-04-05  
-**Version:** 1.0.0b6  
+**Last Updated:** 2026-04-05
+**Version:** 1.0.0b6
 **License:** MIT

@@ -255,5 +255,5 @@ All models include:
 
 ---
 
-[← Back to Table of Contents](README.md) | [Previous: Document Management System](09-document-management.md) | [Next: Database Initialization Functions →](11-database-initialization.md)
+[← Back to Table of Contents](README.md) | [Previous: Project Structure](20-project-structure.md) | [Next: Dynamic Forms System →](22-dynamic-forms-system.md)
 

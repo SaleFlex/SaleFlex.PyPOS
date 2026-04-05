@@ -46,3 +46,7 @@ Default singleton-style accessors: `get_default_cash_drawer()`, `get_default_pos
 - [Document Management](09-document-management.md) — transaction lifecycle and temp/permanent models.
 - [Service Layer](14-service-layer.md) — `SaleService` / `PaymentService` and document completion rules.
 - [Central Logging](16-logging.md) — where peripheral log lines appear.
+
+---
+
+[← Back to Table of Contents](README.md) | [Previous: Data Caching](27-data-caching.md) | [Next: Central Logging →](31-logging.md)

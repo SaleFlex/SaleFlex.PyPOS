@@ -183,5 +183,4 @@ To customize initial data:
 
 ---
 
-[← Back to Table of Contents](README.md) | [Previous: Database Models Overview](10-database-models.md) | [Next: Troubleshooting →](12-troubleshooting.md)
-
+[← Back to Table of Contents](README.md) | [Previous: Exception Handling](32-exception-handling.md) | [Next: Startup Entry Point →](34-startup-entry-point.md)

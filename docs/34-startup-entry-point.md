@@ -252,4 +252,4 @@ under normal operation.  See [Centralized Exception Handling](17-exception-handl
 
 ---
 
-[← Back to Table of Contents](README.md) | [Previous: Peripherals](18-peripherals.md)
+[← Back to Table of Contents](README.md) | [Previous: Database Initialization](33-database-initialization.md) | [Next: Troubleshooting →](35-troubleshooting.md)

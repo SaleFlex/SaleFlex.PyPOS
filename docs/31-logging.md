@@ -90,3 +90,7 @@ The central logger is used across the application, including:
 ---
 
 **See also:** [Troubleshooting](12-troubleshooting.md) | [Configuration (settings.toml)](03-installation.md#configuration)
+
+---
+
+[← Back to Table of Contents](README.md) | [Previous: Peripherals](30-peripherals.md) | [Next: Exception Handling →](32-exception-handling.md)

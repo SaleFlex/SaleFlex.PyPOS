@@ -52,4 +52,4 @@ When logging in, the system automatically checks for any incomplete (non-pending
 
 ---
 
-[← Back to Table of Contents](README.md) | [Previous: Installation Guide](03-installation.md) | [Next: Basic Navigation →](05-basic-navigation.md)
+[← Back to Table of Contents](README.md) | [Previous: Configuration](04-configuration.md) | [Next: Virtual Keyboard Configuration →](06-virtual-keyboard.md)

@@ -624,5 +624,5 @@ self.set_document_pending(is_pending=False)
 
 ---
 
-[← Back to Table of Contents](README.md) | [Previous: Data Caching Strategy](08-data-caching.md) | [Next: Database Models Overview →](10-database-models.md)
+[← Back to Table of Contents](README.md) | [Previous: Service Layer](25-service-layer.md) | [Next: Data Caching →](27-data-caching.md)
 

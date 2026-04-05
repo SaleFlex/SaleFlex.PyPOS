@@ -263,4 +263,4 @@ Ensure the application has write permission to the `logs/` directory.
 
 ---
 
-[← Back to Table of Contents](README.md) | [Previous: Database Initialization Functions](11-database-initialization.md) | [Next: Support and Resources →](13-support.md)
+[← Back to Table of Contents](README.md) | [Previous: Startup Entry Point](34-startup-entry-point.md) | [Next: Support and Resources →](36-support.md)

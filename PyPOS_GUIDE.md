@@ -1,15 +1,6 @@
-# SaleFlex.PyPOS Comprehensive Guide
+﻿# SaleFlex.PyPOS Comprehensive Guide
 
-> **Note:** This guide provides a quick overview and links to detailed documentation in the [docs/](docs/) directory.
-
-## Quick Links
-
-- [Complete Documentation](docs/README.md) - Full guide organized by topic
-- [Installation Guide](docs/03-installation.md) - Setup instructions
-- [User Guide](docs/05-basic-navigation.md) - Basic navigation and usage
-- [Developer Guide](docs/06-dynamic-forms.md) - Advanced features for developers
-
----
+> **Note:** This guide is a quick-reference companion to the detailed documentation in the [docs/](docs/) directory.
 
 ## Quick Start
 
@@ -23,7 +14,7 @@ pip install -r requirements.txt
 python saleflex.py
 ```
 
-**Default credentials:** `admin` / `admin` (administrator) · `jdoe` / `1234` (standard cashier)
+**Default credentials:** `admin` / `admin` (administrator) Â· `jdoe` / `1234` (standard cashier)
 
 ---
 
@@ -31,32 +22,14 @@ python saleflex.py
 
 ### Processing a Sale
 
-1. Log in and select **SALES** from the main menu
+1. Log in and press **SALES** from the main menu.
 2. Add products by:
    - Clicking a **PLU product button**, or
    - Typing a **barcode/product code** on the NumPad and pressing **ENTER**
-3. Accept payment by clicking a **denomination button** (e.g. "20 £") or entering a custom amount on the NumPad then pressing **CASH** or **CREDIT CARD**
-4. The receipt is printed and the transaction closes automatically when fully paid
+3. Accept payment by clicking a **denomination button** (e.g. "20 Â£") or entering a custom amount on the NumPad then pressing **CASH** or **CREDIT CARD**.
+4. The receipt is printed and the transaction closes automatically when fully paid.
 
-### Suspend a Sale (Market Mode)
-
-Press **SUSPEND** on the SALE screen to park the current cart. A new empty draft is created for the next customer. To resume a parked sale, press **SUSPEND** again with no open document to open the **Suspended Sales** list, then press **ACTIVATE**.
-
-### Cancel a Transaction
-
-Press the red **CANCEL** button on the SALE screen to void the entire active transaction. A confirmation dialog shows the receipt number, closure number, and total. A new draft opens automatically after cancellation.
-
-### Cancel a Single Line Item
-
-Tap a row in the sale list → choose **DELETE** from the popup. The line is soft-cancelled (strikethrough) and totals are recalculated. If the last active line is deleted, the document is automatically cancelled.
-
-### End-of-Day Closure
-
-From the main menu, press **CLOSURE** (administrators only). The system aggregates all transactions for the current closure period, creates a `Closure` record with VAT, payment, and cashier summaries, and increments the closure sequence number.
-
----
-
-## NumPad Modes (SALE screen)
+### NumPad Modes (SALE screen)
 
 | Mode | How to trigger | Effect |
 |------|---------------|--------|
@@ -66,53 +39,97 @@ From the main menu, press **CLOSURE** (administrators only). The system aggregat
 | **Payment amount** | Type amount → press CASH/CREDIT CARD | Pays that amount (minor currency units) |
 | **PLU inquiry** | Type code → press **PLU** (or press PLU first → ENTER) | Shows price and stock without selling |
 
----
+### Suspend a Sale (Market Mode)
 
-## Specific Feature Guides
+Press **SUSPEND** on the SALE screen to park the current cart. A new empty draft is created for the next customer. To resume a parked sale, press **SUSPEND** with no open document → select a row → press **ACTIVATE**.
 
-**Suspend / parked sales (market):** On the **SALE** screen, **SUSPEND** holds the current cart in the database (`is_pending`) and clears the register; with no open sale it opens the **Suspended Sales (Market)** list. See [Basic Navigation — SUSPEND](docs/05-basic-navigation.md) and [Document Management](docs/09-document-management.md).
+### Cancel a Transaction
 
-**Cancel transaction (CANCEL button):** On the **SALE** screen, the red **CANCEL** button immediately voids the entire active transaction — sets `is_cancel=True`, `cancel_reason="Canceled by cashier: {username}"`, copies to permanent models, and opens a confirmation dialog. If no open document exists an info dialog is shown. See [Basic Navigation — CANCEL](docs/05-basic-navigation.md) and [Document Management — Full Document Cancellation](docs/09-document-management.md).
+Press **CANCEL** on the SALE screen to void the entire active transaction. A confirmation dialog shows the receipt number, closure number, and total. A new draft opens automatically.
 
-**Cashier Management:** Administrators can create and edit all cashier accounts. Standard cashiers can only update their own password. See [Basic Navigation — Cashier Management](docs/05-basic-navigation.md) and [Dynamic Forms — Add New Cashier](docs/06-dynamic-forms.md).
+### Cancel a Single Line Item
 
-**Closure operation:** Only administrators can perform end-of-day closure. See [Closure Operation](docs/15-closure-operation.md) for the full aggregation and sequencing process.
+Tap a row in the sale list → choose **DELETE** from the popup. The line is soft-cancelled (strikethrough) and totals are recalculated. If the last active line is deleted, the document is automatically cancelled.
 
-**Virtual keyboard:** The on-screen keyboard is database-driven and supports multiple themes (default light, dark, compact). See [Virtual Keyboard Configuration](docs/07-virtual-keyboard.md).
+### End-of-Day Closure
 
-**Logging:** Configure log level, console, and file output in the `[logging]` section of `settings.toml`. See [Central Logging](docs/16-logging.md).
-
-**Startup guards:** `saleflex.py` performs four checks before starting the application: (1) working-directory normalisation so relative paths always resolve correctly, (2) Python ≥ 3.13 version guard, (3) single-instance file lock to prevent two POS processes running simultaneously, and (4) a global exception handler that logs unhandled errors to `logs/saleflex.log`. See [Startup Entry Point](docs/19-startup-entry-point.md).
-
-**Product Management:** From the Main Menu press **PRODUCTS** to open the Product List form. Type part of a product name or short name and press **SEARCH** to filter results in the DataGrid. Select a row and press **DETAIL** (bottom-left) to open the Product Detail modal dialog — a fully DB-driven tabbed view (`DynamicDialog`, `TabControl`) with four tabs: *Product Info* (product + unit + manufacturer), *Barcodes*, *Attributes*, and *Variants*. Press **BACK** (bottom-right) to return to the Main Menu. See [Product Management](docs/20-product-management.md).
+From the main menu, press **CLOSURE** (administrators only). The system aggregates all transactions for the current closure period and increments the closure sequence number.
 
 ---
 
 ## Table of Contents
 
+### Part 1 — Getting Started
+
 1. [Introduction](docs/01-introduction.md)
 2. [System Requirements](docs/02-system-requirements.md)
 3. [Installation Guide](docs/03-installation.md)
-4. [First Login](docs/04-first-login.md)
-5. [Basic Navigation](docs/05-basic-navigation.md)
-6. [Dynamic Forms System](docs/06-dynamic-forms.md)
-7. [Virtual Keyboard Configuration](docs/07-virtual-keyboard.md)
-8. [Data Caching Strategy](docs/08-data-caching.md)
-9. [Document Management System](docs/09-document-management.md)
-10. [Database Models Overview](docs/10-database-models.md)
-11. [Database Initialization Functions](docs/11-database-initialization.md)
-12. [Troubleshooting](docs/12-troubleshooting.md)
-13. [Support and Resources](docs/13-support.md)
-14. [Service Layer Architecture](docs/14-service-layer.md)
-15. [Closure Operation (End-of-Day)](docs/15-closure-operation.md)
-16. [Central Logging](docs/16-logging.md)
-17. [Centralized Exception Handling](docs/17-exception-handling.md)
-18. [Peripherals (OPOS-style devices)](docs/18-peripherals.md)
-19. [Startup Entry Point](docs/19-startup-entry-point.md)
-20. [Product Management](docs/20-product-management.md)
+4. [Configuration](docs/04-configuration.md)
+5. [First Login](docs/05-first-login.md)
+   — [Virtual Keyboard Configuration](docs/06-virtual-keyboard.md)
+
+### Part 2 — Daily Operations
+
+10. [Sale Transactions](docs/10-sale-transactions.md)
+11. [Suspend and Resume Sales](docs/11-suspend-resume.md)
+12. [Cancellations](docs/12-cancellations.md)
+13. [End-of-Day Closure](docs/13-end-of-day-closure.md)
+14. [Cashier Management](docs/14-cashier-management.md)
+15. [Product Management](docs/15-product-management.md)
+
+### Part 3 — Architecture (Developer)
+
+20. [Project Structure](docs/20-project-structure.md)
+21. [Database Models Overview](docs/21-database-models.md)
+22. [Dynamic Forms System](docs/22-dynamic-forms-system.md)
+23. [UI Controls Catalog](docs/23-ui-controls.md)
+24. [Event System](docs/24-event-system.md)
+25. [Service Layer](docs/25-service-layer.md)
+26. [Document Management](docs/26-document-management.md)
+27. [Data Caching](docs/27-data-caching.md)
+
+### Part 4 — Operations & Maintenance
+
+30. [Peripherals](docs/30-peripherals.md)
+31. [Central Logging](docs/31-logging.md)
+32. [Exception Handling](docs/32-exception-handling.md)
+33. [Database Initialization](docs/33-database-initialization.md)
+34. [Startup Entry Point](docs/34-startup-entry-point.md)
+35. [Troubleshooting](docs/35-troubleshooting.md)
+36. [Support and Resources](docs/36-support.md)
 
 ---
 
-**Last Updated:** 2026-04-05  
-**Version:** 1.0.0b6  
+## Specific Feature Quick Links
+
+**Sale transactions:** [Sale Transactions](docs/10-sale-transactions.md)
+
+**Suspend / parked sales:** [Suspend and Resume Sales](docs/11-suspend-resume.md)
+
+**Cancel transaction:** [Cancellations — Full Document Cancellation](docs/12-cancellations.md#full-document-cancellation-cancel-button)
+
+**Cancel a single line:** [Cancellations — Line Cancellation](docs/12-cancellations.md#line-cancellation-item-delete)
+
+**Cashier management:** [Cashier Management](docs/14-cashier-management.md)
+
+**Closure operation:** [End-of-Day Closure](docs/13-end-of-day-closure.md)
+
+**Virtual keyboard:** [Virtual Keyboard Configuration](docs/06-virtual-keyboard.md)
+
+**Logging:** [Central Logging](docs/31-logging.md)
+
+**Startup guards:** [Startup Entry Point](docs/34-startup-entry-point.md)
+
+**Product management:** [Product Management](docs/15-product-management.md)
+
+**Project architecture:** [Project Structure](docs/20-project-structure.md)
+
+**Event system:** [Event System](docs/24-event-system.md)
+
+**UI controls:** [UI Controls Catalog](docs/23-ui-controls.md)
+
+---
+
+**Last Updated:** 2026-04-05
+**Version:** 1.0.0b6
 **License:** MIT
