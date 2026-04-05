@@ -27,7 +27,7 @@ SaleFlex.PyPOS POS system is designed to streamline the sales process and improv
 - **Customer Management**: Store customer information, preferences, and purchase history
 - **Analytics & Reporting**: Comprehensive sales, inventory, and customer behavior analytics
 - **System Integration**: Connect with accounting software, warehouse management, and ERP systems
-- **️Returns & Exchanges**: Handle product returns and exchanges efficiently
+- **Returns & Exchanges**: Handle product returns and exchanges efficiently
 - **Employee Management**: Track employee time, attendance, and performance
 - **Cashier Management**: Role-based cashier account management with dynamic combobox selection. Admin users can view and edit all cashier accounts and create new cashier accounts directly from the Cashier Management form via the **ADD NEW CASHIER** button (admin-only, hidden for non-admin users). Non-admin cashiers can update only their own password. Field-level read-only protection enforced at the form layer (`is_administrator` flag). New cashier entry uses in-place form manipulation (no full redraw) for seamless UX
 - **Campaign & Promotion Management**: Flexible promotional campaigns with time-based, product-specific, and basket discounts
@@ -39,7 +39,7 @@ SaleFlex.PyPOS POS system is designed to streamline the sales process and improv
 - **Auto-Save Functionality**: Automatic database persistence system using descriptor pattern and wrapper classes. Model instances and dictionaries are automatically saved to the database when attributes are modified, ensuring data integrity and reducing manual save operations. Supports nested model wrapping and skip flags for batch operations
 - **Peripherals (OPOS-style)**: `pos/peripherals/` defines cash drawer, receipt printer, line display, scanner, scale, customer display, and remote order display classes. Wired behaviours on **SALE** (log-only until drivers exist): completed sale → receipt text + drawer open; CASH with no document → drawer open; selling and payment steps → three-line customer display updates. See [docs/18-peripherals.md](docs/18-peripherals.md)
 - **Central Logging**: Configurable logging via `core/logger.py` with a single `saleflex` root logger. Log level (DEBUG/INFO/WARNING/ERROR/CRITICAL), console output, and file output are controlled from the `[logging]` section in `settings.toml`. All modules use `get_logger(__name__)` for consistent, hierarchical log records
-- **Centralized Exception Handling**: Typed exception hierarchy rooted at `SaleFlexError` (`pos/exceptions.py`). Domain-specific subclasses (`PaymentError`, `FiscalDeviceError`, `GATEConnectionError`, `TaxCalculationError`, `DatabaseError`, etc.) replace bare `Exception` raises throughout the codebase. All exceptions are chained with `raise ... from e` to preserve the full traceback
+- **Centralized Exception Handling**: Typed exception hierarchy rooted at `SaleFlexError` (`core/exceptions.py`). Domain-specific subclasses (`PaymentError`, `FiscalDeviceError`, `GATEConnectionError`, `TaxCalculationError`, `DatabaseError`, etc.) replace bare `Exception` raises throughout the codebase. All exceptions are chained with `raise ... from e` to preserve the full traceback
 - **Optimized Performance**: In-memory caching of reference data (`pos_data`) and product data (`product_data`) minimizes disk I/O, extending disk life for POS devices with limited write cycles. All product lookups, currency calculations, VAT rate lookups, button rendering, and sale operations use cached data instead of database queries
 - **Smart NumPad (4 Modes)**: The SALE form NumPad supports four operating modes: (1) **Barcode/PLU lookup** — type a barcode or product code and press ENTER to find and sell the product (searches `ProductBarcode` then `Product.code`); (2) **Inline quantity** — type a quantity then press a PLU product button to sell that many units; (3) **X (Quantity Multiplier) button** — pre-set the quantity before a barcode scan; status bar shows the active multiplier (`x1`, `x3`, etc.); (4) **Payment amount** — enter the tendered amount in minor currency units (e.g. 10000 → £100.00) then press CASH or CREDIT CARD. **PLU inquiry** (separate green **PLU** button beside **X**) shows price and per-warehouse stock from cached `WarehouseProductStock` without selling — either enter the code then **PLU**, or press **PLU** first then enter the code and **ENTER**
 
@@ -54,23 +54,33 @@ SaleFlex.PyPOS follows a layered architecture pattern with clear separation of c
 - **Data Access Layer** (`data_layer/model/`): 98+ SQLAlchemy models with CRUD operations and auto-save functionality
 - **UI Layer** (`user_interface/`): PySide6-based UI components with dynamic form rendering
 - **Caching Layer** (`pos/manager/cache_manager.py`): In-memory caching for reference and product data
-- **Logging** (`core/logger.py`): Central logging module; all components use `get_logger(__name__)` with configuration from `settings.toml` `[logging]`
-- **Exception Layer** (`pos/exceptions.py`): Typed exception hierarchy (`SaleFlexError` root) with domain subclasses for payment, hardware, tax, database, document, configuration, and authentication errors
+- **Logging Layer** (`core/logger.py`): Central logging module; all components use `get_logger(__name__)` with configuration from `settings.toml` `[logging]`
+- **Exception Layer** (`core/exceptions.py`): Typed exception hierarchy (`SaleFlexError` root) with domain subclasses for payment, hardware, tax, database, document, configuration, and authentication errors
 
 ```
-┌─────────────────────────────────────────┐
-│          UI Layer (PySide6)             │
-├─────────────────────────────────────────┤
-│    Event Handlers (9 modules)           │
-├─────────────────────────────────────────┤
-│   Business Logic (Service Layer)        │
-├─────────────────────────────────────────┤
-│      Data Access Layer (ORM)            │
-├─────────────────────────────────────────┤
-│    Cache Layer (pos_data/product_data)  │
-├─────────────────────────────────────────┤
-│         Database (SQLite/PG)            │
-└─────────────────────────────────────────┘
+┌─────────────────────────────────────────────────┐
+│            UI Layer (PySide6)                   │
+│  Dynamic Forms · Virtual Keyboard · Controls    │
+├─────────────────────────────────────────────────┤
+│      Event Handlers (9 specialized modules)     │
+│  General · Sale · Payment · Closure · Config    │
+│  Service · Report · Hardware · Warehouse        │
+├─────────────────────────────────────────────────┤
+│          Business Logic (Service Layer)         │
+│      VatService · SaleService · PaymentService  │
+├─────────────────────────────────────────────────┤
+│         OPOS Peripherals (log-only stubs)       │
+│   CashDrawer · POSPrinter · LineDisplay         │
+├─────────────────────────────────────────────────┤
+│          Data Access Layer (ORM)                │
+│        98+ SQLAlchemy Models · CRUD             │
+├─────────────────────────────────────────────────┤
+│       Cache Layer (pos_data / product_data)     │
+├─────────────────────────────────────────────────┤
+│            Database (SQLite / PostgreSQL)        │
+└─────────────────────────────────────────────────┘
+         ↕ core/logger.py (all layers)
+         ↕ core/exceptions.py (all layers)
 ```
 
 ## Project Structure
@@ -150,7 +160,6 @@ SaleFlex.PyPOS/
 │       └── interface.py
 │
 ├── pos/                    # Core POS Business Logic
-│   ├── exceptions.py       # Centralized exception hierarchy (SaleFlexError root)
 │   ├── data/               # POS-specific data types
 │   │   ├── document_type.py
 │   │   ├── document_state.py
@@ -192,7 +201,8 @@ SaleFlex.PyPOS/
 │           └── warehouse.py      # WarehouseEvent: Warehouse and inventory operations
 │
 ├── core/                    # Core utilities
-│   └── logger.py           # Central logging (get_logger, config via settings.toml [logging])
+│   ├── logger.py           # Central logging (get_logger, config via settings.toml [logging])
+│   └── exceptions.py       # Centralized exception hierarchy (SaleFlexError root)
 │
 ├── settings/               # Configuration management
 │   └── settings.py
@@ -366,7 +376,7 @@ All models support:
 - [x] **Auto-Save System** - Automatic database persistence with descriptor pattern
 - [ ] **Configuration Management** - Advanced settings system
 - [x] **Central Logging** - Configurable logging via `core/logger.py`; level, console, and file output driven by `settings.toml` `[logging]`; application-wide use of `get_logger(__name__)`
-- [x] **Centralized Exception Handling** - Typed `SaleFlexError` hierarchy in `pos/exceptions.py`; domain-specific subclasses for payment, hardware, tax, database, document, configuration, and authentication errors; all exceptions chained with `raise ... from e`
+- [x] **Centralized Exception Handling** - Typed `SaleFlexError` hierarchy in `core/exceptions.py`; domain-specific subclasses for payment, hardware, tax, database, document, configuration, and authentication errors; all exceptions chained with `raise ... from e`
 
 ### POS Core Modules
 - [x] **POS Manager Module** - Central business logic and transaction handling with document management system
@@ -530,18 +540,23 @@ All models support:
 
 Comprehensive documentation is available in the `docs/` directory:
 
-- **[Documentation Index](docs/README.md)** - Complete guide organized by topic
-- **[Installation Guide](docs/03-installation.md)** - Detailed setup instructions
-- **[Dynamic Forms System](docs/06-dynamic-forms.md)** - Database-driven UI system
-- **[Virtual Keyboard](docs/07-virtual-keyboard.md)** - Virtual keyboard configuration
-- **[Data Caching](docs/08-data-caching.md)** - Caching strategy and implementation
-- **[Document Management](docs/09-document-management.md)** - Transaction lifecycle management
-- **[Closure Operation](docs/15-closure-operation.md)** - End-of-day closure (authorization, aggregation, sequences)
-- **[Central Logging](docs/16-logging.md)** - Logging configuration and usage (`core/logger.py`, `settings.toml` [logging])
-- **[Exception Handling](docs/17-exception-handling.md)** - Centralized exception hierarchy, usage patterns, and design guidelines
-- **[Database Models](docs/10-database-models.md)** - Complete model reference
-- **[Service Layer](docs/14-service-layer.md)** - Business logic services architecture
-- **[Troubleshooting](docs/12-troubleshooting.md)** - Common issues and solutions
+| Document | Description |
+|----------|-------------|
+| **[Documentation Index](docs/README.md)** | Complete guide organized by topic |
+| **[Installation Guide](docs/03-installation.md)** | Detailed setup instructions |
+| **[First Login](docs/04-first-login.md)** | Default credentials and role differences |
+| **[Basic Navigation](docs/05-basic-navigation.md)** | Sale processing, NumPad modes, SUSPEND/CANCEL |
+| **[Dynamic Forms System](docs/06-dynamic-forms.md)** | Database-driven UI system and Panel controls |
+| **[Virtual Keyboard](docs/07-virtual-keyboard.md)** | Virtual keyboard configuration and themes |
+| **[Data Caching](docs/08-data-caching.md)** | Caching strategy and implementation |
+| **[Document Management](docs/09-document-management.md)** | Transaction lifecycle management |
+| **[Database Models](docs/10-database-models.md)** | Complete model reference (98+ models) |
+| **[Closure Operation](docs/15-closure-operation.md)** | End-of-day closure (authorization, aggregation, sequences) |
+| **[Service Layer](docs/14-service-layer.md)** | Business logic services architecture |
+| **[Central Logging](docs/16-logging.md)** | Logging configuration and usage |
+| **[Exception Handling](docs/17-exception-handling.md)** | Centralized exception hierarchy |
+| **[Peripherals](docs/18-peripherals.md)** | OPOS-style device layer (cash drawer, printer, display) |
+| **[Troubleshooting](docs/12-troubleshooting.md)** | Common issues and solutions |
 
 ## Contributing
 

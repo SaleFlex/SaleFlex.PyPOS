@@ -1,6 +1,6 @@
 # Centralized Exception Handling
 
-SaleFlex.PyPOS uses a **centralized exception hierarchy** (`core/exceptions.py`) so that every layer of the application raises typed, meaningful errors instead of bare `Exception` or built-in types.  
+SaleFlex.PyPOS uses a **centralized exception hierarchy** located at `core/exceptions.py` so that every layer of the application raises typed, meaningful errors instead of bare `Exception` or built-in types.  
 All custom exceptions inherit from `SaleFlexError`, making it easy to catch all application-level errors with a single `except SaleFlexError` clause or to catch only a specific domain.
 
 ## Exception Hierarchy

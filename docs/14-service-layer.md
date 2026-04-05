@@ -392,7 +392,7 @@ Additional services may be added for:
 
 ---
 
-**Last Updated:** 2026-04-02  
+**Last Updated:** 2026-04-05  
 **Version:** 1.0.0b5
 
 ## Sale Screen UI Restoration

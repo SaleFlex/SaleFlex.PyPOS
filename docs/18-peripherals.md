@@ -1,6 +1,6 @@
 # Peripherals (OPOS-style device layer)
 
-**Last Updated:** 2026-04-03
+**Last Updated:** 2026-04-05
 
 SaleFlex.PyPOS exposes a small **peripheral** package under `pos/peripherals/`. The API is inspired by OPOS-style devices (logical names, open/claim/release/close on the base type), but **no hardware connections are opened** in the current build: commands are written to the application log so drivers can be added later without changing call sites.
 
