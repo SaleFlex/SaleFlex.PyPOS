@@ -61,168 +61,168 @@ SaleFlex.PyPOS follows a layered architecture pattern with clear separation of c
 - **Exception Layer** (`core/exceptions.py`): Typed exception hierarchy (`SaleFlexError` root) with domain subclasses for payment, hardware, tax, database, document, configuration, and authentication errors
 
 ```
-+---------------------------------------------------+
-|            UI Layer (PySide6)                     |
-|  Dynamic Forms - Virtual Keyboard - Controls      |
-+---------------------------------------------------+
-|      Event Handlers (10 specialized modules)      |
-|  General - Sale - Payment - Closure - Config      |
-|  Service - Report - Hardware - Warehouse          |
-|  Product                                          |
-+---------------------------------------------------+
-|          Business Logic (Service Layer)           |
-|      VatService - SaleService - PaymentService    |
-+---------------------------------------------------+
-|         OPOS Peripherals (log-only stubs)         |
-|   CashDrawer - POSPrinter - LineDisplay           |
-+---------------------------------------------------+
-|          Data Access Layer (ORM)                  |
-|        98+ SQLAlchemy Models - CRUD               |
-+---------------------------------------------------+
-|       Cache Layer (pos_data / product_data)       |
-+---------------------------------------------------+
-|         Database (SQLite / PostgreSQL)            |
-+---------------------------------------------------+
-    <-> core/logger.py (all layers)
-    <-> core/exceptions.py (all layers)
+┌─────────────────────────────────────────────────┐
+│            UI Layer (PySide6)                   │
+│  Dynamic Forms · Virtual Keyboard · Controls    │
+├─────────────────────────────────────────────────┤
+│      Event Handlers (10 specialized modules)    │
+│  General · Sale · Payment · Closure · Config    │
+│  Service · Report · Hardware · Warehouse        │
+│  Product                                        │
+├─────────────────────────────────────────────────┤
+│          Business Logic (Service Layer)         │
+│      VatService · SaleService · PaymentService  │
+├─────────────────────────────────────────────────┤
+│         OPOS Peripherals (log-only stubs)       │
+│   CashDrawer · POSPrinter · LineDisplay         │
+├─────────────────────────────────────────────────┤
+│          Data Access Layer (ORM)                │
+│        98+ SQLAlchemy Models · CRUD             │
+├─────────────────────────────────────────────────┤
+│       Cache Layer (pos_data / product_data)     │
+├─────────────────────────────────────────────────┤
+│            Database (SQLite / PostgreSQL)       │
+└─────────────────────────────────────────────────┘
+         ↕ core/logger.py (all layers)
+         ↕ core/exceptions.py (all layers)
 ```
 
 ## Project Structure
 
 ```
 SaleFlex.PyPOS/
-+-- saleflex.py              # Main application entry point (startup guards, version check, single-instance lock)
-+-- requirements.txt         # Python dependencies
-+-- settings.toml            # Application configuration
-+-- db.sqlite3               # Default SQLite database
-+-- .saleflex.lock           # Runtime single-instance process lock (auto-created/deleted; not committed)
-+-- PyPOS_GUIDE.md           # Quick reference guide (redirects to docs/)
-|
-+-- docs/                    # Comprehensive documentation
-|   +-- README.md            # Documentation index
-|   +-- *.md                 # Topic-specific documentation files
-|
-+-- data_layer/              # Database & ORM Layer
-|   +-- engine.py            # Database engine configuration
-|   +-- db_initializer.py    # Database initialization
-|   +-- db_manager.py        # Database management utilities
-|   +-- db_utils.py          # Database helper functions
-|   |
-|   +-- auto_save/           # Auto-save functionality
-|   |   +-- auto_save_model.py
-|   |   +-- auto_save_dict.py
-|   |   +-- auto_save_descriptor.py
-|   |
-|   +-- db_init_data/        # Initial data seeding
-|   |   +-- cashier.py
-|   |   +-- country.py
-|   |   +-- currency.py
-|   |   +-- product.py
-|   |   +-- ...              # Other initialization modules
-|   |
-|   +-- enums/               # Enumeration definitions
-|   |   +-- control_name.py
-|   |   +-- control_type.py
-|   |   +-- custom_control_type_name.py
-|   |   +-- event_name.py
-|   |   +-- form_name.py
-|   |
-|   +-- model/               # Data models and CRUD operations
-|       +-- crud_model.py    # Base CRUD operations
-|       +-- mixins.py        # Model mixins
-|       +-- definition/      # Entity definitions (98+ models)
-|
-+-- user_interface/          # UI Components
-|   +-- window/              # Application windows and dialogs
-|   |   +-- base_window.py
-|   |   +-- dynamic_dialog.py
-|   |
-|   +-- control/             # Custom UI controls
-|   |   +-- button.py
-|   |   +-- textbox.py
-|   |   +-- checkbox.py
-|   |   +-- combobox.py
-|   |   +-- label.py
-|   |   +-- datagrid.py
-|   |   +-- panel.py         # Panel control with scrollbar support
-|   |   +-- toolbar.py
-|   |   +-- statusbar.py
-|   |   +-- amount_table/    # Amount table control
-|   |   +-- numpad/          # Numeric pad control
-|   |   +-- payment_list/    # Payment list control
-|   |   +-- sale_list/       # Sale list control
-|   |   +-- tab_control/     # Tab control (QTabWidget, DB-driven pages via FormControlTab)
-|   |   +-- transaction_status/   # Transaction status display
-|   |   +-- virtual_keyboard/     # Virtual keyboard component
-|   |
-|   +-- form/                # Form definitions
-|   |   +-- about_form.py
-|   |   +-- message_form.py
-|   |
-|   +-- render/              # Dynamic form rendering (database-driven)
-|   |   +-- dynamic_renderer.py
-|   |
-|   +-- manager/             # UI management logic
-|       +-- interface.py
-|
-+-- pos/                     # Core POS Business Logic
-|   +-- data/                # POS-specific data types
-|   |   +-- document_type.py
-|   |   +-- document_state.py
-|   |   +-- payment_type.py
-|   |   +-- discount_type.py
-|   |
-|   +-- hardware/            # Hardware integration
-|   |   +-- device_info.py   # Device information detection
-|   |
-|   +-- peripherals/         # OPOS-style peripherals (log-only until drivers are added)
-|   |   +-- cash_drawer.py
-|   |   +-- pos_printer.py
-|   |   +-- line_display.py
-|   |   +-- hooks.py         # SALE form line-display sync helpers
-|   |   +-- ...              # scanner, scale, customer_display, remote_order_display stubs
-|   |
-|   +-- service/             # Business logic services
-|   |   +-- vat_service.py      # VAT calculation service
-|   |   +-- sale_service.py     # Sale processing service
-|   |   +-- payment_service.py  # Payment processing service
-|   |
-|   +-- manager/             # Application management
-|       +-- application.py   # Main application class
-|       +-- current_data.py  # Current session data
-|       +-- current_status.py
-|       +-- cache_manager.py       # Data caching
-|       +-- closure_manager.py     # Closure management
-|       +-- document_manager.py    # Document lifecycle
-|       +-- event_handler.py       # Event handling (combines all event handlers)
-|       +-- event/           # Event handlers (10 specialized event handler classes)
-|           +-- general.py        # GeneralEvent: Login, logout, exit, navigation
-|           +-- sale.py           # SaleEvent: Sales transaction and product events
-|           +-- payment.py        # PaymentEvent: Payment processing events
-|           +-- closure.py        # ClosureEvent: End-of-day closure operations
-|           +-- configuration.py  # ConfigurationEvent: Settings and configuration
-|           +-- service.py        # ServiceEvent: Service-related operations
-|           +-- report.py         # ReportEvent: Report generation and viewing
-|           +-- hardware.py       # HardwareEvent: Hardware device operations
-|           +-- warehouse.py      # WarehouseEvent: Warehouse and inventory operations
-|           +-- product.py        # ProductEvent: Product list, search, and detail events
-|
-+-- core/                    # Core utilities
-|   +-- logger.py            # Central logging (get_logger, config via settings.toml [logging])
-|   +-- exceptions.py        # Centralized exception hierarchy (SaleFlexError root)
-|
-+-- settings/                # Configuration management
-|   +-- settings.py
-|
-+-- static_files/            # Static assets
-    +-- closures/            # Country-specific closure templates
-    |   +-- tr.json
-    |   +-- usa.json
-    |   +-- usa_ca.json
-    |   +-- ...
-    +-- images/              # Image assets
-        +-- saleflex.ico
-        +-- ...
+├── saleflex.py              # Main application entry point (startup guards, version check, single-instance lock)
+├── requirements.txt         # Python dependencies
+├── settings.toml           # Application configuration
+├── db.sqlite3              # Default SQLite database
+├── .saleflex.lock          # Runtime single-instance process lock (auto-created/deleted; not committed)
+├── PyPOS_GUIDE.md          # Quick reference guide (redirects to docs/)
+│
+├── docs/                   # Comprehensive documentation
+│   ├── README.md           # Documentation index
+│   └── *.md                # Topic-specific documentation files
+│
+├── data_layer/             # Database & ORM Layer
+│   ├── engine.py           # Database engine configuration
+│   ├── db_initializer.py   # Database initialization
+│   ├── db_manager.py       # Database management utilities
+│   ├── db_utils.py         # Database helper functions
+│   │
+│   ├── auto_save/          # Auto-save functionality
+│   │   ├── auto_save_model.py
+│   │   ├── auto_save_dict.py
+│   │   └── auto_save_descriptor.py
+│   │
+│   ├── db_init_data/       # Initial data seeding
+│   │   ├── cashier.py
+│   │   ├── country.py
+│   │   ├── currency.py
+│   │   ├── product.py
+│   │   └── ...             # Other initialization modules
+│   │
+│   ├── enums/              # Enumeration definitions
+│   │   ├── control_name.py
+│   │   ├── control_type.py
+│   │   ├── custom_control_type_name.py
+│   │   ├── event_name.py
+│   │   └── form_name.py
+│   │
+│   └── model/              # Data models and CRUD operations
+│       ├── crud_model.py   # Base CRUD operations
+│       ├── mixins.py       # Model mixins
+│       └── definition/     # Entity definitions (98+ models)
+│
+├── user_interface/         # UI Components
+│   ├── window/             # Application windows and dialogs
+│   │   ├── base_window.py
+│   │   └── dynamic_dialog.py
+│   │
+│   ├── control/            # Custom UI controls
+│   │   ├── button.py
+│   │   ├── textbox.py
+│   │   ├── checkbox.py
+│   │   ├── combobox.py
+│   │   ├── label.py
+│   │   ├── datagrid.py
+│   │   ├── panel.py        # Panel control with scrollbar support
+│   │   ├── toolbar.py
+│   │   ├── statusbar.py
+│   │   ├── amount_table/   # Amount table control
+│   │   ├── numpad/         # Numeric pad control
+│   │   ├── payment_list/   # Payment list control
+│   │   ├── sale_list/      # Sale list control
+│   │   ├── tab_control/    # Tab control (QTabWidget, DB-driven pages via FormControlTab)
+│   │   ├── transaction_status/  # Transaction status display
+│   │   └── virtual_keyboard/    # Virtual keyboard component
+│   │
+│   ├── form/               # Form definitions
+│   │   ├── about_form.py
+│   │   └── message_form.py
+│   │
+│   ├── render/             # Dynamic form rendering (database-driven)
+│   │   └── dynamic_renderer.py
+│   │
+│   └── manager/            # UI management logic
+│       └── interface.py
+│
+├── pos/                    # Core POS Business Logic
+│   ├── data/               # POS-specific data types
+│   │   ├── document_type.py
+│   │   ├── document_state.py
+│   │   ├── payment_type.py
+│   │   └── discount_type.py
+│   │
+│   ├── hardware/           # Hardware integration
+│   │   └── device_info.py  # Device information detection
+│   │
+│   ├── peripherals/        # OPOS-style peripherals (log-only until drivers are added)
+│   │   ├── cash_drawer.py
+│   │   ├── pos_printer.py
+│   │   ├── line_display.py
+│   │   ├── hooks.py        # SALE form line-display sync helpers
+│   │   └── ...             # scanner, scale, customer_display, remote_order_display stubs
+│   │
+│   ├── service/            # Business logic services
+│   │   ├── vat_service.py     # VAT calculation service
+│   │   ├── sale_service.py    # Sale processing service
+│   │   └── payment_service.py # Payment processing service
+│   │
+│   └── manager/            # Application management
+│       ├── application.py  # Main application class
+│       ├── current_data.py # Current session data
+│       ├── current_status.py
+│       ├── cache_manager.py      # Data caching
+│       ├── closure_manager.py    # Closure management
+│       ├── document_manager.py   # Document lifecycle
+│       ├── event_handler.py      # Event handling (combines all event handlers)
+│       └── event/          # Event handlers (9 specialized event handler classes)
+│           ├── general.py        # GeneralEvent: Login, logout, exit, navigation
+│           ├── sale.py           # SaleEvent: Sales transaction and product events
+│           ├── payment.py        # PaymentEvent: Payment processing events
+│           ├── closure.py        # ClosureEvent: End-of-day closure operations
+│           ├── configuration.py  # ConfigurationEvent: Settings and configuration
+│           ├── service.py        # ServiceEvent: Service-related operations
+│           ├── report.py         # ReportEvent: Report generation and viewing
+│           ├── hardware.py       # HardwareEvent: Hardware device operations
+│           ├── warehouse.py      # WarehouseEvent: Warehouse and inventory operations
+│           └── product.py        # ProductEvent: Product list, search, and detail events
+│
+├── core/                    # Core utilities
+│   ├── logger.py           # Central logging (get_logger, config via settings.toml [logging])
+│   └── exceptions.py       # Centralized exception hierarchy (SaleFlexError root)
+│
+├── settings/               # Configuration management
+│   └── settings.py
+│
+├── static_files/           # Static assets
+│   ├── closures/           # Country-specific closure templates
+│   │   ├── tr.json
+│   │   ├── usa.json
+│   │   ├── usa_ca.json
+│   │   └── ...
+│   └── images/             # Image assets
+│       ├── saleflex.ico
+│       └── ...
 ```
 
 ## Business Applications
