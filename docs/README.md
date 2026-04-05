@@ -22,6 +22,7 @@ Welcome to the SaleFlex.PyPOS documentation. This directory contains the complet
 16. [Central Logging](16-logging.md) — `core/logger.py` configuration, log format, usage
 17. [Centralized Exception Handling](17-exception-handling.md) — `SaleFlexError` hierarchy, usage patterns, design guidelines
 18. [Peripherals (OPOS-style devices)](18-peripherals.md) — Cash drawer, receipt printer, line display, stubs
+19. [Startup Entry Point](19-startup-entry-point.md) — Working-directory fix, Python version guard, single-instance lock, global exception handler
 
 ---
 
@@ -39,6 +40,7 @@ Welcome to the SaleFlex.PyPOS documentation. This directory contains the complet
 | Logging setup | [Central Logging](16-logging.md) |
 | Error handling | [Centralized Exception Handling](17-exception-handling.md) |
 | Hardware devices | [Peripherals](18-peripherals.md) |
+| Startup guards | [Startup Entry Point](19-startup-entry-point.md) |
 | Common errors | [Troubleshooting](12-troubleshooting.md) |
 
 ---

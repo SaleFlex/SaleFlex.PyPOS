@@ -10,6 +10,65 @@ If you encounter issues during installation or operation:
 4. For database connection errors, ensure your database server (if using an external DB) is running
 5. Check the application log file at `logs/saleflex.log` for detailed error messages
 
+## Startup Issues
+
+### Application refuses to start — "already running"
+
+**Symptom:**
+```
+SaleFlex.PyPOS is already running.
+Only one instance of the application can run at a time.
+```
+
+**Cause:** The single-instance lock (`.saleflex.lock`) is held by another
+process, or a previous crash left a stale lock in an inconsistent state.
+
+**Solution:**
+
+1. Check whether another instance is actually running:
+   - **Windows:** Open Task Manager → look for a `python.exe` process running
+     `saleflex.py`.
+   - **Linux/macOS:** Run `ps aux | grep saleflex`.
+2. If a live instance is found, close it normally before starting a new one.
+3. If no instance is running (stale lock after a hard crash):
+   - Delete the lock file:
+     ```bash
+     del .saleflex.lock      # Windows
+     rm .saleflex.lock       # macOS / Linux
+     ```
+   - Restart the application.
+
+> The file-based lock releases itself automatically when the Python process
+> ends (even on crash), so a stale lock is rare and only possible after an
+> abnormal OS-level termination (e.g. `kill -9` or a power cut).
+
+---
+
+### Application refuses to start — wrong Python version
+
+**Symptom:**
+```
+SaleFlex.PyPOS requires Python 3.13 or higher.
+Current interpreter: Python 3.11.x ...
+```
+
+**Solution:**
+
+1. Install Python 3.13 from [python.org](https://www.python.org/downloads/).
+2. Recreate the virtual environment with the correct interpreter:
+   ```bash
+   python3.13 -m venv venv
+   venv\Scripts\activate.bat   # Windows
+   pip install -r requirements.txt
+   python saleflex.py
+   ```
+3. Verify the active interpreter:
+   ```bash
+   python --version   # must show 3.13.x or higher
+   ```
+
+---
+
 ## Installation Issues
 
 ### `pip install` fails or packages conflict

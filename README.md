@@ -38,6 +38,7 @@ SaleFlex.PyPOS POS system is designed to streamline the sales process and improv
 - **Document Management System**: Complete transaction lifecycle management with temporary models during processing and automatic conversion to permanent models upon completion. Automatically updates document data during sales operations (PLU and department sales). Supports per-line REPEAT (clone line, save new DB record, update totals) and DELETE (soft-cancel line, mark `is_cancel=True` in DB, recalculate totals) actions from the sale list item popup; if the last active line is deleted the document is automatically cancelled and reset. **CANCEL button:** Red **CANCEL** button on the SALE form (below the denomination buttons, same row as PLU/X/SUSPEND) immediately voids the entire active transaction — sets `transaction_status=CANCELLED`, `is_cancel=True`, `cancel_reason="Canceled by cashier: {username}"`, copies to permanent models, shows a confirmation dialog with receipt/closure number and total, then opens a new draft. If no open document exists, an info dialog is shown instead. **Market suspend:** **SUSPEND** saves the cart as pending, then creates a **new draft** (suspended rows no longer steal the receipt slot in `create_empty_document`). **SUSPENDED_SALES_MARKET** lists suspended receipts (hidden head id + columns); **ACTIVATE** (`RESUME_SALE`) clears `is_pending`, loads lines on **SALE**, and abandons any empty draft left open first. **Closure:** `TransactionHead` rows with `is_pending=True` and open `TransactionHeadTemp` suspended carts for the closure period are **excluded** from aggregated sales totals; their count is stored on `Closure.suspended_transaction_count`. Automatic recovery of incomplete **non-pending** transactions at startup; restores sale UI when re-entering **SALE** with an ACTIVE document
 - **Auto-Save Functionality**: Automatic database persistence system using descriptor pattern and wrapper classes. Model instances and dictionaries are automatically saved to the database when attributes are modified, ensuring data integrity and reducing manual save operations. Supports nested model wrapping and skip flags for batch operations
 - **Peripherals (OPOS-style)**: `pos/peripherals/` defines cash drawer, receipt printer, line display, scanner, scale, customer display, and remote order display classes. Wired behaviours on **SALE** (log-only until drivers exist): completed sale → receipt text + drawer open; CASH with no document → drawer open; selling and payment steps → three-line customer display updates. See [docs/18-peripherals.md](docs/18-peripherals.md)
+- **Startup Guards**: `saleflex.py` entry point runs four pre-flight checks before any module is imported: (1) working-directory normalisation so relative paths always resolve correctly; (2) Python ≥ 3.13 version guard with a clear error message; (3) file-based single-instance lock (`msvcrt.locking` on Windows, `fcntl.flock` on Linux/macOS) that is automatically released on process exit; (4) global exception handler that logs unhandled errors at `CRITICAL` level before terminating. See [docs/19-startup-entry-point.md](docs/19-startup-entry-point.md)
 - **Central Logging**: Configurable logging via `core/logger.py` with a single `saleflex` root logger. Log level (DEBUG/INFO/WARNING/ERROR/CRITICAL), console output, and file output are controlled from the `[logging]` section in `settings.toml`. All modules use `get_logger(__name__)` for consistent, hierarchical log records
 - **Centralized Exception Handling**: Typed exception hierarchy rooted at `SaleFlexError` (`core/exceptions.py`). Domain-specific subclasses (`PaymentError`, `FiscalDeviceError`, `GATEConnectionError`, `TaxCalculationError`, `DatabaseError`, etc.) replace bare `Exception` raises throughout the codebase. All exceptions are chained with `raise ... from e` to preserve the full traceback
 - **Optimized Performance**: In-memory caching of reference data (`pos_data`) and product data (`product_data`) minimizes disk I/O, extending disk life for POS devices with limited write cycles. All product lookups, currency calculations, VAT rate lookups, button rendering, and sale operations use cached data instead of database queries
@@ -47,6 +48,7 @@ SaleFlex.PyPOS POS system is designed to streamline the sales process and improv
 
 SaleFlex.PyPOS follows a layered architecture pattern with clear separation of concerns:
 
+- **Entry Point** (`saleflex.py`): Pre-flight startup guards — working-directory normalisation, Python version check, single-instance lock, and global exception handler
 - **Application Layer** (`pos/manager/application.py`): Main application class implementing Singleton pattern, combining CurrentStatus, CurrentData, and EventHandler
 - **Business Logic Layer** (`pos/service/`): Service classes (VatService, SaleService, PaymentService) for centralized business operations
 - **Peripherals Layer** (`pos/peripherals/`): OPOS-style device abstractions (cash drawer, receipt printer, line display, scanner, scale, customer display, remote order display). Current implementation is **log-only** (no device probing); see [docs/18-peripherals.md](docs/18-peripherals.md)
@@ -87,10 +89,11 @@ SaleFlex.PyPOS follows a layered architecture pattern with clear separation of c
 
 ```
 SaleFlex.PyPOS/
-├── saleflex.py              # Main application entry point
+├── saleflex.py              # Main application entry point (startup guards, version check, single-instance lock)
 ├── requirements.txt         # Python dependencies
 ├── settings.toml           # Application configuration
 ├── db.sqlite3              # Default SQLite database
+├── .saleflex.lock          # Runtime single-instance process lock (auto-created/deleted; not committed)
 ├── PyPOS_GUIDE.md          # Quick reference guide (redirects to docs/)
 │
 ├── docs/                   # Comprehensive documentation
@@ -374,6 +377,7 @@ All models support:
 - [x] **Database Structure** - POS data layer structure with comprehensive model definitions
 - [x] **UI Foundation** - PySide6 interface framework
 - [x] **Auto-Save System** - Automatic database persistence with descriptor pattern
+- [x] **Startup Entry-Point Guards** - Working-directory normalisation, Python version guard, single-instance file lock, global exception handler in `saleflex.py`
 - [ ] **Configuration Management** - Advanced settings system
 - [x] **Central Logging** - Configurable logging via `core/logger.py`; level, console, and file output driven by `settings.toml` `[logging]`; application-wide use of `get_logger(__name__)`
 - [x] **Centralized Exception Handling** - Typed `SaleFlexError` hierarchy in `core/exceptions.py`; domain-specific subclasses for payment, hardware, tax, database, document, configuration, and authentication errors; all exceptions chained with `raise ... from e`
@@ -556,6 +560,7 @@ Comprehensive documentation is available in the `docs/` directory:
 | **[Central Logging](docs/16-logging.md)** | Logging configuration and usage |
 | **[Exception Handling](docs/17-exception-handling.md)** | Centralized exception hierarchy |
 | **[Peripherals](docs/18-peripherals.md)** | OPOS-style device layer (cash drawer, printer, display) |
+| **[Startup Entry Point](docs/19-startup-entry-point.md)** | Working-dir fix, Python version guard, single-instance lock, global exception handler |
 | **[Troubleshooting](docs/12-troubleshooting.md)** | Common issues and solutions |
 
 ## Contributing

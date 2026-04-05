@@ -82,6 +82,8 @@ From the main menu, press **CLOSURE** (administrators only). The system aggregat
 
 **Logging:** Configure log level, console, and file output in the `[logging]` section of `settings.toml`. See [Central Logging](docs/16-logging.md).
 
+**Startup guards:** `saleflex.py` performs four checks before starting the application: (1) working-directory normalisation so relative paths always resolve correctly, (2) Python ≥ 3.13 version guard, (3) single-instance file lock to prevent two POS processes running simultaneously, and (4) a global exception handler that logs unhandled errors to `logs/saleflex.log`. See [Startup Entry Point](docs/19-startup-entry-point.md).
+
 ---
 
 ## Table of Contents
@@ -104,6 +106,7 @@ From the main menu, press **CLOSURE** (administrators only). The system aggregat
 16. [Central Logging](docs/16-logging.md)
 17. [Centralized Exception Handling](docs/17-exception-handling.md)
 18. [Peripherals (OPOS-style devices)](docs/18-peripherals.md)
+19. [Startup Entry Point](docs/19-startup-entry-point.md)
 
 ---
 
