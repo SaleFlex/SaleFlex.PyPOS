@@ -299,7 +299,8 @@ class DynamicFormRenderer:
                 'input_type': control.input_type.lower() if control.input_type else 'alphanumeric',
                 'alignment': control.text_alignment.lower() if control.text_alignment else 'left',
                 'font_size': int(control.font_size) if control.font_size else 12,
-                'use_keyboard': self.form.use_virtual_keyboard if self.form else False
+                'use_keyboard': self.form.use_virtual_keyboard if self.form else False,
+                'function': control.form_control_function1 or 'NONE',
             })
         
         elif control.type.lower() == 'checkbox':

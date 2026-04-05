@@ -36,6 +36,7 @@ class TextBox(QLineEdit):
 
         self.field_name = ""
         self.__keyboard = None
+        self.__enter_function = None
 
     def set_font_size(self, font_size):
         if font_size:
@@ -64,6 +65,14 @@ class TextBox(QLineEdit):
         self.repaint()
         event.accept()
 
+    def keyPressEvent(self, event):
+        if event.key() in (Qt.Key_Return, Qt.Key_Enter):
+            if self.__enter_function:
+                self.__enter_function()
+                event.accept()
+                return
+        super().keyPressEvent(event)
+
     @property
     def keyboard(self):
         return self.__keyboard
@@ -71,3 +80,11 @@ class TextBox(QLineEdit):
     @keyboard.setter
     def keyboard(self, value):
         self.__keyboard = value
+
+    @property
+    def enter_function(self):
+        return self.__enter_function
+
+    @enter_function.setter
+    def enter_function(self, value):
+        self.__enter_function = value

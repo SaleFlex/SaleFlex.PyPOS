@@ -40,6 +40,19 @@ Standard text input field. When focused, the virtual keyboard is displayed autom
 
 Read-only state is applied via grey background stylesheet when the field should not be edited (e.g. non-admin cashier viewing another's profile).
 
+#### ENTER Key — `form_control_function1`
+
+When `form_control_function1` is set to a valid event name (anything other than `NONE`), pressing **Enter/Return** on the physical keyboard while the TextBox is focused triggers that event — equivalent to clicking the corresponding button on the form.
+
+**Use case:** Forms used with a physical keyboard (not just touch screen). For example, on the LOGIN form you can set the PASSWORD textbox's `form_control_function1` to `LOGIN` so the user can press Enter after typing the password instead of tapping the LOGIN button.
+
+| DB field | Value |
+|----------|-------|
+| `form_control_function1` | Event name (e.g. `LOGIN`, `PRODUCT_SEARCH`) |
+| `type_no` | `4` (TEXT_BOX) |
+
+> If `form_control_function1` is `NULL` or `NONE` the TextBox behaves as a plain input field and Enter is ignored.
+
 ---
 
 ### CheckBox (`control/checkbox.py`)

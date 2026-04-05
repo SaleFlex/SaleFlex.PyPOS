@@ -577,7 +577,14 @@ class BaseWindow(QMainWindow):
         # Set keyboard for textbox - always enable for panel textboxes or if use_keyboard is True
         if design_data.get('use_keyboard') or parent_panel:
             textbox.keyboard = self.keyboard
-        
+
+        # If form_control_function1 is set (and not NONE), wire ENTER key to trigger that event
+        function_name = design_data.get('function')
+        if function_name and function_name.upper() != 'NONE':
+            enter_handler = self.app.event_distributor(function_name)
+            if enter_handler:
+                textbox.enter_function = enter_handler
+
         # Add to panel if parent exists
         if parent_panel:
             parent_panel.add_child_control(textbox)

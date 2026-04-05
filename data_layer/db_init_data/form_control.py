@@ -102,7 +102,7 @@ def _insert_form_controls(session: Session, cashier_id: str):
             fk_form_id=login_form.id,
             fk_parent_id=None,
             name=ControlName.PASSWORD.value,
-            form_control_function1=EventName.NONE.value,
+            form_control_function1=EventName.LOGIN.value,
             form_control_function2=None,
             type_no=2,
             type="TEXTBOX",

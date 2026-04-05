@@ -116,6 +116,8 @@ From the main menu, press **CLOSURE** (administrators only). The system aggregat
 
 **Virtual keyboard:** [Virtual Keyboard Configuration](docs/06-virtual-keyboard.md)
 
+**TextBox Enter key action:** [UI Controls — TextBox ENTER Key](docs/23-ui-controls.md#enter-key--form_control_function1)
+
 **Logging:** [Central Logging](docs/31-logging.md)
 
 **Startup guards:** [Startup Entry Point](docs/34-startup-entry-point.md)

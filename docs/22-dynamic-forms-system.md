@@ -446,6 +446,39 @@ customer_button = FormControl(
 customer_button.save()
 ```
 
+## TextBox ENTER Key — `form_control_function1`
+
+When `form_control_function1` is set on a `TEXTBOX` control (and its value is not `NONE`), pressing **Enter** or **Return** on a physical keyboard while that textbox is focused fires the corresponding event handler — exactly as if the user had clicked the button with the same function.
+
+This feature is designed for environments where both touch-screen and physical-keyboard users need to be supported.
+
+### Example: LOGIN form with keyboard support
+
+```python
+# PASSWORD textbox that triggers LOGIN when Enter is pressed
+password_textbox = FormControl(
+    name="PASSWORD",
+    fk_form_id=login_form.id,
+    type="textbox",
+    input_type="PASSWORD",
+    caption1="Şifre",
+    width=300,
+    height=50,
+    location_x=50,
+    location_y=200,
+    back_color="0xFFFFFF",
+    fore_color="0x000000",
+    form_control_function1="LOGIN",   # ← ENTER triggers LOGIN event
+)
+password_textbox.save()
+```
+
+When the cashier types the password and presses **Enter**, the `LOGIN` event is executed automatically. The LOGIN button on the same form can also be clicked for touch-screen users.
+
+> **Rule:** If `form_control_function1` is `NULL` or `"NONE"` the TextBox behaves as a plain input field and Enter has no special action.
+
+---
+
 ## NUMPAD Control — Operating Modes
 
 The `NUMPAD` custom control (`type="NUMPAD"`) in the **SALE** form supports four

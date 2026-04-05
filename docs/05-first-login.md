@@ -15,7 +15,9 @@ Upon first launch, you will be presented with the login screen.
 
 1. Select your username from the **cashier name** dropdown (combobox) on the login screen.
 2. Enter your password using the on-screen virtual keyboard or a physical keyboard.
-3. Press the **LOGIN** button.
+3. Press the **LOGIN** button — or simply press **Enter** on your keyboard.
+
+> **Tip (physical keyboard users):** If `form_control_function1` is set to `LOGIN` on the PASSWORD textbox in the database, pressing **Enter** after typing your password is equivalent to clicking the LOGIN button. This makes the login flow keyboard-friendly for workstations with a physical keyboard.
 
 If the credentials are correct, you will be redirected to the **Main Menu**.
 
