@@ -329,6 +329,8 @@ After running the application, you will see the login screen:
 
 ![Login Screen](static_files/images/sample_login.jpg)
 
+> Touch-optimised login screen with cashier selection combobox, password field, and on-screen virtual keyboard.
+
 **Default Login Credentials:**
 
 | Username | Password | Role |
@@ -340,9 +342,43 @@ After successful login, you will be redirected to the main menu:
 
 ![Main Menu](static_files/images/sample_main_menu.jpg)
 
+> Main Menu listing all major modules: Sales, Closure, Settings, Cashier Management, and Products.
+
 If you select "SALES", you will see a form as shown below:
 
 ![Sale Form](static_files/images/sample_sale_form.jpg)
+
+> SALE form with PLU product buttons, department buttons, sale list, payment methods (Cash/Credit Card), NumPad, and real-time transaction totals.
+
+Selecting "CLOSURE" opens the end-of-day closure screen:
+
+![Closure Form](static_files/images/sample_closure_form.jpg)
+
+> Closure form listing all completed closures with gross sales, opening cash, and closing cash totals. Administrators can perform end-of-day closure from this screen.
+
+Selecting "SETTINGS" opens the POS settings panel:
+
+![Settings Form](static_files/images/sample_settings_form.jpg)
+
+> Settings panel showing POS hardware configuration (receipt printer, customer display, MAC address, etc.) with scroll support for long field lists.
+
+Selecting "CASHIER MANAGEMENT" allows managing cashier accounts:
+
+![Cashier Management Form](static_files/images/sample_cashier_form.jpg)
+
+> Cashier Management form with cashier selection combobox, editable profile fields, and administrator-only **ADD NEW CASHIER** button. Field-level read-only protection enforced based on the `is_administrator` flag.
+
+Selecting "PRODUCTS" opens the product search and listing screen:
+
+![Product List Form](static_files/images/sample_product_form.jpg)
+
+> Product List form with real-time search by name or short name, paginated DataGrid results, **DETAIL** button (bottom-left) to open the product detail view, and **BACK** button (bottom-right) to return to the Main Menu.
+
+Clicking "DETAIL" on a selected product opens the tabbed product detail dialog:
+
+![Product Detail Form](static_files/images/sample_product_detail_form.jpg)
+
+> Product Detail modal dialog (DB-driven, 1024×768) with four tabs: **Product Info** (code, name, price, stock, unit, manufacturer), **Barcodes**, **Attributes**, and **Variants**. Tabs are fully navigable via touch.
 
 ### Configuration
 - Edit `settings.toml` to configure database connections and basic application settings
