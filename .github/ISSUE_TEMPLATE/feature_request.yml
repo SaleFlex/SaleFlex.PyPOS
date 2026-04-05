@@ -1,0 +1,47 @@
+name: Feature Request
+description: Suggest a new feature or improvement for SaleFlex.PyPOS
+title: "[Feature] "
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for suggesting an improvement! Please provide as much detail as possible.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Description
+      description: What problem does this feature solve? What is missing or painful today?
+      placeholder: I often find it difficult to...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the feature you would like to see implemented.
+    validations:
+      required: true
+
+  - type: textarea
+    id: use_case
+    attributes:
+      label: POS Use Case
+      description: How would this feature be used in a real point-of-sale environment?
+      placeholder: For example, a cashier would...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Have you considered any alternative solutions or workarounds?
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Mockups, screenshots, references to similar POS systems, or other context.
