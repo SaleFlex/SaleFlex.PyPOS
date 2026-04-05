@@ -37,13 +37,13 @@ SaleFlex.PyPOS POS system is designed to streamline the sales process and improv
 - **Active Closure Management**: Session-based closure tracking system that automatically loads open closures at startup and manages closure lifecycle (open → active → closed). Closure data is maintained in memory during operations and saved to database when closed
 - **Document Management System**: Complete transaction lifecycle management with temporary models during processing and automatic conversion to permanent models upon completion. Automatically updates document data during sales operations (PLU and department sales). Supports per-line REPEAT (clone line, save new DB record, update totals) and DELETE (soft-cancel line, mark `is_cancel=True` in DB, recalculate totals) actions from the sale list item popup; if the last active line is deleted the document is automatically cancelled and reset. **CANCEL button:** Red **CANCEL** button on the SALE form (below the denomination buttons, same row as PLU/X/SUSPEND) immediately voids the entire active transaction — sets `transaction_status=CANCELLED`, `is_cancel=True`, `cancel_reason="Canceled by cashier: {username}"`, copies to permanent models, shows a confirmation dialog with receipt/closure number and total, then opens a new draft. If no open document exists, an info dialog is shown instead. **Market suspend:** **SUSPEND** saves the cart as pending, then creates a **new draft** (suspended rows no longer steal the receipt slot in `create_empty_document`). **SUSPENDED_SALES_MARKET** lists suspended receipts (hidden head id + columns); **ACTIVATE** (`RESUME_SALE`) clears `is_pending`, loads lines on **SALE**, and abandons any empty draft left open first. **Closure:** `TransactionHead` rows with `is_pending=True` and open `TransactionHeadTemp` suspended carts for the closure period are **excluded** from aggregated sales totals; their count is stored on `Closure.suspended_transaction_count`. Automatic recovery of incomplete **non-pending** transactions at startup; restores sale UI when re-entering **SALE** with an ACTIVE document
 - **Auto-Save Functionality**: Automatic database persistence system using descriptor pattern and wrapper classes. Model instances and dictionaries are automatically saved to the database when attributes are modified, ensuring data integrity and reducing manual save operations. Supports nested model wrapping and skip flags for batch operations
-- **Peripherals (OPOS-style)**: `pos/peripherals/` defines cash drawer, receipt printer, line display, scanner, scale, customer display, and remote order display classes. Wired behaviours on **SALE** (log-only until drivers exist): completed sale → receipt text + drawer open; CASH with no document → drawer open; selling and payment steps → three-line customer display updates. See [docs/18-peripherals.md](docs/18-peripherals.md)
-- **Startup Guards**: `saleflex.py` entry point runs four pre-flight checks before any module is imported: (1) working-directory normalisation so relative paths always resolve correctly; (2) Python ≥ 3.13 version guard with a clear error message; (3) file-based single-instance lock (`msvcrt.locking` on Windows, `fcntl.flock` on Linux/macOS) that is automatically released on process exit; (4) global exception handler that logs unhandled errors at `CRITICAL` level before terminating. See [docs/19-startup-entry-point.md](docs/19-startup-entry-point.md)
+- **Peripherals (OPOS-style)**: `pos/peripherals/` defines cash drawer, receipt printer, line display, scanner, scale, customer display, and remote order display classes. Wired behaviours on **SALE** (log-only until drivers exist): completed sale → receipt text + drawer open; CASH with no document → drawer open; selling and payment steps → three-line customer display updates. See [docs/30-peripherals.md](docs/30-peripherals.md)
+- **Startup Guards**: `saleflex.py` entry point runs four pre-flight checks before any module is imported: (1) working-directory normalisation so relative paths always resolve correctly; (2) Python >= 3.13 version guard with a clear error message; (3) file-based single-instance lock (`msvcrt.locking` on Windows, `fcntl.flock` on Linux/macOS) that is automatically released on process exit; (4) global exception handler that logs unhandled errors at `CRITICAL` level before terminating. See [docs/34-startup-entry-point.md](docs/34-startup-entry-point.md)
 - **Central Logging**: Configurable logging via `core/logger.py` with a single `saleflex` root logger. Log level (DEBUG/INFO/WARNING/ERROR/CRITICAL), console output, and file output are controlled from the `[logging]` section in `settings.toml`. All modules use `get_logger(__name__)` for consistent, hierarchical log records
 - **Centralized Exception Handling**: Typed exception hierarchy rooted at `SaleFlexError` (`core/exceptions.py`). Domain-specific subclasses (`PaymentError`, `FiscalDeviceError`, `GATEConnectionError`, `TaxCalculationError`, `DatabaseError`, etc.) replace bare `Exception` raises throughout the codebase. All exceptions are chained with `raise ... from e` to preserve the full traceback
-- **Product Management**: Dedicated **Product List** form (form_no=8) accessible from the Main Menu. Supports real-time search by product name or short name with instant DataGrid results. Selecting a row and pressing **DETAIL** opens the **Product Detail** modal dialog (form_no=9, fully DB-driven via `DynamicDialog`) — a tabbed view built with the new `TabControl` widget and `FormControlTab` model, showing Product Info, Barcodes, Attributes, and Variants in four separate read-only tabs. See [docs/20-product-management.md](docs/20-product-management.md)
+- **Product Management**: Dedicated **Product List** form (form_no=8) accessible from the Main Menu. Supports real-time search by product name or short name with instant DataGrid results. Selecting a row and pressing **DETAIL** opens the **Product Detail** modal dialog (form_no=9, fully DB-driven via `DynamicDialog`) — a tabbed view built with the new `TabControl` widget and `FormControlTab` model, showing Product Info, Barcodes, Attributes, and Variants in four separate read-only tabs. See [docs/15-product-management.md](docs/15-product-management.md)
 - **Optimized Performance**: In-memory caching of reference data (`pos_data`) and product data (`product_data`) minimizes disk I/O, extending disk life for POS devices with limited write cycles. All product lookups, currency calculations, VAT rate lookups, button rendering, and sale operations use cached data instead of database queries
-- **Smart NumPad (4 Modes)**: The SALE form NumPad supports four operating modes: (1) **Barcode/PLU lookup** — type a barcode or product code and press ENTER to find and sell the product (searches `ProductBarcode` then `Product.code`); (2) **Inline quantity** — type a quantity then press a PLU product button to sell that many units; (3) **X (Quantity Multiplier) button** — pre-set the quantity before a barcode scan; status bar shows the active multiplier (`x1`, `x3`, etc.); (4) **Payment amount** — enter the tendered amount in minor currency units (e.g. 10000 → Â£100.00) then press CASH or CREDIT CARD. **PLU inquiry** (separate green **PLU** button beside **X**) shows price and per-warehouse stock from cached `WarehouseProductStock` without selling — either enter the code then **PLU**, or press **PLU** first then enter the code and **ENTER**
+- **Smart NumPad (4 Modes)**: The SALE form NumPad supports four operating modes: (1) **Barcode/PLU lookup** — type a barcode or product code and press ENTER to find and sell the product (searches `ProductBarcode` then `Product.code`); (2) **Inline quantity** — type a quantity then press a PLU product button to sell that many units; (3) **X (Quantity Multiplier) button** — pre-set the quantity before a barcode scan; status bar shows the active multiplier (`x1`, `x3`, etc.); (4) **Payment amount** — enter the tendered amount in minor currency units (e.g. 10000 → £100.00) then press CASH or CREDIT CARD. **PLU inquiry** (separate green **PLU** button beside **X**) shows price and per-warehouse stock from cached `WarehouseProductStock` without selling — either enter the code then **PLU**, or press **PLU** first then enter the code and **ENTER**
 
 ## Architecture Overview
 
@@ -52,7 +52,7 @@ SaleFlex.PyPOS follows a layered architecture pattern with clear separation of c
 - **Entry Point** (`saleflex.py`): Pre-flight startup guards — working-directory normalisation, Python version check, single-instance lock, and global exception handler
 - **Application Layer** (`pos/manager/application.py`): Main application class implementing Singleton pattern, combining CurrentStatus, CurrentData, and EventHandler
 - **Business Logic Layer** (`pos/service/`): Service classes (VatService, SaleService, PaymentService) for centralized business operations
-- **Peripherals Layer** (`pos/peripherals/`): OPOS-style device abstractions (cash drawer, receipt printer, line display, scanner, scale, customer display, remote order display). Current implementation is **log-only** (no device probing); see [docs/18-peripherals.md](docs/18-peripherals.md)
+- **Peripherals Layer** (`pos/peripherals/`): OPOS-style device abstractions (cash drawer, receipt printer, line display, scanner, scale, customer display, remote order display). Current implementation is **log-only** (no device probing); see [docs/30-peripherals.md](docs/30-peripherals.md)
 - **Event Handling Layer** (`pos/manager/event/`): 10 specialized event handler classes for modular event processing (General, Sale, Payment, Closure, Config, Service, Report, Hardware, Warehouse, **Product**). Event handler methods use `_event` suffix naming convention (e.g., `_sales_form_event`, `_closure_event`, `_product_detail_event`) to distinguish them from properties
 - **Data Access Layer** (`data_layer/model/`): 98+ SQLAlchemy models with CRUD operations and auto-save functionality
 - **UI Layer** (`user_interface/`): PySide6-based UI components with dynamic form rendering
@@ -61,168 +61,168 @@ SaleFlex.PyPOS follows a layered architecture pattern with clear separation of c
 - **Exception Layer** (`core/exceptions.py`): Typed exception hierarchy (`SaleFlexError` root) with domain subclasses for payment, hardware, tax, database, document, configuration, and authentication errors
 
 ```
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚            UI Layer (PySide6)                   â”‚
-â”‚  Dynamic Forms Â· Virtual Keyboard Â· Controls    â”‚
-â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
-â”‚      Event Handlers (10 specialized modules)    â”‚
-â”‚  General Â· Sale Â· Payment Â· Closure Â· Config    â”‚
-â”‚  Service Â· Report Â· Hardware Â· Warehouse        â”‚
-â”‚  Product                                        â”‚
-â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
-â”‚          Business Logic (Service Layer)         â”‚
-â”‚      VatService Â· SaleService Â· PaymentService  â”‚
-â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
-â”‚         OPOS Peripherals (log-only stubs)       â”‚
-â”‚   CashDrawer Â· POSPrinter Â· LineDisplay         â”‚
-â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
-â”‚          Data Access Layer (ORM)                â”‚
-â”‚        98+ SQLAlchemy Models Â· CRUD             â”‚
-â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
-â”‚       Cache Layer (pos_data / product_data)     â”‚
-â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
-â”‚            Database (SQLite / PostgreSQL)        â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
-         ↕ core/logger.py (all layers)
-         ↕ core/exceptions.py (all layers)
++---------------------------------------------------+
+|            UI Layer (PySide6)                     |
+|  Dynamic Forms - Virtual Keyboard - Controls      |
++---------------------------------------------------+
+|      Event Handlers (10 specialized modules)      |
+|  General - Sale - Payment - Closure - Config      |
+|  Service - Report - Hardware - Warehouse          |
+|  Product                                          |
++---------------------------------------------------+
+|          Business Logic (Service Layer)           |
+|      VatService - SaleService - PaymentService    |
++---------------------------------------------------+
+|         OPOS Peripherals (log-only stubs)         |
+|   CashDrawer - POSPrinter - LineDisplay           |
++---------------------------------------------------+
+|          Data Access Layer (ORM)                  |
+|        98+ SQLAlchemy Models - CRUD               |
++---------------------------------------------------+
+|       Cache Layer (pos_data / product_data)       |
++---------------------------------------------------+
+|         Database (SQLite / PostgreSQL)            |
++---------------------------------------------------+
+    <-> core/logger.py (all layers)
+    <-> core/exceptions.py (all layers)
 ```
 
 ## Project Structure
 
 ```
 SaleFlex.PyPOS/
-â”œâ”€â”€ saleflex.py              # Main application entry point (startup guards, version check, single-instance lock)
-â”œâ”€â”€ requirements.txt         # Python dependencies
-â”œâ”€â”€ settings.toml           # Application configuration
-â”œâ”€â”€ db.sqlite3              # Default SQLite database
-â”œâ”€â”€ .saleflex.lock          # Runtime single-instance process lock (auto-created/deleted; not committed)
-â”œâ”€â”€ PyPOS_GUIDE.md          # Quick reference guide (redirects to docs/)
-â”‚
-â”œâ”€â”€ docs/                   # Comprehensive documentation
-â”‚   â”œâ”€â”€ README.md           # Documentation index
-â”‚   â””â”€â”€ *.md                # Topic-specific documentation files
-â”‚
-â”œâ”€â”€ data_layer/             # Database & ORM Layer
-â”‚   â”œâ”€â”€ engine.py           # Database engine configuration
-â”‚   â”œâ”€â”€ db_initializer.py   # Database initialization
-â”‚   â”œâ”€â”€ db_manager.py       # Database management utilities
-â”‚   â”œâ”€â”€ db_utils.py         # Database helper functions
-â”‚   â”‚
-â”‚   â”œâ”€â”€ auto_save/          # Auto-save functionality
-â”‚   â”‚   â”œâ”€â”€ auto_save_model.py
-â”‚   â”‚   â”œâ”€â”€ auto_save_dict.py
-â”‚   â”‚   â””â”€â”€ auto_save_descriptor.py
-â”‚   â”‚
-â”‚   â”œâ”€â”€ db_init_data/       # Initial data seeding
-â”‚   â”‚   â”œâ”€â”€ cashier.py
-â”‚   â”‚   â”œâ”€â”€ country.py
-â”‚   â”‚   â”œâ”€â”€ currency.py
-â”‚   â”‚   â”œâ”€â”€ product.py
-â”‚   â”‚   â””â”€â”€ ...             # Other initialization modules
-â”‚   â”‚
-â”‚   â”œâ”€â”€ enums/              # Enumeration definitions
-â”‚   â”‚   â”œâ”€â”€ control_name.py
-â”‚   â”‚   â”œâ”€â”€ control_type.py
-â”‚   â”‚   â”œâ”€â”€ custom_control_type_name.py
-â”‚   â”‚   â”œâ”€â”€ event_name.py
-â”‚   â”‚   â””â”€â”€ form_name.py
-â”‚   â”‚
-â”‚   â””â”€â”€ model/              # Data models and CRUD operations
-â”‚       â”œâ”€â”€ crud_model.py   # Base CRUD operations
-â”‚       â”œâ”€â”€ mixins.py       # Model mixins
-â”‚       â””â”€â”€ definition/     # Entity definitions (98+ models)
-â”‚
-â”œâ”€â”€ user_interface/         # UI Components
-â”‚   â”œâ”€â”€ window/             # Application windows and dialogs
-â”‚   â”‚   â”œâ”€â”€ base_window.py
-â”‚   â”‚   â””â”€â”€ dynamic_dialog.py
-â”‚   â”‚
-â”‚   â”œâ”€â”€ control/            # Custom UI controls
-â”‚   â”‚   â”œâ”€â”€ button.py
-â”‚   â”‚   â”œâ”€â”€ textbox.py
-â”‚   â”‚   â”œâ”€â”€ checkbox.py
-â”‚   â”‚   â”œâ”€â”€ combobox.py
-â”‚   â”‚   â”œâ”€â”€ label.py
-â”‚   â”‚   â”œâ”€â”€ datagrid.py
-â”‚   â”‚   â”œâ”€â”€ panel.py        # Panel control with scrollbar support
-â”‚   â”‚   â”œâ”€â”€ toolbar.py
-â”‚   â”‚   â”œâ”€â”€ statusbar.py
-â”‚   â”‚   â”œâ”€â”€ amount_table/   # Amount table control
-â”‚   â”‚   â”œâ”€â”€ numpad/         # Numeric pad control
-â”‚   â”‚   â”œâ”€â”€ payment_list/   # Payment list control
-â”‚   â”‚   â”œâ”€â”€ sale_list/      # Sale list control
-â”‚   â”‚   â”œâ”€â”€ tab_control/    # Tab control (QTabWidget, DB-driven pages via FormControlTab)
-â”‚   â”‚   â”œâ”€â”€ transaction_status/  # Transaction status display
-â”‚   â”‚   â””â”€â”€ virtual_keyboard/    # Virtual keyboard component
-â”‚   â”‚
-â”‚   â”œâ”€â”€ form/               # Form definitions
-â”‚   â”‚   â”œâ”€â”€ about_form.py
-â”‚   â”‚   â””â”€â”€ message_form.py
-â”‚   â”‚
-â”‚   â”œâ”€â”€ render/             # Dynamic form rendering (database-driven)
-â”‚   â”‚   â””â”€â”€ dynamic_renderer.py
-â”‚   â”‚
-â”‚   â””â”€â”€ manager/            # UI management logic
-â”‚       â””â”€â”€ interface.py
-â”‚
-â”œâ”€â”€ pos/                    # Core POS Business Logic
-â”‚   â”œâ”€â”€ data/               # POS-specific data types
-â”‚   â”‚   â”œâ”€â”€ document_type.py
-â”‚   â”‚   â”œâ”€â”€ document_state.py
-â”‚   â”‚   â”œâ”€â”€ payment_type.py
-â”‚   â”‚   â””â”€â”€ discount_type.py
-â”‚   â”‚
-â”‚   â”œâ”€â”€ hardware/           # Hardware integration
-â”‚   â”‚   â””â”€â”€ device_info.py  # Device information detection
-â”‚   â”‚
-â”‚   â”œâ”€â”€ peripherals/        # OPOS-style peripherals (log-only until drivers are added)
-â”‚   â”‚   â”œâ”€â”€ cash_drawer.py
-â”‚   â”‚   â”œâ”€â”€ pos_printer.py
-â”‚   â”‚   â”œâ”€â”€ line_display.py
-â”‚   â”‚   â”œâ”€â”€ hooks.py        # SALE form line-display sync helpers
-â”‚   â”‚   â””â”€â”€ ...             # scanner, scale, customer_display, remote_order_display stubs
-â”‚   â”‚
-â”‚   â”œâ”€â”€ service/            # Business logic services
-â”‚   â”‚   â”œâ”€â”€ vat_service.py     # VAT calculation service
-â”‚   â”‚   â”œâ”€â”€ sale_service.py    # Sale processing service
-â”‚   â”‚   â””â”€â”€ payment_service.py # Payment processing service
-â”‚   â”‚
-â”‚   â””â”€â”€ manager/            # Application management
-â”‚       â”œâ”€â”€ application.py  # Main application class
-â”‚       â”œâ”€â”€ current_data.py # Current session data
-â”‚       â”œâ”€â”€ current_status.py
-â”‚       â”œâ”€â”€ cache_manager.py      # Data caching
-â”‚       â”œâ”€â”€ closure_manager.py    # Closure management
-â”‚       â”œâ”€â”€ document_manager.py   # Document lifecycle
-â”‚       â”œâ”€â”€ event_handler.py      # Event handling (combines all event handlers)
-â”‚       â””â”€â”€ event/          # Event handlers (9 specialized event handler classes)
-â”‚           â”œâ”€â”€ general.py        # GeneralEvent: Login, logout, exit, navigation
-â”‚           â”œâ”€â”€ sale.py           # SaleEvent: Sales transaction and product events
-â”‚           â”œâ”€â”€ payment.py        # PaymentEvent: Payment processing events
-â”‚           â”œâ”€â”€ closure.py        # ClosureEvent: End-of-day closure operations
-â”‚           â”œâ”€â”€ configuration.py  # ConfigurationEvent: Settings and configuration
-â”‚           â”œâ”€â”€ service.py        # ServiceEvent: Service-related operations
-â”‚           â”œâ”€â”€ report.py         # ReportEvent: Report generation and viewing
-â”‚           â”œâ”€â”€ hardware.py       # HardwareEvent: Hardware device operations
-â”‚           â”œâ”€â”€ warehouse.py      # WarehouseEvent: Warehouse and inventory operations
-â”‚           â””â”€â”€ product.py        # ProductEvent: Product list, search, and detail events
-â”‚
-â”œâ”€â”€ core/                    # Core utilities
-â”‚   â”œâ”€â”€ logger.py           # Central logging (get_logger, config via settings.toml [logging])
-â”‚   â””â”€â”€ exceptions.py       # Centralized exception hierarchy (SaleFlexError root)
-â”‚
-â”œâ”€â”€ settings/               # Configuration management
-â”‚   â””â”€â”€ settings.py
-â”‚
-â”œâ”€â”€ static_files/           # Static assets
-â”‚   â”œâ”€â”€ closures/           # Country-specific closure templates
-â”‚   â”‚   â”œâ”€â”€ tr.json
-â”‚   â”‚   â”œâ”€â”€ usa.json
-â”‚   â”‚   â”œâ”€â”€ usa_ca.json
-â”‚   â”‚   â””â”€â”€ ...
-â”‚   â””â”€â”€ images/             # Image assets
-â”‚       â”œâ”€â”€ saleflex.ico
-â”‚       â””â”€â”€ ...
++-- saleflex.py              # Main application entry point (startup guards, version check, single-instance lock)
++-- requirements.txt         # Python dependencies
++-- settings.toml            # Application configuration
++-- db.sqlite3               # Default SQLite database
++-- .saleflex.lock           # Runtime single-instance process lock (auto-created/deleted; not committed)
++-- PyPOS_GUIDE.md           # Quick reference guide (redirects to docs/)
+|
++-- docs/                    # Comprehensive documentation
+|   +-- README.md            # Documentation index
+|   +-- *.md                 # Topic-specific documentation files
+|
++-- data_layer/              # Database & ORM Layer
+|   +-- engine.py            # Database engine configuration
+|   +-- db_initializer.py    # Database initialization
+|   +-- db_manager.py        # Database management utilities
+|   +-- db_utils.py          # Database helper functions
+|   |
+|   +-- auto_save/           # Auto-save functionality
+|   |   +-- auto_save_model.py
+|   |   +-- auto_save_dict.py
+|   |   +-- auto_save_descriptor.py
+|   |
+|   +-- db_init_data/        # Initial data seeding
+|   |   +-- cashier.py
+|   |   +-- country.py
+|   |   +-- currency.py
+|   |   +-- product.py
+|   |   +-- ...              # Other initialization modules
+|   |
+|   +-- enums/               # Enumeration definitions
+|   |   +-- control_name.py
+|   |   +-- control_type.py
+|   |   +-- custom_control_type_name.py
+|   |   +-- event_name.py
+|   |   +-- form_name.py
+|   |
+|   +-- model/               # Data models and CRUD operations
+|       +-- crud_model.py    # Base CRUD operations
+|       +-- mixins.py        # Model mixins
+|       +-- definition/      # Entity definitions (98+ models)
+|
++-- user_interface/          # UI Components
+|   +-- window/              # Application windows and dialogs
+|   |   +-- base_window.py
+|   |   +-- dynamic_dialog.py
+|   |
+|   +-- control/             # Custom UI controls
+|   |   +-- button.py
+|   |   +-- textbox.py
+|   |   +-- checkbox.py
+|   |   +-- combobox.py
+|   |   +-- label.py
+|   |   +-- datagrid.py
+|   |   +-- panel.py         # Panel control with scrollbar support
+|   |   +-- toolbar.py
+|   |   +-- statusbar.py
+|   |   +-- amount_table/    # Amount table control
+|   |   +-- numpad/          # Numeric pad control
+|   |   +-- payment_list/    # Payment list control
+|   |   +-- sale_list/       # Sale list control
+|   |   +-- tab_control/     # Tab control (QTabWidget, DB-driven pages via FormControlTab)
+|   |   +-- transaction_status/   # Transaction status display
+|   |   +-- virtual_keyboard/     # Virtual keyboard component
+|   |
+|   +-- form/                # Form definitions
+|   |   +-- about_form.py
+|   |   +-- message_form.py
+|   |
+|   +-- render/              # Dynamic form rendering (database-driven)
+|   |   +-- dynamic_renderer.py
+|   |
+|   +-- manager/             # UI management logic
+|       +-- interface.py
+|
++-- pos/                     # Core POS Business Logic
+|   +-- data/                # POS-specific data types
+|   |   +-- document_type.py
+|   |   +-- document_state.py
+|   |   +-- payment_type.py
+|   |   +-- discount_type.py
+|   |
+|   +-- hardware/            # Hardware integration
+|   |   +-- device_info.py   # Device information detection
+|   |
+|   +-- peripherals/         # OPOS-style peripherals (log-only until drivers are added)
+|   |   +-- cash_drawer.py
+|   |   +-- pos_printer.py
+|   |   +-- line_display.py
+|   |   +-- hooks.py         # SALE form line-display sync helpers
+|   |   +-- ...              # scanner, scale, customer_display, remote_order_display stubs
+|   |
+|   +-- service/             # Business logic services
+|   |   +-- vat_service.py      # VAT calculation service
+|   |   +-- sale_service.py     # Sale processing service
+|   |   +-- payment_service.py  # Payment processing service
+|   |
+|   +-- manager/             # Application management
+|       +-- application.py   # Main application class
+|       +-- current_data.py  # Current session data
+|       +-- current_status.py
+|       +-- cache_manager.py       # Data caching
+|       +-- closure_manager.py     # Closure management
+|       +-- document_manager.py    # Document lifecycle
+|       +-- event_handler.py       # Event handling (combines all event handlers)
+|       +-- event/           # Event handlers (10 specialized event handler classes)
+|           +-- general.py        # GeneralEvent: Login, logout, exit, navigation
+|           +-- sale.py           # SaleEvent: Sales transaction and product events
+|           +-- payment.py        # PaymentEvent: Payment processing events
+|           +-- closure.py        # ClosureEvent: End-of-day closure operations
+|           +-- configuration.py  # ConfigurationEvent: Settings and configuration
+|           +-- service.py        # ServiceEvent: Service-related operations
+|           +-- report.py         # ReportEvent: Report generation and viewing
+|           +-- hardware.py       # HardwareEvent: Hardware device operations
+|           +-- warehouse.py      # WarehouseEvent: Warehouse and inventory operations
+|           +-- product.py        # ProductEvent: Product list, search, and detail events
+|
++-- core/                    # Core utilities
+|   +-- logger.py            # Central logging (get_logger, config via settings.toml [logging])
+|   +-- exceptions.py        # Centralized exception hierarchy (SaleFlexError root)
+|
++-- settings/                # Configuration management
+|   +-- settings.py
+|
++-- static_files/            # Static assets
+    +-- closures/            # Country-specific closure templates
+    |   +-- tr.json
+    |   +-- usa.json
+    |   +-- usa_ca.json
+    |   +-- ...
+    +-- images/              # Image assets
+        +-- saleflex.ico
+        +-- ...
 ```
 
 ## Business Applications
@@ -280,7 +280,7 @@ pip install -r requirements.txt
 python saleflex.py
 ```
 
-**Default credentials:** `admin` / `admin` (administrator) Â· `jdoe` / `1234` (standard cashier)
+**Default credentials:** `admin` / `admin` (administrator) · `jdoe` / `1234` (standard cashier)
 
 ## Installation & Setup
 
@@ -378,7 +378,7 @@ Clicking "DETAIL" on a selected product opens the tabbed product detail dialog:
 
 ![Product Detail Form](static_files/images/sample_product_detail_form.jpg)
 
-> Product Detail modal dialog (DB-driven, 1024Ã—768) with four tabs: **Product Info** (code, name, price, stock, unit, manufacturer), **Barcodes**, **Attributes**, and **Variants**. Tabs are fully navigable via touch.
+> Product Detail modal dialog (DB-driven, 1024×768) with four tabs: **Product Info** (code, name, price, stock, unit, manufacturer), **Barcodes**, **Attributes**, and **Variants**. Tabs are fully navigable via touch.
 
 ### Configuration
 - Edit `settings.toml` to configure database connections and basic application settings
@@ -587,21 +587,31 @@ Comprehensive documentation is available in the `docs/` directory:
 | Document | Description |
 |----------|-------------|
 | **[Documentation Index](docs/README.md)** | Complete guide organized by topic |
-| **[Installation Guide](docs/03-installation.md)** | Detailed setup instructions |
-| **[First Login](docs/04-first-login.md)** | Default credentials and role differences |
-| **[Basic Navigation](docs/05-basic-navigation.md)** | Sale processing, NumPad modes, SUSPEND/CANCEL |
-| **[Dynamic Forms System](docs/06-dynamic-forms.md)** | Database-driven UI system and Panel controls |
-| **[Virtual Keyboard](docs/06-virtual-keyboard.md)** | Virtual keyboard configuration and themes |
-| **[Data Caching](docs/08-data-caching.md)** | Caching strategy and implementation |
-| **[Document Management](docs/09-document-management.md)** | Transaction lifecycle management |
-| **[Database Models](docs/10-database-models.md)** | Complete model reference (98+ models) |
-| **[Closure Operation](docs/15-closure-operation.md)** | End-of-day closure (authorization, aggregation, sequences) |
-| **[Service Layer](docs/14-service-layer.md)** | Business logic services architecture |
-| **[Central Logging](docs/16-logging.md)** | Logging configuration and usage |
-| **[Exception Handling](docs/17-exception-handling.md)** | Centralized exception hierarchy |
-| **[Peripherals](docs/18-peripherals.md)** | OPOS-style device layer (cash drawer, printer, display) |
-| **[Startup Entry Point](docs/19-startup-entry-point.md)** | Working-dir fix, Python version guard, single-instance lock, global exception handler |
-| **[Troubleshooting](docs/12-troubleshooting.md)** | Common issues and solutions |
+| **[Installation Guide](docs/03-installation.md)** | Step-by-step setup (Python, venv, pip, first run) |
+| **[Configuration](docs/04-configuration.md)** | `settings.toml` reference and POS Settings |
+| **[First Login](docs/05-first-login.md)** | Default credentials, role differences, document recovery |
+| **[Virtual Keyboard](docs/06-virtual-keyboard.md)** | DB-driven keyboard themes, enable/disable, custom themes |
+| **[Sale Transactions](docs/10-sale-transactions.md)** | NumPad modes, adding products, payments, item actions |
+| **[Suspend and Resume](docs/11-suspend-resume.md)** | SUSPEND button, parked carts, market mode |
+| **[Cancellations](docs/12-cancellations.md)** | Line cancellation (DELETE), full document cancellation (CANCEL) |
+| **[End-of-Day Closure](docs/13-end-of-day-closure.md)** | Authorization, aggregation flow, sequence management |
+| **[Cashier Management](docs/14-cashier-management.md)** | Create/edit cashiers, role permissions, ADD NEW CASHIER |
+| **[Product Management](docs/15-product-management.md)** | Product List search, Product Detail tabbed dialog |
+| **[Project Structure](docs/20-project-structure.md)** | Folder layout, class chain, startup sequence, design patterns |
+| **[Database Models](docs/21-database-models.md)** | 98+ models organized by domain, temp/permanent split |
+| **[Dynamic Forms System](docs/22-dynamic-forms-system.md)** | DB-driven UI forms, Panel controls, generic save pattern |
+| **[UI Controls Catalog](docs/23-ui-controls.md)** | All custom Qt widgets: Button, TextBox, NumPad, SaleList, TabControl |
+| **[Event System](docs/24-event-system.md)** | EventHandler, event_distributor(), all event categories |
+| **[Service Layer](docs/25-service-layer.md)** | VatService, SaleService, PaymentService |
+| **[Document Management](docs/26-document-management.md)** | Transaction lifecycle, suspend/resume, payment flow |
+| **[Data Caching](docs/27-data-caching.md)** | pos_data / product_data caches, AutoSave system |
+| **[Peripherals](docs/30-peripherals.md)** | OPOS-style device layer (cash drawer, printer, display) |
+| **[Central Logging](docs/31-logging.md)** | `core/logger.py` configuration, log format, usage patterns |
+| **[Exception Handling](docs/32-exception-handling.md)** | `SaleFlexError` hierarchy, usage patterns, design guidelines |
+| **[Database Initialization](docs/33-database-initialization.md)** | Seed data functions, initialization order |
+| **[Startup Entry Point](docs/34-startup-entry-point.md)** | Working-dir fix, Python version guard, single-instance lock |
+| **[Troubleshooting](docs/35-troubleshooting.md)** | Common issues, database problems, closure and sale issues |
+| **[Support and Resources](docs/36-support.md)** | GitHub, issue tracker, donations, license |
 
 ## Contributing
 
@@ -640,6 +650,3 @@ Your support helps us continue developing new features and maintaining this open
 ---
 
 **For more information about the SaleFlex ecosystem, visit [SaleFlex.GATE](https://github.com/SaleFlex/SaleFlex.GATE) for centralized management capabilities.**
-
-
-
