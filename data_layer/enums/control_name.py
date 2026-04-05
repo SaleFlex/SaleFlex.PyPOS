@@ -162,3 +162,14 @@ class ControlName(enum.Enum):
     # Data Display Controls
     DATAGRID = "DATAGRID"
     SUSPENDED_SALES_DATAGRID = "SUSPENDED_SALES_DATAGRID"
+
+    # Product Controls
+    PRODUCT_SEARCH_TEXTBOX = "PRODUCT_SEARCH_TEXTBOX"  # Textbox for product search query
+    PRODUCT_LIST_DATAGRID = "PRODUCT_LIST_DATAGRID"    # DataGrid displaying product search results
+
+    # Product Detail Controls (used in PRODUCT_DETAIL dynamic form)
+    PRODUCT_DETAIL_TAB = "PRODUCT_DETAIL_TAB"                # TABCONTROL on the product detail form
+    PRODUCT_INFO_GRID = "PRODUCT_INFO_GRID"                  # Key/value grid: product + unit + manufacturer
+    PRODUCT_BARCODE_GRID = "PRODUCT_BARCODE_GRID"            # Grid listing product_barcode rows
+    PRODUCT_ATTRIBUTE_GRID = "PRODUCT_ATTRIBUTE_GRID"        # Grid listing product_attribute rows
+    PRODUCT_VARIANT_GRID = "PRODUCT_VARIANT_GRID"            # Grid listing product_variant rows

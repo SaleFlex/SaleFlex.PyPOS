@@ -1,7 +1,7 @@
 """
 SaleFlex.PyPOS - Point of Sale Application
 
-Copyright (c) 2025 Ferhat Mousavi
+Copyright (c) 2025-2026 Ferhat Mousavi
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -23,6 +23,7 @@ SOFTWARE.
 """
 
 from data_layer.model import Form, FormControl
+from data_layer.model.definition.form_control_tab import FormControlTab
 from data_layer.enums import FormName
 
 
@@ -141,39 +142,64 @@ class DynamicFormRenderer:
     @property
     def design(self):
         """
-        Convert form controls to design list for BaseWindow.
-        Parent controls (like Panel) are created first, then child controls.
-        
+        Convert form controls to design list for BaseWindow / DynamicDialog.
+
+        Ordering:
+          1. Parent controls (Panel, TabControl, Toolbar, Statusbar) – must be
+             created first so child controls can reference them.
+          2. Child controls – linked to their parents via ``parent_name`` (Panel)
+             or ``parent_tab_name`` + ``tab_id`` / ``tab_index`` (TabControl).
+
         Returns:
-            list: List of control design dictionaries, ordered by parent-child relationship
+            list: List of control design dictionaries.
         """
         if not self.form:
             return []
-        
+
         design_list = []
-        parent_controls = {}  # Store parent controls by ID
-        
-        # First pass: Create parent controls (Panel, Toolbar, Statusbar)
+        parent_controls = {}       # control.id  → FormControl (parents only)
+        tab_lookup_by_ctrl = {}    # str(tabcontrol_id) → {str(tab_id): tab_info_dict}
+
+        # First pass: parent controls
         for control in self.controls:
-            # Create parent controls first
-            if control.type.lower() in ['panel', 'toolbar', 'statusbar']:
+            if control.type.lower() in ['panel', 'tabcontrol', 'toolbar', 'statusbar']:
                 design_dict = self._convert_control_to_design(control)
                 if design_dict:
+                    if control.type.lower() == 'tabcontrol':
+                        tabs = self._load_tabs_for_control(control.id)
+                        design_dict['tabs'] = tabs
+                        tab_lookup_by_ctrl[str(control.id)] = {
+                            t['id']: t for t in tabs
+                        }
                     design_list.append(design_dict)
                     parent_controls[control.id] = control
-        
-        # Second pass: Create child controls, linking them to their parents
+
+        # Second pass: child / leaf controls
         for control in self.controls:
-            # Skip parent controls (already added)
-            if control.type.lower() in ['panel', 'toolbar', 'statusbar']:
+            if control.type.lower() in ['panel', 'tabcontrol', 'toolbar', 'statusbar']:
                 continue
-            
-            # Skip controls that belong to toolbar/statusbar (handled separately)
+
             if control.fk_parent_id:
                 parent = self._find_control_by_id(control.fk_parent_id)
+
                 if parent and parent.type.lower() in ['toolbar', 'statusbar']:
                     continue
-                # For Panel parent, add parent info to design dict
+
+                elif parent and parent.type.lower() == 'tabcontrol':
+                    design_dict = self._convert_control_to_design(control)
+                    if design_dict:
+                        design_dict['parent_tab_name'] = parent.name
+                        design_dict['parent_id'] = str(parent.id)
+                        # Resolve which tab page this control belongs to
+                        if control.fk_tab_id:
+                            tab_map = tab_lookup_by_ctrl.get(str(parent.id), {})
+                            tab_info = tab_map.get(str(control.fk_tab_id))
+                            if tab_info:
+                                design_dict['tab_id'] = tab_info['id']
+                                design_dict['tab_index'] = tab_info['tab_index']
+                        design_list.append(design_dict)
+                    continue
+
                 elif parent and parent.type.lower() == 'panel':
                     design_dict = self._convert_control_to_design(control)
                     if design_dict:
@@ -181,13 +207,45 @@ class DynamicFormRenderer:
                         design_dict['parent_name'] = parent.name
                         design_list.append(design_dict)
                     continue
-            
-            # Regular controls without parent
+
+            # Regular top-level controls
             design_dict = self._convert_control_to_design(control)
             if design_dict:
                 design_list.append(design_dict)
-        
+
         return design_list
+
+    def _load_tabs_for_control(self, control_id):
+        """
+        Return sorted list of tab-page info dicts for a given TABCONTROL id.
+
+        Args:
+            control_id: UUID of the TABCONTROL FormControl record.
+
+        Returns:
+            list[dict]: Each dict has keys id, tab_index, tab_title, tab_tooltip,
+                        back_color, fore_color.
+        """
+        try:
+            tabs = FormControlTab.filter_by(
+                fk_form_control_id=control_id,
+                is_deleted=False,
+                is_visible=True,
+            )
+        except Exception:
+            tabs = []
+
+        return [
+            {
+                'id': str(t.id),
+                'tab_index': t.tab_index,
+                'tab_title': t.tab_title or '',
+                'tab_tooltip': t.tab_tooltip or '',
+                'back_color': t.back_color,
+                'fore_color': t.fore_color,
+            }
+            for t in sorted(tabs, key=lambda x: x.tab_index)
+        ]
     
     def _convert_control_to_design(self, control):
         """
@@ -301,7 +359,13 @@ class DynamicFormRenderer:
             design.update({
                 'name': control.name,
             })
-        
+
+        elif control.type.lower() == 'tabcontrol':
+            design.update({
+                'name': control.name,
+                'font_size': int(control.font_size) if control.font_size else 12,
+            })
+
         return design
     
     def _find_control_by_id(self, control_id):

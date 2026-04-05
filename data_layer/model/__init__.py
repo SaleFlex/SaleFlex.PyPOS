@@ -69,6 +69,7 @@ from data_layer.model.definition.transaction_document_type import TransactionDoc
 from data_layer.model.definition.transaction_sequence import TransactionSequence
 from data_layer.model.definition.form import Form
 from data_layer.model.definition.form_control import FormControl
+from data_layer.model.definition.form_control_tab import FormControlTab
 from data_layer.model.definition.receipt_header import ReceiptHeader
 from data_layer.model.definition.receipt_footer import ReceiptFooter
 from data_layer.model.definition.table import Table

@@ -31,7 +31,7 @@ logger = get_logger(__name__)
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon, QColor, QLinearGradient, QBrush, QPalette
 
-from user_interface.control import TextBox, CheckBox, Button, ToolBar, StatusBar, NumPad, PaymentList, SaleList, ComboBox, AmountTable, Label, DataGrid, Panel
+from user_interface.control import TextBox, CheckBox, Button, ToolBar, StatusBar, NumPad, PaymentList, SaleList, ComboBox, AmountTable, Label, DataGrid, Panel, TabControl
 from user_interface.control import VirtualKeyboard
 
 
@@ -42,7 +42,11 @@ class BaseWindow(QMainWindow):
         self.app = app
 
         self.keyboard = VirtualKeyboard(source=None, parent=self)
-        
+        # Explicitly hide so Qt's showChildren does not auto-show the keyboard
+        # when the window is first displayed (resizeEvent makes it 970×315 and
+        # blocks mouse events on the upper portion of the window).
+        self.keyboard.hide()
+
         # Set window icon from settings
         self._set_window_icon()
 
@@ -71,9 +75,11 @@ class BaseWindow(QMainWindow):
         if settings["statusbar"]:
             self._create_status_bar()
 
-        # Always reset panels dictionary at the start of each draw so stale
-        # Panel references from a previous form do not leak into the new one.
+        # Always reset panels/tab dictionaries at the start of each draw so stale
+        # references from a previous form do not leak into the new one.
         self._panels = {}
+        self._tab_controls = {}
+        self._tab_pages = {}   # str(tab_id) → QWidget (tab page)
 
         for control_design_data in design:
             if control_design_data["type"] == "textbox":
@@ -108,6 +114,9 @@ class BaseWindow(QMainWindow):
 
             if control_design_data["type"] == "panel":
                 self._create_panel(control_design_data)
+
+            if control_design_data["type"] == "tabcontrol":
+                self._create_tab_control(control_design_data)
 
         self.setUpdatesEnabled(True)
 
@@ -251,9 +260,7 @@ class BaseWindow(QMainWindow):
 
     def clear(self):
         """Clear all child controls and hide the window."""
-        # First, explicitly clean up Panel children (they are parented to
-        # panel.content_widget, not directly to the window, so the loop
-        # below would miss them and leave dangling Qt/Python wrapper objects).
+        # Clean up Panel children (parented to panel.content_widget, not the window).
         if hasattr(self, '_panels'):
             for panel in list(self._panels.values()):
                 try:
@@ -269,8 +276,14 @@ class BaseWindow(QMainWindow):
                     pass
             self._panels.clear()
 
+        # Clean up tab-page widgets (parented to TabControl, not the window directly).
+        if hasattr(self, '_tab_pages'):
+            self._tab_pages.clear()
+        if hasattr(self, '_tab_controls'):
+            self._tab_controls.clear()
+
         for item in list(self.children()):
-            if type(item) in [TextBox, CheckBox, Button, Label, ToolBar, StatusBar, NumPad, PaymentList, SaleList, ComboBox, AmountTable, DataGrid, Panel]:
+            if type(item) in [TextBox, CheckBox, Button, Label, ToolBar, StatusBar, NumPad, PaymentList, SaleList, ComboBox, AmountTable, DataGrid, Panel, TabControl]:
                 try:
                     item.blockSignals(True)
                     item.setParent(None)
@@ -830,7 +843,11 @@ class BaseWindow(QMainWindow):
     def _create_datagrid(self, design_data):
         """
         Create a DataGrid control for displaying tabular data.
-        
+
+        If ``design_data`` contains a ``tab_id`` key the grid is parented to the
+        corresponding tab-page ``QWidget`` (looked up in ``self._tab_pages``).
+        Otherwise it is parented directly to the window.
+
         Args:
             design_data (dict): Design specifications for the datagrid
         """
@@ -838,15 +855,28 @@ class BaseWindow(QMainWindow):
         height = design_data.get("height", 400)
         background_color = design_data.get("background_color", 0xFFFFFF)
         foreground_color = design_data.get("foreground_color", 0x000000)
-        
-        datagrid = DataGrid(self)
-        datagrid.setGeometry(
-            design_data.get("location_x", 0),
-            design_data.get("location_y", 0),
-            width,
-            height
-        )
-        
+
+        # Determine parent widget (tab page or window)
+        parent_widget = self
+        tab_id = design_data.get("tab_id")
+        if tab_id and hasattr(self, "_tab_pages"):
+            tab_page = self._tab_pages.get(tab_id)
+            if tab_page:
+                parent_widget = tab_page
+
+        datagrid = DataGrid(parent_widget)
+        # If the parent tab page has a layout, add the DataGrid to it so it
+        # stretches to fill the page.  Otherwise fall back to absolute geometry.
+        if parent_widget is not self and parent_widget.layout() is not None:
+            parent_widget.layout().addWidget(datagrid)
+        else:
+            datagrid.setGeometry(
+                design_data.get("location_x", 0),
+                design_data.get("location_y", 0),
+                width,
+                height
+            )
+
         # Apply colors
         datagrid.set_color(background_color, foreground_color)
         
@@ -935,8 +965,175 @@ class BaseWindow(QMainWindow):
                 logger.exception("Error loading suspended sales list: %s", e)
                 datagrid.set_columns(["No Data Available"])
                 datagrid.set_data([])
-        
+
+        elif name_key == ControlName.PRODUCT_LIST_DATAGRID.value:
+            # Start with column headers only; rows are populated by PRODUCT_SEARCH event
+            datagrid.set_columns(["Code", "Name", "Short Name", "Sale Price", "Stock"])
+            datagrid.set_data([])
+            datagrid._product_ids = []
+
+        elif name_key == ControlName.PRODUCT_INFO_GRID.value:
+            self._populate_product_info_grid(datagrid)
+
+        elif name_key == ControlName.PRODUCT_BARCODE_GRID.value:
+            self._populate_product_barcode_grid(datagrid)
+
+        elif name_key == ControlName.PRODUCT_ATTRIBUTE_GRID.value:
+            self._populate_product_attribute_grid(datagrid)
+
+        elif name_key == ControlName.PRODUCT_VARIANT_GRID.value:
+            self._populate_product_variant_grid(datagrid)
+
         datagrid.show()
+
+    # ------------------------------------------------------------------ #
+    # Product-detail grid helpers                                         #
+    # ------------------------------------------------------------------ #
+
+    def _get_current_product(self):
+        """Return the Product for ``self.app.current_product_id``, or None."""
+        product_id = getattr(self.app, "current_product_id", None)
+        if not product_id:
+            return None
+        try:
+            from uuid import UUID as _UUID
+            from data_layer.model import Product
+            # SQLAlchemy's UUID column type requires a uuid.UUID object, not a plain
+            # string, otherwise it fails with 'str has no attribute .hex'.
+            if isinstance(product_id, str):
+                product_id = _UUID(product_id)
+            return Product.get_by_id(product_id)
+        except Exception as exc:
+            logger.exception("[PRODUCT_DETAIL] Error loading product: %s", exc)
+            return None
+
+    def _populate_product_info_grid(self, datagrid):
+        """Fill the Product-Info tab grid with key/value rows."""
+        product = self._get_current_product()
+        datagrid.set_columns(["Field", "Value"])
+        if not product:
+            datagrid.set_data([])
+            return
+        try:
+            from data_layer.model import ProductUnit, ProductManufacturer
+
+            from uuid import UUID as _UUID
+
+            def _to_uuid(val):
+                if val is None:
+                    return None
+                return _UUID(str(val)) if not isinstance(val, _UUID) else val
+
+            unit = None
+            if getattr(product, "fk_product_unit_id", None):
+                unit = ProductUnit.get_by_id(_to_uuid(product.fk_product_unit_id))
+
+            # The FK column on Product is fk_manufacturer_id (not fk_product_manufacturer_id)
+            mfr = None
+            if getattr(product, "fk_manufacturer_id", None):
+                mfr = ProductManufacturer.get_by_id(_to_uuid(product.fk_manufacturer_id))
+
+            def _fmt(val):
+                if val is None:
+                    return ""
+                try:
+                    return f"{float(val):.2f}"
+                except (TypeError, ValueError):
+                    return str(val)
+
+            rows = [
+                ["Code",           product.code or ""],
+                ["Name",           product.name or ""],
+                ["Short Name",     product.short_name or ""],
+                ["Sale Price",     _fmt(product.sale_price)],
+                ["Purchase Price", _fmt(product.purchase_price)],
+                ["Stock",          str(product.stock) if product.stock is not None else ""],
+                ["Min Stock",      str(product.min_stock) if product.min_stock is not None else ""],
+                ["Max Stock",      str(product.max_stock) if product.max_stock is not None else ""],
+                ["Unit",           unit.name if unit else ""],
+                ["Manufacturer",   mfr.name if mfr else ""],
+            ]
+            datagrid.set_data(rows)
+        except Exception as exc:
+            logger.exception("[PRODUCT_INFO_GRID] Error loading data: %s", exc)
+            datagrid.set_data([])
+
+    def _populate_product_barcode_grid(self, datagrid):
+        """Fill the Barcodes tab grid."""
+        product = self._get_current_product()
+        datagrid.set_columns(["Barcode", "Old Barcode", "Purchase Price", "Sale Price"])
+        if not product:
+            datagrid.set_data([])
+            return
+        try:
+            from data_layer.model import ProductBarcode
+            barcodes = [b for b in ProductBarcode.get_all(is_deleted=False)
+                        if str(b.fk_product_id) == str(product.id)]
+            rows = [
+                [
+                    b.barcode or "",
+                    b.old_barcode or "",
+                    f"{float(b.purchase_price):.2f}" if b.purchase_price else "",
+                    f"{float(b.sale_price):.2f}" if b.sale_price else "",
+                ]
+                for b in barcodes
+            ]
+            datagrid.set_data(rows)
+        except Exception as exc:
+            logger.exception("[PRODUCT_BARCODE_GRID] Error loading data: %s", exc)
+            datagrid.set_data([])
+
+    def _populate_product_attribute_grid(self, datagrid):
+        """Fill the Attributes tab grid."""
+        product = self._get_current_product()
+        datagrid.set_columns(["Attribute", "Value", "Category", "Unit"])
+        if not product:
+            datagrid.set_data([])
+            return
+        try:
+            from data_layer.model import ProductAttribute
+            attrs = [a for a in ProductAttribute.get_all(is_deleted=False)
+                     if str(a.fk_product_id) == str(product.id)]
+            attrs.sort(key=lambda a: (a.display_order or 0, a.attribute_name or ""))
+            rows = [
+                [
+                    a.display_name or a.attribute_name or "",
+                    a.attribute_value or "",
+                    a.category or "",
+                    a.unit or "",
+                ]
+                for a in attrs
+            ]
+            datagrid.set_data(rows)
+        except Exception as exc:
+            logger.exception("[PRODUCT_ATTRIBUTE_GRID] Error loading data: %s", exc)
+            datagrid.set_data([])
+
+    def _populate_product_variant_grid(self, datagrid):
+        """Fill the Variants tab grid."""
+        product = self._get_current_product()
+        datagrid.set_columns(["Name", "Code", "Color", "Size", "Additional Info"])
+        if not product:
+            datagrid.set_data([])
+            return
+        try:
+            from data_layer.model import ProductVariant
+            variants = [v for v in ProductVariant.get_all(is_deleted=False)
+                        if str(v.fk_product_id) == str(product.id)]
+            rows = [
+                [
+                    v.variant_name or "",
+                    v.variant_code or "",
+                    v.color or "",
+                    v.size or "",
+                    v.additional_info or "",
+                ]
+                for v in variants
+            ]
+            datagrid.set_data(rows)
+        except Exception as exc:
+            logger.exception("[PRODUCT_VARIANT_GRID] Error loading data: %s", exc)
+            datagrid.set_data([])
 
     def _create_panel(self, design_data):
         """
@@ -966,7 +1163,66 @@ class BaseWindow(QMainWindow):
             if not hasattr(self, '_panels'):
                 self._panels = {}
             self._panels[design_data["name"]] = panel  # noqa: always reset in draw_window
-        
+
         panel.show()
+
+    def _create_tab_control(self, design_data):
+        """
+        Create a TabControl widget and populate its tab pages from DB definitions.
+
+        Tab page ``QWidget`` instances are stored in ``self._tab_pages`` keyed by
+        their ``form_control_tab.id`` (string) so that child controls added in
+        subsequent ``_create_*`` calls can look up the correct parent widget.
+
+        Each tab page is given a ``QVBoxLayout`` so child DataGrids fill it
+        automatically without needing explicit geometry.
+
+        Args:
+            design_data (dict): Design specifications from the form renderer.
+                                Expects a ``tabs`` list produced by
+                                ``DynamicFormRenderer._load_tabs_for_control``.
+        """
+        from PySide6.QtWidgets import QWidget, QVBoxLayout
+
+        width = design_data.get("width", 900)
+        height = design_data.get("height", 500)
+        background_color = design_data.get("background_color", 0x2F4F4F)
+        foreground_color = design_data.get("foreground_color", 0xFFFFFF)
+        font_size = int(design_data.get("font_size", 12))
+
+        tab_ctrl = TabControl(
+            self,
+            width=width,
+            height=height,
+            location_x=design_data.get("location_x", 0),
+            location_y=design_data.get("location_y", 0),
+            background_color=background_color,
+            foreground_color=foreground_color,
+            font_size=font_size,
+        )
+
+        ctrl_name = design_data.get("name", "")
+        if ctrl_name:
+            tab_ctrl.name = ctrl_name
+            if not hasattr(self, "_tab_controls"):
+                self._tab_controls = {}
+            self._tab_controls[ctrl_name] = tab_ctrl
+
+        if not hasattr(self, "_tab_pages"):
+            self._tab_pages = {}
+
+        # Create one QWidget page per FormControlTab definition
+        for tab_info in sorted(design_data.get("tabs", []), key=lambda t: t["tab_index"]):
+            page = QWidget()
+            page.setObjectName(f"tab_page_{tab_info['tab_index']}")
+            # Use a layout so the child DataGrid stretches to fill the page
+            layout = QVBoxLayout(page)
+            layout.setContentsMargins(2, 2, 2, 2)
+            layout.setSpacing(0)
+            tab_ctrl.add_tab(page, tab_info["tab_title"])
+            if tab_info.get("id"):
+                self._tab_pages[tab_info["id"]] = page
+
+        tab_ctrl.show()
 
 

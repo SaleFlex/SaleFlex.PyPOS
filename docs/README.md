@@ -23,6 +23,7 @@ Welcome to the SaleFlex.PyPOS documentation. This directory contains the complet
 17. [Centralized Exception Handling](17-exception-handling.md) — `SaleFlexError` hierarchy, usage patterns, design guidelines
 18. [Peripherals (OPOS-style devices)](18-peripherals.md) — Cash drawer, receipt printer, line display, stubs
 19. [Startup Entry Point](19-startup-entry-point.md) — Working-directory fix, Python version guard, single-instance lock, global exception handler
+20. [Product Management](20-product-management.md) — TabControl widget, FormControlTab model, Product List form (search), Product Detail dialog (DB-driven, 4-tab view), UUID handling, VirtualKeyboard hide fix
 
 ---
 
@@ -42,9 +43,10 @@ Welcome to the SaleFlex.PyPOS documentation. This directory contains the complet
 | Hardware devices | [Peripherals](18-peripherals.md) |
 | Startup guards | [Startup Entry Point](19-startup-entry-point.md) |
 | Common errors | [Troubleshooting](12-troubleshooting.md) |
+| Product management | [Product Management](20-product-management.md) |
 
 ---
 
 **Last Updated:** 2026-04-05  
-**Version:** 1.0.0b5  
+**Version:** 1.0.0b6  
 **License:** MIT

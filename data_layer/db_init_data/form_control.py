@@ -27,6 +27,7 @@ from sqlalchemy.orm import Session
 from core.logger import get_logger
 from data_layer.model.definition.form import Form
 from data_layer.model.definition.form_control import FormControl
+from data_layer.model.definition.form_control_tab import FormControlTab
 from data_layer.enums import ControlName, EventName
 
 logger = get_logger(__name__)
@@ -52,8 +53,10 @@ def _insert_form_controls(session: Session, cashier_id: str):
     sale_form = session.query(Form).filter(Form.form_no == 5).first()
     closure_form = session.query(Form).filter(Form.form_no == 6).first()
     suspended_sales_market_form = session.query(Form).filter(Form.form_no == 7).first()
-    
-    if not login_form or not sale_form or not main_menu_form or not config_form or not cashier_form or not closure_form or not suspended_sales_market_form:
+    product_list_form = session.query(Form).filter(Form.form_no == 8).first()
+    product_detail_form = session.query(Form).filter(Form.form_no == 9).first()
+
+    if not login_form or not sale_form or not main_menu_form or not config_form or not cashier_form or not closure_form or not suspended_sales_market_form or not product_list_form:
         logger.warning("Forms not found. Cannot insert form controls.")
         return
     
@@ -1195,6 +1198,41 @@ def _insert_form_controls(session: Session, cashier_id: str):
         FormControl(
             fk_form_id=main_menu_form.id,
             fk_parent_id=None,
+            name="GOTO_PRODUCTS",
+            form_control_function1=EventName.PRODUCT_LIST_FORM.value,
+            form_control_function2=None,
+            type_no=1,
+            type="BUTTON",
+            width=400,
+            height=80,
+            location_x=312,
+            location_y=550,
+            start_position=None,
+            caption1="PRODUCTS",
+            caption2=None,
+            list_values=None,
+            dock=None,
+            alignment=None,
+            text_alignment="CENTER",
+            character_casing="UPPER",
+            font="Tahoma",
+            icon=None,
+            tool_tip="Go to Product List",
+            image=None,
+            image_selected=None,
+            font_auto_height=False,
+            font_size=16,
+            input_type="ALPHANUMERIC",
+            text_image_relation=None,
+            back_color="0x8B0000",
+            fore_color="0xFFFFFF",
+            keyboard_value=None,
+            fk_cashier_create_id=cashier_id,
+            fk_cashier_update_id=cashier_id
+        ),
+        FormControl(
+            fk_form_id=main_menu_form.id,
+            fk_parent_id=None,
             name=ControlName.LOGOUT.value,
             form_control_function1=EventName.LOGOUT.value,
             form_control_function2=None,
@@ -2064,6 +2102,193 @@ def _insert_form_controls(session: Session, cashier_id: str):
         ),
     ]
     
+    # ------------------------------------------------------------------ #
+    #  Product List form controls  (form_no = 8)                         #
+    # ------------------------------------------------------------------ #
+    # Layout (1024 x 768):
+    #   y=10   : Search textbox  (x=10, w=820, h=50)
+    #   y=10   : Search button   (x=840, w=170, h=50)
+    #   y=75   : DataGrid        (x=10, w=1000, h=570)
+    #   y=660  : Back button     (x=10, w=150, h=65)
+    #   y=660  : Detail button   (x=860, w=150, h=65)
+    product_list_form_controls = [
+        FormControl(
+            fk_form_id=product_list_form.id,
+            fk_parent_id=None,
+            name=ControlName.PRODUCT_SEARCH_TEXTBOX.value,
+            form_control_function1=EventName.NONE.value,
+            form_control_function2=None,
+            type_no=2,
+            type="TEXTBOX",
+            width=820,
+            height=50,
+            location_x=10,
+            location_y=10,
+            start_position=None,
+            caption1="Search by name or short name...",
+            caption2=None,
+            list_values=None,
+            dock=None,
+            alignment=None,
+            text_alignment="LEFT",
+            character_casing="NORMAL",
+            font="Tahoma",
+            icon=None,
+            tool_tip="Type product name or short name to search",
+            image=None,
+            image_selected=None,
+            font_auto_height=False,
+            font_size=14,
+            input_type="ALPHANUMERIC",
+            text_image_relation=None,
+            back_color="0xFFFFFF",
+            fore_color="0x000000",
+            keyboard_value=None,
+            fk_cashier_create_id=cashier_id,
+            fk_cashier_update_id=cashier_id
+        ),
+        FormControl(
+            fk_form_id=product_list_form.id,
+            fk_parent_id=None,
+            name="PRODUCT_SEARCH_BTN",
+            form_control_function1=EventName.PRODUCT_SEARCH.value,
+            form_control_function2=None,
+            type_no=1,
+            type="BUTTON",
+            width=170,
+            height=50,
+            location_x=840,
+            location_y=10,
+            start_position=None,
+            caption1="SEARCH",
+            caption2=None,
+            list_values=None,
+            dock=None,
+            alignment=None,
+            text_alignment="CENTER",
+            character_casing="UPPER",
+            font="Tahoma",
+            icon=None,
+            tool_tip="Search products",
+            image=None,
+            image_selected=None,
+            font_auto_height=False,
+            font_size=14,
+            input_type="ALPHANUMERIC",
+            text_image_relation=None,
+            back_color="0x228B22",
+            fore_color="0xFFFFFF",
+            keyboard_value=None,
+            fk_cashier_create_id=cashier_id,
+            fk_cashier_update_id=cashier_id
+        ),
+        FormControl(
+            fk_form_id=product_list_form.id,
+            fk_parent_id=None,
+            name=ControlName.PRODUCT_LIST_DATAGRID.value,
+            form_control_function1=EventName.NONE.value,
+            form_control_function2=None,
+            type_no=9,
+            type="DATAGRID",
+            width=1000,
+            height=570,
+            location_x=10,
+            location_y=75,
+            start_position=None,
+            caption1="Product List",
+            caption2=None,
+            list_values=None,
+            dock=None,
+            alignment=None,
+            text_alignment="CENTER",
+            character_casing="NORMAL",
+            font="Tahoma",
+            icon=None,
+            tool_tip="Product search results",
+            image=None,
+            image_selected=None,
+            font_auto_height=False,
+            font_size=11,
+            input_type="ALPHANUMERIC",
+            text_image_relation=None,
+            back_color="0xFFFFFF",
+            fore_color="0x000000",
+            keyboard_value=None,
+            fk_cashier_create_id=cashier_id,
+            fk_cashier_update_id=cashier_id
+        ),
+        FormControl(
+            fk_form_id=product_list_form.id,
+            fk_parent_id=None,
+            name=ControlName.BACK.value,
+            form_control_function1=EventName.BACK.value,
+            form_control_function2=None,
+            type_no=1,
+            type="BUTTON",
+            width=150,
+            height=65,
+            location_x=860,
+            location_y=660,
+            start_position=None,
+            caption1="BACK",
+            caption2=None,
+            list_values=None,
+            dock=None,
+            alignment=None,
+            text_alignment="CENTER",
+            character_casing="UPPER",
+            font="Tahoma",
+            icon=None,
+            tool_tip="Return to previous screen",
+            image=None,
+            image_selected=None,
+            font_auto_height=False,
+            font_size=14,
+            input_type="ALPHANUMERIC",
+            text_image_relation=None,
+            back_color="0x4682B4",
+            fore_color="0xFFFFFF",
+            keyboard_value=None,
+            fk_cashier_create_id=cashier_id,
+            fk_cashier_update_id=cashier_id
+        ),
+        FormControl(
+            fk_form_id=product_list_form.id,
+            fk_parent_id=None,
+            name="PRODUCT_DETAIL_BTN",
+            form_control_function1=EventName.PRODUCT_DETAIL.value,
+            form_control_function2=None,
+            type_no=1,
+            type="BUTTON",
+            width=150,
+            height=65,
+            location_x=10,
+            location_y=660,
+            start_position=None,
+            caption1="DETAIL",
+            caption2=None,
+            list_values=None,
+            dock=None,
+            alignment=None,
+            text_alignment="CENTER",
+            character_casing="UPPER",
+            font="Tahoma",
+            icon=None,
+            tool_tip="View detail of selected product",
+            image=None,
+            image_selected=None,
+            font_auto_height=False,
+            font_size=14,
+            input_type="ALPHANUMERIC",
+            text_image_relation=None,
+            back_color="0x8B4513",
+            fore_color="0xFFFFFF",
+            keyboard_value=None,
+            fk_cashier_create_id=cashier_id,
+            fk_cashier_update_id=cashier_id
+        ),
+    ]
+
     # Combine all controls
     all_controls = (
         login_form_controls + 
@@ -2076,7 +2301,8 @@ def _insert_form_controls(session: Session, cashier_id: str):
         config_form_controls +
         cashier_form_controls +
         closure_form_controls +
-        suspended_sales_market_controls
+        suspended_sales_market_controls +
+        product_list_form_controls
     )
     
     # Add all controls to session
@@ -2113,6 +2339,113 @@ def _insert_form_controls(session: Session, cashier_id: str):
         for control in cashier_controls:
             if control.parent_name == "CASHIER":
                 control.fk_parent_id = cashier_panel_control.id
-    
+
+    # ------------------------------------------------------------------ #
+    # PRODUCT_DETAIL form: TABCONTROL + FormControlTab pages + DATAGRIDs  #
+    # These must be inserted after the first flush so UUIDs are available. #
+    # ------------------------------------------------------------------ #
+    if product_detail_form:
+        # 1. Create the TABCONTROL that fills most of the 1000×720 dialog
+        pd_tab_control = FormControl(
+            fk_form_id=product_detail_form.id,
+            fk_parent_id=None,
+            name=ControlName.PRODUCT_DETAIL_TAB.value,
+            type_no=1,
+            type="TABCONTROL",
+            width=1004,
+            height=694,
+            location_x=10,
+            location_y=10,
+            back_color="0x1C2833",
+            fore_color="0xECF0F1",
+            font_size=13,
+            is_visible=True,
+            fk_cashier_create_id=cashier_id,
+            fk_cashier_update_id=cashier_id,
+        )
+        session.add(pd_tab_control)
+        session.flush()  # obtain pd_tab_control.id
+
+        # 2. Create FormControlTab records (one per tab page)
+        _tab_defs = [
+            (0, "Product Info",  "Basic product information, unit and manufacturer"),
+            (1, "Barcodes",      "Barcodes assigned to this product"),
+            (2, "Attributes",    "Custom attributes / features of this product"),
+            (3, "Variants",      "Product variants (colour, size, etc.)"),
+        ]
+        tab_records = []
+        for tab_index, tab_title, tab_tooltip in _tab_defs:
+            tab_rec = FormControlTab(
+                fk_form_control_id=pd_tab_control.id,
+                tab_index=tab_index,
+                tab_title=tab_title,
+                tab_tooltip=tab_tooltip,
+                back_color="0x1C2833",
+                fore_color="0xECF0F1",
+                is_visible=True,
+                fk_cashier_create_id=cashier_id,
+                fk_cashier_update_id=cashier_id,
+            )
+            session.add(tab_rec)
+            tab_records.append(tab_rec)
+        session.flush()  # obtain tab UUIDs
+
+        # 3. Create one full-size DATAGRID per tab page
+        _grid_defs = [
+            (ControlName.PRODUCT_INFO_GRID.value,      tab_records[0], "Product / unit / manufacturer info"),
+            (ControlName.PRODUCT_BARCODE_GRID.value,   tab_records[1], "Product barcodes"),
+            (ControlName.PRODUCT_ATTRIBUTE_GRID.value, tab_records[2], "Product attributes"),
+            (ControlName.PRODUCT_VARIANT_GRID.value,   tab_records[3], "Product variants"),
+        ]
+        for grid_name, tab_rec, tooltip in _grid_defs:
+            grid_ctrl = FormControl(
+                fk_form_id=product_detail_form.id,
+                fk_parent_id=pd_tab_control.id,
+                fk_tab_id=tab_rec.id,
+                name=grid_name,
+                type_no=1,
+                type="DATAGRID",
+                width=1002,
+                height=647,
+                location_x=1,
+                location_y=1,
+                back_color="0x1C2833",
+                fore_color="0xECF0F1",
+                font_size=11,
+                tool_tip=tooltip,
+                is_visible=True,
+                fk_cashier_create_id=cashier_id,
+                fk_cashier_update_id=cashier_id,
+            )
+            session.add(grid_ctrl)
+
+        # 4. CLOSE button at the bottom of the dialog (not inside any tab)
+        close_btn = FormControl(
+            fk_form_id=product_detail_form.id,
+            fk_parent_id=None,
+            name="CLOSE_DETAIL",
+            form_control_function1="CLOSE_FORM",
+            type_no=1,
+            type="BUTTON",
+            width=160,
+            height=48,
+            location_x=432,
+            location_y=712,
+            caption1="CLOSE",
+            text_alignment="CENTER",
+            character_casing="UPPER",
+            font="Tahoma",
+            font_auto_height=False,
+            font_size=14,
+            tool_tip="Close this dialog",
+            back_color="0x922B21",
+            fore_color="0xFFFFFF",
+            is_visible=True,
+            fk_cashier_create_id=cashier_id,
+            fk_cashier_update_id=cashier_id,
+        )
+        session.add(close_btn)
+        session.flush()
+
     session.commit()
     logger.info("%s form controls inserted successfully", len(all_controls)) 

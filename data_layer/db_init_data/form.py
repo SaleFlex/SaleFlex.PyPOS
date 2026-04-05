@@ -193,6 +193,48 @@ def _insert_default_forms(session: Session, cashier_id: str):
             'is_startup': False,
             'display_mode': 'MAIN',
             'fk_cashier_create_id': cashier_id
+        },
+        {
+            'form_no': 8,
+            'name': FormName.PRODUCT_LIST.name,
+            'function': FormName.PRODUCT_LIST.name,
+            'need_login': True,
+            'need_auth': False,
+            'width': 1024,
+            'height': 768,
+            'form_border_style': 'SINGLE',
+            'start_position': 'CENTERSCREEN',
+            'caption': 'SaleFlex - Product List',
+            'back_color': '0x2F4F4F',
+            'fore_color': '0xFFFFFF',
+            'show_status_bar': True,
+            'show_in_taskbar': False,
+            'use_virtual_keyboard': True,
+            'is_visible': True,
+            'is_startup': False,
+            'display_mode': 'MAIN',
+            'fk_cashier_create_id': cashier_id
+        },
+        {
+            'form_no': 9,
+            'name': FormName.PRODUCT_DETAIL.name,
+            'function': FormName.PRODUCT_DETAIL.name,
+            'need_login': True,
+            'need_auth': False,
+            'width': 1024,
+            'height': 768,
+            'form_border_style': 'SINGLE',
+            'start_position': 'CENTERSCREEN',
+            'caption': 'SaleFlex - Product Detail',
+            'back_color': '0x1C2833',
+            'fore_color': '0xECF0F1',
+            'show_status_bar': False,
+            'show_in_taskbar': False,
+            'use_virtual_keyboard': False,
+            'is_visible': True,
+            'is_startup': False,
+            'display_mode': 'MODAL',
+            'fk_cashier_create_id': cashier_id
         }
     ]
 

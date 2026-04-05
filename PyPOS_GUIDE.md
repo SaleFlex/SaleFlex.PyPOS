@@ -84,6 +84,8 @@ From the main menu, press **CLOSURE** (administrators only). The system aggregat
 
 **Startup guards:** `saleflex.py` performs four checks before starting the application: (1) working-directory normalisation so relative paths always resolve correctly, (2) Python ≥ 3.13 version guard, (3) single-instance file lock to prevent two POS processes running simultaneously, and (4) a global exception handler that logs unhandled errors to `logs/saleflex.log`. See [Startup Entry Point](docs/19-startup-entry-point.md).
 
+**Product Management:** From the Main Menu press **PRODUCTS** to open the Product List form. Type part of a product name or short name and press **SEARCH** to filter results in the DataGrid. Select a row and press **DETAIL** (bottom-left) to open the Product Detail modal dialog — a fully DB-driven tabbed view (`DynamicDialog`, `TabControl`) with four tabs: *Product Info* (product + unit + manufacturer), *Barcodes*, *Attributes*, and *Variants*. Press **BACK** (bottom-right) to return to the Main Menu. See [Product Management](docs/20-product-management.md).
+
 ---
 
 ## Table of Contents
@@ -107,9 +109,10 @@ From the main menu, press **CLOSURE** (administrators only). The system aggregat
 17. [Centralized Exception Handling](docs/17-exception-handling.md)
 18. [Peripherals (OPOS-style devices)](docs/18-peripherals.md)
 19. [Startup Entry Point](docs/19-startup-entry-point.md)
+20. [Product Management](docs/20-product-management.md)
 
 ---
 
 **Last Updated:** 2026-04-05  
-**Version:** 1.0.0b5  
+**Version:** 1.0.0b6  
 **License:** MIT

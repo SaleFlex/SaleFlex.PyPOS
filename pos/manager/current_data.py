@@ -142,7 +142,11 @@ class CurrentData(DocumentManager, CacheManager, ClosureManager):
         self._current_currency = None
         self._product_data = {}
         self._closure = None
-        
+
+        # Transient product selection state used by the Product Detail form.
+        # Set by _product_detail_event before opening the modal dialog.
+        self.current_product_id = None
+
         # Disable skip autosave after initialization
         self._skip_autosave = False
     

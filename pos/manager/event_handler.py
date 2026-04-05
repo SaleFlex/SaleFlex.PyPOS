@@ -32,7 +32,8 @@ from pos.manager.event import (
     ReportEvent,
     HardwareEvent,
     WarehouseEvent,
-    ClosureEvent
+    ClosureEvent,
+    ProductEvent
 )
 
 from core.logger import get_logger
@@ -40,8 +41,9 @@ from core.logger import get_logger
 logger = get_logger(__name__)
 
 
-class EventHandler(GeneralEvent, SaleEvent, PaymentEvent, ConfigurationEvent, 
-                   ServiceEvent, ReportEvent, HardwareEvent, WarehouseEvent, ClosureEvent):
+class EventHandler(GeneralEvent, SaleEvent, PaymentEvent, ConfigurationEvent,
+                   ServiceEvent, ReportEvent, HardwareEvent, WarehouseEvent,
+                   ClosureEvent, ProductEvent):
     """
     Central Event Processing Manager for SaleFlex Point of Sale System.
     
@@ -308,6 +310,11 @@ class EventHandler(GeneralEvent, SaleEvent, PaymentEvent, ConfigurationEvent,
                 EventName.WAREHOUSE_ADJUSTMENT.name: self._warehouse_adjustment_event,
                 EventName.WAREHOUSE_COUNT.name: self._warehouse_count_event,
                 EventName.WAREHOUSE_LOCATION.name: self._warehouse_location_event,
+
+                # Product Management Events - From ProductEvent
+                EventName.PRODUCT_LIST_FORM.name: self._product_list_form_event,
+                EventName.PRODUCT_SEARCH.name: self._product_search_event,
+                EventName.PRODUCT_DETAIL.name: self._product_detail_event,
             }
             
             # Try to find the event handler in the dictionary

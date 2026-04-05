@@ -113,3 +113,5 @@ class FormName(enum.Enum):
     SUB_MENU = 24      # Sub menu form with navigation to other forms.
     CASHIER = 25       # Cashier management form for adding/editing cashier information.
     SUSPENDED_SALES_MARKET = 26  # Market sector: list suspended (pending) sale documents.
+    PRODUCT_LIST = 27            # Product list / search form.
+    PRODUCT_DETAIL = 28          # Product detail form (tab view).

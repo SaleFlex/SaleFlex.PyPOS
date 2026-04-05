@@ -205,4 +205,9 @@ class EventName(enum.Enum):
     WAREHOUSE_TRANSFER = "WAREHOUSE_TRANSFER"      # Warehouse transfer
     WAREHOUSE_ADJUSTMENT = "WAREHOUSE_ADJUSTMENT"  # Warehouse adjustment
     WAREHOUSE_COUNT = "WAREHOUSE_COUNT"            # Warehouse count
-    WAREHOUSE_LOCATION = "WAREHOUSE_LOCATION"      # Warehouse location 
+    WAREHOUSE_LOCATION = "WAREHOUSE_LOCATION"      # Warehouse location
+
+    # Product Management Events
+    PRODUCT_LIST_FORM = "PRODUCT_LIST_FORM"        # Navigate to product list / search form
+    PRODUCT_SEARCH = "PRODUCT_SEARCH"              # Execute product search from search textbox
+    PRODUCT_DETAIL = "PRODUCT_DETAIL"              # Open product detail dialog for selected product

@@ -1,6 +1,6 @@
 # SaleFlex.PyPOS
 
-> **Current Status:** Beta v1.0.0b5 - Active Development
+> **Current Status:** Beta v1.0.0b6 - Active Development
 > Core POS functionality operational. See [roadmap](#development-roadmap) for upcoming features.
 
 [Watch Demo](https://youtu.be/HoA2p6M8fuM) | [Documentation](docs/README.md) | [Quick Start](#quick-start)
@@ -9,7 +9,7 @@
 ![PySide6](https://img.shields.io/badge/PySide6-6.11.0-blue.svg)
 ![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0.48-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Version](https://img.shields.io/badge/version-1.0.0b5-orange.svg)
+![Version](https://img.shields.io/badge/version-1.0.0b6-orange.svg)
 
 ### Touch Screen Point-of-Sale Application
 
@@ -41,6 +41,7 @@ SaleFlex.PyPOS POS system is designed to streamline the sales process and improv
 - **Startup Guards**: `saleflex.py` entry point runs four pre-flight checks before any module is imported: (1) working-directory normalisation so relative paths always resolve correctly; (2) Python ≥ 3.13 version guard with a clear error message; (3) file-based single-instance lock (`msvcrt.locking` on Windows, `fcntl.flock` on Linux/macOS) that is automatically released on process exit; (4) global exception handler that logs unhandled errors at `CRITICAL` level before terminating. See [docs/19-startup-entry-point.md](docs/19-startup-entry-point.md)
 - **Central Logging**: Configurable logging via `core/logger.py` with a single `saleflex` root logger. Log level (DEBUG/INFO/WARNING/ERROR/CRITICAL), console output, and file output are controlled from the `[logging]` section in `settings.toml`. All modules use `get_logger(__name__)` for consistent, hierarchical log records
 - **Centralized Exception Handling**: Typed exception hierarchy rooted at `SaleFlexError` (`core/exceptions.py`). Domain-specific subclasses (`PaymentError`, `FiscalDeviceError`, `GATEConnectionError`, `TaxCalculationError`, `DatabaseError`, etc.) replace bare `Exception` raises throughout the codebase. All exceptions are chained with `raise ... from e` to preserve the full traceback
+- **Product Management**: Dedicated **Product List** form (form_no=8) accessible from the Main Menu. Supports real-time search by product name or short name with instant DataGrid results. Selecting a row and pressing **DETAIL** opens the **Product Detail** modal dialog (form_no=9, fully DB-driven via `DynamicDialog`) — a tabbed view built with the new `TabControl` widget and `FormControlTab` model, showing Product Info, Barcodes, Attributes, and Variants in four separate read-only tabs. See [docs/20-product-management.md](docs/20-product-management.md)
 - **Optimized Performance**: In-memory caching of reference data (`pos_data`) and product data (`product_data`) minimizes disk I/O, extending disk life for POS devices with limited write cycles. All product lookups, currency calculations, VAT rate lookups, button rendering, and sale operations use cached data instead of database queries
 - **Smart NumPad (4 Modes)**: The SALE form NumPad supports four operating modes: (1) **Barcode/PLU lookup** — type a barcode or product code and press ENTER to find and sell the product (searches `ProductBarcode` then `Product.code`); (2) **Inline quantity** — type a quantity then press a PLU product button to sell that many units; (3) **X (Quantity Multiplier) button** — pre-set the quantity before a barcode scan; status bar shows the active multiplier (`x1`, `x3`, etc.); (4) **Payment amount** — enter the tendered amount in minor currency units (e.g. 10000 → £100.00) then press CASH or CREDIT CARD. **PLU inquiry** (separate green **PLU** button beside **X**) shows price and per-warehouse stock from cached `WarehouseProductStock` without selling — either enter the code then **PLU**, or press **PLU** first then enter the code and **ENTER**
 
@@ -52,7 +53,7 @@ SaleFlex.PyPOS follows a layered architecture pattern with clear separation of c
 - **Application Layer** (`pos/manager/application.py`): Main application class implementing Singleton pattern, combining CurrentStatus, CurrentData, and EventHandler
 - **Business Logic Layer** (`pos/service/`): Service classes (VatService, SaleService, PaymentService) for centralized business operations
 - **Peripherals Layer** (`pos/peripherals/`): OPOS-style device abstractions (cash drawer, receipt printer, line display, scanner, scale, customer display, remote order display). Current implementation is **log-only** (no device probing); see [docs/18-peripherals.md](docs/18-peripherals.md)
-- **Event Handling Layer** (`pos/manager/event/`): 9 specialized event handler classes for modular event processing. Event handler methods use `_event` suffix naming convention (e.g., `_sales_form_event`, `_closure_event`) to distinguish them from properties
+- **Event Handling Layer** (`pos/manager/event/`): 10 specialized event handler classes for modular event processing (General, Sale, Payment, Closure, Config, Service, Report, Hardware, Warehouse, **Product**). Event handler methods use `_event` suffix naming convention (e.g., `_sales_form_event`, `_closure_event`, `_product_detail_event`) to distinguish them from properties
 - **Data Access Layer** (`data_layer/model/`): 98+ SQLAlchemy models with CRUD operations and auto-save functionality
 - **UI Layer** (`user_interface/`): PySide6-based UI components with dynamic form rendering
 - **Caching Layer** (`pos/manager/cache_manager.py`): In-memory caching for reference and product data
@@ -64,9 +65,10 @@ SaleFlex.PyPOS follows a layered architecture pattern with clear separation of c
 │            UI Layer (PySide6)                   │
 │  Dynamic Forms · Virtual Keyboard · Controls    │
 ├─────────────────────────────────────────────────┤
-│      Event Handlers (9 specialized modules)     │
+│      Event Handlers (10 specialized modules)    │
 │  General · Sale · Payment · Closure · Config    │
 │  Service · Report · Hardware · Warehouse        │
+│  Product                                        │
 ├─────────────────────────────────────────────────┤
 │          Business Logic (Service Layer)         │
 │      VatService · SaleService · PaymentService  │
@@ -149,6 +151,7 @@ SaleFlex.PyPOS/
 │   │   ├── numpad/         # Numeric pad control
 │   │   ├── payment_list/   # Payment list control
 │   │   ├── sale_list/      # Sale list control
+│   │   ├── tab_control/    # Tab control (QTabWidget, DB-driven pages via FormControlTab)
 │   │   ├── transaction_status/  # Transaction status display
 │   │   └── virtual_keyboard/    # Virtual keyboard component
 │   │
@@ -201,7 +204,8 @@ SaleFlex.PyPOS/
 │           ├── service.py        # ServiceEvent: Service-related operations
 │           ├── report.py         # ReportEvent: Report generation and viewing
 │           ├── hardware.py       # HardwareEvent: Hardware device operations
-│           └── warehouse.py      # WarehouseEvent: Warehouse and inventory operations
+│           ├── warehouse.py      # WarehouseEvent: Warehouse and inventory operations
+│           └── product.py        # ProductEvent: Product list, search, and detail events
 │
 ├── core/                    # Core utilities
 │   ├── logger.py           # Central logging (get_logger, config via settings.toml [logging])
@@ -360,7 +364,7 @@ The application includes **98+ database models** organized into logical categori
 - **Loyalty Programs**: LoyaltyProgram, LoyaltyTier, CustomerLoyalty, LoyaltyPointTransaction
 - **Cashier Performance**: CashierWorkSession, CashierWorkBreak, CashierPerformanceMetrics, CashierPerformanceTarget, CashierTransactionMetrics
 - **Closure & Reporting**: Closure, ClosureCashierSummary, ClosureCurrency, ClosureDepartmentSummary, ClosureDiscountSummary, ClosureDocumentTypeSummary, ClosurePaymentTypeSummary, ClosureTipSummary, ClosureVATSummary, ClosureCountrySpecific
-- **Form & UI**: Form, FormControl (supports parent-child relationships for Panel controls with generic model form pattern), PosSettings, PosVirtualKeyboard, ReceiptHeader, ReceiptFooter, LabelValue
+- **Form & UI**: Form, FormControl (supports parent-child relationships for Panel controls with generic model form pattern), FormControlTab (tab page definitions for TABCONTROL controls — linked to FormControl via FK), PosSettings, PosVirtualKeyboard, ReceiptHeader, ReceiptFooter, LabelValue
 
 All models support:
 - **UUID Primary Keys**: Unique identifiers for all records

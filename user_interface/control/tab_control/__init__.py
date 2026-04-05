@@ -1,7 +1,7 @@
 """
 SaleFlex.PyPOS - Point of Sale Application
 
-Copyright (c) 2025 Ferhat Mousavi
+Copyright (c) 2025-2026 Ferhat Mousavi
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,13 +22,4 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-from .general import GeneralEvent
-from .sale import SaleEvent
-from .payment import PaymentEvent
-from .configuration import ConfigurationEvent
-from .service import ServiceEvent
-from .report import ReportEvent
-from .hardware import HardwareEvent
-from .warehouse import WarehouseEvent
-from .closure import ClosureEvent
-from .product import ProductEvent
+from user_interface.control.tab_control.tab_control import TabControl

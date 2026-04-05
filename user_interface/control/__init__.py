@@ -1,7 +1,7 @@
 """
 SaleFlex.PyPOS - Point of Sale Application
 
-Copyright (c) 2025 Ferhat Mousavi
+Copyright (c) 2025-2026 Ferhat Mousavi
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -37,3 +37,4 @@ from user_interface.control.amount_table import AmountTable
 from user_interface.control.combobox import ComboBox
 from user_interface.control.datagrid import DataGrid
 from user_interface.control.panel import Panel
+from user_interface.control.tab_control import TabControl

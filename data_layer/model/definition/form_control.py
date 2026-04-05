@@ -42,6 +42,7 @@ class FormControl(Model, CRUD, AuditMixin, SoftDeleteMixin):
                  image=None, image_selected=None, font_auto_height=True, font_size=0,
                  text_image_relation=None, back_color=None, fore_color=None, keyboard_value=None,
                  is_visible=True, fk_table_id=None, fk_target_form_id=None, form_transition_mode=None,
+                 fk_tab_id=None,
                  fk_cashier_create_id=None, fk_cashier_update_id=None):
         Model.__init__(self)
         CRUD.__init__(self)
@@ -82,6 +83,7 @@ class FormControl(Model, CRUD, AuditMixin, SoftDeleteMixin):
         self.fk_table_id = fk_table_id
         self.fk_target_form_id = fk_target_form_id
         self.form_transition_mode = form_transition_mode
+        self.fk_tab_id = fk_tab_id
         self.fk_cashier_create_id = fk_cashier_create_id
         self.fk_cashier_update_id = fk_cashier_update_id
 
@@ -123,6 +125,10 @@ class FormControl(Model, CRUD, AuditMixin, SoftDeleteMixin):
     fk_table_id = Column(UUID, ForeignKey("table.id"), nullable=True)  # Link to Table model
     fk_target_form_id = Column(UUID, ForeignKey("form.id"), nullable=True)  # Target form for navigation
     form_transition_mode = Column(String(50), nullable=True)  # MODAL, REPLACE
+    # FK to the tab page this control belongs to (null for non-tab controls).
+    # use_alter=True defers the FK constraint so SQLAlchemy can resolve the
+    # circular dependency between form_control and form_control_tab at DDL time.
+    fk_tab_id = Column(UUID, ForeignKey("form_control_tab.id", use_alter=True, name="fk_fc_tab_id"), nullable=True)
     is_visible = Column(Boolean, nullable=False, default=True)
 
     # Relationships
@@ -130,6 +136,10 @@ class FormControl(Model, CRUD, AuditMixin, SoftDeleteMixin):
     parent = relationship("FormControl", remote_side=[id], backref="children")
     table = relationship("Table")  # Link to Table model
     target_form = relationship("Form", foreign_keys=[fk_target_form_id])  # Target form for navigation
+    tab_pages = relationship("FormControlTab", foreign_keys="FormControlTab.fk_form_control_id",
+                             back_populates="form_control")  # For TABCONTROL: its tab page definitions
+    tab_page = relationship("FormControlTab", foreign_keys=[fk_tab_id],
+                            primaryjoin="FormControl.fk_tab_id == FormControlTab.id")  # Tab this control belongs to
 
     def __repr__(self):
         return f"<FormControl(name='{self.name}', type='{self.type}')>" 
