@@ -215,8 +215,14 @@ class DocumentManager:
 
             # Generate unique transaction ID; resolve any UNIQUE conflicts up-front
             # so that head.create() below is guaranteed to succeed.
-            today_str = datetime.now().strftime('%Y%m%d')
-            transaction_unique_id = f"{today_str}-{receipt_number:06d}"
+            # Format: {YYYYMMDD}-{closure_number:04d}-{receipt_number:06d}
+            # e.g. "20250406-0002-000001" (6 Apr 2025, closure 2, receipt 1)
+            # Embedding closure_number between the date and receipt_number isolates
+            # each closure period's receipts so that resetting ReceiptNumber to 1
+            # after closure never conflicts with earlier receipts from the same
+            # calendar day.
+            today_str = datetime.now().strftime("%Y%m%d")
+            transaction_unique_id = f"{today_str}-{closure_number:04d}-{receipt_number:06d}"
 
             with Engine().get_session() as _check_session:
                 for _attempt in range(100):
@@ -229,7 +235,7 @@ class DocumentManager:
                         if getattr(conflict, "is_pending", False):
                             # Suspended cart still holds this receipt slot — take next number
                             receipt_number += 1
-                            transaction_unique_id = f"{today_str}-{receipt_number:06d}"
+                            transaction_unique_id = f"{today_str}-{closure_number:04d}-{receipt_number:06d}"
                             logger.debug(
                                 "[DEBUG] transaction_unique_id held by suspended document — "
                                 "trying receipt_number %s",
@@ -249,7 +255,7 @@ class DocumentManager:
                         break  # Load failed — fall through to create new
                     # Closed document owns this number — try the next receipt_number
                     receipt_number += 1
-                    transaction_unique_id = f"{today_str}-{receipt_number:06d}"
+                    transaction_unique_id = f"{today_str}-{closure_number:04d}-{receipt_number:06d}"
                     logger.debug(
                         "[DEBUG] receipt_number %s already used (closed), trying %s",
                         receipt_number - 1, receipt_number

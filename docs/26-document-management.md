@@ -50,13 +50,27 @@ document = self.create_empty_document()
 - `document_type`: From `CurrentStatus.document_type` property (converted from `DocumentType` enum to string)
 - `transaction_type`: Mapped from `CurrentStatus.document_type` property (e.g., `DocumentType.RETURN_SLIP` → `TransactionType.RETURN`, default: `TransactionType.SALE`)
 - `transaction_status`: `TransactionStatus.DRAFT`
-- `closure_number`: Value from `TransactionSequence` where `name="ClosureNumber"` (from `pos_data` cache)
-- `receipt_number`: Value from `TransactionSequence` where `name="ReceiptNumber"` (from `pos_data` cache)
+- `closure_number`: Value from `TransactionSequence` where `name="ClosureNumber"` (from `pos_data` cache, verified against the active open `Closure` object)
+- `receipt_number`: Starting value from `TransactionSequence` where `name="ReceiptNumber"` (from `pos_data` cache); automatically advanced through the conflict-check loop if earlier receipts within the same closure period already occupy the slot
+- `transaction_unique_id`: Computed as `"{YYYYMMDD}-{closure_number:04d}-{receipt_number:06d}"` (e.g. `"20250406-0002-000001"` for 6 April 2025, closure 2, receipt 1). Embedding `closure_number` between the date and receipt number ensures that resetting `ReceiptNumber` to 1 after end-of-day closure **never conflicts** with receipts from the previous period on the same calendar day.
 - `fk_store_id`: First `Store` record from `pos_data`
 - `pos_id`: `pos_no_in_store` from `PosSettings`
 - `is_closed`: `False`
 - `is_pending`: `False`
 - `is_cancel`: `False`
+
+**Receipt Number Reset on Closure:**
+When end-of-day closure is performed (`ClosureEvent._closure_event`):
+1. `TransactionSequence.ClosureNumber` is incremented by 1.
+2. `TransactionSequence.ReceiptNumber` is reset to 1.
+3. The `pos_data` cache is refreshed.
+4. A new open `Closure` record is created with the new closure number.
+5. `abandon_empty_open_document_if_any()` is called to soft-delete the pre-created empty draft that `_check_and_complete_document` left in `TransactionHeadTemp` (and therefore in `self.document_data`) after the last completed sale.
+6. `self.document_data` is set to `None`.
+
+**Why step 5–6 are necessary:** after every completed payment, `_increment_receipt_number()` advances `ReceiptNumber` in the DB and cache (e.g. to 6), then `create_empty_document()` immediately creates a new empty draft with `receipt_number = 6`. Without clearing this draft, the guard at the top of `create_empty_document()` would return it on the next SALE navigation, keeping `receipt_number = 6` instead of resetting to 1. Steps 5–6 ensure the stale draft is discarded so the next `create_empty_document()` call builds a fresh document with `receipt_number = 1`.
+
+Because `transaction_unique_id` also embeds `closure_number` (e.g. `"20250406-0002-000001"`), the fresh document never conflicts with any prior receipt from the same day, even if the DB still holds closed temp records from the previous closure period. Within each closure period, receipts count from 1 upward: 1, 2, 3 …
 
 **Automatic Document Creation:**
 Documents are automatically created in the following scenarios:

@@ -53,7 +53,7 @@ Tap a row in the sale list → choose **DELETE** from the popup. The line is sof
 
 ### End-of-Day Closure
 
-From the main menu, press **CLOSURE** (administrators only). The system aggregates all transactions for the current closure period and increments the closure sequence number.
+From the main menu, press **CLOSURE** (administrators only). The system aggregates all transactions for the current closure period, increments the closure sequence number by 1, and **resets the receipt number back to 1**. The next sale after closure starts at receipt 1 for the new closure period.
 
 ---
 

@@ -59,12 +59,19 @@ The **closure operation** is triggered when an authorized cashier presses the CL
      - Row with `name = "ReceiptNumber"`: set `value = 1`.  
    - Then refresh `pos_data` for `TransactionSequence` so the next document uses the new values.
 
-9. **Create new open closure**  
+9. **Discard the pre-created empty draft**  
+   - After every completed payment `PaymentEvent._check_and_complete_document()` calls `_increment_receipt_number()` and then immediately calls `create_empty_document()`, leaving an empty `TransactionHeadTemp` draft in `self.document_data` with the **old** `receipt_number`.  
+   - `abandon_empty_open_document_if_any()` soft-deletes that draft from the database.  
+   - `self.document_data` is set to `None`.  
+   - Without this step the guard at the top of `create_empty_document()` would return the stale draft on the next SALE navigation, keeping the old receipt number instead of resetting to 1.  
+   - **Result**: The very next sale document will carry `receipt_number = 1` and the new `closure_number`.
+
+10. **Create new open closure**  
    - Call `create_empty_closure()` which reads the new `ClosureNumber` value directly from `transaction_sequence` (the global monotonic counter just incremented in step 8) and creates a new open `Closure` row with that number.  
    - This sets `CurrentData.closure` to the new open closure for the next period.  
    - **Important:** `create_empty_closure()` must always source the next closure number from `transaction_sequence.ClosureNumber`, not from `max(closure_number WHERE closure_date = today)`. The per-day approach resets to 1 at the start of each new calendar day, overwriting the global counter.
 
-10. **Return**  
+11. **Return**  
    - On success: `True`.  
    - On any error: show error (if applicable), return `False`.
 
@@ -84,9 +91,25 @@ The **closure operation** is triggered when an authorized cashier presses the CL
 ## Result
 
 - One closed `Closure` row and multiple summary rows are stored in the database.  
-- A new open `Closure` row is created for the next period (see step 9).  
+- A new open `Closure` row is created for the next period (see step 10).  
 - `CurrentData.closure` is updated to the new open closure.  
-- The next sale will use `ClosureNumber = current + 1` and `ReceiptNumber = 1`.
+- The next sale will use `ClosureNumber = current + 1` and `ReceiptNumber = 1`.  
+- Every closure period's receipts are numbered independently: receipt 1, 2, 3 … starting fresh after each closure.
+
+## Transaction Unique ID Format
+
+`transaction_unique_id` (stored on both `TransactionHeadTemp` and `TransactionHead`) uses the format:
+
+```
+{YYYYMMDD}-{closure_number:04d}-{receipt_number:06d}
+```
+
+Examples:
+- `20250406-0001-000001` — 6 April 2025, closure 1, receipt 1
+- `20250406-0001-000042` — 6 April 2025, closure 1, receipt 42
+- `20250406-0002-000001` — 6 April 2025, closure 2, receipt 1 (first receipt **after** end-of-day closure)
+
+Including `closure_number` between the date and the receipt number guarantees that resetting `ReceiptNumber` to 1 after closure **never conflicts** with earlier receipts from the same calendar day. Each closure period is fully namespace-isolated.
 
 ## Closure Number Sequencing
 

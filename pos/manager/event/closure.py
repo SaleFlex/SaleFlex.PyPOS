@@ -223,6 +223,14 @@ class ClosureEvent:
             # Update current_data: create new open closure and load it into self.closure
             self.create_empty_closure()
 
+            # Discard any pre-created empty draft that was left over from the previous
+            # closure period (payment.py creates one immediately after each completed
+            # sale).  If we leave it in document_data the guard at the top of
+            # create_empty_document() would return it on the next SALE navigation,
+            # keeping the old receipt_number instead of starting from 1.
+            self.abandon_empty_open_document_if_any()
+            self.document_data = None
+
             logger.info("[CLOSURE] Closure completed successfully. Closure Number: %s", current_closure_number)
             return True
 
