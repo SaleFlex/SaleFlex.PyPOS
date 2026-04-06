@@ -90,6 +90,80 @@ The **closure operation** is triggered when an authorized cashier presses the CL
 - **Success display**: `ClosureEvent._show_closure_success(closure_number)` — calls `MessageForm.show_info` with a green dialog. Message text is resolved from `LabelValue(key="ClosureSuccess")` when available.  
 - **Error display**: `ClosureEvent._show_closure_error(title, message)` — calls `MessageForm.show_error` with a red dialog.
 
+## Closure History Navigation (DETAIL and RECEIPTS)
+
+After a closure has been performed, the operator can browse historical closures using the two buttons at the bottom-left of the CLOSURE form.
+
+### DETAIL button — Closure Summary
+
+| Property | Value |
+|---|---|
+| Button location | Bottom-left of CLOSURE form |
+| Button caption | **DETAIL** |
+| Event | `EventName.CLOSURE_DETAIL_FORM` |
+| Target form | `FormName.CLOSURE_DETAIL` (form_no = 10) |
+
+**Behaviour**
+
+1. The operator selects a row in the Closure History datagrid.  
+2. The DETAIL button calls `_closure_detail_form_event()`.  
+3. The selected closure UUID is stored in `CurrentData.current_closure_id`.  
+4. The application navigates (full-form `redraw`) to `CLOSURE_DETAIL`.  
+5. `CLOSURE_DETAIL` renders a key/value DataGrid (`ControlName.CLOSURE_DETAIL_GRID`) with all fields of the closure record (dates, cashier names, document counts, gross/net sales, tax, discount, tip, cash amounts, etc.).  
+6. A **BACK** button in the bottom-right corner navigates back to the CLOSURE form.
+
+### RECEIPTS button — Receipts Within a Closure
+
+| Property | Value |
+|---|---|
+| Button location | Bottom-left of CLOSURE form, to the right of DETAIL |
+| Button caption | **RECEIPTS** |
+| Event | `EventName.CLOSURE_RECEIPTS_FORM` |
+| Target form | `FormName.CLOSURE_RECEIPTS` (form_no = 11) |
+
+**Behaviour**
+
+1. The operator selects a row in the Closure History datagrid.  
+2. The RECEIPTS button calls `_closure_receipts_form_event()`.  
+3. The selected closure UUID is stored in `CurrentData.current_closure_id`.  
+4. The application navigates to `CLOSURE_RECEIPTS`.  
+5. `CLOSURE_RECEIPTS` renders a DataGrid (`ControlName.CLOSURE_RECEIPTS_DATAGRID`) listing all `TransactionHead` records that share the closure's `closure_number`. Columns: Receipt No, Date/Time, Type, Total, Payment, Change, Status.  
+6. The DataGrid stores an ordered list of receipt UUIDs as `_receipt_ids` for later retrieval.
+
+#### RECEIPTS → DETAIL (Receipt Detail)
+
+| Property | Value |
+|---|---|
+| Button location | Bottom-left of CLOSURE_RECEIPTS form |
+| Button caption | **DETAIL** |
+| Event | `EventName.CLOSURE_RECEIPT_DETAIL_FORM` |
+| Target form | `FormName.CLOSURE_RECEIPT_DETAIL` (form_no = 12) |
+
+1. The operator selects a receipt row.  
+2. The DETAIL button calls `_closure_receipt_detail_form_event()`.  
+3. The selected receipt UUID is stored in `CurrentData.current_receipt_id`.  
+4. The application navigates to `CLOSURE_RECEIPT_DETAIL`.  
+5. `CLOSURE_RECEIPT_DETAIL` renders a key/value DataGrid (`ControlName.CLOSURE_RECEIPT_DETAIL_GRID`) with all header fields of the receipt plus individual line items (`TransactionProduct` rows) appended below a separator row.  
+6. A **BACK** button returns to `CLOSURE_RECEIPTS`.
+
+### Navigation Summary
+
+```
+CLOSURE  ──[DETAIL]──► CLOSURE_DETAIL            [BACK]──► CLOSURE
+         ──[RECEIPTS]─► CLOSURE_RECEIPTS ──[DETAIL]──► CLOSURE_RECEIPT_DETAIL
+                                                     [BACK]──► CLOSURE_RECEIPTS
+                        [BACK]──► CLOSURE
+```
+
+All three sub-forms are **DB-driven dynamic forms** (form definitions and controls stored in the database, rendered via `DynamicFormRenderer`). The BACK button on every form uses `EventName.BACK` which pops the form history stack, returning to the previous screen without requiring hard-coded navigation logic.
+
+### State Attributes
+
+| Attribute | Type | Set by | Used by |
+|---|---|---|---|
+| `CurrentData.current_closure_id` | `str \| None` | `_closure_detail_form_event`, `_closure_receipts_form_event` | `_populate_closure_detail_grid`, `_populate_closure_receipts_grid` |
+| `CurrentData.current_receipt_id` | `str \| None` | `_closure_receipt_detail_form_event` | `_populate_closure_receipt_detail_grid` |
+
 ## Models Involved
 
 - **Sequence**: `TransactionSequence` (ClosureNumber, ReceiptNumber).  

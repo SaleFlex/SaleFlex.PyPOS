@@ -131,6 +131,9 @@ if handler:
 |-----------|---------|-------------|
 | `CLOSURE` | `_closure_event` | Execute end-of-day closure |
 | `CLOSURE_FORM` | `_closure_form_event` | Open closure form |
+| `CLOSURE_DETAIL_FORM` | `_closure_detail_form_event` | Open closure detail form for the selected closure |
+| `CLOSURE_RECEIPTS_FORM` | `_closure_receipts_form_event` | Open receipts list for the selected closure |
+| `CLOSURE_RECEIPT_DETAIL_FORM` | `_closure_receipt_detail_form_event` | Open receipt detail for the selected receipt |
 
 ### Product Management — `ProductEvent`
 

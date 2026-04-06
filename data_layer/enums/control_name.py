@@ -115,6 +115,17 @@ class ControlName(enum.Enum):
     BACKCOLOR_PAYMENT: Background color configuration for payment buttons.
     BACKCOLOR_PLU: Background color configuration for PLU (Price Look-Up) buttons.
     BACKCOLOR_TOTAL: Background color configuration for total display areas.
+    
+    Closure History Controls:
+    ------------------------
+    CLOSURE: DataGrid in the CLOSURE form listing historical closures; stores _closure_ids for selection.
+    CLOSURE_DETAIL_GRID: Key/value DataGrid in CLOSURE_DETAIL form showing selected closure summary.
+    CLOSURE_RECEIPTS_DATAGRID: DataGrid in CLOSURE_RECEIPTS form listing receipts for a closure;
+                                stores _receipt_ids for selection.
+    CLOSURE_RECEIPT_DETAIL_GRID: Key/value DataGrid in CLOSURE_RECEIPT_DETAIL form showing receipt
+                                  header fields (dates, totals, status, currency).
+    CLOSURE_RECEIPT_ITEMS_GRID:  DataGrid in CLOSURE_RECEIPT_DETAIL form listing sold line items
+                                  (product name, code, qty, unit price, discount, VAT%, total, status).
     """
     
     # Authentication & Login Controls
@@ -140,6 +151,10 @@ class ControlName(enum.Enum):
     
     # End of Day Controls
     CLOSURE = "CLOSURE"
+    CLOSURE_DETAIL_GRID = "CLOSURE_DETAIL_GRID"                  # Key/value grid: closure summary details
+    CLOSURE_RECEIPTS_DATAGRID = "CLOSURE_RECEIPTS_DATAGRID"      # DataGrid listing receipts for a closure
+    CLOSURE_RECEIPT_DETAIL_GRID = "CLOSURE_RECEIPT_DETAIL_GRID"  # Key/value grid: receipt header fields
+    CLOSURE_RECEIPT_ITEMS_GRID = "CLOSURE_RECEIPT_ITEMS_GRID"    # DataGrid listing sold items of a receipt
     
     # Configuration Controls
     BARCODE_LENGTH = "BARCODE_LENGTH"

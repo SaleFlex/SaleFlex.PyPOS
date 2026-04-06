@@ -62,7 +62,10 @@ class FormName(enum.Enum):
           IMAGE_FOLDER, DEBUG_MODE_STATE, etc.
     
     Operational Forms (CLOSURE, REPORT):
-        - CLOSURE: End-of-shift operations
+        - CLOSURE: End-of-shift operations with closure history list
+        - CLOSURE_DETAIL: Detail view of a selected closure record
+        - CLOSURE_RECEIPTS: List of receipts belonging to a selected closure
+        - CLOSURE_RECEIPT_DETAIL: Detail view of a selected receipt within a closure
         - REPORT: Reporting and analytics form
     
     Restaurant Forms (TABLE, ORDER, CHECK):
@@ -115,3 +118,6 @@ class FormName(enum.Enum):
     SUSPENDED_SALES_MARKET = 26  # Market sector: list suspended (pending) sale documents.
     PRODUCT_LIST = 27            # Product list / search form.
     PRODUCT_DETAIL = 28          # Product detail form (tab view).
+    CLOSURE_DETAIL = 29          # Closure detail form (key/value summary of a selected closure).
+    CLOSURE_RECEIPTS = 30        # Closure receipts list form (receipts belonging to a closure).
+    CLOSURE_RECEIPT_DETAIL = 31  # Closure receipt detail form (key/value detail of a receipt).

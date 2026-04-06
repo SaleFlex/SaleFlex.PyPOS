@@ -127,6 +127,9 @@ class EventName(enum.Enum):
     PAYMENT_DETAIL = "PAYMENT_DETAIL"               # Payment details
     CANCEL_DOCUMENT = "CANCEL_DOCUMENT"             # Cancel document
     CLOSURE = "CLOSURE"                             # Cash register closure
+    CLOSURE_DETAIL_FORM = "CLOSURE_DETAIL_FORM"     # Open closure detail form for selected closure
+    CLOSURE_RECEIPTS_FORM = "CLOSURE_RECEIPTS_FORM" # Open closure receipts list for selected closure
+    CLOSURE_RECEIPT_DETAIL_FORM = "CLOSURE_RECEIPT_DETAIL_FORM"  # Open receipt detail for selected receipt
     STOCK_ENTRY_FORM = "STOCK_ENTRY_FORM"           # Stock entry form
     SALE_DETAIL_REPORT = "SALE_DETAIL_REPORT"       # Sale detail report
     PLU_SALE_REPORT = "PLU_SALE_REPORT"             # PLU sales report

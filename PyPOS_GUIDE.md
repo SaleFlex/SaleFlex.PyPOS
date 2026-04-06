@@ -59,6 +59,25 @@ From the main menu, press **CLOSURE** (administrators only). The system aggregat
 - **Success**: A green info dialog ("End-of-Day Closure Complete") confirms the closure number that was closed.
 - **Failure**: A red error dialog explains the reason (e.g. not logged in, insufficient permissions, no transactions found, configuration error).
 
+### Browsing Closure History
+
+The CLOSURE form also allows browsing previously completed closures. Select a row in the Closure History datagrid and use the bottom-left buttons:
+
+| Button | Opens Form | Shows |
+|--------|-----------|-------|
+| **DETAIL** | `CLOSURE_DETAIL` | Key/value summary of the selected closure (dates, cashier, document counts, sales totals, cash amounts) |
+| **RECEIPTS** | `CLOSURE_RECEIPTS` | List of all receipts (TransactionHead records) within that closure period |
+
+From `CLOSURE_RECEIPTS`, select a receipt row and press **DETAIL** to open `CLOSURE_RECEIPT_DETAIL` — a key/value view of the receipt header plus every line item.
+
+All three sub-forms are DB-driven dynamic forms. Each has a **BACK** button (bottom-right) that navigates back through the form history stack:
+
+```
+CLOSURE → CLOSURE_DETAIL [BACK → CLOSURE]
+CLOSURE → CLOSURE_RECEIPTS → CLOSURE_RECEIPT_DETAIL [BACK → CLOSURE_RECEIPTS]
+CLOSURE_RECEIPTS [BACK → CLOSURE]
+```
+
 ---
 
 ## Table of Contents
@@ -117,6 +136,8 @@ From the main menu, press **CLOSURE** (administrators only). The system aggregat
 **Cashier management:** [Cashier Management](docs/14-cashier-management.md)
 
 **Closure operation:** [End-of-Day Closure](docs/13-end-of-day-closure.md)
+
+**Closure history (DETAIL / RECEIPTS):** [Closure History Navigation](docs/13-end-of-day-closure.md#closure-history-navigation-detail-and-receipts)
 
 **Virtual keyboard:** [Virtual Keyboard Configuration](docs/06-virtual-keyboard.md)
 

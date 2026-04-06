@@ -55,6 +55,9 @@ def _insert_form_controls(session: Session, cashier_id: str):
     suspended_sales_market_form = session.query(Form).filter(Form.form_no == 7).first()
     product_list_form = session.query(Form).filter(Form.form_no == 8).first()
     product_detail_form = session.query(Form).filter(Form.form_no == 9).first()
+    closure_detail_form = session.query(Form).filter(Form.form_no == 10).first()
+    closure_receipts_form = session.query(Form).filter(Form.form_no == 11).first()
+    closure_receipt_detail_form = session.query(Form).filter(Form.form_no == 12).first()
 
     if not login_form or not sale_form or not main_menu_form or not config_form or not cashier_form or not closure_form or not suspended_sales_market_form or not product_list_form:
         logger.warning("Forms not found. Cannot insert form controls.")
@@ -1883,7 +1886,7 @@ def _insert_form_controls(session: Session, cashier_id: str):
     
     # Closure form controls
     closure_form_controls = [
-        # DataGrid to display previous closures
+        # DataGrid to display previous closures (selectable for DETAIL / RECEIPTS)
         FormControl(
             fk_form_id=closure_form.id,
             fk_parent_id=None,
@@ -1906,7 +1909,7 @@ def _insert_form_controls(session: Session, cashier_id: str):
             character_casing="NORMAL",
             font="Tahoma",
             icon=None,
-            tool_tip="Previous closure records",
+            tool_tip="Select a closure to view details or its receipts",
             image=None,
             image_selected=None,
             font_auto_height=False,
@@ -1919,7 +1922,7 @@ def _insert_form_controls(session: Session, cashier_id: str):
             fk_cashier_create_id=cashier_id,
             fk_cashier_update_id=cashier_id
         ),
-        # Closure button (moved down)
+        # Closure button (execute closure operation)
         FormControl(
             fk_form_id=closure_form.id,
             fk_parent_id=None,
@@ -1949,13 +1952,85 @@ def _insert_form_controls(session: Session, cashier_id: str):
             font_size=16,
             input_type="ALPHANUMERIC",
             text_image_relation=None,
-            back_color="0xFF0000",  # Red color for closure
+            back_color="0xFF0000",
             fore_color="0xFFFFFF",
             keyboard_value=None,
             fk_cashier_create_id=cashier_id,
             fk_cashier_update_id=cashier_id
         ),
-        # Back button
+        # DETAIL button – bottom-left: open closure detail form for the selected closure
+        FormControl(
+            fk_form_id=closure_form.id,
+            fk_parent_id=None,
+            name="CLOSURE_DETAIL",
+            form_control_function1=EventName.CLOSURE_DETAIL_FORM.value,
+            form_control_function2=None,
+            type_no=1,
+            type="BUTTON",
+            width=200,
+            height=99,
+            location_x=62,
+            location_y=630,
+            start_position=None,
+            caption1="DETAIL",
+            caption2=None,
+            list_values=None,
+            dock=None,
+            alignment=None,
+            text_alignment="CENTER",
+            character_casing="UPPER",
+            font="Tahoma",
+            icon=None,
+            tool_tip="View details of the selected closure",
+            image=None,
+            image_selected=None,
+            font_auto_height=False,
+            font_size=14,
+            input_type="ALPHANUMERIC",
+            text_image_relation=None,
+            back_color="0x2E8B57",
+            fore_color="0xFFFFFF",
+            keyboard_value=None,
+            fk_cashier_create_id=cashier_id,
+            fk_cashier_update_id=cashier_id
+        ),
+        # RECEIPTS button – right of DETAIL: open receipts list for the selected closure
+        FormControl(
+            fk_form_id=closure_form.id,
+            fk_parent_id=None,
+            name="CLOSURE_RECEIPTS",
+            form_control_function1=EventName.CLOSURE_RECEIPTS_FORM.value,
+            form_control_function2=None,
+            type_no=1,
+            type="BUTTON",
+            width=200,
+            height=99,
+            location_x=280,
+            location_y=630,
+            start_position=None,
+            caption1="RECEIPTS",
+            caption2=None,
+            list_values=None,
+            dock=None,
+            alignment=None,
+            text_alignment="CENTER",
+            character_casing="UPPER",
+            font="Tahoma",
+            icon=None,
+            tool_tip="View receipts of the selected closure",
+            image=None,
+            image_selected=None,
+            font_auto_height=False,
+            font_size=14,
+            input_type="ALPHANUMERIC",
+            text_image_relation=None,
+            back_color="0x4169E1",
+            fore_color="0xFFFFFF",
+            keyboard_value=None,
+            fk_cashier_create_id=cashier_id,
+            fk_cashier_update_id=cashier_id
+        ),
+        # BACK button – bottom-right
         FormControl(
             fk_form_id=closure_form.id,
             fk_parent_id=None,
@@ -1992,6 +2067,318 @@ def _insert_form_controls(session: Session, cashier_id: str):
             fk_cashier_update_id=cashier_id
         )
     ]
+
+    # ------------------------------------------------------------------ #
+    # CLOSURE_DETAIL form controls                                         #
+    # ------------------------------------------------------------------ #
+    closure_detail_form_controls = []
+    if closure_detail_form:
+        closure_detail_form_controls = [
+            # Key/value DataGrid showing closure summary fields
+            FormControl(
+                fk_form_id=closure_detail_form.id,
+                fk_parent_id=None,
+                name=ControlName.CLOSURE_DETAIL_GRID.value,
+                form_control_function1=EventName.NONE.value,
+                form_control_function2=None,
+                type_no=9,
+                type="DATAGRID",
+                width=900,
+                height=560,
+                location_x=62,
+                location_y=50,
+                start_position=None,
+                caption1="Closure Details",
+                caption2=None,
+                list_values=None,
+                dock=None,
+                alignment=None,
+                text_alignment="LEFT",
+                character_casing="NORMAL",
+                font="Tahoma",
+                icon=None,
+                tool_tip="Detailed summary of the selected closure",
+                image=None,
+                image_selected=None,
+                font_auto_height=False,
+                font_size=11,
+                input_type="ALPHANUMERIC",
+                text_image_relation=None,
+                back_color="0xFFFFFF",
+                fore_color="0x000000",
+                keyboard_value=None,
+                fk_cashier_create_id=cashier_id,
+                fk_cashier_update_id=cashier_id
+            ),
+            # BACK button – bottom-right
+            FormControl(
+                fk_form_id=closure_detail_form.id,
+                fk_parent_id=None,
+                name=ControlName.BACK.value,
+                form_control_function1=EventName.BACK.value,
+                form_control_function2=None,
+                type_no=1,
+                type="BUTTON",
+                width=125,
+                height=99,
+                location_x=880,
+                location_y=630,
+                start_position=None,
+                caption1="BACK",
+                caption2=None,
+                list_values=None,
+                dock=None,
+                alignment=None,
+                text_alignment="CENTER",
+                character_casing="UPPER",
+                font="Tahoma",
+                icon=None,
+                tool_tip="Back to Closure List",
+                image=None,
+                image_selected=None,
+                font_auto_height=False,
+                font_size=14,
+                input_type="ALPHANUMERIC",
+                text_image_relation=None,
+                back_color="0x4682B4",
+                fore_color="0xFFFFFF",
+                keyboard_value=None,
+                fk_cashier_create_id=cashier_id,
+                fk_cashier_update_id=cashier_id
+            ),
+        ]
+
+    # ------------------------------------------------------------------ #
+    # CLOSURE_RECEIPTS form controls                                       #
+    # ------------------------------------------------------------------ #
+    closure_receipts_form_controls = []
+    if closure_receipts_form:
+        closure_receipts_form_controls = [
+            # DataGrid listing receipts that belong to the selected closure
+            FormControl(
+                fk_form_id=closure_receipts_form.id,
+                fk_parent_id=None,
+                name=ControlName.CLOSURE_RECEIPTS_DATAGRID.value,
+                form_control_function1=EventName.NONE.value,
+                form_control_function2=None,
+                type_no=9,
+                type="DATAGRID",
+                width=900,
+                height=480,
+                location_x=62,
+                location_y=50,
+                start_position=None,
+                caption1="Closure Receipts",
+                caption2=None,
+                list_values=None,
+                dock=None,
+                alignment=None,
+                text_alignment="CENTER",
+                character_casing="NORMAL",
+                font="Tahoma",
+                icon=None,
+                tool_tip="Select a receipt to view its details",
+                image=None,
+                image_selected=None,
+                font_auto_height=False,
+                font_size=10,
+                input_type="ALPHANUMERIC",
+                text_image_relation=None,
+                back_color="0xFFFFFF",
+                fore_color="0x000000",
+                keyboard_value=None,
+                fk_cashier_create_id=cashier_id,
+                fk_cashier_update_id=cashier_id
+            ),
+            # DETAIL button – bottom-left: open receipt detail form
+            FormControl(
+                fk_form_id=closure_receipts_form.id,
+                fk_parent_id=None,
+                name="RECEIPT_DETAIL",
+                form_control_function1=EventName.CLOSURE_RECEIPT_DETAIL_FORM.value,
+                form_control_function2=None,
+                type_no=1,
+                type="BUTTON",
+                width=200,
+                height=99,
+                location_x=62,
+                location_y=630,
+                start_position=None,
+                caption1="DETAIL",
+                caption2=None,
+                list_values=None,
+                dock=None,
+                alignment=None,
+                text_alignment="CENTER",
+                character_casing="UPPER",
+                font="Tahoma",
+                icon=None,
+                tool_tip="View details of the selected receipt",
+                image=None,
+                image_selected=None,
+                font_auto_height=False,
+                font_size=14,
+                input_type="ALPHANUMERIC",
+                text_image_relation=None,
+                back_color="0x2E8B57",
+                fore_color="0xFFFFFF",
+                keyboard_value=None,
+                fk_cashier_create_id=cashier_id,
+                fk_cashier_update_id=cashier_id
+            ),
+            # BACK button – bottom-right
+            FormControl(
+                fk_form_id=closure_receipts_form.id,
+                fk_parent_id=None,
+                name=ControlName.BACK.value,
+                form_control_function1=EventName.BACK.value,
+                form_control_function2=None,
+                type_no=1,
+                type="BUTTON",
+                width=125,
+                height=99,
+                location_x=880,
+                location_y=630,
+                start_position=None,
+                caption1="BACK",
+                caption2=None,
+                list_values=None,
+                dock=None,
+                alignment=None,
+                text_alignment="CENTER",
+                character_casing="UPPER",
+                font="Tahoma",
+                icon=None,
+                tool_tip="Back to Closure List",
+                image=None,
+                image_selected=None,
+                font_auto_height=False,
+                font_size=14,
+                input_type="ALPHANUMERIC",
+                text_image_relation=None,
+                back_color="0x4682B4",
+                fore_color="0xFFFFFF",
+                keyboard_value=None,
+                fk_cashier_create_id=cashier_id,
+                fk_cashier_update_id=cashier_id
+            ),
+        ]
+
+    # ------------------------------------------------------------------ #
+    # CLOSURE_RECEIPT_DETAIL form controls                                 #
+    # ------------------------------------------------------------------ #
+    closure_receipt_detail_form_controls = []
+    if closure_receipt_detail_form:
+        closure_receipt_detail_form_controls = [
+            # Upper DataGrid – key/value receipt header information
+            FormControl(
+                fk_form_id=closure_receipt_detail_form.id,
+                fk_parent_id=None,
+                name=ControlName.CLOSURE_RECEIPT_DETAIL_GRID.value,
+                form_control_function1=EventName.NONE.value,
+                form_control_function2=None,
+                type_no=9,
+                type="DATAGRID",
+                width=900,
+                height=250,
+                location_x=62,
+                location_y=50,
+                start_position=None,
+                caption1="Receipt Info",
+                caption2=None,
+                list_values=None,
+                dock=None,
+                alignment=None,
+                text_alignment="LEFT",
+                character_casing="NORMAL",
+                font="Tahoma",
+                icon=None,
+                tool_tip="General information about the selected receipt",
+                image=None,
+                image_selected=None,
+                font_auto_height=False,
+                font_size=11,
+                input_type="ALPHANUMERIC",
+                text_image_relation=None,
+                back_color="0xFFFFFF",
+                fore_color="0x000000",
+                keyboard_value=None,
+                fk_cashier_create_id=cashier_id,
+                fk_cashier_update_id=cashier_id
+            ),
+            # Lower DataGrid – sold items / line products of the receipt
+            FormControl(
+                fk_form_id=closure_receipt_detail_form.id,
+                fk_parent_id=None,
+                name=ControlName.CLOSURE_RECEIPT_ITEMS_GRID.value,
+                form_control_function1=EventName.NONE.value,
+                form_control_function2=None,
+                type_no=9,
+                type="DATAGRID",
+                width=900,
+                height=295,
+                location_x=62,
+                location_y=318,
+                start_position=None,
+                caption1="Items",
+                caption2=None,
+                list_values=None,
+                dock=None,
+                alignment=None,
+                text_alignment="CENTER",
+                character_casing="NORMAL",
+                font="Tahoma",
+                icon=None,
+                tool_tip="Products / items sold in this receipt",
+                image=None,
+                image_selected=None,
+                font_auto_height=False,
+                font_size=10,
+                input_type="ALPHANUMERIC",
+                text_image_relation=None,
+                back_color="0xF8F8FF",
+                fore_color="0x000000",
+                keyboard_value=None,
+                fk_cashier_create_id=cashier_id,
+                fk_cashier_update_id=cashier_id
+            ),
+            # BACK button – bottom-right
+            FormControl(
+                fk_form_id=closure_receipt_detail_form.id,
+                fk_parent_id=None,
+                name=ControlName.BACK.value,
+                form_control_function1=EventName.BACK.value,
+                form_control_function2=None,
+                type_no=1,
+                type="BUTTON",
+                width=125,
+                height=99,
+                location_x=880,
+                location_y=630,
+                start_position=None,
+                caption1="BACK",
+                caption2=None,
+                list_values=None,
+                dock=None,
+                alignment=None,
+                text_alignment="CENTER",
+                character_casing="UPPER",
+                font="Tahoma",
+                icon=None,
+                tool_tip="Back to Receipts List",
+                image=None,
+                image_selected=None,
+                font_auto_height=False,
+                font_size=14,
+                input_type="ALPHANUMERIC",
+                text_image_relation=None,
+                back_color="0x4682B4",
+                fore_color="0xFFFFFF",
+                keyboard_value=None,
+                fk_cashier_create_id=cashier_id,
+                fk_cashier_update_id=cashier_id
+            ),
+        ]
 
     # Suspended sales list (market sector) — receipt no, line count, total
     suspended_sales_market_controls = [
@@ -2302,7 +2689,10 @@ def _insert_form_controls(session: Session, cashier_id: str):
         cashier_form_controls +
         closure_form_controls +
         suspended_sales_market_controls +
-        product_list_form_controls
+        product_list_form_controls +
+        closure_detail_form_controls +
+        closure_receipts_form_controls +
+        closure_receipt_detail_form_controls
     )
     
     # Add all controls to session

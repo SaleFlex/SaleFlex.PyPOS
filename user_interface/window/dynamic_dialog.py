@@ -492,6 +492,285 @@ class DynamicDialog(QDialog):
             logger.exception("[PRODUCT_VARIANT_GRID] Error: %s", exc)
             datagrid.set_data([])
 
+    # ------------------------------------------------------------------ #
+    # Closure-detail / receipts grid helpers                              #
+    # ------------------------------------------------------------------ #
+
+    def _populate_closure_detail_grid(self, datagrid):
+        """Fill the CLOSURE_DETAIL grid with key/value rows for the selected closure."""
+        datagrid.set_columns(["Field", "Value"])
+        closure_id = getattr(self.app, "current_closure_id", None)
+        if not closure_id:
+            datagrid.set_data([])
+            return
+        try:
+            from uuid import UUID as _UUID
+            from data_layer.model import Closure, Cashier
+
+            if isinstance(closure_id, str):
+                closure_id = _UUID(closure_id)
+            closure = Closure.get_by_id(closure_id)
+            if not closure:
+                datagrid.set_data([])
+                return
+
+            def _num(val):
+                if val is None:
+                    return "0.00"
+                try:
+                    return f"{float(val):.2f}"
+                except (TypeError, ValueError):
+                    return str(val)
+
+            opened_by = ""
+            if getattr(closure, "fk_cashier_opened_id", None):
+                c = Cashier.get_by_id(closure.fk_cashier_opened_id)
+                if c:
+                    opened_by = c.user_name or ""
+            closed_by = ""
+            if getattr(closure, "fk_cashier_closed_id", None):
+                c = Cashier.get_by_id(closure.fk_cashier_closed_id)
+                if c:
+                    closed_by = c.user_name or ""
+            start_str = closure.closure_start_time.strftime("%Y-%m-%d %H:%M:%S") if closure.closure_start_time else ""
+            end_str = closure.closure_end_time.strftime("%Y-%m-%d %H:%M:%S") if closure.closure_end_time else ""
+
+            rows = [
+                ["Closure No",              str(closure.closure_number or "")],
+                ["Unique ID",               closure.closure_unique_id or ""],
+                ["Date",                    str(closure.closure_date or "")],
+                ["Start Time",              start_str],
+                ["End Time",                end_str],
+                ["Opened By",               opened_by],
+                ["Closed By",               closed_by],
+                ["Total Documents",         str(closure.total_document_count or 0)],
+                ["Valid Transactions",       str(closure.valid_transaction_count or 0)],
+                ["Cancelled Transactions",  str(closure.canceled_transaction_count or 0)],
+                ["Return Transactions",     str(closure.return_transaction_count or 0)],
+                ["Suspended Transactions",  str(closure.suspended_transaction_count or 0)],
+                ["Gross Sales",             _num(closure.gross_sales_amount)],
+                ["Net Sales",               _num(closure.net_sales_amount)],
+                ["Total Tax",               _num(closure.total_tax_amount)],
+                ["Total Discount",          _num(closure.total_discount_amount)],
+                ["Total Tip",               _num(closure.total_tip_amount)],
+                ["Opening Cash",            _num(closure.opening_cash_amount)],
+                ["Closing Cash",            _num(closure.closing_cash_amount)],
+                ["Expected Cash",           _num(closure.expected_cash_amount)],
+                ["Cash Difference",         _num(closure.cash_difference)],
+            ]
+            datagrid.set_data(rows)
+        except Exception as exc:
+            logger.exception("[CLOSURE_DETAIL_GRID] Error: %s", exc)
+            datagrid.set_data([])
+
+    def _populate_closure_receipts_grid(self, datagrid):
+        """Fill the CLOSURE_RECEIPTS grid with transaction heads for the selected closure."""
+        datagrid.set_columns([
+            "Receipt No", "Date/Time", "Type", "Total", "Payment", "Change", "Status"
+        ])
+        closure_id = getattr(self.app, "current_closure_id", None)
+        if not closure_id:
+            datagrid.set_data([])
+            datagrid._receipt_ids = []
+            return
+        try:
+            from uuid import UUID as _UUID
+            from data_layer.model import Closure, TransactionHead
+
+            if isinstance(closure_id, str):
+                closure_id = _UUID(closure_id)
+            closure = Closure.get_by_id(closure_id)
+            if not closure:
+                datagrid.set_data([])
+                datagrid._receipt_ids = []
+                return
+
+            heads = TransactionHead.filter_by(
+                closure_number=closure.closure_number,
+                is_deleted=False,
+            ) or []
+            heads = sorted(
+                heads,
+                key=lambda h: h.transaction_date_time if h.transaction_date_time else h.receipt_number,
+            )
+
+            def _num(val):
+                return "0.00" if val is None else f"{float(val):.2f}"
+
+            data_rows = []
+            receipt_ids = []
+            for head in heads:
+                dt_str = head.transaction_date_time.strftime("%Y-%m-%d %H:%M") if head.transaction_date_time else ""
+                data_rows.append([
+                    str(head.receipt_number or ""), dt_str,
+                    head.document_type or "",
+                    _num(head.total_amount), _num(head.total_payment_amount),
+                    _num(head.total_change_amount), head.transaction_status or "",
+                ])
+                receipt_ids.append(str(head.id))
+
+            datagrid.set_data(data_rows)
+            datagrid._receipt_ids = receipt_ids
+        except Exception as exc:
+            logger.exception("[CLOSURE_RECEIPTS_GRID] Error: %s", exc)
+            datagrid.set_data([])
+            datagrid._receipt_ids = []
+
+    def _populate_closure_receipt_detail_grid(self, datagrid):
+        """
+        Fill the upper CLOSURE_RECEIPT_DETAIL_GRID with key/value header rows for the
+        selected receipt. Line items are shown separately in CLOSURE_RECEIPT_ITEMS_GRID.
+
+        Uses a direct session query to avoid detached-object UUID comparison issues.
+        """
+        datagrid.set_columns(["Field", "Value"])
+        receipt_id = getattr(self.app, "current_receipt_id", None)
+        if not receipt_id:
+            datagrid.set_data([])
+            return
+        try:
+            from data_layer.engine import Engine
+            from data_layer.model.definition.transaction_head import TransactionHead
+
+            def _num(val):
+                if val is None:
+                    return "0.00"
+                try:
+                    return f"{float(val):.2f}"
+                except (TypeError, ValueError):
+                    return str(val)
+
+            from uuid import UUID as _UUID
+            receipt_uuid = _UUID(str(receipt_id)) if not isinstance(receipt_id, _UUID) else receipt_id
+            engine = Engine()
+            with engine.get_session() as session:
+                head = session.query(TransactionHead).filter(
+                    TransactionHead.id == receipt_uuid
+                ).first()
+
+                if not head:
+                    datagrid.set_data([])
+                    return
+
+                dt_str = head.transaction_date_time.strftime("%Y-%m-%d %H:%M:%S") if head.transaction_date_time else ""
+
+                rows = [
+                    ["Receipt No",      str(head.receipt_number or "")],
+                    ["Unique ID",       head.transaction_unique_id or ""],
+                    ["Date/Time",       dt_str],
+                    ["Document Type",   head.document_type or ""],
+                    ["Trans. Type",     head.transaction_type or ""],
+                    ["Status",          head.transaction_status or ""],
+                    ["Closure No",      str(head.closure_number or "")],
+                    ["Currency",        head.base_currency or ""],
+                    ["Total Amount",    _num(head.total_amount)],
+                    ["Tax Amount",      _num(head.total_vat_amount)],
+                    ["Discount",        _num(head.total_discount_amount)],
+                    ["Surcharge",       _num(head.total_surcharge_amount)],
+                    ["Payment Total",   _num(head.total_payment_amount)],
+                    ["Change",          _num(head.total_change_amount)],
+                    ["Tip",             _num(head.tip_amount)],
+                ]
+
+            datagrid.set_data(rows)
+        except Exception as exc:
+            logger.exception("[CLOSURE_RECEIPT_DETAIL_GRID] Error: %s", exc)
+            datagrid.set_data([])
+
+    def _populate_closure_receipt_items_grid(self, datagrid):
+        """
+        Fill the lower CLOSURE_RECEIPT_ITEMS_GRID with sold line items
+        (TransactionProduct rows) for the selected receipt.
+
+        Columns: #, Product, Code, Qty, Unit, Unit Price, Discount, VAT%, Total, Status
+        Cancelled lines (is_cancel=True) are still shown but marked as "CANCELLED".
+
+        Uses a direct session query with the receipt UUID as a string to avoid
+        detached-object UUID comparison issues.
+        """
+        datagrid.set_columns([
+            "#", "Product", "Code", "Qty", "Unit",
+            "Unit Price", "Discount", "VAT%", "Total", "Status"
+        ])
+        receipt_id = getattr(self.app, "current_receipt_id", None)
+        if not receipt_id:
+            datagrid.set_data([])
+            return
+        try:
+            from data_layer.engine import Engine
+            from data_layer.model.definition.transaction_head import TransactionHead
+            from data_layer.model.definition.transaction_product import TransactionProduct
+
+            def _num(val, decimals=2):
+                if val is None:
+                    return "0.00"
+                try:
+                    return f"{float(val):.{decimals}f}"
+                except (TypeError, ValueError):
+                    return str(val)
+
+            from uuid import UUID as _UUID
+            from data_layer.model.definition.transaction_head import TransactionHead
+            from data_layer.model.definition.transaction_head_temp import TransactionHeadTemp
+            from data_layer.model.definition.transaction_product_temp import TransactionProductTemp
+            receipt_uuid = _UUID(str(receipt_id)) if not isinstance(receipt_id, _UUID) else receipt_id
+            engine = Engine()
+            with engine.get_session() as session:
+                # Primary: permanent transaction_product table
+                products = (
+                    session.query(TransactionProduct)
+                    .filter(
+                        TransactionProduct.fk_transaction_head_id == receipt_uuid,
+                        TransactionProduct.is_deleted != True,
+                    )
+                    .order_by(TransactionProduct.line_no)
+                    .all()
+                )
+
+                # Fallback: temp table using receipt_number + closure_number to find the
+                # matching temp head (permanent finalization creates a new UUID for the head
+                # so the FK in temp products points to the original temp head ID)
+                if not products:
+                    perm_head = session.query(TransactionHead).filter(
+                        TransactionHead.id == receipt_uuid
+                    ).first()
+                    if perm_head:
+                        temp_head = session.query(TransactionHeadTemp).filter(
+                            TransactionHeadTemp.receipt_number == perm_head.receipt_number,
+                            TransactionHeadTemp.closure_number == perm_head.closure_number,
+                        ).first()
+                        if temp_head:
+                            products = (
+                                session.query(TransactionProductTemp)
+                                .filter(
+                                    TransactionProductTemp.fk_transaction_head_id == temp_head.id,
+                                    TransactionProductTemp.is_deleted != True,
+                                )
+                                .order_by(TransactionProductTemp.line_no)
+                                .all()
+                            )
+
+                data_rows = []
+                for prod in products:
+                    status = "CANCELLED" if getattr(prod, "is_cancel", False) else "OK"
+                    data_rows.append([
+                        str(prod.line_no or ""),
+                        prod.product_name or "",
+                        prod.product_code or "",
+                        _num(prod.quantity, 3),
+                        prod.unit_of_measure or "EA",
+                        _num(prod.unit_price),
+                        _num(prod.unit_discount),
+                        _num(prod.vat_rate, 1),
+                        _num(prod.total_price),
+                        status,
+                    ])
+
+            datagrid.set_data(data_rows)
+        except Exception as exc:
+            logger.exception("[CLOSURE_RECEIPT_ITEMS_GRID] Error: %s", exc)
+            datagrid.set_data([])
+
     def _create_button(self, design_data):
         """Create a button control with event binding and optional PLU text."""
         # Resolve parent: panel content widget or dialog
@@ -945,6 +1224,7 @@ class DynamicDialog(QDialog):
                     "Gross Sales", "Opening Cash", "Closing Cash"
                 ])
                 data_rows = []
+                closure_ids = []
                 for closure in closures:
                     cashier_name = ""
                     if closure.fk_cashier_closed_id:
@@ -965,11 +1245,26 @@ class DynamicDialog(QDialog):
                         _num(closure.closing_cash_amount)
                     ]
                     data_rows.append(row)
+                    closure_ids.append(str(closure.id))
                 datagrid.set_data(data_rows)
+                datagrid._closure_ids = closure_ids
             except Exception as e:
                 logger.exception("Error loading closure data: %s", e)
                 datagrid.set_columns(["No Data Available"])
                 datagrid.set_data([])
+                datagrid._closure_ids = []
+
+        elif name_key == ControlName.CLOSURE_DETAIL_GRID.value:
+            self._populate_closure_detail_grid(datagrid)
+
+        elif name_key == ControlName.CLOSURE_RECEIPTS_DATAGRID.value:
+            self._populate_closure_receipts_grid(datagrid)
+
+        elif name_key == ControlName.CLOSURE_RECEIPT_DETAIL_GRID.value:
+            self._populate_closure_receipt_detail_grid(datagrid)
+
+        elif name_key == ControlName.CLOSURE_RECEIPT_ITEMS_GRID.value:
+            self._populate_closure_receipt_items_grid(datagrid)
 
         elif name_key == ControlName.SUSPENDED_SALES_DATAGRID.value:
             try:

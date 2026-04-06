@@ -740,3 +740,138 @@ class ClosureEvent:
         except Exception as e:
             logger.exception("[CLOSURE_FORM] Error opening closure form: %s", e)
             return False
+
+    # ==================== CLOSURE DETAIL / RECEIPTS EVENTS ====================
+
+    def _get_selected_closure_id(self) -> str | None:
+        """
+        Read the currently selected row from the CLOSURE datagrid on the main
+        CLOSURE form and return the corresponding closure UUID string.
+
+        The datagrid stores the ordered list of closure IDs as ``_closure_ids``
+        (set by BaseWindow._create_datagrid when populating the CLOSURE grid).
+
+        Returns:
+            str | None: UUID string of the selected closure, or None if nothing
+                        is selected or the window is not available.
+        """
+        try:
+            from user_interface.control import DataGrid
+            from data_layer.enums import ControlName
+            window = self.interface.window
+            if not window:
+                return None
+            for child in window.children():
+                if isinstance(child, DataGrid):
+                    name = getattr(child, "name", "")
+                    if name == ControlName.CLOSURE.value:
+                        idx = child.get_selected_row_index()
+                        ids = getattr(child, "_closure_ids", [])
+                        if 0 <= idx < len(ids):
+                            return ids[idx]
+            return None
+        except Exception as exc:
+            logger.error("[CLOSURE_DETAIL] Error reading selected closure: %s", exc)
+            return None
+
+    def _closure_detail_form_event(self) -> bool:
+        """
+        Navigate to the CLOSURE_DETAIL form showing key/value summary of the
+        closure selected in the CLOSURE datagrid.
+
+        Returns:
+            bool: True on success, False if no row is selected or an error occurs.
+        """
+        if not self.login_succeed:
+            return False
+
+        try:
+            from data_layer.enums import FormName
+
+            closure_id = self._get_selected_closure_id()
+            if not closure_id:
+                logger.warning("[CLOSURE_DETAIL] No closure selected in datagrid")
+                return False
+
+            self.current_closure_id = closure_id
+            self.current_form_type = FormName.CLOSURE_DETAIL
+            self.interface.redraw(form_name=FormName.CLOSURE_DETAIL.name)
+            logger.info("[CLOSURE_DETAIL] Opened detail for closure id: %s", closure_id)
+            return True
+
+        except Exception as exc:
+            logger.exception("[CLOSURE_DETAIL] Error: %s", exc)
+            return False
+
+    def _closure_receipts_form_event(self) -> bool:
+        """
+        Navigate to the CLOSURE_RECEIPTS form showing the list of receipts
+        (TransactionHead records) that belong to the selected closure.
+
+        Returns:
+            bool: True on success, False if no row is selected or an error occurs.
+        """
+        if not self.login_succeed:
+            return False
+
+        try:
+            from data_layer.enums import FormName
+
+            closure_id = self._get_selected_closure_id()
+            if not closure_id:
+                logger.warning("[CLOSURE_RECEIPTS] No closure selected in datagrid")
+                return False
+
+            self.current_closure_id = closure_id
+            self.current_form_type = FormName.CLOSURE_RECEIPTS
+            self.interface.redraw(form_name=FormName.CLOSURE_RECEIPTS.name)
+            logger.info("[CLOSURE_RECEIPTS] Opened receipts for closure id: %s", closure_id)
+            return True
+
+        except Exception as exc:
+            logger.exception("[CLOSURE_RECEIPTS] Error: %s", exc)
+            return False
+
+    def _closure_receipt_detail_form_event(self) -> bool:
+        """
+        Navigate to the CLOSURE_RECEIPT_DETAIL form showing key/value detail
+        of the receipt selected in the CLOSURE_RECEIPTS datagrid.
+
+        Returns:
+            bool: True on success, False if no row is selected or an error occurs.
+        """
+        if not self.login_succeed:
+            return False
+
+        try:
+            from user_interface.control import DataGrid
+            from data_layer.enums import FormName, ControlName
+
+            window = self.interface.window
+            if not window:
+                return False
+
+            receipt_id = None
+            for child in window.children():
+                if isinstance(child, DataGrid):
+                    name = getattr(child, "name", "")
+                    if name == ControlName.CLOSURE_RECEIPTS_DATAGRID.value:
+                        idx = child.get_selected_row_index()
+                        ids = getattr(child, "_receipt_ids", [])
+                        if 0 <= idx < len(ids):
+                            receipt_id = ids[idx]
+                        break
+
+            if not receipt_id:
+                logger.warning("[CLOSURE_RECEIPT_DETAIL] No receipt selected in datagrid")
+                return False
+
+            self.current_receipt_id = receipt_id
+            self.current_form_type = FormName.CLOSURE_RECEIPT_DETAIL
+            self.interface.redraw(form_name=FormName.CLOSURE_RECEIPT_DETAIL.name)
+            logger.info("[CLOSURE_RECEIPT_DETAIL] Opened detail for receipt id: %s", receipt_id)
+            return True
+
+        except Exception as exc:
+            logger.exception("[CLOSURE_RECEIPT_DETAIL] Error: %s", exc)
+            return False
