@@ -92,7 +92,7 @@ SaleFlex.PyPOS follows a layered architecture pattern with clear separation of c
 └─────────────────────────────────────────────────┘
          ↕ core/logger.py (all layers)
          ↕ core/exceptions.py (all layers)
-              ↕ SaleFlex.GATE / ERP / Payment / Campaign
+         ↕ SaleFlex.GATE / ERP / Payment / Campaign
 ```
 
 ## Project Structure
