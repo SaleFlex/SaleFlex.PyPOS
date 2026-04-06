@@ -54,11 +54,12 @@ SaleFlex.PyPOS follows a layered architecture pattern with clear separation of c
 - **Business Logic Layer** (`pos/service/`): Service classes (VatService, SaleService, PaymentService) for centralized business operations
 - **Peripherals Layer** (`pos/peripherals/`): OPOS-style device abstractions (cash drawer, receipt printer, line display, scanner, scale, customer display, remote order display). Current implementation is **log-only** (no device probing); see [docs/30-peripherals.md](docs/30-peripherals.md)
 - **Event Handling Layer** (`pos/manager/event/`): 10 specialized event handler classes for modular event processing (General, Sale, Payment, Closure, Config, Service, Report, Hardware, Warehouse, **Product**). Event handler methods use `_event` suffix naming convention (e.g., `_sales_form_event`, `_closure_event`, `_product_detail_event`) to distinguish them from properties
-- **Data Access Layer** (`data_layer/model/`): 98+ SQLAlchemy models with CRUD operations and auto-save functionality
+- **Integration Layer** (`pos/integration/`): External system connectivity with two tiers — **SaleFlex.GATE** (primary hub for transactions, closures, warehouse, campaigns, notifications) and **third-party direct connectors** (ERP, payment gateways, campaign modules). Uses offline outbox pattern (`SyncQueueItem`) and a background `SyncWorker` (QThread). All connectors are log-only stubs until configured; see [docs/40-integration-layer.md](docs/40-integration-layer.md)
+- **Data Access Layer** (`data_layer/model/`): 100+ SQLAlchemy models with CRUD operations and auto-save functionality
 - **UI Layer** (`user_interface/`): PySide6-based UI components with dynamic form rendering
 - **Caching Layer** (`pos/manager/cache_manager.py`): In-memory caching for reference and product data
 - **Logging Layer** (`core/logger.py`): Central logging module; all components use `get_logger(__name__)` with configuration from `settings.toml` `[logging]`
-- **Exception Layer** (`core/exceptions.py`): Typed exception hierarchy (`SaleFlexError` root) with domain subclasses for payment, hardware, tax, database, document, configuration, and authentication errors
+- **Exception Layer** (`core/exceptions.py`): Typed exception hierarchy (`SaleFlexError` root) with domain subclasses for payment, hardware, tax, database, document, configuration, authentication, GATE connectivity, and third-party integration errors
 
 ```
 ┌─────────────────────────────────────────────────┐
@@ -76,8 +77,14 @@ SaleFlex.PyPOS follows a layered architecture pattern with clear separation of c
 │         OPOS Peripherals (log-only stubs)       │
 │   CashDrawer · POSPrinter · LineDisplay         │
 ├─────────────────────────────────────────────────┤
+│    Integration Layer (pos/integration/)         │
+│  GateSyncService · GatePullService · SyncWorker │
+│  BaseERPConnector · BasePaymentGateway          │
+│  BaseCampaignConnector · IntegrationMixin       │
+├─────────────────────────────────────────────────┤
 │          Data Access Layer (ORM)                │
-│        98+ SQLAlchemy Models · CRUD             │
+│     100+ SQLAlchemy Models · CRUD               │
+│     SyncQueueItem · GateNotification            │
 ├─────────────────────────────────────────────────┤
 │       Cache Layer (pos_data / product_data)     │
 ├─────────────────────────────────────────────────┤
@@ -85,6 +92,7 @@ SaleFlex.PyPOS follows a layered architecture pattern with clear separation of c
 └─────────────────────────────────────────────────┘
          ↕ core/logger.py (all layers)
          ↕ core/exceptions.py (all layers)
+              ↕ SaleFlex.GATE / ERP / Payment / Campaign
 ```
 
 ## Project Structure
@@ -182,20 +190,40 @@ SaleFlex.PyPOS/
 │   │   ├── hooks.py        # SALE form line-display sync helpers
 │   │   └── ...             # scanner, scale, customer_display, remote_order_display stubs
 │   │
+│   ├── integration/        # External system connectivity
+│   │   ├── external_device.py      # Base stub (mirrors OposDevice)
+│   │   ├── hooks.py                # Event-to-integration glue
+│   │   ├── gate/                   # SaleFlex.GATE — primary hub
+│   │   │   ├── gate_client.py      # HTTP client
+│   │   │   ├── gate_auth.py        # JWT / API token management
+│   │   │   ├── gate_sync_service.py# Outbound push (transactions, closures, warehouse)
+│   │   │   ├── gate_pull_service.py# Inbound pull (products, campaigns, notifications)
+│   │   │   └── serializers/        # GATE API payload converters
+│   │   └── third_party/            # Direct third-party connectors
+│   │       ├── base_erp_connector.py
+│   │       ├── base_payment_gateway.py
+│   │       ├── base_campaign_connector.py
+│   │       └── adapters/           # Concrete adapter implementations
+│   │           ├── erp/
+│   │           ├── payment/
+│   │           └── campaign/
+│   │
 │   ├── service/            # Business logic services
 │   │   ├── vat_service.py     # VAT calculation service
 │   │   ├── sale_service.py    # Sale processing service
 │   │   └── payment_service.py # Payment processing service
 │   │
 │   └── manager/            # Application management
-│       ├── application.py  # Main application class
-│       ├── current_data.py # Current session data
+│       ├── application.py        # Main application class
+│       ├── current_data.py       # Current session data
 │       ├── current_status.py
 │       ├── cache_manager.py      # Data caching
 │       ├── closure_manager.py    # Closure management
 │       ├── document_manager.py   # Document lifecycle
+│       ├── integration_mixin.py  # Integration routing mixin
+│       ├── sync_worker.py        # QThread background sync worker
 │       ├── event_handler.py      # Event handling (combines all event handlers)
-│       └── event/          # Event handlers (9 specialized event handler classes)
+│       └── event/                # Event handlers (10 specialized event handler classes)
 │           ├── general.py        # GeneralEvent: Login, logout, exit, navigation
 │           ├── sale.py           # SaleEvent: Sales transaction and product events
 │           ├── payment.py        # PaymentEvent: Payment processing events
@@ -557,17 +585,22 @@ All models support:
   - [ ] Perishable Item Rotation (FIFO/LIFO)
 
 ### Integration & Connectivity
-- [ ] **SaleFlex.GATE Integration**:
-  - [ ] Data Synchronization Service
-  - [ ] ERP Connection Layer
+- [x] **Integration Layer Architecture** (`pos/integration/`): Two-tier design — SaleFlex.GATE as primary hub with third-party direct connectors (ERP, payment, campaign). `ExternalDevice` base stub, `hooks.py` glue, `IntegrationMixin` routing. See [docs/40-integration-layer.md](docs/40-integration-layer.md)
+- [x] **Offline Outbox Pattern** (`SyncQueueItem` model): Every event queued locally before transmission — zero data loss during connectivity gaps
+- [x] **Background Sync Worker** (`pos/manager/sync_worker.py`): PySide6 `QThread` worker for non-blocking periodic push/pull cycles
+- [x] **Integration Exception Hierarchy**: `GATEConnectionError`, `GATEAuthError`, `GATESyncError`, `GATENotificationError`, `ERPConnectionError`, `ThirdPartyPaymentError`, `ThirdPartyCampaignError`
+- [ ] **SaleFlex.GATE Integration** (stub → implementation):
+  - [ ] GateClient HTTP transport (requests, retry, timeout)
+  - [ ] GateAuth JWT token acquisition and renewal
+  - [ ] GateSyncService: push transactions, closures, warehouse movements
+  - [ ] GatePullService: pull product/price updates, campaign definitions
+  - [ ] Notification polling: terminal messages, cache-refresh signals
   - [ ] Multi-Store Management
-  - [ ] Cloud-Based Remote Access
-  - [ ] Real-time Analytics Dashboard
-- [ ] **Third-Party Integrations**:
-  - [ ] Accounting Software APIs
-  - [ ] E-commerce Platform Sync
-  - [ ] Warehouse Management Systems
-  - [ ] External Payment Gateways
+  - [ ] Cloud-Based Remote Access & Real-time Analytics
+- [ ] **Third-Party Direct Connectors** (stub → implementation):
+  - [ ] ERP adapters (SAP, Oracle, Logo, Netsis, custom)
+  - [ ] Payment gateway adapters (iyzico, PayTR, Stripe, Nets, custom)
+  - [ ] Campaign module adapters (custom)
 - [ ] **Offline/Online Mode** - Seamless switching between online and offline operations
 
 ### Security & Authentication
@@ -635,6 +668,7 @@ Comprehensive documentation is available in the `docs/` directory:
 | **[Startup Entry Point](docs/34-startup-entry-point.md)** | Working-dir fix, Python version guard, single-instance lock |
 | **[Troubleshooting](docs/35-troubleshooting.md)** | Common issues, database problems, closure and sale issues |
 | **[Support and Resources](docs/36-support.md)** | GitHub, issue tracker, donations, license |
+| **[Integration Layer](docs/40-integration-layer.md)** | GATE hub, third-party connectors, offline outbox, SyncWorker, notification system |
 
 ## Contributing
 

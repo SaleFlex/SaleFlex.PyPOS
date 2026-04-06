@@ -121,6 +121,10 @@ CLOSURE_RECEIPTS [BACK → CLOSURE]
 35. [Troubleshooting](docs/35-troubleshooting.md)
 36. [Support and Resources](docs/36-support.md)
 
+### Part 5 — Integration
+
+40. [Integration Layer](docs/40-integration-layer.md)
+
 ---
 
 ## Specific Feature Quick Links
@@ -156,6 +160,8 @@ CLOSURE_RECEIPTS [BACK → CLOSURE]
 **Event system:** [Event System](docs/24-event-system.md)
 
 **UI controls:** [UI Controls Catalog](docs/23-ui-controls.md)
+
+**GATE & external integrations:** [Integration Layer](docs/40-integration-layer.md)
 
 ---
 

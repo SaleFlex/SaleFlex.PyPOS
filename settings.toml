@@ -20,3 +20,56 @@ driver = ""
 user_name = ""
 password = ""
 database_name = "db.sqlite3"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SaleFlex.GATE — Primary integration hub
+# Set enabled = true and provide base_url / api_key / terminal_id to activate.
+# ─────────────────────────────────────────────────────────────────────────────
+[gate]
+enabled     = false
+base_url    = ""        # e.g. https://your-gate.example.com
+api_key     = ""        # API key issued by SaleFlex.GATE
+terminal_id = ""        # This terminal's identifier registered in GATE
+
+# Which services does GATE manage?
+# When true, the corresponding third_party.* connector is ignored.
+manages_transactions = true
+manages_closures     = true
+manages_warehouse    = true
+manages_campaign     = false
+manages_erp          = false
+manages_payment      = false
+
+# Sync behaviour
+sync_interval_minutes = 30   # How often SyncWorker flushes the outbox
+retry_attempts        = 3    # Max push retries before marking as "failed"
+timeout_seconds       = 10   # Per-request HTTP timeout
+
+# Real-time notification polling (terminal messages, cache-refresh signals)
+notification_enabled              = false
+notification_poll_interval_seconds = 60
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Third-party direct connectors
+# Each section is active only when the corresponding gate.manages_* = false.
+# ─────────────────────────────────────────────────────────────────────────────
+
+[third_party.erp]
+enabled         = false
+type            = ""    # "sap" | "oracle" | "logo" | "netsis" | "custom"
+base_url        = ""
+api_key         = ""
+timeout_seconds = 15
+
+[third_party.payment]
+enabled         = false
+type            = ""    # "iyzico" | "paytr" | "stripe" | "nets" | "custom"
+base_url        = ""
+api_key         = ""
+timeout_seconds = 30
+
+[third_party.campaign]
+enabled  = false
+type     = ""           # "custom"
+base_url = ""
+api_key  = ""

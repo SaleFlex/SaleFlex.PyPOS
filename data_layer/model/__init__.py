@@ -133,3 +133,7 @@ from data_layer.model.definition.loyalty_point_transaction import LoyaltyPointTr
 from data_layer.model.definition.customer_segment import CustomerSegment
 from data_layer.model.definition.customer_segment_member import CustomerSegmentMember
 
+# Integration Layer Models
+from data_layer.model.definition.sync_queue_item import SyncQueueItem
+from data_layer.model.definition.gate_notification import GateNotification
+

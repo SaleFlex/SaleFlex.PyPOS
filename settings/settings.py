@@ -41,6 +41,62 @@ class Settings:
             self.app = self.setting_data.get("app")
             self.database = self.setting_data.get("database")
             self.design_files_list = self.setting_data.get("static_files")
+            self.gate = self.setting_data.get("gate", {})
+            self.third_party = self.setting_data.get("third_party", {})
+
+    # ------------------------------------------------------------------
+    # Integration — SaleFlex.GATE
+    # ------------------------------------------------------------------
+
+    @property
+    def gate_enabled(self) -> bool:
+        """Return True when GATE integration is enabled in settings.toml."""
+        return bool(self.gate.get("enabled", False))
+
+    @property
+    def gate_base_url(self) -> str:
+        """Return the SaleFlex.GATE base URL."""
+        return self.gate.get("base_url", "")
+
+    @property
+    def gate_api_key(self) -> str:
+        """Return the GATE API key."""
+        return self.gate.get("api_key", "")
+
+    @property
+    def gate_terminal_id(self) -> str:
+        """Return this terminal's identifier as registered in GATE."""
+        return self.gate.get("terminal_id", "")
+
+    @property
+    def gate_sync_interval_seconds(self) -> int:
+        """Return the SyncWorker interval in seconds (converted from minutes)."""
+        minutes = self.gate.get("sync_interval_minutes", 30)
+        return int(minutes) * 60
+
+    @property
+    def gate_notification_enabled(self) -> bool:
+        """Return True when GATE notification polling is enabled."""
+        return bool(self.gate.get("notification_enabled", False))
+
+    @property
+    def gate_notification_poll_interval_seconds(self) -> int:
+        """Return the notification polling interval in seconds."""
+        return int(self.gate.get("notification_poll_interval_seconds", 60))
+
+    def gate_manages(self, service: str) -> bool:
+        """
+        Return True when GATE is configured to manage *service*.
+
+        Args:
+            service: One of "transactions", "closures", "warehouse",
+                     "campaign", "erp", "payment".
+        """
+        return bool(self.gate.get(f"manages_{service}", False))
+
+    # ------------------------------------------------------------------
+    # Integration — Database
+    # ------------------------------------------------------------------
 
     @property
     def db_engine(self):

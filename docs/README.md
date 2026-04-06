@@ -59,6 +59,14 @@ Complete user and developer guide for the SaleFlex.PyPOS point-of-sale applicati
 
 ---
 
+## Part 5 — Integration
+
+| # | Document | Summary |
+|---|----------|---------|
+| 40 | [Integration Layer](40-integration-layer.md) | SaleFlex.GATE hub, third-party ERP/payment/campaign connectors, offline outbox, SyncWorker, notification system |
+
+---
+
 ## Quick Reference
 
 | Topic | Document |
@@ -75,9 +83,10 @@ Complete user and developer guide for the SaleFlex.PyPOS point-of-sale applicati
 | Hardware devices | [Peripherals](30-peripherals.md) |
 | Startup guards | [Startup Entry Point](34-startup-entry-point.md) |
 | Common errors | [Troubleshooting](35-troubleshooting.md) |
+| GATE & external systems | [Integration Layer](40-integration-layer.md) |
 
 ---
 
-**Last Updated:** 2026-04-05
+**Last Updated:** 2026-04-06
 **Version:** 1.0.0b6
 **License:** MIT
