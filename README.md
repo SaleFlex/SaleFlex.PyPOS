@@ -361,6 +361,24 @@ Selecting "CLOSURE" opens the end-of-day closure screen:
 > - **RECEIPTS** — Opens the `CLOSURE_RECEIPTS` form listing every receipt (TransactionHead) that belongs to the selected closure. From this form a receipt can be selected and its **DETAIL** button opens the `CLOSURE_RECEIPT_DETAIL` form with full header fields and line items.  
 > All three sub-forms are DB-driven dynamic forms with a **BACK** button in the bottom-right corner to return to the previous screen.
 
+Clicking **DETAIL** on a selected closure opens the closure detail summary:
+
+![Closure Detail Form](static_files/images/sample_closure_detail_form.jpg)
+
+> Closure Detail form showing a key/value summary of the selected closure period: closure number, unique ID, date, start/end times, opened/closed by cashier, document counts, gross/net sales, total tax, discount, and tip amounts.
+
+Clicking **RECEIPTS** on a selected closure lists all receipts for that period:
+
+![Closure Receipts Form](static_files/images/sample_closure_receipts_form.jpg)
+
+> Closure Receipts form listing every receipt (TransactionHead) belonging to the selected closure, with columns for Receipt No, Date/Time, Type, Total, Payment, Change, and Status. Select a receipt and press **DETAIL** to drill into its line items.
+
+Clicking **DETAIL** on a selected receipt opens the full receipt breakdown:
+
+![Closure Receipt Details Form](static_files/images/sample_closure_receipt_details_form.jpg)
+
+> Closure Receipt Details form displaying the receipt header (receipt number, unique ID, date/time, document type, transaction type, status) alongside a line-item table showing product name, code, quantity, unit, unit price, discount, VAT%, total, and line status.
+
 Selecting "SETTINGS" opens the POS settings panel:
 
 ![Settings Form](static_files/images/sample_settings_form.jpg)
