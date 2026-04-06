@@ -55,6 +55,9 @@ Tap a row in the sale list → choose **DELETE** from the popup. The line is sof
 
 From the main menu, press **CLOSURE** (administrators only). The system aggregates all transactions for the current closure period, increments the closure sequence number by 1, and **resets the receipt number back to 1**. The next sale after closure starts at receipt 1 for the new closure period.
 
+- **Success**: A green info dialog ("End-of-Day Closure Complete") confirms the closure number that was closed.
+- **Failure**: A red error dialog explains the reason (e.g. not logged in, insufficient permissions, no transactions found, configuration error).
+
 ---
 
 ## Table of Contents

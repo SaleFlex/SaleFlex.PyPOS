@@ -232,12 +232,33 @@ class ClosureEvent:
             self.document_data = None
 
             logger.info("[CLOSURE] Closure completed successfully. Closure Number: %s", current_closure_number)
+            self._show_closure_success(current_closure_number)
             return True
 
         except Exception as e:
             logger.exception("[CLOSURE] Error during closure: %s", e)
             self._show_closure_error("Closure error", str(e))
             return False
+
+    def _show_closure_success(self, closure_number: int):
+        """Show success info dialog after a completed closure."""
+        try:
+            from PySide6.QtWidgets import QApplication
+            from user_interface.form.message_form import MessageForm
+            from data_layer.model import LabelValue
+
+            parent = QApplication.instance().activeWindow() if QApplication.instance() else None
+            line1 = "End-of-Day Closure Complete"
+            line2 = f"Closure #{closure_number:04d} has been completed successfully."
+            try:
+                label_values = LabelValue.filter_by(key="ClosureSuccess", culture_info="en-GB", is_deleted=False)
+                if label_values:
+                    line2 = label_values[0].value
+            except Exception:
+                pass
+            MessageForm.show_info(parent, line1, line2)
+        except Exception as e:
+            logger.warning("[CLOSURE] Could not show closure success message: %s", e)
 
     def _show_closure_error(self, title: str, message: str):
         """Show error dialog using MessageForm and optional LabelValue text."""
