@@ -27,7 +27,7 @@ python saleflex.py
    - Clicking a **PLU product button**, or
    - Typing a **barcode/product code** on the NumPad and pressing **ENTER**
 3. Accept payment by clicking a **denomination button** (e.g. "20 Â£") or entering a custom amount on the NumPad then pressing **CASH** or **CREDIT CARD**.
-4. The receipt is printed and the transaction closes automatically when fully paid.
+4. The receipt is printed and the transaction closes automatically when fully paid. The receipt lists every product line, the balance due (with item count), each payment, change (if any), and VAT — all sent line-by-line to `POSPrinter` and written to the application log.
 
 ### NumPad Modes (SALE screen)
 
@@ -55,6 +55,7 @@ Tap a row in the sale list → choose **DELETE** from the popup. The line is sof
 
 From the main menu, press **CLOSURE** (administrators only). The system aggregates all transactions for the current closure period, increments the closure sequence number by 1, and **resets the receipt number back to 1**. The next sale after closure starts at receipt 1 for the new closure period.
 
+- **Z-report printed**: The closure Z-report is sent line-by-line to `POSPrinter` (log-only) immediately after all records are committed. It includes: net/gross sales, cash balance, VAT breakdown, payment method totals, and transaction counts. See [Peripherals — Closure Z-report format](docs/30-peripherals.md#closure-z-report-format).
 - **Success**: A green info dialog ("End-of-Day Closure Complete") confirms the closure number that was closed.
 - **Failure**: A red error dialog explains the reason (e.g. not logged in, insufficient permissions, no transactions found, configuration error).
 
@@ -121,6 +122,8 @@ From the main menu, press **CLOSURE** (administrators only). The system aggregat
 
 **TextBox Enter key action:** [UI Controls — TextBox ENTER Key](docs/23-ui-controls.md#enter-key--form_control_function1)
 
+**Receipt printing:** [Peripherals — Receipt format](docs/30-peripherals.md#receipt-format)
+
 **Logging:** [Central Logging](docs/31-logging.md)
 
 **Startup guards:** [Startup Entry Point](docs/34-startup-entry-point.md)
@@ -135,6 +138,6 @@ From the main menu, press **CLOSURE** (administrators only). The system aggregat
 
 ---
 
-**Last Updated:** 2026-04-05
+**Last Updated:** 2026-04-06
 **Version:** 1.0.0b6
 **License:** MIT

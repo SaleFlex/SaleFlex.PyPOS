@@ -28,6 +28,7 @@ from collections import defaultdict
 
 from core.logger import get_logger
 from data_layer.engine import Engine
+from pos.peripherals import get_default_pos_printer
 
 logger = get_logger(__name__)
 
@@ -232,6 +233,10 @@ class ClosureEvent:
             self.document_data = None
 
             logger.info("[CLOSURE] Closure completed successfully. Closure Number: %s", current_closure_number)
+
+            # Print closure Z-report
+            self._print_closure_report(closure, totals, base_currency_id)
+
             self._show_closure_success(current_closure_number)
             return True
 
@@ -278,6 +283,53 @@ class ClosureEvent:
             MessageForm.show_error(parent, title, line2)
         except Exception as e:
             logger.warning("[CLOSURE] Could not show message form: %s", e)
+
+    def _print_closure_report(self, closure, totals: dict, base_currency_id) -> None:
+        """
+        Build the closure_data dict and send the Z-report to the printer.
+
+        Called after all closure DB records have been committed and sequences
+        have been updated, so every field is final.
+        """
+        try:
+            # Resolve currency code from product_data cache
+            currency_code = "GBP"
+            if self.product_data:
+                for cur in self.product_data.get("Currency", []):
+                    if cur.id == base_currency_id:
+                        currency_code = (
+                            getattr(cur, "sign", None)
+                            or getattr(cur, "currency_code", None)
+                            or "GBP"
+                        )
+                        break
+
+            cashier_name = ""
+            if self.cashier_data:
+                cashier_name = (
+                    getattr(self.cashier_data, "name", None)
+                    or getattr(self.cashier_data, "username", None)
+                    or ""
+                )
+
+            pos_name = ""
+            pos_serial = ""
+            if self.pos_settings:
+                pos_name = getattr(self.pos_settings, "name", None) or ""
+                pos_serial = getattr(self.pos_settings, "device_serial_number", None) or ""
+
+            closure_print_data = {
+                "closure": closure,
+                "totals": totals,
+                "currency_code": currency_code,
+                "cashier_name": cashier_name,
+                "pos_name": pos_name,
+                "pos_serial": pos_serial,
+            }
+            get_default_pos_printer().print_closure_document(closure_print_data)
+
+        except Exception as e:
+            logger.warning("[CLOSURE] Could not print closure report: %s", e)
 
     def _get_sequence_value(self, name: str) -> int | None:
         """Get value for a sequence by name from database."""

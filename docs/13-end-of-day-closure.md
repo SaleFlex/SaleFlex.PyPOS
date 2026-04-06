@@ -71,7 +71,13 @@ The **closure operation** is triggered when an authorized cashier presses the CL
    - This sets `CurrentData.closure` to the new open closure for the next period.  
    - **Important:** `create_empty_closure()` must always source the next closure number from `transaction_sequence.ClosureNumber`, not from `max(closure_number WHERE closure_date = today)`. The per-day approach resets to 1 at the start of each new calendar day, overwriting the global counter.
 
-11. **Show result message**  
+11. **Print closure Z-report**  
+   - `ClosureEvent._print_closure_report(closure, totals, base_currency_id)` is called after all DB records are committed and sequences updated.  
+   - It builds a `closure_data` dict (closure record, totals dict, currency code, cashier name, POS name and serial number) and calls `POSPrinter.print_closure_document(closure_data)`.  
+   - The printer logs each report line individually as `[POSPrinter] | <line>` (log-only stub; real ESC/POS driver can be wired later without changing the call site).  
+   - The Z-report (42-char wide) includes: closure metadata, net/gross sales, cancelled count, cash balance, VAT summary table, payment method totals, document type counts, and transaction summary. See [Peripherals — Closure Z-report format](30-peripherals.md#closure-z-report-format).
+
+12. **Show result message**  
    - On **success**: `MessageForm.show_info` (green dialog) is displayed with the title **"End-of-Day Closure Complete"** and a line confirming the closure number (e.g. `"Closure #0003 has been completed successfully."`). The message text can be overridden via the `LabelValue` row with `key = "ClosureSuccess"`.  
    - On **any error**: `MessageForm.show_error` (red dialog) is displayed with the relevant error title and description. Return `False`.  
    - On success: return `True`.
@@ -80,6 +86,7 @@ The **closure operation** is triggered when an authorized cashier presses the CL
 
 - **Event**: `EventName.CLOSURE` (CLOSURE button), handled in `pos/manager/event_handler.py`.  
 - **Handler**: `ClosureEvent._closure_event()` in `pos/manager/event/closure.py`.  
+- **Z-report printing**: `ClosureEvent._print_closure_report(closure, totals, base_currency_id)` — builds `closure_data` dict and calls `POSPrinter.print_closure_document`.  
 - **Success display**: `ClosureEvent._show_closure_success(closure_number)` — calls `MessageForm.show_info` with a green dialog. Message text is resolved from `LabelValue(key="ClosureSuccess")` when available.  
 - **Error display**: `ClosureEvent._show_closure_error(title, message)` — calls `MessageForm.show_error` with a red dialog.
 

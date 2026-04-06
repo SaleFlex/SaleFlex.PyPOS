@@ -101,7 +101,7 @@ Result: £100.00 cash payment recorded
 3. When all items are added, accept payment:
    - Click a **denomination button** (e.g. "20 £") for an exact amount.
    - Or type a custom amount on the NumPad then press **CASH** or **CREDIT CARD**.
-4. If the payment equals or exceeds the total, the receipt is printed and the document is closed automatically. Change is calculated and displayed.
+4. If the payment equals or exceeds the total, the receipt is printed and the document is closed automatically. Change is calculated and displayed. The printed receipt includes all product lines, balance due, payment amount, change, and VAT at the bottom.
 
 ---
 
@@ -144,7 +144,7 @@ Tapping any row in the sale list opens an **Item Actions** popup:
 | `OTHER_PAYMENT` | Any other method — capped at remaining |
 | `CHANGE_PAYMENT` | Record change given to the customer |
 
-When the total payment equals the document total (minus any change), the transaction is automatically completed, the receipt printed, and the cash drawer opened.
+When the total payment equals the document total (minus any change), the transaction is automatically completed, the receipt is printed (see [Peripherals — Receipt format](30-peripherals.md#receipt-format)), and the cash drawer is opened.
 
 ---
 
