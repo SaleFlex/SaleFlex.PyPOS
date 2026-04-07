@@ -45,6 +45,36 @@ class SaleEvent:
     refresh the display as needed.
     """
     
+    def _check_stock_for_sale(self, product, quantity: float, window=None) -> bool:
+        """
+        Validate that the product can be sold in the requested quantity.
+
+        Calls InventoryService.can_sell().  If the check fails and window is
+        provided, shows a red error MessageForm.  If the product allows
+        negative stock the check always passes.
+
+        Args:
+            product: Product ORM instance (from product_data cache)
+            quantity: Quantity the cashier wants to sell
+            window: Optional QWidget for displaying the error dialog
+
+        Returns:
+            bool: True if the sale is allowed, False if it must be blocked
+        """
+        try:
+            from pos.service.inventory_service import InventoryService
+            allowed, reason = InventoryService.can_sell(product, quantity)
+            if not allowed:
+                logger.warning("[STOCK_CHECK] %s", reason)
+                if window:
+                    from user_interface.form.message_form import MessageForm
+                    MessageForm.show_error(window, reason, "Insufficient Stock")
+                return False
+            return True
+        except Exception as exc:
+            logger.error("[STOCK_CHECK] Error during stock check: %s", exc)
+            return True  # Fail-open: don't block sale on unexpected errors
+
     def _ensure_document_open(self):
         """
         Ensure that document_data exists and is open (not closed).
@@ -571,7 +601,11 @@ class SaleEvent:
             # Determine quantity: pending_quantity (set by X button) takes priority over numpad
             quantity = self._get_and_reset_pending_quantity(current_window)
             logger.debug("[SALE_PLU_CODE] Using quantity: %s", quantity)
-            
+
+            # Stock availability check
+            if not self._check_stock_for_sale(product, quantity, current_window):
+                return False
+
             # Add product to sale list
             product_name = product.short_name if product.short_name else product.name
             
@@ -737,7 +771,11 @@ class SaleEvent:
             
             # Determine quantity: pending_quantity (set by X button) takes priority over numpad
             quantity = self._get_and_reset_pending_quantity(current_window)
-            
+
+            # Stock availability check
+            if not self._check_stock_for_sale(product, quantity, current_window):
+                return False
+
             # Add product to sale list
             product_name = product.short_name if product.short_name else product.name
             
@@ -1075,6 +1113,12 @@ class SaleEvent:
 
             # Determine quantity: pending_quantity takes priority
             quantity = self._get_and_reset_pending_quantity(window)
+
+            # Stock availability check
+            if not self._check_stock_for_sale(product, quantity, window):
+                if numpad:
+                    numpad.set_text("")
+                return False
 
             product_name = product.short_name if product.short_name else product.name
 

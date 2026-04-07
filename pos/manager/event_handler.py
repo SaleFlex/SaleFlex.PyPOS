@@ -305,6 +305,14 @@ class EventHandler(GeneralEvent, SaleEvent, PaymentEvent, ConfigurationEvent,
                 EventName.STOCK_COUNT.name: self._stock_count_event,
                 EventName.STOCK_MOVEMENT.name: self._stock_movement_event,
                 EventName.STOCK_INQUIRY.name: self._stock_inquiry_event,
+                # Stock sub-actions - From WarehouseEvent
+                EventName.STOCK_SEARCH.name: self._stock_search_event,
+                EventName.STOCK_DETAIL.name: self._stock_detail_event,
+                EventName.STOCK_IN_SEARCH.name: self._stock_in_search_event,
+                EventName.STOCK_IN_CONFIRM.name: self._stock_in_confirm_event,
+                EventName.STOCK_ADJUSTMENT_SEARCH.name: self._stock_adjustment_search_event,
+                EventName.STOCK_ADJUSTMENT_CONFIRM.name: self._stock_adjustment_confirm_event,
+                EventName.STOCK_MOVEMENT_SEARCH.name: self._stock_movement_search_event,
                 
                 # Warehouse Events - From WarehouseEvent
                 EventName.WAREHOUSE_RECEIPT.name: self._warehouse_receipt_event,

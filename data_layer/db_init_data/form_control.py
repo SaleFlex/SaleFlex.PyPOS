@@ -58,6 +58,10 @@ def _insert_form_controls(session: Session, cashier_id: str):
     closure_detail_form = session.query(Form).filter(Form.form_no == 10).first()
     closure_receipts_form = session.query(Form).filter(Form.form_no == 11).first()
     closure_receipt_detail_form = session.query(Form).filter(Form.form_no == 12).first()
+    stock_inquiry_form = session.query(Form).filter(Form.form_no == 13).first()
+    stock_in_form = session.query(Form).filter(Form.form_no == 14).first()
+    stock_adjustment_form = session.query(Form).filter(Form.form_no == 15).first()
+    stock_movement_form = session.query(Form).filter(Form.form_no == 16).first()
 
     if not login_form or not sale_form or not main_menu_form or not config_form or not cashier_form or not closure_form or not suspended_sales_market_form or not product_list_form:
         logger.warning("Forms not found. Cannot insert form controls.")
@@ -1206,7 +1210,7 @@ def _insert_form_controls(session: Session, cashier_id: str):
             form_control_function2=None,
             type_no=1,
             type="BUTTON",
-            width=400,
+            width=195,
             height=80,
             location_x=312,
             location_y=550,
@@ -1228,6 +1232,41 @@ def _insert_form_controls(session: Session, cashier_id: str):
             input_type="ALPHANUMERIC",
             text_image_relation=None,
             back_color="0x8B0000",
+            fore_color="0xFFFFFF",
+            keyboard_value=None,
+            fk_cashier_create_id=cashier_id,
+            fk_cashier_update_id=cashier_id
+        ),
+        FormControl(
+            fk_form_id=main_menu_form.id,
+            fk_parent_id=None,
+            name="GOTO_WAREHOUSE",
+            form_control_function1=EventName.STOCK_INQUIRY.value,
+            form_control_function2=None,
+            type_no=1,
+            type="BUTTON",
+            width=195,
+            height=80,
+            location_x=517,
+            location_y=550,
+            start_position=None,
+            caption1="WAREHOUSE",
+            caption2=None,
+            list_values=None,
+            dock=None,
+            alignment=None,
+            text_alignment="CENTER",
+            character_casing="UPPER",
+            font="Tahoma",
+            icon=None,
+            tool_tip="Open Warehouse / Inventory Management",
+            image=None,
+            image_selected=None,
+            font_auto_height=False,
+            font_size=14,
+            input_type="ALPHANUMERIC",
+            text_image_relation=None,
+            back_color="0x1A5276",
             fore_color="0xFFFFFF",
             keyboard_value=None,
             fk_cashier_create_id=cashier_id,
@@ -2674,7 +2713,7 @@ def _insert_form_controls(session: Session, cashier_id: str):
             fk_cashier_create_id=cashier_id,
             fk_cashier_update_id=cashier_id
         ),
-    ]
+    ]  # STOCK_INQUIRY_BTN removed: now accessed via WAREHOUSE button on main menu
 
     # Combine all controls
     all_controls = (
@@ -2694,6 +2733,7 @@ def _insert_form_controls(session: Session, cashier_id: str):
         closure_receipts_form_controls +
         closure_receipt_detail_form_controls
     )
+    # Note: inventory form controls are added after the first flush (see below)
     
     # Add all controls to session
     for control in all_controls:
@@ -2836,6 +2876,218 @@ def _insert_form_controls(session: Session, cashier_id: str):
         )
         session.add(close_btn)
         session.flush()
+
+    # ------------------------------------------------------------------ #
+    #  Inventory forms: STOCK_INQUIRY, STOCK_IN, STOCK_ADJUSTMENT,        #
+    #  STOCK_MOVEMENT  (form_no 13–16)                                    #
+    # ------------------------------------------------------------------ #
+
+    def _make_inventory_controls(form, confirm_event, confirm_caption, confirm_color,
+                                 grid_name, search_event, has_secondary_grid=False,
+                                 secondary_grid_name=None, show_qty=False, show_reason=False):
+        """Helper: generate controls list for an inventory form."""
+        controls = [
+            # Search textbox
+            FormControl(
+                fk_form_id=form.id, fk_parent_id=None,
+                name=ControlName.STOCK_SEARCH_TEXTBOX.value,
+                form_control_function1=EventName.NONE.value,
+                type_no=2, type="TEXTBOX",
+                width=820, height=50, location_x=10, location_y=10,
+                caption1="Search by product name or code...",
+                text_alignment="LEFT", character_casing="NORMAL",
+                font="Tahoma", font_auto_height=False, font_size=14,
+                input_type="ALPHANUMERIC",
+                back_color="0xFFFFFF", fore_color="0x000000",
+                fk_cashier_create_id=cashier_id, fk_cashier_update_id=cashier_id,
+            ),
+            # Search button
+            FormControl(
+                fk_form_id=form.id, fk_parent_id=None,
+                name="INV_SEARCH_BTN",
+                form_control_function1=search_event,
+                type_no=1, type="BUTTON",
+                width=170, height=50, location_x=840, location_y=10,
+                caption1="SEARCH",
+                text_alignment="CENTER", character_casing="UPPER",
+                font="Tahoma", font_auto_height=False, font_size=14,
+                input_type="ALPHANUMERIC",
+                back_color="0x228B22", fore_color="0xFFFFFF",
+                fk_cashier_create_id=cashier_id, fk_cashier_update_id=cashier_id,
+            ),
+        ]
+
+        # Main DataGrid
+        main_grid_height = 390 if (show_qty or has_secondary_grid) else 570
+        controls.append(FormControl(
+            fk_form_id=form.id, fk_parent_id=None,
+            name=grid_name,
+            form_control_function1=EventName.NONE.value,
+            type_no=9, type="DATAGRID",
+            width=1000, height=main_grid_height, location_x=10, location_y=75,
+            caption1="", text_alignment="CENTER", character_casing="NORMAL",
+            font="Tahoma", font_auto_height=False, font_size=11,
+            input_type="ALPHANUMERIC",
+            back_color="0xFFFFFF", fore_color="0x000000",
+            fk_cashier_create_id=cashier_id, fk_cashier_update_id=cashier_id,
+        ))
+
+        current_y = 75 + main_grid_height + 10  # y after main grid
+
+        # Optional secondary DataGrid
+        if has_secondary_grid and secondary_grid_name:
+            controls.append(FormControl(
+                fk_form_id=form.id, fk_parent_id=None,
+                name=secondary_grid_name,
+                form_control_function1=EventName.NONE.value,
+                type_no=9, type="DATAGRID",
+                width=1000, height=160, location_x=10, location_y=current_y,
+                caption1="", text_alignment="CENTER", character_casing="NORMAL",
+                font="Tahoma", font_auto_height=False, font_size=11,
+                input_type="ALPHANUMERIC",
+                back_color="0xF0F0F0", fore_color="0x000000",
+                fk_cashier_create_id=cashier_id, fk_cashier_update_id=cashier_id,
+            ))
+            current_y += 170
+
+        # Optional Quantity textbox
+        if show_qty:
+            controls.append(FormControl(
+                fk_form_id=form.id, fk_parent_id=None,
+                name=ControlName.STOCK_QUANTITY_TEXTBOX.value,
+                form_control_function1=EventName.NONE.value,
+                type_no=2, type="TEXTBOX",
+                width=220, height=50, location_x=10, location_y=current_y,
+                caption1="Quantity...",
+                text_alignment="LEFT", character_casing="NORMAL",
+                font="Tahoma", font_auto_height=False, font_size=14,
+                input_type="NUMERIC",
+                back_color="0xFFFFFF", fore_color="0x000000",
+                fk_cashier_create_id=cashier_id, fk_cashier_update_id=cashier_id,
+            ))
+
+        # Optional Reason textbox
+        if show_reason:
+            x_reason = 240 if show_qty else 10
+            w_reason = 760 if show_qty else 1000
+            controls.append(FormControl(
+                fk_form_id=form.id, fk_parent_id=None,
+                name=ControlName.STOCK_REASON_TEXTBOX.value,
+                form_control_function1=EventName.NONE.value,
+                type_no=2, type="TEXTBOX",
+                width=w_reason, height=50, location_x=x_reason, location_y=current_y,
+                caption1="Reason / note (optional)...",
+                text_alignment="LEFT", character_casing="NORMAL",
+                font="Tahoma", font_auto_height=False, font_size=14,
+                input_type="ALPHANUMERIC",
+                back_color="0xFFFFFF", fore_color="0x000000",
+                fk_cashier_create_id=cashier_id, fk_cashier_update_id=cashier_id,
+            ))
+
+        # BACK button
+        controls.append(FormControl(
+            fk_form_id=form.id, fk_parent_id=None,
+            name=ControlName.BACK.value,
+            form_control_function1=EventName.BACK.value,
+            type_no=1, type="BUTTON",
+            width=150, height=65, location_x=860, location_y=650,
+            caption1="BACK",
+            text_alignment="CENTER", character_casing="UPPER",
+            font="Tahoma", font_auto_height=False, font_size=14,
+            input_type="ALPHANUMERIC",
+            back_color="0x4682B4", fore_color="0xFFFFFF",
+            fk_cashier_create_id=cashier_id, fk_cashier_update_id=cashier_id,
+        ))
+
+        # Optional CONFIRM button
+        if confirm_event and confirm_caption:
+            controls.append(FormControl(
+                fk_form_id=form.id, fk_parent_id=None,
+                name="INV_CONFIRM_BTN",
+                form_control_function1=confirm_event,
+                type_no=1, type="BUTTON",
+                width=180, height=65, location_x=10, location_y=650,
+                caption1=confirm_caption,
+                text_alignment="CENTER", character_casing="UPPER",
+                font="Tahoma", font_auto_height=False, font_size=14,
+                input_type="ALPHANUMERIC",
+                back_color=confirm_color, fore_color="0xFFFFFF",
+                fk_cashier_create_id=cashier_id, fk_cashier_update_id=cashier_id,
+            ))
+
+        return controls
+
+    if stock_inquiry_form:
+        for ctrl in _make_inventory_controls(
+            form=stock_inquiry_form,
+            confirm_event=EventName.STOCK_DETAIL.value,
+            confirm_caption="DETAIL",
+            confirm_color="0x8B4513",
+            grid_name=ControlName.STOCK_INQUIRY_DATAGRID.value,
+            search_event=EventName.STOCK_SEARCH.value,
+            has_secondary_grid=True,
+            secondary_grid_name=ControlName.STOCK_DETAIL_DATAGRID.value,
+        ):
+            session.add(ctrl)
+
+        # Navigation buttons: STOCK IN / ADJUSTMENT / HISTORY
+        _nav_buttons = [
+            ("STOCK_IN_NAV_BTN",  "STOCK IN",   EventName.STOCK_IN.value,         205, "0x1E8449", "Go to Goods Receipt (Stock-In) form"),
+            ("STOCK_ADJ_NAV_BTN", "ADJUSTMENT", EventName.STOCK_ADJUSTMENT.value, 400, "0xB7950B", "Go to Manual Stock Adjustment form"),
+            ("STOCK_MOV_NAV_BTN", "HISTORY",    EventName.STOCK_MOVEMENT.value,   595, "0x1A7A7A", "Go to Stock Movement History form"),
+        ]
+        for btn_name, caption, event, loc_x, color, tip in _nav_buttons:
+            session.add(FormControl(
+                fk_form_id=stock_inquiry_form.id, fk_parent_id=None,
+                name=btn_name,
+                form_control_function1=event,
+                type_no=1, type="BUTTON",
+                width=180, height=65, location_x=loc_x, location_y=650,
+                caption1=caption,
+                text_alignment="CENTER", character_casing="UPPER",
+                font="Tahoma", font_auto_height=False, font_size=13,
+                input_type="ALPHANUMERIC",
+                back_color=color, fore_color="0xFFFFFF",
+                tool_tip=tip,
+                fk_cashier_create_id=cashier_id, fk_cashier_update_id=cashier_id,
+            ))
+
+    if stock_in_form:
+        for ctrl in _make_inventory_controls(
+            form=stock_in_form,
+            confirm_event=EventName.STOCK_IN_CONFIRM.value,
+            confirm_caption="RECEIVE",
+            confirm_color="0x1E8449",
+            grid_name=ControlName.STOCK_IN_PRODUCT_DATAGRID.value,
+            search_event=EventName.STOCK_IN_SEARCH.value,
+            show_qty=True,
+            show_reason=True,
+        ):
+            session.add(ctrl)
+
+    if stock_adjustment_form:
+        for ctrl in _make_inventory_controls(
+            form=stock_adjustment_form,
+            confirm_event=EventName.STOCK_ADJUSTMENT_CONFIRM.value,
+            confirm_caption="ADJUST",
+            confirm_color="0xB7950B",
+            grid_name=ControlName.STOCK_ADJUSTMENT_DATAGRID.value,
+            search_event=EventName.STOCK_ADJUSTMENT_SEARCH.value,
+            show_qty=True,
+            show_reason=True,
+        ):
+            session.add(ctrl)
+
+    if stock_movement_form:
+        for ctrl in _make_inventory_controls(
+            form=stock_movement_form,
+            confirm_event=None,
+            confirm_caption=None,
+            confirm_color=None,
+            grid_name=ControlName.STOCK_MOVEMENT_DATAGRID.value,
+            search_event=EventName.STOCK_MOVEMENT_SEARCH.value,
+        ):
+            session.add(ctrl)
 
     session.commit()
     logger.info("%s form controls inserted successfully", len(all_controls)) 

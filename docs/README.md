@@ -27,6 +27,7 @@ Complete user and developer guide for the SaleFlex.PyPOS point-of-sale applicati
 | 13 | [End-of-Day Closure](13-end-of-day-closure.md) | Authorization, aggregation flow, sequence management |
 | 14 | [Cashier Management](14-cashier-management.md) | Create/edit cashiers, role permissions, ADD NEW CASHIER |
 | 15 | [Product Management](15-product-management.md) | Product List search, Product Detail tabbed dialog |
+| 16 | [Inventory Management](16-inventory-management.md) | Stock levels, goods receipt, adjustments, movement history, negative stock policy |
 
 ---
 
@@ -75,6 +76,7 @@ Complete user and developer guide for the SaleFlex.PyPOS point-of-sale applicati
 | Processing a sale | [Sale Transactions](10-sale-transactions.md) |
 | End-of-day | [End-of-Day Closure](13-end-of-day-closure.md) |
 | Cashier accounts | [Cashier Management](14-cashier-management.md) |
+| Stock management | [Inventory Management](16-inventory-management.md) |
 | UI customization | [Dynamic Forms System](22-dynamic-forms-system.md) |
 | Database schema | [Database Models Overview](21-database-models.md) |
 | Event wiring | [Event System](24-event-system.md) |
@@ -87,6 +89,6 @@ Complete user and developer guide for the SaleFlex.PyPOS point-of-sale applicati
 
 ---
 
-**Last Updated:** 2026-04-06
+**Last Updated:** 2026-04-07
 **Version:** 1.0.0b6
 **License:** MIT

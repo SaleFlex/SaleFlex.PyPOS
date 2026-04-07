@@ -188,3 +188,13 @@ class ControlName(enum.Enum):
     PRODUCT_BARCODE_GRID = "PRODUCT_BARCODE_GRID"            # Grid listing product_barcode rows
     PRODUCT_ATTRIBUTE_GRID = "PRODUCT_ATTRIBUTE_GRID"        # Grid listing product_attribute rows
     PRODUCT_VARIANT_GRID = "PRODUCT_VARIANT_GRID"            # Grid listing product_variant rows
+
+    # Inventory / Warehouse Controls
+    STOCK_SEARCH_TEXTBOX = "STOCK_SEARCH_TEXTBOX"            # Textbox for product search in stock forms
+    STOCK_INQUIRY_DATAGRID = "STOCK_INQUIRY_DATAGRID"        # DataGrid: product list with stock levels
+    STOCK_DETAIL_DATAGRID = "STOCK_DETAIL_DATAGRID"          # DataGrid: per-location stock breakdown
+    STOCK_IN_PRODUCT_DATAGRID = "STOCK_IN_PRODUCT_DATAGRID" # DataGrid: product selection for goods receipt
+    STOCK_ADJUSTMENT_DATAGRID = "STOCK_ADJUSTMENT_DATAGRID" # DataGrid: product selection for adjustment
+    STOCK_MOVEMENT_DATAGRID = "STOCK_MOVEMENT_DATAGRID"     # DataGrid: movement history records
+    STOCK_QUANTITY_TEXTBOX = "STOCK_QUANTITY_TEXTBOX"        # Textbox: enter quantity for stock-in/adjustment
+    STOCK_REASON_TEXTBOX = "STOCK_REASON_TEXTBOX"            # Textbox: reason/notes for adjustment/receipt

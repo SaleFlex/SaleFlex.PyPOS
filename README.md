@@ -483,7 +483,7 @@ All models support:
 - [ ] **SPU/PLU Management** - Product and pricing management
 - [ ] **Customer Module** - Customer relationship management
 - [ ] **Printer Module** - Receipt and invoice printing
-- [ ] **Inventory Management** - Real-time stock tracking and control
+- [x] **Inventory Management** - Real-time stock tracking, goods receipt, manual adjustments, movement history, negative-stock control (SALES_FLOOR location)
 - [ ] **Tax & Discount Engine** - Advanced tax calculation and discount management
 
 ### Hardware Integration
@@ -537,13 +537,20 @@ All models support:
 - [ ] **Multi-Store Support** - Chain store management capabilities
 
 ### Warehouse & Inventory Management
+- [x] **Inventory Control (Phase 1)**:
+  - [x] Real-time Stock Tracking (SALES_FLOOR location)
+  - [x] Automatic stock deduction on sale completion
+  - [x] Negative-stock policy enforcement per product
+  - [x] Stock inquiry UI (per-product, per-location breakdown)
+  - [x] Goods receipt / stock-in form
+  - [x] Manual stock adjustment form
+  - [x] Stock movement history form
+  - [x] Low-stock alerts during sales
+  - [x] Stock restoration on sale cancellation / void
 - [ ] **Advanced Inventory Control**:
-  - [ ] Real-time Stock Tracking
-  - [ ] Multi-Location Inventory Management
-  - [ ] Stock Transfer Between Locations
-  - [ ] Automatic Reorder Points & Alerts
+  - [ ] Multi-Location Inventory Management (full transfer workflow)
+  - [ ] Automatic Reorder Points & Purchase Orders
 - [ ] **Warehouse Operations**:
-  - [ ] Goods Receiving & Put-away
   - [ ] Pick & Pack Operations
   - [ ] Cycle Counting & Physical Inventory
   - [ ] Batch & Serial Number Tracking

@@ -979,7 +979,52 @@ class DocumentManager:
                 tip.create()
             
             logger.info("[DEBUG] Completed document: %s", head_temp.transaction_unique_id)
-            
+
+            # ---- Inventory stock update ----
+            # Collect product lines from temp models before clearing document_data.
+            # Deduct stock for completed (non-cancelled) SALE transactions.
+            # Cancelled transactions: stock was never deducted, so no restore needed.
+            try:
+                from pos.service.inventory_service import InventoryService
+                from data_layer.model.definition.transaction_status import TransactionType
+
+                transaction_type = getattr(head_temp, "transaction_type", None)
+                is_sale = (transaction_type == TransactionType.SALE.value) or (transaction_type is None)
+
+                prod_lines = []
+                for pt in self.document_data.get("products", []):
+                    actual = pt.unwrap() if isinstance(pt, AutoSaveModel) else pt
+                    prod_lines.append(actual)
+
+                cashier_id = getattr(self, "cashier_data", None)
+                if cashier_id and hasattr(cashier_id, "id"):
+                    cashier_id = cashier_id.id
+
+                if not is_cancel and is_sale and prod_lines:
+                    InventoryService.deduct_stock_on_sale(
+                        transaction_head_id=head.id,
+                        products=prod_lines,
+                        cashier_id=cashier_id,
+                    )
+                    # Refresh product cache so PLU inquiry shows updated stock
+                    try:
+                        from data_layer.model.definition.product import Product as _Product
+                        self.refresh_product_data_model(_Product)
+                        from data_layer.model.definition.warehouse_product_stock import WarehouseProductStock as _WPS
+                        self.refresh_product_data_model(_WPS)
+                    except Exception:
+                        pass
+
+                elif is_cancel and is_sale and prod_lines:
+                    # For cancellations: restore stock only if products were already
+                    # committed to the permanent model (indicates a payment was reversed).
+                    # In the normal CANCEL flow (before payment) prod_lines exist in temp
+                    # but stock was never deducted, so we skip restoration here.
+                    pass
+
+            except Exception as _inv_err:
+                logger.error("[DEBUG] Inventory update error (non-fatal): %s", _inv_err)
+
             # Reset document_data
             self.document_data = None
             

@@ -78,6 +78,22 @@ CLOSURE → CLOSURE_RECEIPTS → CLOSURE_RECEIPT_DETAIL [BACK → CLOSURE_RECEIP
 CLOSURE_RECEIPTS [BACK → CLOSURE]
 ```
 
+### Inventory Management (Stock)
+
+From the **Product List** screen, press the **STOCK** button (dark-blue, bottom row) to enter the Inventory Management module.
+
+| Action | How |
+|---|---|
+| **View current stock** | Press STOCK → type product name/code → SEARCH |
+| **Breakdown by location** | Select a product → press DETAIL |
+| **Receive goods (stock-in)** | Press STOCK → navigate to STOCK IN → search → enter qty → RECEIVE |
+| **Adjust stock (stocktake)** | Press STOCK → navigate to ADJUST → search → enter new qty + reason → ADJUST |
+| **View movement history** | Press STOCK → navigate to HISTORY → search |
+
+**Negative stock:** If `is_allowed_negative_stock` is `FALSE` for a product and you attempt to sell more than available, the sale is blocked and a red error dialog is displayed.
+
+See [Inventory Management](docs/16-inventory-management.md) for full documentation.
+
 ---
 
 ## Table of Contents
@@ -99,6 +115,7 @@ CLOSURE_RECEIPTS [BACK → CLOSURE]
 13. [End-of-Day Closure](docs/13-end-of-day-closure.md)
 14. [Cashier Management](docs/14-cashier-management.md)
 15. [Product Management](docs/15-product-management.md)
+16. [Inventory Management](docs/16-inventory-management.md)
 
 ### Part 3 — Architecture (Developer)
 
@@ -155,6 +172,8 @@ CLOSURE_RECEIPTS [BACK → CLOSURE]
 
 **Product management:** [Product Management](docs/15-product-management.md)
 
+**Inventory & stock management:** [Inventory Management](docs/16-inventory-management.md)
+
 **Project architecture:** [Project Structure](docs/20-project-structure.md)
 
 **Event system:** [Event System](docs/24-event-system.md)
@@ -165,6 +184,6 @@ CLOSURE_RECEIPTS [BACK → CLOSURE]
 
 ---
 
-**Last Updated:** 2026-04-06
+**Last Updated:** 2026-04-07
 **Version:** 1.0.0b6
 **License:** MIT

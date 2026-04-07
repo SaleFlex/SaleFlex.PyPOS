@@ -203,6 +203,13 @@ class EventName(enum.Enum):
     STOCK_COUNT = "STOCK_COUNT"                    # Stock count
     STOCK_MOVEMENT = "STOCK_MOVEMENT"              # Stock movement
     STOCK_INQUIRY = "STOCK_INQUIRY"                # Stock inquiry
+    STOCK_SEARCH = "STOCK_SEARCH"                  # Search products within stock forms
+    STOCK_DETAIL = "STOCK_DETAIL"                  # Show per-location detail for selected product
+    STOCK_IN_SEARCH = "STOCK_IN_SEARCH"            # Search products on goods-receipt form
+    STOCK_IN_CONFIRM = "STOCK_IN_CONFIRM"          # Confirm goods receipt (stock-in)
+    STOCK_ADJUSTMENT_SEARCH = "STOCK_ADJUSTMENT_SEARCH"   # Search products on adjustment form
+    STOCK_ADJUSTMENT_CONFIRM = "STOCK_ADJUSTMENT_CONFIRM" # Confirm manual stock adjustment
+    STOCK_MOVEMENT_SEARCH = "STOCK_MOVEMENT_SEARCH"       # Search movement history
     WAREHOUSE_RECEIPT = "WAREHOUSE_RECEIPT"        # Warehouse receipt
     WAREHOUSE_ISSUE = "WAREHOUSE_ISSUE"            # Warehouse issue
     WAREHOUSE_TRANSFER = "WAREHOUSE_TRANSFER"      # Warehouse transfer

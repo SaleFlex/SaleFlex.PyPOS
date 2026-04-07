@@ -27,6 +27,8 @@ from data_layer.db_init_data.product_variant import _insert_product_variants
 from data_layer.db_init_data.product_attribute import _insert_product_attributes
 from data_layer.db_init_data.cashier_performance_target import _insert_cashier_performance_targets
 from data_layer.db_init_data.warehouse import _insert_warehouses
+from data_layer.db_init_data.warehouse_location import _insert_warehouse_locations
+from data_layer.db_init_data.warehouse_product_stock import _insert_warehouse_product_stock
 from data_layer.db_init_data.pos_virtual_keyboard import _insert_virtual_keyboard_settings, _insert_alternative_keyboard_themes
 from data_layer.db_init_data.pos_settings import _insert_pos_settings
 from data_layer.db_init_data.campaign import _insert_campaigns
@@ -65,6 +67,9 @@ def insert_initial_data(engine: Engine):
             # Insert warehouses
             _insert_warehouses(session, admin_cashier.id)
 
+            # Insert warehouse locations (depends on warehouses)
+            _insert_warehouse_locations(session, admin_cashier.id)
+
             # Insert currencies and get GBP currency for PosSettings
             gbp_currency = _insert_currencies(session)
             
@@ -97,6 +102,10 @@ def insert_initial_data(engine: Engine):
 
             # Insert sample product barcodes
             _insert_product_barcodes(session, admin_cashier.id)
+
+            # Insert initial stock levels in the SALES_FLOOR location
+            # (depends on products and warehouse locations being present)
+            _insert_warehouse_product_stock(session, admin_cashier.id)
 
             # Insert transaction discount types
             _insert_transaction_discount_types(session)

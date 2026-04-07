@@ -121,3 +121,7 @@ class FormName(enum.Enum):
     CLOSURE_DETAIL = 29          # Closure detail form (key/value summary of a selected closure).
     CLOSURE_RECEIPTS = 30        # Closure receipts list form (receipts belonging to a closure).
     CLOSURE_RECEIPT_DETAIL = 31  # Closure receipt detail form (key/value detail of a receipt).
+    STOCK_INQUIRY = 32           # Stock inquiry form — product stock levels across all locations.
+    STOCK_IN = 33                # Goods receipt (stock-in) form — receive items into SALES_FLOOR.
+    STOCK_ADJUSTMENT = 34        # Manual stock adjustment / cycle-count correction form.
+    STOCK_MOVEMENT = 35          # Stock movement history form — audit trail per product.
