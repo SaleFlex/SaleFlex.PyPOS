@@ -1,7 +1,7 @@
 """
 SaleFlex.PyPOS - Point of Sale Application
 
-Copyright (c) 2025 Ferhat Mousavi
+Copyright (c) 2025-2026 Ferhat Mousavi
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -125,3 +125,5 @@ class FormName(enum.Enum):
     STOCK_IN = 33                # Goods receipt (stock-in) form — receive items into SALES_FLOOR.
     STOCK_ADJUSTMENT = 34        # Manual stock adjustment / cycle-count correction form.
     STOCK_MOVEMENT = 35          # Stock movement history form — audit trail per product.
+    CUSTOMER_LIST = 36           # Customer list / search form.
+    CUSTOMER_DETAIL = 37         # Customer detail form (tab view: info + activity history).

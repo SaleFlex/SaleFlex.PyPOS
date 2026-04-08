@@ -1,7 +1,7 @@
 """
 SaleFlex.PyPOS - Point of Sale Application
 
-Copyright (c) 2025 Ferhat Mousavi
+Copyright (c) 2025-2026 Ferhat Mousavi
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -198,3 +198,9 @@ class ControlName(enum.Enum):
     STOCK_MOVEMENT_DATAGRID = "STOCK_MOVEMENT_DATAGRID"     # DataGrid: movement history records
     STOCK_QUANTITY_TEXTBOX = "STOCK_QUANTITY_TEXTBOX"        # Textbox: enter quantity for stock-in/adjustment
     STOCK_REASON_TEXTBOX = "STOCK_REASON_TEXTBOX"            # Textbox: reason/notes for adjustment/receipt
+
+    # Customer Management Controls
+    CUSTOMER_SEARCH_TEXTBOX = "CUSTOMER_SEARCH_TEXTBOX"      # Textbox for customer search query
+    CUSTOMER_LIST_DATAGRID = "CUSTOMER_LIST_DATAGRID"        # DataGrid displaying customer search results
+    CUSTOMER_DETAIL_TAB = "CUSTOMER_DETAIL_TAB"              # TABCONTROL on the customer detail form
+    CUSTOMER_ACTIVITY_GRID = "CUSTOMER_ACTIVITY_GRID"        # DataGrid listing customer transaction history

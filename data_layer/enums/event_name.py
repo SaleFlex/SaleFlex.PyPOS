@@ -222,3 +222,9 @@ class EventName(enum.Enum):
     PRODUCT_SEARCH = "PRODUCT_SEARCH"              # Execute product search from search textbox
     PRODUCT_DETAIL = "PRODUCT_DETAIL"              # Open product detail dialog for selected product
     PRODUCT_DETAIL_SAVE = "PRODUCT_DETAIL_SAVE"    # Save product info changes from product detail dialog
+
+    # Customer Management Events
+    CUSTOMER_LIST_FORM = "CUSTOMER_LIST_FORM"      # Navigate to customer list / search form
+    CUSTOMER_SEARCH = "CUSTOMER_SEARCH"            # Execute customer search from search textbox
+    CUSTOMER_DETAIL = "CUSTOMER_DETAIL"            # Open customer detail dialog for selected customer
+    CUSTOMER_DETAIL_SAVE = "CUSTOMER_DETAIL_SAVE"  # Save customer info changes from customer detail dialog

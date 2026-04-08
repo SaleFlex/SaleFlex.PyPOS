@@ -147,6 +147,10 @@ class CurrentData(DocumentManager, CacheManager, ClosureManager):
         # Set by _product_detail_event before opening the modal dialog.
         self.current_product_id = None
 
+        # Transient customer selection state used by the Customer Detail form.
+        # Set by _customer_detail_event before opening the modal dialog.
+        self.current_customer_id = None
+
         # Transient closure / receipt selection state used by closure sub-forms.
         # current_closure_id: UUID string of the closure selected in the CLOSURE datagrid.
         # current_receipt_id: UUID string of the receipt selected in the CLOSURE_RECEIPTS datagrid.

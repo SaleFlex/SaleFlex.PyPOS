@@ -1,3 +1,27 @@
+"""
+SaleFlex.PyPOS - Point of Sale Application
+
+Copyright (c) 2025-2026 Ferhat Mousavi
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+"""
+
 from data_layer.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -34,6 +58,7 @@ from data_layer.db_init_data.pos_settings import _insert_pos_settings
 from data_layer.db_init_data.campaign import _insert_campaigns
 from data_layer.db_init_data.loyalty import _insert_loyalty
 from data_layer.db_init_data.customer_segment import _insert_customer_segments
+from data_layer.db_init_data.customer import _insert_customers
 
 
 from core.logger import get_logger
@@ -145,7 +170,10 @@ def insert_initial_data(engine: Engine):
 
             # Insert customer segments
             _insert_customer_segments(session)
-            
+
+            # Insert Walk-in Customer placeholder and sample customers
+            _insert_customers(session)
+
             # Insert POS settings (must be after currencies for current_currency reference)
             _insert_pos_settings(session, admin_cashier.id, gbp_currency)
 

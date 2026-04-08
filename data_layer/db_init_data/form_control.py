@@ -62,6 +62,8 @@ def _insert_form_controls(session: Session, cashier_id: str):
     stock_in_form = session.query(Form).filter(Form.form_no == 14).first()
     stock_adjustment_form = session.query(Form).filter(Form.form_no == 15).first()
     stock_movement_form = session.query(Form).filter(Form.form_no == 16).first()
+    customer_list_form = session.query(Form).filter(Form.form_no == 17).first()
+    customer_detail_form = session.query(Form).filter(Form.form_no == 18).first()
 
     if not login_form or not sale_form or not main_menu_form or not config_form or not cashier_form or not closure_form or not suspended_sales_market_form or not product_list_form:
         logger.warning("Forms not found. Cannot insert form controls.")
@@ -1068,6 +1070,14 @@ def _insert_form_controls(session: Session, cashier_id: str):
     ]
     
     # Main Menu form controls
+    # Layout (1024x768): 7 main buttons centred at x=312 w=400, spacing=90px
+    # Row 1 SALES       y=70   h=80
+    # Row 2 CLOSURE     y=160  h=80
+    # Row 3 SETTINGS    y=250  h=80
+    # Row 4 CASHIER     y=340  h=80
+    # Row 5 PRODUCTS(half) + WAREHOUSE(half)  y=430  h=75
+    # Row 6 CUSTOMER    y=515  h=75
+    # LOGOUT bottom-right corner  y=630  h=99
     main_menu_form_controls = [
         FormControl(
             fk_form_id=main_menu_form.id,
@@ -1080,7 +1090,7 @@ def _insert_form_controls(session: Session, cashier_id: str):
             width=400,
             height=80,
             location_x=312,
-            location_y=150,
+            location_y=70,
             start_position=None,
             caption1="SALES",
             caption2=None,
@@ -1115,7 +1125,7 @@ def _insert_form_controls(session: Session, cashier_id: str):
             width=400,
             height=80,
             location_x=312,
-            location_y=250,
+            location_y=160,
             start_position=None,
             caption1="CLOSURE",
             caption2=None,
@@ -1150,7 +1160,7 @@ def _insert_form_controls(session: Session, cashier_id: str):
             width=400,
             height=80,
             location_x=312,
-            location_y=350,
+            location_y=250,
             start_position=None,
             caption1="SETTINGS",
             caption2=None,
@@ -1185,7 +1195,7 @@ def _insert_form_controls(session: Session, cashier_id: str):
             width=400,
             height=80,
             location_x=312,
-            location_y=450,
+            location_y=340,
             start_position=None,
             caption1="CASHIER MANAGEMENT",
             caption2=None,
@@ -1218,9 +1228,9 @@ def _insert_form_controls(session: Session, cashier_id: str):
             type_no=1,
             type="BUTTON",
             width=195,
-            height=80,
+            height=75,
             location_x=312,
-            location_y=550,
+            location_y=430,
             start_position=None,
             caption1="PRODUCTS",
             caption2=None,
@@ -1235,7 +1245,7 @@ def _insert_form_controls(session: Session, cashier_id: str):
             image=None,
             image_selected=None,
             font_auto_height=False,
-            font_size=16,
+            font_size=14,
             input_type="ALPHANUMERIC",
             text_image_relation=None,
             back_color="0x8B0000",
@@ -1253,9 +1263,9 @@ def _insert_form_controls(session: Session, cashier_id: str):
             type_no=1,
             type="BUTTON",
             width=195,
-            height=80,
+            height=75,
             location_x=517,
-            location_y=550,
+            location_y=430,
             start_position=None,
             caption1="WAREHOUSE",
             caption2=None,
@@ -1274,6 +1284,41 @@ def _insert_form_controls(session: Session, cashier_id: str):
             input_type="ALPHANUMERIC",
             text_image_relation=None,
             back_color="0x1A5276",
+            fore_color="0xFFFFFF",
+            keyboard_value=None,
+            fk_cashier_create_id=cashier_id,
+            fk_cashier_update_id=cashier_id
+        ),
+        FormControl(
+            fk_form_id=main_menu_form.id,
+            fk_parent_id=None,
+            name="GOTO_CUSTOMER",
+            form_control_function1=EventName.CUSTOMER_LIST_FORM.value,
+            form_control_function2=None,
+            type_no=1,
+            type="BUTTON",
+            width=400,
+            height=75,
+            location_x=312,
+            location_y=515,
+            start_position=None,
+            caption1="CUSTOMER",
+            caption2=None,
+            list_values=None,
+            dock=None,
+            alignment=None,
+            text_alignment="CENTER",
+            character_casing="UPPER",
+            font="Tahoma",
+            icon=None,
+            tool_tip="Open Customer Management",
+            image=None,
+            image_selected=None,
+            font_auto_height=False,
+            font_size=16,
+            input_type="ALPHANUMERIC",
+            text_image_relation=None,
+            back_color="0x7D3C98",
             fore_color="0xFFFFFF",
             keyboard_value=None,
             fk_cashier_create_id=cashier_id,
@@ -2722,6 +2767,193 @@ def _insert_form_controls(session: Session, cashier_id: str):
         ),
     ]  # STOCK_INQUIRY_BTN removed: now accessed via WAREHOUSE button on main menu
 
+    # ------------------------------------------------------------------ #
+    #  Customer List form controls  (form_no = 17)                       #
+    # ------------------------------------------------------------------ #
+    # Layout (1024 x 768):
+    #   y=10  : Search textbox  (x=10, w=820, h=50)
+    #   y=10  : Search button   (x=840, w=170, h=50)
+    #   y=75  : DataGrid        (x=10, w=1000, h=555)
+    #   y=650 : Back button     (x=860, w=150, h=65)
+    #   y=650 : Detail button   (x=10,  w=150, h=65)
+    customer_list_form_controls = [
+        FormControl(
+            fk_form_id=customer_list_form.id,
+            fk_parent_id=None,
+            name=ControlName.CUSTOMER_SEARCH_TEXTBOX.value,
+            form_control_function1=EventName.NONE.value,
+            form_control_function2=None,
+            type_no=2,
+            type="TEXTBOX",
+            width=820,
+            height=50,
+            location_x=10,
+            location_y=10,
+            start_position=None,
+            caption1="Search by name, phone or e-mail...",
+            caption2=None,
+            list_values=None,
+            dock=None,
+            alignment=None,
+            text_alignment="LEFT",
+            character_casing="NORMAL",
+            font="Tahoma",
+            icon=None,
+            tool_tip="Type customer name, phone number or e-mail to search",
+            image=None,
+            image_selected=None,
+            font_auto_height=False,
+            font_size=14,
+            input_type="ALPHANUMERIC",
+            text_image_relation=None,
+            back_color="0xFFFFFF",
+            fore_color="0x000000",
+            keyboard_value=None,
+            fk_cashier_create_id=cashier_id,
+            fk_cashier_update_id=cashier_id
+        ),
+        FormControl(
+            fk_form_id=customer_list_form.id,
+            fk_parent_id=None,
+            name="CUSTOMER_SEARCH_BTN",
+            form_control_function1=EventName.CUSTOMER_SEARCH.value,
+            form_control_function2=None,
+            type_no=1,
+            type="BUTTON",
+            width=170,
+            height=50,
+            location_x=840,
+            location_y=10,
+            start_position=None,
+            caption1="SEARCH",
+            caption2=None,
+            list_values=None,
+            dock=None,
+            alignment=None,
+            text_alignment="CENTER",
+            character_casing="UPPER",
+            font="Tahoma",
+            icon=None,
+            tool_tip="Search customers",
+            image=None,
+            image_selected=None,
+            font_auto_height=False,
+            font_size=14,
+            input_type="ALPHANUMERIC",
+            text_image_relation=None,
+            back_color="0x228B22",
+            fore_color="0xFFFFFF",
+            keyboard_value=None,
+            fk_cashier_create_id=cashier_id,
+            fk_cashier_update_id=cashier_id
+        ),
+        FormControl(
+            fk_form_id=customer_list_form.id,
+            fk_parent_id=None,
+            name=ControlName.CUSTOMER_LIST_DATAGRID.value,
+            form_control_function1=EventName.NONE.value,
+            form_control_function2=None,
+            type_no=9,
+            type="DATAGRID",
+            width=1000,
+            height=555,
+            location_x=10,
+            location_y=75,
+            start_position=None,
+            caption1="Customer List",
+            caption2=None,
+            list_values=None,
+            dock=None,
+            alignment=None,
+            text_alignment="CENTER",
+            character_casing="NORMAL",
+            font="Tahoma",
+            icon=None,
+            tool_tip="Customer search results",
+            image=None,
+            image_selected=None,
+            font_auto_height=False,
+            font_size=11,
+            input_type="ALPHANUMERIC",
+            text_image_relation=None,
+            back_color="0xFFFFFF",
+            fore_color="0x000000",
+            keyboard_value=None,
+            fk_cashier_create_id=cashier_id,
+            fk_cashier_update_id=cashier_id
+        ),
+        FormControl(
+            fk_form_id=customer_list_form.id,
+            fk_parent_id=None,
+            name="CUSTOMER_DETAIL_BTN",
+            form_control_function1=EventName.CUSTOMER_DETAIL.value,
+            form_control_function2=None,
+            type_no=1,
+            type="BUTTON",
+            width=150,
+            height=65,
+            location_x=10,
+            location_y=650,
+            start_position=None,
+            caption1="DETAIL",
+            caption2=None,
+            list_values=None,
+            dock=None,
+            alignment=None,
+            text_alignment="CENTER",
+            character_casing="UPPER",
+            font="Tahoma",
+            icon=None,
+            tool_tip="View and edit selected customer",
+            image=None,
+            image_selected=None,
+            font_auto_height=False,
+            font_size=14,
+            input_type="ALPHANUMERIC",
+            text_image_relation=None,
+            back_color="0x7D3C98",
+            fore_color="0xFFFFFF",
+            keyboard_value=None,
+            fk_cashier_create_id=cashier_id,
+            fk_cashier_update_id=cashier_id
+        ),
+        FormControl(
+            fk_form_id=customer_list_form.id,
+            fk_parent_id=None,
+            name=ControlName.BACK.value,
+            form_control_function1=EventName.BACK.value,
+            form_control_function2=None,
+            type_no=1,
+            type="BUTTON",
+            width=150,
+            height=65,
+            location_x=860,
+            location_y=650,
+            start_position=None,
+            caption1="BACK",
+            caption2=None,
+            list_values=None,
+            dock=None,
+            alignment=None,
+            text_alignment="CENTER",
+            character_casing="UPPER",
+            font="Tahoma",
+            icon=None,
+            tool_tip="Return to main menu",
+            image=None,
+            image_selected=None,
+            font_auto_height=False,
+            font_size=14,
+            input_type="ALPHANUMERIC",
+            text_image_relation=None,
+            back_color="0x4682B4",
+            fore_color="0xFFFFFF",
+            keyboard_value=None,
+            fk_cashier_create_id=cashier_id,
+            fk_cashier_update_id=cashier_id
+        ),
+    ]
+
     # Combine all controls
     all_controls = (
         login_form_controls + 
@@ -2736,6 +2968,7 @@ def _insert_form_controls(session: Session, cashier_id: str):
         closure_form_controls +
         suspended_sales_market_controls +
         product_list_form_controls +
+        customer_list_form_controls +
         closure_detail_form_controls +
         closure_receipts_form_controls +
         closure_receipt_detail_form_controls
@@ -3235,6 +3468,237 @@ def _insert_form_controls(session: Session, cashier_id: str):
             search_event=EventName.STOCK_MOVEMENT_SEARCH.value,
         ):
             session.add(ctrl)
+
+    # ------------------------------------------------------------------ #
+    # CUSTOMER_DETAIL form: TABCONTROL + FormControlTab pages             #
+    # Tab 0 (Customer Info):    PANEL with label/textbox pairs (editable) #
+    # Tab 1 (Activity History): DATAGRID with transaction history         #
+    # SAVE + BACK buttons at bottom (outside tabs)                        #
+    # ------------------------------------------------------------------ #
+    if customer_detail_form:
+        cd_tab_control = FormControl(
+            fk_form_id=customer_detail_form.id,
+            fk_parent_id=None,
+            name=ControlName.CUSTOMER_DETAIL_TAB.value,
+            type_no=1,
+            type="TABCONTROL",
+            width=1004,
+            height=694,
+            location_x=10,
+            location_y=10,
+            back_color="0x1B2631",
+            fore_color="0xECF0F1",
+            font_size=13,
+            is_visible=True,
+            fk_cashier_create_id=cashier_id,
+            fk_cashier_update_id=cashier_id,
+        )
+        session.add(cd_tab_control)
+        session.flush()
+
+        _cd_tab_defs = [
+            (0, "Customer Info",      "Personal details and contact information"),
+            (1, "Activity History",   "Transaction history for this customer"),
+        ]
+        cd_tab_records = []
+        for tab_index, tab_title, tab_tooltip in _cd_tab_defs:
+            tab_rec = FormControlTab(
+                fk_form_control_id=cd_tab_control.id,
+                tab_index=tab_index,
+                tab_title=tab_title,
+                tab_tooltip=tab_tooltip,
+                back_color="0x1B2631",
+                fore_color="0xECF0F1",
+                is_visible=True,
+                fk_cashier_create_id=cashier_id,
+                fk_cashier_update_id=cashier_id,
+            )
+            session.add(tab_rec)
+            cd_tab_records.append(tab_rec)
+        session.flush()
+
+        # Tab 0 – PANEL named "CUSTOMER" maps to the Customer model
+        customer_panel = FormControl(
+            fk_form_id=customer_detail_form.id,
+            fk_parent_id=cd_tab_control.id,
+            fk_tab_id=cd_tab_records[0].id,
+            name="CUSTOMER",
+            type_no=10,
+            type="PANEL",
+            width=980,
+            height=500,
+            location_x=0,
+            location_y=0,
+            back_color="0x1B2631",
+            fore_color="0xECF0F1",
+            font_size=12,
+            tool_tip="Customer information panel",
+            is_visible=True,
+            fk_cashier_create_id=cashier_id,
+            fk_cashier_update_id=cashier_id,
+        )
+        session.add(customer_panel)
+        session.flush()
+
+        # Field definitions: (label_text, field_name, input_type)
+        customer_info_fields = [
+            ("First Name",    "name",           "ALPHANUMERIC"),
+            ("Last Name",     "last_name",      "ALPHANUMERIC"),
+            ("Phone",         "phone_number",   "ALPHANUMERIC"),
+            ("E-mail",        "email_address",  "ALPHANUMERIC"),
+            ("Address 1",     "address_line_1", "ALPHANUMERIC"),
+            ("Address 2",     "address_line_2", "ALPHANUMERIC"),
+            ("City / Area",   "address_line_3", "ALPHANUMERIC"),
+            ("Post Code",     "zip_code",       "ALPHANUMERIC"),
+            ("Description",   "description",    "ALPHANUMERIC"),
+        ]
+
+        _cd_label_width  = 200
+        _cd_field_width  = 560
+        _cd_ctrl_height  = 40
+        _cd_spacing      = 8
+        _cd_row_height   = _cd_ctrl_height + _cd_spacing
+        _cd_start_y      = 15
+
+        cd_panel_controls = []
+        for i, (lbl_text, field_name, input_type) in enumerate(customer_info_fields):
+            y_pos = _cd_start_y + (i * _cd_row_height)
+
+            label_ctrl = FormControl(
+                fk_form_id=customer_detail_form.id,
+                fk_parent_id=customer_panel.id,
+                parent_name="CUSTOMER",
+                name=f"LBL_{field_name.upper()}",
+                form_control_function1=EventName.NONE.value,
+                form_control_function2=None,
+                type_no=8,
+                type="LABEL",
+                width=_cd_label_width,
+                height=_cd_ctrl_height,
+                location_x=10,
+                location_y=y_pos,
+                caption1=lbl_text + ":",
+                text_alignment="RIGHT",
+                character_casing="NORMAL",
+                font="Tahoma",
+                font_auto_height=False,
+                font_size=12,
+                back_color=None,
+                fore_color="0xECF0F1",
+                is_visible=True,
+                fk_cashier_create_id=cashier_id,
+                fk_cashier_update_id=cashier_id,
+            )
+            cd_panel_controls.append(label_ctrl)
+
+            field_ctrl = FormControl(
+                fk_form_id=customer_detail_form.id,
+                fk_parent_id=customer_panel.id,
+                parent_name="CUSTOMER",
+                name=field_name.upper(),
+                form_control_function1=EventName.NONE.value,
+                form_control_function2=None,
+                type_no=2,
+                type="TEXTBOX",
+                width=_cd_field_width,
+                height=_cd_ctrl_height,
+                location_x=_cd_label_width + 20,
+                location_y=y_pos,
+                caption1="",
+                text_alignment="LEFT",
+                character_casing="NORMAL",
+                font="Tahoma",
+                font_auto_height=False,
+                font_size=12,
+                input_type=input_type,
+                tool_tip=f"Enter {lbl_text.lower()}",
+                back_color="0xFFFFFF",
+                fore_color="0x000000",
+                is_visible=True,
+                fk_cashier_create_id=cashier_id,
+                fk_cashier_update_id=cashier_id,
+            )
+            cd_panel_controls.append(field_ctrl)
+
+        for ctrl in cd_panel_controls:
+            session.add(ctrl)
+
+        # Tab 1 – DATAGRID for activity / transaction history
+        activity_grid = FormControl(
+            fk_form_id=customer_detail_form.id,
+            fk_parent_id=cd_tab_control.id,
+            fk_tab_id=cd_tab_records[1].id,
+            name=ControlName.CUSTOMER_ACTIVITY_GRID.value,
+            type_no=1,
+            type="DATAGRID",
+            width=1002,
+            height=647,
+            location_x=1,
+            location_y=1,
+            back_color="0x1B2631",
+            fore_color="0xECF0F1",
+            font_size=11,
+            tool_tip="Transaction history for this customer",
+            is_visible=True,
+            fk_cashier_create_id=cashier_id,
+            fk_cashier_update_id=cashier_id,
+        )
+        session.add(activity_grid)
+
+        # SAVE button
+        cd_save_btn = FormControl(
+            fk_form_id=customer_detail_form.id,
+            fk_parent_id=None,
+            name="SAVE_CUSTOMER",
+            form_control_function1=EventName.CUSTOMER_DETAIL_SAVE.value,
+            type_no=1,
+            type="BUTTON",
+            width=150,
+            height=48,
+            location_x=680,
+            location_y=716,
+            caption1="SAVE",
+            text_alignment="CENTER",
+            character_casing="UPPER",
+            font="Tahoma",
+            font_auto_height=False,
+            font_size=14,
+            tool_tip="Save customer changes",
+            back_color="0x228B22",
+            fore_color="0xFFFFFF",
+            is_visible=True,
+            fk_cashier_create_id=cashier_id,
+            fk_cashier_update_id=cashier_id,
+        )
+        session.add(cd_save_btn)
+
+        # BACK / CLOSE button
+        cd_back_btn = FormControl(
+            fk_form_id=customer_detail_form.id,
+            fk_parent_id=None,
+            name="BACK_CUSTOMER",
+            form_control_function1="CLOSE_FORM",
+            type_no=1,
+            type="BUTTON",
+            width=150,
+            height=48,
+            location_x=840,
+            location_y=716,
+            caption1="BACK",
+            text_alignment="CENTER",
+            character_casing="UPPER",
+            font="Tahoma",
+            font_auto_height=False,
+            font_size=14,
+            tool_tip="Close this dialog",
+            back_color="0x4682B4",
+            fore_color="0xFFFFFF",
+            is_visible=True,
+            fk_cashier_create_id=cashier_id,
+            fk_cashier_update_id=cashier_id,
+        )
+        session.add(cd_back_btn)
+        session.flush()
 
     session.commit()
     logger.info("%s form controls inserted successfully", len(all_controls)) 

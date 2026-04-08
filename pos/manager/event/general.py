@@ -1160,20 +1160,15 @@ class GeneralEvent:
 
     def _customer_form_event(self):
         """
-        Handle customer management operations.
-        
-        Access customer selection, information entry, or lookup interface.
-        
+        Handle customer management operations (legacy entry point).
+
+        Delegates to ``_customer_list_form_event`` which navigates to the
+        fully DB-driven Customer List / search form.
+
         Returns:
             bool: True if operation successful, False otherwise
         """
-        if self.login_succeed:
-            self.current_form_type = FormName.CUSTOMER
-            self.interface.redraw(form_name=FormName.CUSTOMER.name)
-            return True
-        else:
-            self._logout_event()
-            return False
+        return self._customer_list_form_event()
     
     # ==================== DYNAMIC FORM NAVIGATION ====================
     

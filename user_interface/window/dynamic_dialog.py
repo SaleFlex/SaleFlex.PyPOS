@@ -1062,6 +1062,18 @@ class DynamicDialog(QDialog):
                             model_instance = _Product.get_by_id(product_id)
                     except Exception:
                         pass
+                if not model_instance and model_class_name == "Customer":
+                    # Load from current_customer_id for the CUSTOMER panel in CUSTOMER_DETAIL
+                    try:
+                        from uuid import UUID as _UUID
+                        from data_layer.model.definition.customer import Customer as _Customer
+                        customer_id = getattr(self.app, 'current_customer_id', None)
+                        if customer_id:
+                            if isinstance(customer_id, str):
+                                customer_id = _UUID(customer_id)
+                            model_instance = _Customer.get_by_id(customer_id)
+                    except Exception:
+                        pass
                 if not model_instance:
                     try:
                         import data_layer.model.definition as model_module
@@ -1133,6 +1145,17 @@ class DynamicDialog(QDialog):
                         if isinstance(product_id, str):
                             product_id = _UUID(product_id)
                         model_instance = _Product.get_by_id(product_id)
+                except Exception:
+                    pass
+            if not model_instance and model_class_name == "Customer":
+                try:
+                    from uuid import UUID as _UUID
+                    from data_layer.model.definition.customer import Customer as _Customer
+                    customer_id = getattr(self.app, 'current_customer_id', None)
+                    if customer_id:
+                        if isinstance(customer_id, str):
+                            customer_id = _UUID(customer_id)
+                        model_instance = _Customer.get_by_id(customer_id)
                 except Exception:
                     pass
             if not model_instance:

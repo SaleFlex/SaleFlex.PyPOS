@@ -24,7 +24,7 @@ SaleFlex.PyPOS POS system is designed to streamline the sales process and improv
 - **Multi-Payment Processing**: Accept cash, credit cards, debit cards, and mobile payments
 - **Receipt & Invoice Generation**: Automated transaction documentation with ESC/P printer support
 - **Inventory Management**: Real-time stock tracking with low-stock alerts
-- **Customer Management**: Store customer information, preferences, and purchase history
+- **Customer Management**: Store customer information, preferences, and purchase history. Fully operational Customer List search, Customer Detail view/edit, and Activity History via DB-driven dynamic forms. Walk-in Customer (`is_walkin = True`) placeholder automatically receives all unassigned sale transactions
 - **Analytics & Reporting**: Comprehensive sales, inventory, and customer behavior analytics
 - **System Integration**: Connect with accounting software, warehouse management, and ERP systems
 - **Returns & Exchanges**: Handle product returns and exchanges efficiently
@@ -502,10 +502,10 @@ All models support:
 - [x] **Document Management System** - Transaction lifecycle management with temp/permanent models, pending documents, and restaurant mode support
 - [x] **Service Layer Architecture** - Business logic services (VatService, SaleService, PaymentService) for centralized calculations and operations
 - [x] **Payment Processing System** - Multi-payment method processing with button name parsing, change calculation, and automatic document completion
-- [x] **Event Handler System** - Comprehensive event handling with 9 specialized event handler classes (GeneralEvent, SaleEvent, PaymentEvent, ClosureEvent, ConfigurationEvent, ServiceEvent, ReportEvent, HardwareEvent, WarehouseEvent) for modular and maintainable code organization. All event handler methods use `_event` suffix (e.g., `_sales_form_event`, `_closure_event`) to avoid conflicts with properties
+- [x] **Event Handler System** - Comprehensive event handling with 10 specialized event handler classes (GeneralEvent, SaleEvent, PaymentEvent, ClosureEvent, ConfigurationEvent, ServiceEvent, ReportEvent, HardwareEvent, WarehouseEvent, CustomerEvent) for modular and maintainable code organization. All event handler methods use `_event` suffix (e.g., `_sales_form_event`, `_closure_event`) to avoid conflicts with properties
 - [x] **Auto-Save System** - Automatic database persistence using descriptor pattern and wrapper classes (AutoSaveModel, AutoSaveDict, AutoSaveDescriptor) for seamless data integrity
 - [ ] **SPU/PLU Management** - Product and pricing management
-- [ ] **Customer Module** - Customer relationship management
+- [x] **Customer Module** - Customer list search, detail view/edit, and activity history via DB-driven dynamic forms. Walk-in Customer placeholder automatically receives all unassigned transactions
 - [ ] **Printer Module** - Receipt and invoice printing
 - [x] **Inventory Management** - Real-time stock tracking, goods receipt, manual adjustments, movement history, negative-stock control (SALES_FLOOR location)
 - [ ] **Tax & Discount Engine** - Advanced tax calculation and discount management

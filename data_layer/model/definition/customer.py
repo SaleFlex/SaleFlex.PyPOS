@@ -40,7 +40,8 @@ class Customer(Model, CRUD, SoftDeleteMixin):
                  email_address=None, phone_number=None, zip_code=None, description=None,
                  date_of_birth=None, gender=None, national_id=None, tax_id=None,
                  registration_source=None, marketing_consent=False, sms_consent=False,
-                 email_consent=False, preferences_json=None):
+                 email_consent=False, preferences_json=None, is_walkin=False,
+                 is_active=True, is_administrator=False):
         Model.__init__(self)
         CRUD.__init__(self)
 
@@ -62,6 +63,9 @@ class Customer(Model, CRUD, SoftDeleteMixin):
         self.sms_consent = sms_consent
         self.email_consent = email_consent
         self.preferences_json = preferences_json
+        self.is_walkin = is_walkin
+        self.is_active = is_active
+        self.is_administrator = is_administrator
 
     __tablename__ = "customer"
 
@@ -105,6 +109,7 @@ class Customer(Model, CRUD, SoftDeleteMixin):
     # Status flags
     is_administrator = Column(Boolean(False), default=False)
     is_active = Column(Boolean(False), default=False)
+    is_walkin = Column(Boolean(False), default=False)  # Walk-in customer: receives all unassigned transactions
     
     # Timestamps
     created_at = Column(DateTime, server_default=func.now())

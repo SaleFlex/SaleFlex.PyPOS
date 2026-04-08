@@ -33,7 +33,8 @@ from pos.manager.event import (
     HardwareEvent,
     WarehouseEvent,
     ClosureEvent,
-    ProductEvent
+    ProductEvent,
+    CustomerEvent
 )
 
 from core.logger import get_logger
@@ -43,7 +44,7 @@ logger = get_logger(__name__)
 
 class EventHandler(GeneralEvent, SaleEvent, PaymentEvent, ConfigurationEvent,
                    ServiceEvent, ReportEvent, HardwareEvent, WarehouseEvent,
-                   ClosureEvent, ProductEvent):
+                   ClosureEvent, ProductEvent, CustomerEvent):
     """
     Central Event Processing Manager for SaleFlex Point of Sale System.
     
@@ -169,8 +170,12 @@ class EventHandler(GeneralEvent, SaleEvent, PaymentEvent, ConfigurationEvent,
                 EventName.CASHIER.name: self._cashier_form_event,
                 EventName.SELECT_CASHIER.name: self._select_cashier_event,
                 EventName.ADD_NEW_CASHIER.name: self._add_new_cashier_event,
-                EventName.CUSTOMER_FORM.name: self._customer_form_event,
-                EventName.CUSTOMER.name: self._customer_form_event,
+                EventName.CUSTOMER_FORM.name: self._customer_list_form_event,
+                EventName.CUSTOMER.name: self._customer_list_form_event,
+                EventName.CUSTOMER_LIST_FORM.name: self._customer_list_form_event,
+                EventName.CUSTOMER_SEARCH.name: self._customer_search_event,
+                EventName.CUSTOMER_DETAIL.name: self._customer_detail_event,
+                EventName.CUSTOMER_DETAIL_SAVE.name: self._customer_detail_save_event,
                 
                 # Sales Events - From SaleEvent
                 EventName.SALE_DEPARTMENT.name: self._sale_department_event,

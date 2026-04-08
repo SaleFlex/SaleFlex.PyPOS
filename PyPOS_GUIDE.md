@@ -104,9 +104,35 @@ See [Product Management](docs/15-product-management.md) for full documentation.
 
 ---
 
+### Customer Management
+
+From the **Main Menu**, press **CUSTOMER** (purple button, bottom row) to open the Customer List form.
+
+| Action | How |
+|--------|-----|
+| **Search customers** | Type name, phone or e-mail in the search box — press **SEARCH** |
+| **View & edit customer** | Select a row — press **DETAIL** |
+| **Save customer changes** | In Customer Detail — edit fields — press **SAVE** |
+| **Close customer detail** | In Customer Detail — press **BACK** (bottom-right) |
+
+**Customer Detail form** shows two tabs:
+
+| Tab | Content |
+|-----|---------|
+| **Customer Info** | Editable fields: First Name, Last Name, Phone, E-mail, Address lines, Post Code, Description |
+| **Activity History** | Read-only list of the customer's past transactions |
+
+Press **SAVE** (green) to persist changes to the database. Press **BACK** (blue) to close the dialog without saving.
+
+> **Walk-in Customer:** A special "Walk-in Customer" record is pre-seeded in the database (`is_walkin = True`). All sale transactions that have no customer explicitly assigned are automatically linked to this record. The Walk-in Customer is excluded from the customer list search and cannot be edited.
+
+See [Customer Management](docs/17-customer-management.md) for full documentation.
+
+---
+
 ### Inventory Management (Stock)
 
-From the **Product List** screen, press the **STOCK** button (dark-blue, bottom row) to enter the Inventory Management module.
+From the **Main Menu**, press **WAREHOUSE** to enter the Inventory Management module.
 
 | Action | How |
 |---|---|
@@ -142,6 +168,7 @@ See [Inventory Management](docs/16-inventory-management.md) for full documentati
 14. [Cashier Management](docs/14-cashier-management.md)
 15. [Product Management](docs/15-product-management.md)
 16. [Inventory Management](docs/16-inventory-management.md)
+17. [Customer Management](docs/17-customer-management.md)
 
 ### Part 3 — Architecture (Developer)
 
@@ -197,6 +224,8 @@ See [Inventory Management](docs/16-inventory-management.md) for full documentati
 **Startup guards:** [Startup Entry Point](docs/34-startup-entry-point.md)
 
 **Product management:** [Product Management](docs/15-product-management.md)
+
+**Customer management:** [Customer Management](docs/17-customer-management.md)
 
 **Inventory & stock management:** [Inventory Management](docs/16-inventory-management.md)
 
