@@ -29,6 +29,7 @@ SaleFlex.PyPOS/
 │   │   ├── mixins.py           ← AutoSave, AuditMixin, etc.
 │   │   └── definition/         ← 98+ SQLAlchemy model classes (one file each)
 │   ├── db_init_data/           ← Seed data functions (one file per model)
+│   │   └── forms/              ← Form + control definitions split by topic
 │   ├── auto_save/              ← AutoSaveDescriptor / AutoSaveModel / AutoSaveDict
 │   └── enums/                  ← ControlName, ControlType, EventName, FormName, …
 │

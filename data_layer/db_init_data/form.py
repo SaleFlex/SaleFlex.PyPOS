@@ -22,441 +22,64 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
+# Thin orchestrator — delegates form-row definitions to topic-based sub-modules
+# under data_layer/db_init_data/forms/.
+#
+# Sub-module layout:
+#   login.py      — form #1  LOGIN
+#   main_menu.py  — form #2  MAIN_MENU
+#   management.py — forms #3 SETTING, #4 CASHIER
+#   sale.py       — forms #5 SALE, #7 SUSPENDED_SALES_MARKET
+#   closure.py    — forms #6 CLOSURE, #10 CLOSURE_DETAIL,
+#                          #11 CLOSURE_RECEIPTS, #12 CLOSURE_RECEIPT_DETAIL
+#   product.py    — forms #8 PRODUCT_LIST, #9 PRODUCT_DETAIL
+#   stock.py      — forms #13 STOCK_INQUIRY, #14 STOCK_IN,
+#                          #15 STOCK_ADJUSTMENT, #16 STOCK_MOVEMENT
+#   customer.py   — forms #17 CUSTOMER_LIST, #18 CUSTOMER_DETAIL,
+#                          #19 CUSTOMER_SELECT
+
 from sqlalchemy.orm import Session
-from data_layer.model.definition.form import Form
-from data_layer.enums import FormName
-
-
 
 from core.logger import get_logger
+from data_layer.model.definition.form import Form
+
+from data_layer.db_init_data.forms import login
+from data_layer.db_init_data.forms import main_menu
+from data_layer.db_init_data.forms import management
+from data_layer.db_init_data.forms import sale
+from data_layer.db_init_data.forms import closure
+from data_layer.db_init_data.forms import product
+from data_layer.db_init_data.forms import stock
+from data_layer.db_init_data.forms import customer
 
 logger = get_logger(__name__)
 
+
 def _insert_default_forms(session: Session, cashier_id: str):
-    """
-    Insert default forms (LOGIN and SALE) if they don't exist.
-    This corresponds to the C# TableForm initialization.
-    """
-    # Check if any forms exist
-    existing_forms = session.query(Form).first()
-    
-    if existing_forms:
+    """Insert all default forms if the Form table is empty."""
+    if session.query(Form).first():
         logger.warning("✓ Forms already exist, skipping insertion")
         return
 
-    # Default forms data with new dynamic rendering fields
-    # Using FormName enum to ensure consistency with the rest of the application
-    forms_data = [
-        {
-            'form_no': 1,
-            'name': FormName.LOGIN.name,  # Using enum for form name
-            'function': FormName.LOGIN.name,  # Using enum for function name
-            'need_login': False,
-            'need_auth': False,
-            'width': 1024,
-            'height': 768,
-            'form_border_style': 'SINGLE',
-            'start_position': 'CENTERSCREEN',
-            'caption': 'SaleFlex - Login',
-            'back_color': '0x191970',  # MidnightBlue
-            'fore_color': '0xFFFFFF',  # White
-            'show_status_bar': False,
-            'show_in_taskbar': False,
-            'use_virtual_keyboard': True,
-            'is_visible': True,
-            'is_startup': False,
-            'display_mode': 'MAIN',
-            'fk_cashier_create_id': cashier_id
-        },
-        {
-            'form_no': 2,
-            'name': FormName.MAIN_MENU.name,
-            'function': FormName.MAIN_MENU.name,
-            'need_login': True,  # Requires login
-            'need_auth': False,
-            'width': 1024,
-            'height': 768,
-            'form_border_style': 'SINGLE',
-            'start_position': 'CENTERSCREEN',
-            'caption': 'SaleFlex - Main Menu',
-            'back_color': '0x2F4F4F',  # DarkSlateGray
-            'fore_color': '0xFFFFFF',  # White
-            'show_status_bar': True,
-            'show_in_taskbar': False,
-            'use_virtual_keyboard': False,
-            'is_visible': True,
-            'is_startup': True,  # MAIN_MENU is the startup form
-            'display_mode': 'MAIN',
-            'fk_cashier_create_id': cashier_id
-        },
-        {
-            'form_no': 3,
-            'name': FormName.SETTING.name,
-            'function': FormName.SETTING.name,
-            'need_login': True,  # Requires login
-            'need_auth': False,
-            'width': 1024,
-            'height': 768,
-            'form_border_style': 'SINGLE',
-            'start_position': 'CENTERSCREEN',
-            'caption': 'SaleFlex - Configuration',
-            'back_color': '0x2F4F4F',  # DarkSlateGray
-            'fore_color': '0xFFFFFF',  # White
-            'show_status_bar': True,
-            'show_in_taskbar': False,
-            'use_virtual_keyboard': False,
-            'is_visible': True,
-            'is_startup': False,
-            'display_mode': 'MAIN',
-            'fk_cashier_create_id': cashier_id
-        },
-        {
-            'form_no': 4,
-            'name': FormName.CASHIER.name,
-            'function': FormName.CASHIER.name,
-            'need_login': True,  # Requires login
-            'need_auth': False,
-            'width': 1024,
-            'height': 768,
-            'form_border_style': 'SINGLE',
-            'start_position': 'CENTERSCREEN',
-            'caption': 'SaleFlex - Cashier Management',
-            'back_color': '0x2F4F4F',  # DarkSlateGray
-            'fore_color': '0xFFFFFF',  # White
-            'show_status_bar': True,
-            'show_in_taskbar': False,
-            'use_virtual_keyboard': True,
-            'is_visible': True,
-            'is_startup': False,
-            'display_mode': 'MAIN',
-            'fk_cashier_create_id': cashier_id
-        },
-        {
-            'form_no': 5,
-            'name': FormName.SALE.name,  # Using enum for form name
-            'function': FormName.SALE.name,  # Using enum for function name
-            'need_login': True,  # Requires login
-            'need_auth': False,
-            'width': 1024,
-            'height': 768,
-            'form_border_style': 'SINGLE',
-            'start_position': 'CENTERSCREEN',
-            'caption': 'SaleFlex - Point of Sale',
-            'back_color': '0x2F4F4F',  # DarkSlateGray
-            'fore_color': '0xFFFFFF',  # White
-            'show_status_bar': True,
-            'show_in_taskbar': False,
-            'use_virtual_keyboard': False,
-            'is_visible': True,
-            'is_startup': False,
-            'display_mode': 'MAIN',
-            'fk_cashier_create_id': cashier_id
-        },
-        {
-            'form_no': 6,
-            'name': FormName.CLOSURE.name,
-            'function': FormName.CLOSURE.name,
-            'need_login': True,  # Requires login
-            'need_auth': True,  # Requires authorization
-            'width': 1024,
-            'height': 768,
-            'form_border_style': 'SINGLE',
-            'start_position': 'CENTERSCREEN',
-            'caption': 'SaleFlex - Closure',
-            'back_color': '0x2F4F4F',  # DarkSlateGray
-            'fore_color': '0xFFFFFF',  # White
-            'show_status_bar': True,
-            'show_in_taskbar': False,
-            'use_virtual_keyboard': False,
-            'is_visible': True,
-            'is_startup': False,
-            'display_mode': 'MAIN',
-            'fk_cashier_create_id': cashier_id
-        },
-        {
-            'form_no': 7,
-            'name': FormName.SUSPENDED_SALES_MARKET.name,
-            'function': FormName.SUSPENDED_SALES_MARKET.name,
-            'need_login': True,
-            'need_auth': False,
-            'width': 1024,
-            'height': 768,
-            'form_border_style': 'SINGLE',
-            'start_position': 'CENTERSCREEN',
-            'caption': 'SaleFlex - Suspended Sales (Market)',
-            'back_color': '0x2F4F4F',
-            'fore_color': '0xFFFFFF',
-            'show_status_bar': True,
-            'show_in_taskbar': False,
-            'use_virtual_keyboard': False,
-            'is_visible': True,
-            'is_startup': False,
-            'display_mode': 'MAIN',
-            'fk_cashier_create_id': cashier_id
-        },
-        {
-            'form_no': 8,
-            'name': FormName.PRODUCT_LIST.name,
-            'function': FormName.PRODUCT_LIST.name,
-            'need_login': True,
-            'need_auth': False,
-            'width': 1024,
-            'height': 768,
-            'form_border_style': 'SINGLE',
-            'start_position': 'CENTERSCREEN',
-            'caption': 'SaleFlex - Product List',
-            'back_color': '0x2F4F4F',
-            'fore_color': '0xFFFFFF',
-            'show_status_bar': True,
-            'show_in_taskbar': False,
-            'use_virtual_keyboard': True,
-            'is_visible': True,
-            'is_startup': False,
-            'display_mode': 'MAIN',
-            'fk_cashier_create_id': cashier_id
-        },
-        {
-            'form_no': 9,
-            'name': FormName.PRODUCT_DETAIL.name,
-            'function': FormName.PRODUCT_DETAIL.name,
-            'need_login': True,
-            'need_auth': False,
-            'width': 1024,
-            'height': 768,
-            'form_border_style': 'SINGLE',
-            'start_position': 'CENTERSCREEN',
-            'caption': 'SaleFlex - Product Detail',
-            'back_color': '0x1C2833',
-            'fore_color': '0xECF0F1',
-            'show_status_bar': False,
-            'show_in_taskbar': False,
-            'use_virtual_keyboard': False,
-            'is_visible': True,
-            'is_startup': False,
-            'display_mode': 'MODAL',
-            'fk_cashier_create_id': cashier_id
-        },
-        {
-            'form_no': 10,
-            'name': FormName.CLOSURE_DETAIL.name,
-            'function': FormName.CLOSURE_DETAIL.name,
-            'need_login': True,
-            'need_auth': True,
-            'width': 1024,
-            'height': 768,
-            'form_border_style': 'SINGLE',
-            'start_position': 'CENTERSCREEN',
-            'caption': 'SaleFlex - Closure Detail',
-            'back_color': '0x2F4F4F',
-            'fore_color': '0xFFFFFF',
-            'show_status_bar': True,
-            'show_in_taskbar': False,
-            'use_virtual_keyboard': False,
-            'is_visible': True,
-            'is_startup': False,
-            'display_mode': 'MAIN',
-            'fk_cashier_create_id': cashier_id
-        },
-        {
-            'form_no': 11,
-            'name': FormName.CLOSURE_RECEIPTS.name,
-            'function': FormName.CLOSURE_RECEIPTS.name,
-            'need_login': True,
-            'need_auth': True,
-            'width': 1024,
-            'height': 768,
-            'form_border_style': 'SINGLE',
-            'start_position': 'CENTERSCREEN',
-            'caption': 'SaleFlex - Closure Receipts',
-            'back_color': '0x2F4F4F',
-            'fore_color': '0xFFFFFF',
-            'show_status_bar': True,
-            'show_in_taskbar': False,
-            'use_virtual_keyboard': False,
-            'is_visible': True,
-            'is_startup': False,
-            'display_mode': 'MAIN',
-            'fk_cashier_create_id': cashier_id
-        },
-        {
-            'form_no': 12,
-            'name': FormName.CLOSURE_RECEIPT_DETAIL.name,
-            'function': FormName.CLOSURE_RECEIPT_DETAIL.name,
-            'need_login': True,
-            'need_auth': True,
-            'width': 1024,
-            'height': 768,
-            'form_border_style': 'SINGLE',
-            'start_position': 'CENTERSCREEN',
-            'caption': 'SaleFlex - Receipt Detail',
-            'back_color': '0x2F4F4F',
-            'fore_color': '0xFFFFFF',
-            'show_status_bar': True,
-            'show_in_taskbar': False,
-            'use_virtual_keyboard': False,
-            'is_visible': True,
-            'is_startup': False,
-            'display_mode': 'MAIN',
-            'fk_cashier_create_id': cashier_id
-        },
-        {
-            'form_no': 13,
-            'name': FormName.STOCK_INQUIRY.name,
-            'function': FormName.STOCK_INQUIRY.name,
-            'need_login': True,
-            'need_auth': False,
-            'width': 1024,
-            'height': 768,
-            'form_border_style': 'SINGLE',
-            'start_position': 'CENTERSCREEN',
-            'caption': 'SaleFlex - Stock Inquiry',
-            'back_color': '0x2F4F4F',
-            'fore_color': '0xFFFFFF',
-            'show_status_bar': True,
-            'show_in_taskbar': False,
-            'use_virtual_keyboard': True,
-            'is_visible': True,
-            'is_startup': False,
-            'display_mode': 'MAIN',
-            'fk_cashier_create_id': cashier_id
-        },
-        {
-            'form_no': 14,
-            'name': FormName.STOCK_IN.name,
-            'function': FormName.STOCK_IN.name,
-            'need_login': True,
-            'need_auth': False,
-            'width': 1024,
-            'height': 768,
-            'form_border_style': 'SINGLE',
-            'start_position': 'CENTERSCREEN',
-            'caption': 'SaleFlex - Goods Receipt (Stock In)',
-            'back_color': '0x2F4F4F',
-            'fore_color': '0xFFFFFF',
-            'show_status_bar': True,
-            'show_in_taskbar': False,
-            'use_virtual_keyboard': True,
-            'is_visible': True,
-            'is_startup': False,
-            'display_mode': 'MAIN',
-            'fk_cashier_create_id': cashier_id
-        },
-        {
-            'form_no': 15,
-            'name': FormName.STOCK_ADJUSTMENT.name,
-            'function': FormName.STOCK_ADJUSTMENT.name,
-            'need_login': True,
-            'need_auth': False,
-            'width': 1024,
-            'height': 768,
-            'form_border_style': 'SINGLE',
-            'start_position': 'CENTERSCREEN',
-            'caption': 'SaleFlex - Stock Adjustment',
-            'back_color': '0x2F4F4F',
-            'fore_color': '0xFFFFFF',
-            'show_status_bar': True,
-            'show_in_taskbar': False,
-            'use_virtual_keyboard': True,
-            'is_visible': True,
-            'is_startup': False,
-            'display_mode': 'MAIN',
-            'fk_cashier_create_id': cashier_id
-        },
-        {
-            'form_no': 16,
-            'name': FormName.STOCK_MOVEMENT.name,
-            'function': FormName.STOCK_MOVEMENT.name,
-            'need_login': True,
-            'need_auth': False,
-            'width': 1024,
-            'height': 768,
-            'form_border_style': 'SINGLE',
-            'start_position': 'CENTERSCREEN',
-            'caption': 'SaleFlex - Stock Movement History',
-            'back_color': '0x2F4F4F',
-            'fore_color': '0xFFFFFF',
-            'show_status_bar': True,
-            'show_in_taskbar': False,
-            'use_virtual_keyboard': True,
-            'is_visible': True,
-            'is_startup': False,
-            'display_mode': 'MAIN',
-            'fk_cashier_create_id': cashier_id
-        },
-        {
-            'form_no': 17,
-            'name': FormName.CUSTOMER_LIST.name,
-            'function': FormName.CUSTOMER_LIST.name,
-            'need_login': True,
-            'need_auth': False,
-            'width': 1024,
-            'height': 768,
-            'form_border_style': 'SINGLE',
-            'start_position': 'CENTERSCREEN',
-            'caption': 'SaleFlex - Customer List',
-            'back_color': '0x2F4F4F',
-            'fore_color': '0xFFFFFF',
-            'show_status_bar': True,
-            'show_in_taskbar': False,
-            'use_virtual_keyboard': True,
-            'is_visible': True,
-            'is_startup': False,
-            'display_mode': 'MAIN',
-            'fk_cashier_create_id': cashier_id
-        },
-        {
-            'form_no': 18,
-            'name': FormName.CUSTOMER_DETAIL.name,
-            'function': FormName.CUSTOMER_DETAIL.name,
-            'need_login': True,
-            'need_auth': False,
-            'width': 1024,
-            'height': 768,
-            'form_border_style': 'SINGLE',
-            'start_position': 'CENTERSCREEN',
-            'caption': 'SaleFlex - Customer Detail',
-            'back_color': '0x1B2631',
-            'fore_color': '0xECF0F1',
-            'show_status_bar': False,
-            'show_in_taskbar': False,
-            'use_virtual_keyboard': False,
-            'is_visible': True,
-            'is_startup': False,
-            'display_mode': 'MODAL',
-            'fk_cashier_create_id': cashier_id
-        },
-        {
-            'form_no': 19,
-            'name': FormName.CUSTOMER_SELECT.name,
-            'function': FormName.CUSTOMER_SELECT.name,
-            'need_login': True,
-            'need_auth': False,
-            'width': 1024,
-            'height': 768,
-            'form_border_style': 'SINGLE',
-            'start_position': 'CENTERSCREEN',
-            'caption': 'SaleFlex - Select Customer',
-            'back_color': '0x2F4F4F',
-            'fore_color': '0xFFFFFF',
-            'show_status_bar': True,
-            'show_in_taskbar': False,
-            'use_virtual_keyboard': True,
-            'is_visible': True,
-            'is_startup': False,
-            'display_mode': 'MAIN',
-            'fk_cashier_create_id': cashier_id
-        }
-    ]
+    forms_data = (
+        login.get_form_data(cashier_id)
+        + main_menu.get_form_data(cashier_id)
+        + management.get_form_data(cashier_id)
+        + sale.get_form_data(cashier_id)
+        + closure.get_form_data(cashier_id)
+        + product.get_form_data(cashier_id)
+        + stock.get_form_data(cashier_id)
+        + customer.get_form_data(cashier_id)
+    )
 
     try:
         for form_data in forms_data:
-            form = Form(**form_data)
-            session.add(form)
-        
+            session.add(Form(**form_data))
+
         session.commit()
         logger.info("✓ Inserted %s default forms", len(forms_data))
-        
+
     except Exception as e:
         session.rollback()
         logger.error("✗ Error inserting forms: %s", e)
-        raise 
+        raise

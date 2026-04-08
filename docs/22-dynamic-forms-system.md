@@ -114,7 +114,7 @@ textbox = FormControl(
 - `input_type="BOOLEAN"` (metadata; renderer uses `type` for the widget)
 - Control `name` is uppercase and maps to the model attribute via `.lower()` (same rule as textboxes)
 
-**Seeded forms:** In `data_layer/db_init_data/form_control.py`, the SETTING form (`POS_SETTINGS` panel) uses a checkbox for `force_to_work_online`; the CASHIER form uses checkboxes for `is_administrator` and `is_active`.
+**Seeded forms:** In `data_layer/db_init_data/forms/management.py`, the SETTING form (`POS_SETTINGS` panel) uses a checkbox for `force_to_work_online`; the CASHIER form uses checkboxes for `is_administrator` and `is_active`.
 
 **Rendering:** `DynamicFormRenderer` emits `type: "checkbox"` in the design dict. `BaseWindow._create_checkbox()` and `DynamicDialog._create_checkbox()` bind to the panel model and load/save like textboxes. Non-admin users: `is_administrator` and `is_active` checkboxes are **disabled** (not only read-only text) on the main window’s CASHIER form.
 
@@ -790,7 +790,7 @@ Some comboboxes are auto-populated at runtime based on their `name` attribute. T
 ### `CASHIER_MGMT_LIST` Detail
 
 ```python
-# db_init_data/form_control.py (seed data)
+# db_init_data/forms/management.py (seed data)
 FormControl(
     name=ControlName.CASHIER_MGMT_LIST.value,   # "CASHIER_MGMT_LIST"
     type="COMBOBOX",
@@ -837,7 +837,7 @@ Administrators can create new cashier accounts directly from the CASHIER form wi
 ### Button Definition (seed data)
 
 ```python
-# data_layer/db_init_data/form_control.py
+# data_layer/db_init_data/forms/management.py
 FormControl(
     name=ControlName.ADD_NEW_CASHIER.value,   # "ADD_NEW_CASHIER"
     form_control_function1=EventName.ADD_NEW_CASHIER.value,  # "ADD_NEW_CASHIER"

@@ -323,8 +323,10 @@ inside `DynamicDialog`.
 
 | File | Change |
 |------|--------|
-| `data_layer/db_init_data/form.py` | Added form_no=8 (`PRODUCT_LIST`), form_no=9 (`PRODUCT_DETAIL`, 1024×768) |
-| `data_layer/db_init_data/form_control.py` | Product List controls (5); Product Detail TABCONTROL + 4 × FormControlTab + PANEL(PRODUCT) + label/textbox pairs + 3 × DATAGRID + SAVE + BACK; PRODUCTS nav button on Main Menu |
+| `data_layer/db_init_data/forms/product.py` | Form definitions for PRODUCT_LIST (#8) and PRODUCT_DETAIL (#9, 1024×768 MODAL); Product List controls (5 controls); Product Detail TABCONTROL + 4 × FormControlTab + PANEL(PRODUCT) + label/textbox pairs + 3 × DATAGRID + SAVE + BACK |
+| `data_layer/db_init_data/forms/main_menu.py` | PRODUCTS navigation button on Main Menu |
+| `data_layer/db_init_data/form.py` | Thin orchestrator — delegates to `forms/product.py` |
+| `data_layer/db_init_data/form_control.py` | Thin orchestrator — delegates to `forms/product.py` |
 
 > **Note:** After adding these changes, delete the existing database
 > (`db.sqlite3`) and restart so `_insert_default_forms` and
@@ -345,8 +347,9 @@ inside `DynamicDialog`.
 | `data_layer/enums/form_name.py` | Modified | Added `PRODUCT_LIST`, `PRODUCT_DETAIL` |
 | `data_layer/enums/event_name.py` | Modified | Added product events |
 | `data_layer/enums/control_name.py` | Modified | Added product control names |
-| `data_layer/db_init_data/form.py` | Modified | Added form_no=8 and form_no=9 |
-| `data_layer/db_init_data/form_control.py` | Modified | Product List + Product Detail controls |
+| `data_layer/db_init_data/forms/product.py` | New | Form definitions + controls for PRODUCT_LIST (#8) and PRODUCT_DETAIL (#9) |
+| `data_layer/db_init_data/form.py` | Modified | Thin orchestrator; imports from `forms/` |
+| `data_layer/db_init_data/form_control.py` | Modified | Thin orchestrator; imports from `forms/` |
 | `pos/manager/event/product.py` | New | `ProductEvent` handler class |
 | `pos/manager/event/__init__.py` | Modified | Exports `ProductEvent` |
 | `pos/manager/event_handler.py` | Modified | Inherits `ProductEvent`; maps events |

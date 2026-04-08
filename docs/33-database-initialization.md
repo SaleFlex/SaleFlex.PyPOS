@@ -112,32 +112,45 @@ Inserts default transaction discount types:
 - **PRODUCT**: Product-specific discount
 
 ### `_insert_default_forms(session, cashier_id)`
-Creates essential forms (form_no 1–7):
-- **LOGIN** (1): Login screen with cashier selection combobox, password, and login/exit buttons
-- **MAIN_MENU** (2): Main menu with navigation buttons (Sales, Closure, Settings, Cashier Management, Logout)
-- **SETTING** (3): POS configuration form
-- **CASHIER** (4): Cashier management form with combobox-based multi-cashier selection
-- **SALE** (5): Point-of-sale transaction screen
-- **CLOSURE** (6): End-of-day closure screen
-- **SUSPENDED_SALES_MARKET** (7): Market-sector screen listing suspended (pending) sale documents in a DataGrid; **BACK** returns using form history
-- Forms include layout, colors, and display settings
+Creates all 19 application forms. Form definitions are organised into topic-based sub-modules under `data_layer/db_init_data/forms/`. Each sub-module provides a `get_form_data(cashier_id)` function that returns the form row dict(s) for that topic:
+
+| Sub-module | Forms |
+|---|---|
+| `forms/login.py` | #1 LOGIN |
+| `forms/main_menu.py` | #2 MAIN_MENU |
+| `forms/management.py` | #3 SETTING, #4 CASHIER |
+| `forms/sale.py` | #5 SALE, #7 SUSPENDED_SALES_MARKET |
+| `forms/closure.py` | #6 CLOSURE, #10 CLOSURE_DETAIL, #11 CLOSURE_RECEIPTS, #12 CLOSURE_RECEIPT_DETAIL |
+| `forms/product.py` | #8 PRODUCT_LIST, #9 PRODUCT_DETAIL |
+| `forms/stock.py` | #13 STOCK_INQUIRY, #14 STOCK_IN, #15 STOCK_ADJUSTMENT, #16 STOCK_MOVEMENT |
+| `forms/customer.py` | #17 CUSTOMER_LIST, #18 CUSTOMER_DETAIL, #19 CUSTOMER_SELECT |
+
+Each form row includes layout dimensions (1024×768), colors, display mode (`MAIN` or `MODAL`), and the `is_startup` flag (only MAIN_MENU is `True`).
 
 ### `_insert_form_controls(session, cashier_id)`
-Populates forms with controls (buttons, textboxes, labels, comboboxes, panels, etc.).
+Populates all 19 forms with their controls (buttons, textboxes, labels, comboboxes, panels, tab controls, data grids, etc.). Control definitions live in the same topic-based sub-modules as the form definitions.
 
-**SALE form — payment column:** **CASH** and **CREDIT CARD** share the column with **SUSPEND** below them; **SUSPEND** uses the same height as **PLU** / **X** (90px) and fires `SUSPEND_SALE`.
+**Insertion is performed in three phases:**
 
-**SUSPENDED_SALES_MARKET form:** `SUSPENDED_SALES_DATAGRID` (hidden id + receipt no, line count, total), **ACTIVATE** (`RESUME_SALE`), and **BACK** button.
+**Phase 1 — Bulk insert:** All simple controls (no inter-control UUID dependencies) are collected from the sub-modules and added to the session together.
 
-**Closure model:** `Closure.suspended_transaction_count` stores how many suspended documents belonged to the closed period (pending permanent heads + pending temp heads for that closure number); they are not included in closure financial totals.
+**Phase 2 — Parent-ID wiring (after first flush):** Panel children that need `fk_parent_id` pointing to their enclosing panel's UUID are wired using `update_config_panel_parents()` and `update_cashier_panel_parents()`.
+
+**Phase 3 — Tab-based and inventory forms:** Forms with `TABCONTROL` hierarchies (`PRODUCT_DETAIL`, `CUSTOMER_DETAIL`) and inventory forms issue their own internal `session.flush()` calls to obtain UUIDs before creating child controls.
+
+**SALE form:** `SALESLIST`, `NUMPAD`, `PAYMENTLIST`, department buttons, PLU buttons, product barcode shortcut buttons, cash payment denomination buttons, and dual-function buttons (SUSPEND/CANCEL, SUB TOTAL/CUSTOMER) controlled by the **FUNC** toggle.
+
+**SUSPENDED_SALES_MARKET form:** `SUSPENDED_SALES_DATAGRID` (receipt no, line count, total), **ACTIVATE** (`RESUME_SALE`), and **BACK** button.
+
+**Closure model:** `Closure.suspended_transaction_count` stores how many suspended documents belonged to the closed period; they are not included in closure financial totals.
 
 **CASHIER form controls in detail:**
-- `CASHIER_MGMT_LIST` (COMBOBOX): Appears above the data panel. Admin users see all cashiers; non-admin users see only themselves. Fires `SELECT_CASHIER` event on selection change. Signals are blocked during initial population to prevent spurious redraws. Hidden during new-cashier entry mode.
+- `CASHIER_MGMT_LIST` (COMBOBOX): Appears above the data panel. Admin users see all cashiers; non-admin users see only themselves. Fires `SELECT_CASHIER` event. Hidden during new-cashier entry mode.
 - `CASHIER` (PANEL): Scrollable panel containing all cashier data fields
-- Field textboxes inside panel: `NO`, `USER_NAME`, `NAME`, `LAST_NAME`, `PASSWORD`, `IDENTITY_NUMBER`, `DESCRIPTION`, `IS_ADMINISTRATOR`, `IS_ACTIVE`
+- Field controls inside panel: `NO`, `USER_NAME`, `NAME`, `LAST_NAME`, `PASSWORD`, `IDENTITY_NUMBER`, `DESCRIPTION`, `IS_ADMINISTRATOR` (CHECKBOX), `IS_ACTIVE` (CHECKBOX)
 - `SAVE` (BUTTON): Saves the currently selected cashier's data
 - `BACK` (BUTTON): Returns to the main menu
-- `ADD_NEW_CASHIER` (BUTTON): Bottom-left of form, SaddleBrown (`0x8B4513`) background. Visible only to admin users (`is_administrator = True`); hidden at render time for all others. Fires `ADD_NEW_CASHIER` event. When pressed, clears all CASHIER panel textboxes in-place, hides the `CASHIER_MGMT_LIST` combobox, and hides itself — preparing the form for new cashier data entry without a full redraw. After the operator saves, the form is redrawn and the new cashier appears pre-selected in the combobox.
+- `ADD_NEW_CASHIER` (BUTTON): Visible only to administrators. Fires `ADD_NEW_CASHIER` event; clears the panel fields and hides the combobox for new-cashier entry.
 
 ### `_insert_virtual_keyboard_settings(session)`
 Creates the default virtual keyboard theme:
@@ -180,6 +193,19 @@ To customize initial data:
 1. Modify the respective `_insert_*` functions in `data_layer/db_init_data/`
 2. Add new initialization functions and call them in `insert_initial_data()`
 3. Ensure proper ordering to respect foreign key dependencies
+
+### Adding or Modifying Forms and Controls
+
+Form and form-control seed data is organized by topic under `data_layer/db_init_data/forms/`. Each sub-module contains:
+- `get_form_data(cashier_id)` → returns a list of form-row dicts
+- `get_form_controls(form, cashier_id)` → returns a list of `FormControl` objects (simple forms)
+- `insert_*_controls(session, form, cashier_id)` → inserts controls with internal flushes (tab-based forms: `PRODUCT_DETAIL`, `CUSTOMER_DETAIL`, and all stock inventory forms)
+
+To add a new form:
+1. Add the form row dict in the appropriate sub-module's `get_form_data()` (or create a new sub-module)
+2. Add the corresponding control-creation function
+3. Register the new form in `FormName` enum (`data_layer/enums/form_name.py`)
+4. Import and call the new function in `form.py` and `form_control.py`
 
 ---
 

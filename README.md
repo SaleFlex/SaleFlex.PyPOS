@@ -121,11 +121,22 @@ SaleFlex.PyPOS/
 │   │   ├── auto_save_dict.py
 │   │   └── auto_save_descriptor.py
 │   │
-│   ├── db_init_data/       # Initial data seeding
+│   ├── db_init_data/       # Initial data seeding (one module per domain)
 │   │   ├── cashier.py
 │   │   ├── country.py
 │   │   ├── currency.py
 │   │   ├── product.py
+│   │   ├── form.py         # Orchestrator — delegates to forms/
+│   │   ├── form_control.py # Orchestrator — delegates to forms/
+│   │   ├── forms/          # Form + control definitions split by topic
+│   │   │   ├── login.py      # Form #1: LOGIN
+│   │   │   ├── main_menu.py  # Form #2: MAIN_MENU
+│   │   │   ├── management.py # Forms #3 SETTING, #4 CASHIER
+│   │   │   ├── sale.py       # Forms #5 SALE, #7 SUSPENDED_SALES_MARKET
+│   │   │   ├── closure.py    # Forms #6, #10, #11, #12 (closure group)
+│   │   │   ├── product.py    # Forms #8 PRODUCT_LIST, #9 PRODUCT_DETAIL
+│   │   │   ├── stock.py      # Forms #13–#16 (inventory group)
+│   │   │   └── customer.py   # Forms #17–#19 (customer group)
 │   │   └── ...             # Other initialization modules
 │   │
 │   ├── enums/              # Enumeration definitions
