@@ -130,67 +130,78 @@ Tapping any row in the sale list opens an **Item Actions** popup:
 
 ---
 
-## Applying Item Discounts
+## Applying Item Discounts and Markups
 
-Two dedicated discount buttons appear in the top-right corner of the product shortcut grid on the SALE form:
+Two **dual-function** buttons appear in the top-right corner of the product shortcut grid on the SALE form (they show a small **F** badge). Each has `form_control_function1` / `caption1` for **discount** and `form_control_function2` / `caption2` for **markup**.
 
-| Button | Colour | Event | Description |
-|--------|--------|-------|-------------|
-| **DISC %** | Purple | `DISCOUNT_BY_PERCENT` | Apply a percentage discount to the last sold item |
-| **DISC AMT** | Deep orange | `DISCOUNT_BY_AMOUNT` | Apply a fixed-amount discount to the last sold item |
+| Button | Colour | State 1 (caption / event) | State 2 (caption / event) |
+|--------|--------|---------------------------|---------------------------|
+| `DISCOUNT_PERCENT_BTN` | Purple | **DISC %** — `DISCOUNT_BY_PERCENT` | **MARK %** — `MARKUP_BY_PERCENT` |
+| `DISCOUNT_AMOUNT_BTN` | Deep orange | **DISC AMT** — `DISCOUNT_BY_AMOUNT` | **MARK AMT** — `MARKUP_BY_AMOUNT` |
+
+### Dual-function behaviour
+
+- On each click, the **currently shown** function runs, then the button label toggles to the other caption.
+- The **FUNC** button flips **all** dual-function controls on the SALE form between state 1 and state 2 **without** invoking any handler—so operators can align every dual button to “markup mode” before tapping.
 
 ### Prerequisites
 
-- At least one active (non-cancelled) product line must exist in the sale list before a discount can be applied.
+- At least one active (non-cancelled) **PLU** or **DEPARTMENT** line must exist before discount or markup.
 - If no eligible line exists, an error dialog is displayed.
 
 ### Discount by Percentage
 
 1. Sell at least one product.
-2. Press **DISC %**.
-3. A modal dialog opens showing the product name and the allowed range (1 % – 100 %).
-4. Use the embedded numeric keypad to type the percentage (e.g. `10` for 10 %).
-5. Press **APPLY** (or the Enter equivalent).
-6. The original product line is cancelled with a strikethrough.
-7. A new line is added with the discounted price (quantity × unit_price × (1 − pct/100)).
-8. VAT is recalculated for the new price and document totals update immediately.
+2. Ensure the button shows **DISC %** (use **FUNC** if it currently shows **MARK %**).
+3. Press **DISC %**.
+4. A modal dialog opens (purple header): allowed range **1 % – 100 %**.
+5. Enter the value with the keypad, the on-screen virtual keyboard (when the SALE window provides one), or a physical keyboard; **Enter** or **APPLY** confirms.
+6. The original line is cancelled (strikethrough); a new line is added at total × (1 − pct/100); VAT and document totals refresh.
 
 ### Discount by Amount
 
 1. Sell at least one product.
-2. Press **DISC AMT**.
-3. A modal dialog opens showing the product name and the allowed range (minimum: smallest currency unit, maximum: product total).
-4. Use the embedded numeric keypad to type the discount amount (e.g. `1.50`).
-5. Press **APPLY**.
-6. The original product line is cancelled with a strikethrough.
-7. A new line is added at the reduced price (original total − discount amount).
-8. VAT is recalculated and document totals update immediately.
+2. Ensure the button shows **DISC AMT** (use **FUNC** if needed).
+3. Press **DISC AMT**.
+4. Dialog (orange header): amount from **smallest currency step** (from `decimal_places`) **up to the line total**.
+5. **APPLY** or **Enter**: original line cancelled; new line at (line total − amount); VAT recalculated.
+
+### Markup by Percentage
+
+1. Sell at least one product.
+2. Switch the control to **MARK %** (**FUNC**, or tap **DISC %** once to run a discount and expose **MARK %** on the next state—choose the workflow that fits).
+3. Press **MARK %**.
+4. Dialog (teal header): **1 % – 100 %**; new line total = line total × (1 + pct/100).
+5. Original line cancelled; new line with higher total and recalculated VAT.
+
+### Markup by Amount
+
+1. Sell at least one product.
+2. Switch to **MARK AMT**.
+3. Dialog (blue header): amount from **smallest currency step** up to **current line total** (e.g. for a £5.00 line, up to **5.00**).
+4. New line total = line total + entered amount; VAT and document totals update.
 
 ### Behind the Scenes
 
 - The original `TransactionProductTemp` record is marked `is_cancel = True` and persisted.
-- A new `TransactionProductTemp` record is created with:
-  - `unit_price` and `total_price` recalculated for the discounted amount
-  - `total_vat` recalculated using `VatService.calculate_vat()` with the original VAT rate
-  - `unit_discount` set to the monetary discount amount
-  - `discount_rate` set to the percentage (for percentage discounts)
-  - `discount_reason` set to a human-readable description
-- `calculate_document_totals()` is called to update `total_amount` and `total_vat_amount` on the document head.
-- The currency's `decimal_places` setting controls minimum amount and display precision (e.g. 2 for GBP).
+- A new `TransactionProductTemp` is cloned with a new UUID:
+  - **Discount:** `unit_price` / `total_price` reduced; `unit_discount` and `discount_rate` (for %) filled; `discount_reason` describes the discount.
+  - **Markup:** `unit_price` / `total_price` increased; `unit_discount` = 0, `discount_rate` = NULL; `discount_reason` text starts with `Markup` for traceability.
+  - `total_vat` from `VatService.calculate_vat()` using the **original** line VAT rate.
+- `calculate_document_totals()` updates `total_amount` and `total_vat_amount` on the document head.
+- Currency `decimal_places` (from the `Currency` table) sets the minimum step for amount modes.
 
 ### Dialog Controls
 
-Both dialogs provide the same layout:
-
 | Area | Description |
 |------|-------------|
-| Header | Coloured title (purple for %, orange for amount) |
+| Header | Coloured title (purple / orange = discount % / amount; teal / blue = markup % / amount) |
 | Info row | Product name + allowed range |
-| Display field | Shows the number being entered |
-| Numpad | 3 × 4 grid: 7 8 9 / 4 5 6 / 1 2 3 / . 0 ⌫ |
+| Input field | Editable `TextBox`; focus shows virtual keyboard when configured on the parent window |
+| Numpad | 3 × 4 grid: 7 8 9 / 4 5 6 / 1 2 3 / . 0 ⌫ (buttons do not steal focus) |
 | CLEAR | Erases the current input |
-| APPLY | Validates and applies the discount |
-| CANCEL | Closes the dialog without any change |
+| APPLY / **Enter** | Validates and applies |
+| CANCEL | Closes without changes |
 
 ---
 
@@ -201,9 +212,11 @@ Both dialogs provide the same layout:
 | **FUNC** | `FUNC` | Switches all dual-function buttons to alternate state | Switches them back to normal |
 | **CHANGE** | `CHANGE` | Records change given to the customer (`CHANGE_PAYMENT`) | — |
 | **SUSPEND** *(dual)* | `PAYMENT_SUSPEND` | `SUSPEND` → `SUSPEND_SALE` | `CANCEL` → `CANCEL_DOCUMENT` |
+| **DISC %** *(dual)* | `DISCOUNT_PERCENT_BTN` | `DISC %` → `DISCOUNT_BY_PERCENT` | `MARK %` → `MARKUP_BY_PERCENT` |
+| **DISC AMT** *(dual)* | `DISCOUNT_AMOUNT_BTN` | `DISC AMT` → `DISCOUNT_BY_AMOUNT` | `MARK AMT` → `MARKUP_BY_AMOUNT` |
 
 - **FUNC** is a mode-toggle button. It has no event of its own. Pressing it flips all dual-function buttons between their normal (`caption1`) and alternate (`caption2`) state.
-- **SUSPEND** carries a small **"F"** badge in its top-right corner indicating it is a dual-function button.
+- Dual-function sale buttons (**SUSPEND**, **DISC %**, **DISC AMT**) carry a small **"F"** badge in the top-right corner.
 
 > See [UI Controls — Dual-Function Buttons](23-ui-controls.md#dual-function-toggle-buttons) and [UI Controls — FUNC Button](23-ui-controls.md#func-button--global-function-mode-toggle) for the full mechanism.
 

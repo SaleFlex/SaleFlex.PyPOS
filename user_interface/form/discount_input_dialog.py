@@ -23,88 +23,88 @@ SOFTWARE.
 """
 
 from PySide6.QtCore import Qt, QRect
-from PySide6.QtGui import (
-    QGuiApplication, QFont, QColor, QPainter, QLinearGradient, QBrush, QPen
-)
+from PySide6.QtGui import QGuiApplication, QFont, QShortcut, QKeySequence
 from PySide6.QtWidgets import (
-    QDialog, QLabel, QLineEdit, QVBoxLayout, QHBoxLayout,
-    QPushButton, QGridLayout, QWidget, QApplication
+    QDialog, QLabel, QVBoxLayout, QHBoxLayout,
+    QPushButton, QGridLayout, QWidget,
 )
 
-from core.logger import get_logger
-
-logger = get_logger(__name__)
+from user_interface.control.textbox import TextBox
 
 
 class DiscountInputDialog(QDialog):
     """
-    Modal dialog for entering a discount value (percentage or fixed amount).
+    Modal dialog for entering a discount or markup value (percentage or fixed amount).
 
-    Layout
-    ------
-    - Title row  : coloured header label (e.g. "Discount by Percentage")
-    - Info row   : product name and allowed range
-    - Display    : read-only input field showing the number being built
-    - Numpad     : 3 × 4 grid  (7 8 9 / 4 5 6 / 1 2 3 / . 0 ⌫)
-    - Action row : CLEAR  |  APPLY  |  CANCEL
-
-    Usage
-    -----
-    dialog = DiscountInputDialog.show_percent(parent, "Coca-Cola", 5.00)
-    if dialog is not None:
-        percent = dialog          # float, validated
-
-    dialog = DiscountInputDialog.show_amount(parent, "Coca-Cola", 5.00, decimal_places=2)
-    if dialog is not None:
-        amount = dialog           # float, validated
+    Uses an editable TextBox: embedded numpad, optional window VirtualKeyboard (when
+    parent is a BaseWindow with ``keyboard``), physical Enter/Return triggers APPLY.
     """
 
-    MODE_PERCENT = "PERCENT"
-    MODE_AMOUNT  = "AMOUNT"
+    MODE_DISCOUNT_PERCENT = "DISCOUNT_PERCENT"
+    MODE_DISCOUNT_AMOUNT = "DISCOUNT_AMOUNT"
+    MODE_MARKUP_PERCENT = "MARKUP_PERCENT"
+    MODE_MARKUP_AMOUNT = "MARKUP_AMOUNT"
 
     _W = 440
     _H = 520
 
-    # ------------------------------------------------------------------ #
-    # Construction                                                        #
-    # ------------------------------------------------------------------ #
-
-    def __init__(self, parent=None, mode: str = MODE_PERCENT,
-                 product_name: str = "", max_value: float = 100.0,
-                 decimal_places: int = 2) -> None:
+    def __init__(
+        self,
+        parent=None,
+        mode: str = MODE_DISCOUNT_PERCENT,
+        product_name: str = "",
+        max_value: float = 100.0,
+        decimal_places: int = 2,
+        keyboard=None,
+    ) -> None:
         super().__init__(parent)
 
-        self.mode           = mode
-        self.product_name   = product_name
-        self.max_value      = max_value
+        self.mode = mode
+        self.product_name = product_name
+        self.max_value = max_value
         self.decimal_places = decimal_places
-        self._result        = None      # set on APPLY
-        self._input_text    = ""        # raw digit string being built
+        self._result = None
 
         self.setModal(True)
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
         self.setFixedSize(self._W, self._H)
 
+        if keyboard is None and parent is not None:
+            w = parent
+            while w is not None:
+                kb = getattr(w, "keyboard", None)
+                if kb is not None:
+                    keyboard = kb
+                    break
+                w = w.parent()
+
+        self._keyboard = keyboard
+
         self._build_ui()
         self._center_on_screen()
 
-    # ------------------------------------------------------------------ #
-    # UI construction                                                     #
-    # ------------------------------------------------------------------ #
+        for sc in (Qt.Key_Return, Qt.Key_Enter):
+            shortcut = QShortcut(QKeySequence(sc), self)
+            shortcut.activated.connect(self._on_apply)
 
     def _build_ui(self) -> None:
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
         outer.setSpacing(0)
 
-        # ── header ──────────────────────────────────────────────────────
         header = QWidget(self)
-        if self.mode == self.MODE_PERCENT:
-            header.setStyleSheet("background-color: #7B1FA2;")   # deep purple
+        if self.mode == self.MODE_DISCOUNT_PERCENT:
+            header.setStyleSheet("background-color: #7B1FA2;")
             title_text = "DISCOUNT BY PERCENTAGE  (%)"
-        else:
-            header.setStyleSheet("background-color: #D84315;")   # deep orange
+        elif self.mode == self.MODE_DISCOUNT_AMOUNT:
+            header.setStyleSheet("background-color: #D84315;")
             title_text = "DISCOUNT BY AMOUNT"
+        elif self.mode == self.MODE_MARKUP_PERCENT:
+            header.setStyleSheet("background-color: #00695C;")
+            title_text = "MARKUP BY PERCENTAGE  (%)"
+        else:
+            header.setStyleSheet("background-color: #1565C0;")
+            title_text = "MARKUP BY AMOUNT"
 
         h_lay = QHBoxLayout(header)
         h_lay.setContentsMargins(16, 12, 16, 12)
@@ -115,7 +115,6 @@ class DiscountInputDialog(QDialog):
         h_lay.addWidget(title_lbl)
         outer.addWidget(header)
 
-        # ── info row ─────────────────────────────────────────────────────
         info_widget = QWidget(self)
         info_widget.setStyleSheet("background-color: #37474F;")
         info_lay = QVBoxLayout(info_widget)
@@ -129,7 +128,7 @@ class DiscountInputDialog(QDialog):
         prod_lbl.setWordWrap(True)
         info_lay.addWidget(prod_lbl)
 
-        if self.mode == self.MODE_PERCENT:
+        if "PERCENT" in self.mode:
             range_text = "Enter percentage: 1 % – 100 %"
         else:
             fmt = f"0.{'0' * self.decimal_places}"
@@ -143,15 +142,14 @@ class DiscountInputDialog(QDialog):
         info_lay.addWidget(range_lbl)
         outer.addWidget(info_widget)
 
-        # ── display field ─────────────────────────────────────────────────
         body = QWidget(self)
         body.setStyleSheet("background-color: #263238;")
         body_lay = QVBoxLayout(body)
         body_lay.setContentsMargins(20, 14, 20, 6)
         body_lay.setSpacing(10)
 
-        self._display = QLineEdit(body)
-        self._display.setReadOnly(True)
+        self._display = TextBox(body)
+        self._display.setReadOnly(False)
         self._display.setAlignment(Qt.AlignRight)
         self._display.setFont(QFont("Tahoma", 26, QFont.Bold))
         self._display.setFixedHeight(60)
@@ -165,9 +163,11 @@ class DiscountInputDialog(QDialog):
             }
         """)
         self._display.setPlaceholderText("0")
+        if self._keyboard is not None:
+            self._display.keyboard = self._keyboard
+        self._display.enter_function = self._on_apply
         body_lay.addWidget(self._display)
 
-        # ── numpad grid ───────────────────────────────────────────────────
         grid_widget = QWidget(body)
         grid = QGridLayout(grid_widget)
         grid.setSpacing(8)
@@ -177,7 +177,7 @@ class DiscountInputDialog(QDialog):
             ("7", 0, 0), ("8", 0, 1), ("9", 0, 2),
             ("4", 1, 0), ("5", 1, 1), ("6", 1, 2),
             ("1", 2, 0), ("2", 2, 1), ("3", 2, 2),
-            (".",  3, 0), ("0", 3, 1), ("⌫", 3, 2),
+            (".", 3, 0), ("0", 3, 1), ("⌫", 3, 2),
         ]
 
         for label, row, col in keys:
@@ -186,7 +186,6 @@ class DiscountInputDialog(QDialog):
 
         body_lay.addWidget(grid_widget)
 
-        # ── action row ────────────────────────────────────────────────────
         act_widget = QWidget(body)
         act_lay = QHBoxLayout(act_widget)
         act_lay.setContentsMargins(0, 4, 0, 0)
@@ -209,6 +208,7 @@ class DiscountInputDialog(QDialog):
 
     def _make_key_button(self, label: str, parent: QWidget) -> QPushButton:
         btn = QPushButton(label, parent)
+        btn.setFocusPolicy(Qt.NoFocus)
         btn.setFont(QFont("Tahoma", 18, QFont.Bold))
         btn.setFixedHeight(58)
         btn.setStyleSheet("""
@@ -227,6 +227,7 @@ class DiscountInputDialog(QDialog):
 
     def _make_action_button(self, label: str, bg: str, fg: str) -> QPushButton:
         btn = QPushButton(label)
+        btn.setFocusPolicy(Qt.NoFocus)
         btn.setFont(QFont("Tahoma", 13, QFont.Bold))
         btn.setFixedHeight(50)
         btn.setStyleSheet(f"""
@@ -242,34 +243,36 @@ class DiscountInputDialog(QDialog):
         """)
         return btn
 
-    # ------------------------------------------------------------------ #
-    # Input logic                                                         #
-    # ------------------------------------------------------------------ #
+    def showEvent(self, event):
+        super().showEvent(event)
+        self._display.setFocus()
+
+    def _entry_text(self) -> str:
+        return self._display.text().strip()
 
     def _on_key(self, key: str) -> None:
+        t = self._display.text()
         if key == "⌫":
-            self._input_text = self._input_text[:-1]
-        elif key == ".":
-            if "." not in self._input_text:
-                if not self._input_text:
-                    self._input_text = "0"
-                self._input_text += "."
-        else:
-            # Limit decimal places entered
-            if "." in self._input_text:
-                decimals_entered = len(self._input_text.split(".")[1])
-                if decimals_entered >= self.decimal_places:
-                    return
-            self._input_text += key
+            self._display.setText(t[:-1])
+            return
+        if key == ".":
+            if "." not in t:
+                if not t:
+                    t = "0"
+                self._display.setText(t + ".")
+            return
 
-        self._display.setText(self._input_text)
+        if "." in t:
+            decimals_entered = len(t.split(".")[1])
+            if decimals_entered >= self.decimal_places:
+                return
+        self._display.setText(t + key)
 
     def _on_clear(self) -> None:
-        self._input_text = ""
         self._display.clear()
 
     def _on_apply(self) -> None:
-        text = self._input_text.strip()
+        text = self._entry_text()
         if not text or text == ".":
             self._show_error("Please enter a value.")
             return
@@ -280,7 +283,7 @@ class DiscountInputDialog(QDialog):
             self._show_error("Invalid number.")
             return
 
-        if self.mode == self.MODE_PERCENT:
+        if "PERCENT" in self.mode:
             if value < 1.0 or value > 100.0:
                 self._show_error("Percentage must be between 1 % and 100 %.")
                 return
@@ -301,49 +304,24 @@ class DiscountInputDialog(QDialog):
         from user_interface.form.message_form import MessageForm
         MessageForm.show_error(self, message, "")
 
-    # ------------------------------------------------------------------ #
-    # Result access                                                       #
-    # ------------------------------------------------------------------ #
-
     def get_result(self) -> float | None:
-        """Return the validated value if APPLY was pressed, else None."""
         return self._result
-
-    # ------------------------------------------------------------------ #
-    # Positioning                                                         #
-    # ------------------------------------------------------------------ #
 
     def _center_on_screen(self) -> None:
         screen = QGuiApplication.primaryScreen()
         if screen is None:
             return
         geo: QRect = screen.geometry()
-        x = geo.x() + (geo.width()  - self._W) // 2
+        x = geo.x() + (geo.width() - self._W) // 2
         y = geo.y() + (geo.height() - self._H) // 2
         self.move(x, y)
-
-    # ------------------------------------------------------------------ #
-    # Convenience factory methods                                        #
-    # ------------------------------------------------------------------ #
 
     @staticmethod
     def show_percent(parent, product_name: str,
                      product_total: float) -> float | None:
-        """
-        Show a percentage discount dialog and return the entered percentage,
-        or None if the user cancelled.
-
-        Args:
-            parent: parent QWidget (may be None)
-            product_name: Name of the product being discounted
-            product_total: Total price of the product (used for display only)
-
-        Returns:
-            float | None: Percentage value (1-100) or None on cancel
-        """
         dlg = DiscountInputDialog(
             parent=parent,
-            mode=DiscountInputDialog.MODE_PERCENT,
+            mode=DiscountInputDialog.MODE_DISCOUNT_PERCENT,
             product_name=product_name,
             max_value=100.0,
             decimal_places=2,
@@ -356,22 +334,38 @@ class DiscountInputDialog(QDialog):
     def show_amount(parent, product_name: str,
                     product_total: float,
                     decimal_places: int = 2) -> float | None:
-        """
-        Show a fixed-amount discount dialog and return the entered amount,
-        or None if the user cancelled.
-
-        Args:
-            parent: parent QWidget (may be None)
-            product_name: Name of the product being discounted
-            product_total: Maximum allowed discount (= product total price)
-            decimal_places: Currency decimal places (2 for GBP/USD/EUR, etc.)
-
-        Returns:
-            float | None: Amount value (0.01..product_total) or None on cancel
-        """
         dlg = DiscountInputDialog(
             parent=parent,
-            mode=DiscountInputDialog.MODE_AMOUNT,
+            mode=DiscountInputDialog.MODE_DISCOUNT_AMOUNT,
+            product_name=product_name,
+            max_value=product_total,
+            decimal_places=decimal_places,
+        )
+        if dlg.exec() == QDialog.Accepted:
+            return dlg.get_result()
+        return None
+
+    @staticmethod
+    def show_markup_percent(parent, product_name: str,
+                            product_total: float) -> float | None:
+        dlg = DiscountInputDialog(
+            parent=parent,
+            mode=DiscountInputDialog.MODE_MARKUP_PERCENT,
+            product_name=product_name,
+            max_value=100.0,
+            decimal_places=2,
+        )
+        if dlg.exec() == QDialog.Accepted:
+            return dlg.get_result()
+        return None
+
+    @staticmethod
+    def show_markup_amount(parent, product_name: str,
+                           product_total: float,
+                           decimal_places: int = 2) -> float | None:
+        dlg = DiscountInputDialog(
+            parent=parent,
+            mode=DiscountInputDialog.MODE_MARKUP_AMOUNT,
             product_name=product_name,
             max_value=product_total,
             decimal_places=decimal_places,

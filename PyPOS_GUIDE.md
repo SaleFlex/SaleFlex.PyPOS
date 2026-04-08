@@ -47,21 +47,23 @@ Press **SUSPEND** on the SALE screen to park the current cart. A new empty draft
 
 Press **CANCEL** on the SALE screen to void the entire active transaction. A confirmation dialog shows the receipt number, closure number, and total. A new draft opens automatically.
 
-### Apply a Discount to the Last Item
+### Apply a Discount or Markup to the Last Item
 
-Two buttons appear in the top-right corner of the product shortcut grid:
+Two **dual-function** buttons (small **F** badge) sit in the top-right corner of the product shortcut grid:
 
-| Button | How to use |
-|--------|------------|
-| **DISC %** (purple) | Press after selling a product → type percentage (1–100) → press **APPLY** |
-| **DISC AMT** (deep orange) | Press after selling a product → type amount (0.01 to product total) → press **APPLY** |
+| Button (state 1 → state 2) | Normal action | Alternate action |
+|--------------------------|---------------|------------------|
+| **DISC %** → **MARK %** (purple) | Percentage **discount** 1–100 % on the last line | Percentage **markup** 1–100 % on the last line |
+| **DISC AMT** → **MARK AMT** (deep orange) | Fixed **discount** from minimum currency step up to line total | Fixed **markup** over the same range (adds up to the current line total) |
 
-Both dialogs include an embedded numeric keypad (7 8 9 / 4 5 6 / 1 2 3 / . 0 ⌫) and **CLEAR / APPLY / CANCEL** buttons. On **APPLY**:
+Press **FUNC** to switch **all** dual-function buttons on the SALE form between their first and second labels **without** running a sale action—use this when you want the next tap to be markup (or discount) consistently. You can also tap a button to run its **current** function; the label then flips to the other mode for the next tap.
+
+Each dialog has a text field, an embedded numeric keypad (7 8 9 / 4 5 6 / 1 2 3 / . 0 ⌫), the on-screen **virtual keyboard** when the SALE window has one (touch entry), **CLEAR / APPLY / CANCEL**, and **Enter** to apply. On **APPLY**:
 - The original product line is cancelled (strikethrough).
-- A new line is added with the recalculated (discounted) price.
-- VAT is recalculated and document totals update immediately.
+- A new line is added with the recalculated price and VAT (lower for discount, higher for markup).
+- Document totals update immediately.
 
-See [Sale Transactions — Applying Item Discounts](docs/10-sale-transactions.md#applying-item-discounts) for full details.
+See [Sale Transactions — Applying Item Discounts and Markups](docs/10-sale-transactions.md#applying-item-discounts-and-markups) for full details.
 
 ### Cancel a Single Line Item
 

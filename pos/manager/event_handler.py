@@ -203,9 +203,9 @@ class EventHandler(GeneralEvent, SaleEvent, PaymentEvent, ConfigurationEvent,
                 EventName.CHANGE_DOCUMENT_TYPE.name: self._change_document_type_event,
                 EventName.REFUND.name: self._refund_event,
                 EventName.DISCOUNT_BY_AMOUNT.name: self._discount_by_amount_event,
-                EventName.SURCHARGE_BY_AMOUNT.name: self._surcharge_by_amount_event,
+                EventName.MARKUP_BY_AMOUNT.name: self._markup_by_amount_event,
                 EventName.DISCOUNT_BY_PERCENT.name: self._discount_by_percent_event,
-                EventName.SURCHARGE_BY_PERCENT.name: self._surcharge_by_percent_event,
+                EventName.MARKUP_BY_PERCENT.name: self._markup_by_percent_event,
                 
                 # Input Events - From SaleEvent
                 EventName.INPUT_PRICE.name: self._input_price_event,

@@ -40,6 +40,8 @@ A button becomes a **dual-function button** when both `form_control_function2` a
 | Button name | State 1 (normal) | State 2 (alternate) |
 |-------------|-----------------|---------------------|
 | `PAYMENT_SUSPEND` | `SUSPEND` → `SUSPEND_SALE` | `CANCEL` → `CANCEL_DOCUMENT` |
+| `DISCOUNT_PERCENT_BTN` | `DISC %` → `DISCOUNT_BY_PERCENT` | `MARK %` → `MARKUP_BY_PERCENT` |
+| `DISCOUNT_AMOUNT_BTN` | `DISC AMT` → `DISCOUNT_BY_AMOUNT` | `MARK AMT` → `MARKUP_BY_AMOUNT` |
 
 **Limitation:** Dual-function mode is not available for buttons whose `form_control_function1` is a sale or PLU event, because the renderer overwrites `caption1` with the product name from the database.
 

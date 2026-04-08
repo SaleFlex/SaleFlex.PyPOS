@@ -1560,7 +1560,7 @@ class SaleEvent:
         logger.debug("Refund - functionality to be implemented")
         return False
     
-    # ==================== DISCOUNT AND SURCHARGE EVENTS ====================
+    # ==================== DISCOUNT AND MARKUP EVENTS ====================
     
     def _discount_by_amount_event(self, key=None):
         """
@@ -1587,29 +1587,17 @@ class SaleEvent:
 
         return self._apply_item_discount(mode="AMOUNT")
 
-    def _surcharge_by_amount_event(self, key=None):
+    def _markup_by_amount_event(self, key=None):
         """
-        Handle surcharge application by fixed amount.
-        
-        Applies a specific monetary surcharge to selected items
-        or entire transaction.
-        
-        Parameters:
-            key: Optional parameter from numpad input
-        
-        Returns:
-            bool: True if surcharge applied successfully, False otherwise
+        Apply a fixed monetary markup to the last sold line item (FUNC + DISC AMT).
+
+        Same flow as item discount, but the line total increases by the entered amount.
         """
         if not self.login_succeed:
             self._logout()
             return False
-            
-        # TODO: Implement fixed amount surcharge logic
-        if key is not None:
-            logger.debug("Surcharge by amount - key pressed: %s", key)
-        else:
-            logger.debug("Surcharge by amount - functionality to be implemented")
-        return False
+
+        return self._apply_item_markup(mode="AMOUNT")
     
     def _discount_by_percent_event(self, key=None):
         """
@@ -1866,30 +1854,217 @@ class SaleEvent:
         )
         return True
 
-    def _surcharge_by_percent_event(self, key=None):
+    def _markup_by_percent_event(self, key=None):
         """
-        Handle surcharge application by percentage.
-        
-        Applies a percentage-based surcharge to selected items
-        or entire transaction.
-        
-        Parameters:
-            key: Optional parameter from numpad input
-        
-        Returns:
-            bool: True if surcharge applied successfully, False otherwise
+        Apply a percentage markup to the last sold line item (FUNC + DISC %).
+
+        Percentage range 1 %–100 %; line total becomes total × (1 + pct/100).
         """
         if not self.login_succeed:
             self._logout()
             return False
-            
-        # TODO: Implement percentage surcharge logic
-        if key is not None:
-            logger.debug("Surcharge by percent - key pressed: %s", key)
+
+        return self._apply_item_markup(mode="PERCENT")
+
+    def _apply_item_markup(self, mode: str) -> bool:
+        """
+        Core implementation for amount- and percentage-based line markups.
+
+        Parameters
+        ----------
+        mode : str
+            ``"AMOUNT"`` or ``"PERCENT"``
+        """
+        from decimal import Decimal
+        from uuid import uuid4
+
+        from PySide6.QtWidgets import QApplication
+
+        from data_layer.auto_save import AutoSaveModel
+        from data_layer.model import TransactionProductTemp
+        from pos.service import SaleService
+        from pos.service.vat_service import VatService
+        from user_interface.form.discount_input_dialog import DiscountInputDialog
+        from user_interface.form.message_form import MessageForm
+
+        active_window = None
+        app_qt = QApplication.instance()
+        if app_qt:
+            active_window = app_qt.activeWindow()
+        if not active_window or not hasattr(active_window, "sale_list"):
+            if hasattr(self, "interface") and self.interface:
+                active_window = getattr(self.interface, "window", None)
+        if not active_window or not hasattr(active_window, "sale_list"):
+            logger.error("[MARKUP] No window with sale_list found")
+            return False
+
+        sale_list = active_window.sale_list
+
+        last_row_index = -1
+        last_sales_data = None
+        for idx in range(len(sale_list.custom_sales_data_list) - 1, -1, -1):
+            sd = sale_list.custom_sales_data_list[idx]
+            if sd.transaction_type in ("PLU", "DEPARTMENT") and not sd.is_canceled:
+                last_row_index = idx
+                last_sales_data = sd
+                break
+
+        if last_sales_data is None:
+            MessageForm.show_error(
+                active_window,
+                "No product found to apply markup to.",
+                "Please sell at least one product first.",
+            )
+            return False
+
+        product_name = last_sales_data.name_of_product
+        product_total = last_sales_data.total_amount
+        product_qty = last_sales_data.quantity
+        reference_id = str(last_sales_data.reference_id)
+
+        currency_sign = getattr(self, "current_currency", None) or "GBP"
+        decimal_places = VatService.get_currency_decimal_places(
+            currency_sign, getattr(self, "product_data", None)
+        )
+
+        if mode == "PERCENT":
+            entered = DiscountInputDialog.show_markup_percent(
+                active_window, product_name, product_total
+            )
         else:
-            logger.debug("Surcharge by percent - functionality to be implemented")
-        return False
-    
+            entered = DiscountInputDialog.show_markup_amount(
+                active_window, product_name, product_total, decimal_places
+            )
+
+        if entered is None:
+            return False
+
+        if mode == "PERCENT":
+            markup_factor = Decimal(str(entered)) / Decimal("100")
+            markup_amount = Decimal(str(product_total)) * markup_factor
+            new_total = Decimal(str(product_total)) + markup_amount
+        else:
+            markup_amount = Decimal(str(entered))
+            new_total = Decimal(str(product_total)) + markup_amount
+
+        new_unit_price = new_total / Decimal(str(product_qty)) if product_qty else new_total
+
+        original_db_record = None
+        if self.document_data and reference_id:
+            for rec in self.document_data.get("products", []):
+                actual = rec.unwrap() if isinstance(rec, AutoSaveModel) else rec
+                if str(actual.id) == reference_id:
+                    original_db_record = actual
+                    break
+
+        sale_list.cancel_transaction(last_row_index)
+
+        if original_db_record:
+            original_db_record.is_cancel = True
+            try:
+                original_db_record.save()
+                logger.info("[MARKUP] Cancelled original record %s", original_db_record.id)
+            except Exception as exc:
+                logger.error("[MARKUP] Error saving cancelled record: %s", exc)
+
+        vat_rate = Decimal("0")
+        if original_db_record and hasattr(original_db_record, "vat_rate"):
+            vat_rate = Decimal(str(original_db_record.vat_rate or "0"))
+
+        new_total_vat = VatService.calculate_vat(
+            float(new_total), float(vat_rate), currency_sign,
+            getattr(self, "product_data", None)
+        )
+
+        new_line_no = (
+            len(self.document_data.get("products", []))
+            + len(self.document_data.get("departments", []))
+            + 1
+        ) if self.document_data else 1
+
+        new_db_id = None
+        if original_db_record:
+            try:
+                new_prod = TransactionProductTemp()
+                for col in original_db_record.__table__.columns.keys():
+                    if hasattr(original_db_record, col):
+                        setattr(new_prod, col, getattr(original_db_record, col))
+                new_prod.id = uuid4()
+                new_prod.line_no = new_line_no
+                new_prod.unit_price = new_unit_price
+                new_prod.total_price = new_total
+                new_prod.total_vat = Decimal(str(new_total_vat))
+                new_prod.unit_discount = Decimal("0")
+                new_prod.is_cancel = False
+                new_prod.is_voided = False
+                new_prod.discount_rate = None
+                if mode == "PERCENT":
+                    new_prod.discount_reason = f"Markup {entered:.2f}%"
+                else:
+                    new_prod.discount_reason = (
+                        f"Markup {entered:.{decimal_places}f} {currency_sign}"
+                    )
+
+                new_prod.save()
+                new_db_id = str(new_prod.id)
+
+                if "products" not in self.document_data:
+                    self.document_data["products"] = []
+                self.document_data["products"].append(new_prod)
+                logger.info("[MARKUP] Saved marked-up record %s, total=%s", new_db_id, new_total)
+
+            except Exception as exc:
+                logger.error("[MARKUP] Error cloning DB record: %s", exc)
+
+        sale_list.add_product(
+            product_name=product_name,
+            quantity=product_qty,
+            unit_price=float(new_unit_price),
+            reference_id=new_db_id or 0,
+            plu_no=last_sales_data.plu_no,
+            department_no=last_sales_data.department_no,
+            transaction_type=last_sales_data.transaction_type,
+        )
+        if new_db_id and sale_list.custom_sales_data_list:
+            sale_list.custom_sales_data_list[-1].reference_id = new_db_id
+
+        if self.document_data and self.document_data.get("head"):
+            head = self.document_data["head"]
+            if isinstance(head, AutoSaveModel):
+                head = head.unwrap()
+            try:
+                totals = SaleService.calculate_document_totals(self.document_data)
+                head.total_amount = totals["total_amount"]
+                head.total_vat_amount = totals["total_vat_amount"]
+                head.save()
+                logger.info(
+                    "[MARKUP] Updated totals: total=%s vat=%s",
+                    head.total_amount, head.total_vat_amount,
+                )
+            except Exception as exc:
+                logger.error("[MARKUP] Error recalculating totals: %s", exc)
+
+            if hasattr(active_window, "amount_table") and active_window.amount_table:
+                try:
+                    SaleService.update_amount_table_from_document(
+                        active_window.amount_table, head
+                    )
+                except Exception as exc:
+                    logger.error("[MARKUP] Error updating amount_table: %s", exc)
+
+        try:
+            from pos.peripherals.hooks import sync_line_display_from_document
+            if self.document_data:
+                sync_line_display_from_document(self, self.document_data)
+        except Exception:
+            pass
+
+        logger.info(
+            "[MARKUP] mode=%s entered=%s markup_amount=%s new_total=%s product='%s'",
+            mode, entered, markup_amount, new_total, product_name,
+        )
+        return True
+
     # ==================== INPUT MODIFICATION EVENTS ====================
     
     def _input_price_event(self, key=None):

@@ -103,9 +103,9 @@ class EventName(enum.Enum):
     CUSTOMER = "CUSTOMER"                           # Customer function
     REFUND = "REFUND"                               # Refund function
     DISCOUNT_BY_AMOUNT = "DISCOUNT_BY_AMOUNT"       # Discount by amount
-    SURCHARGE_BY_AMOUNT = "SURCHARGE_BY_AMOUNT"     # Surcharge by amount
+    MARKUP_BY_AMOUNT = "MARKUP_BY_AMOUNT"           # Markup by amount
     DISCOUNT_BY_PERCENT = "DISCOUNT_BY_PERCENT"     # Discount by percent
-    SURCHARGE_BY_PERCENT = "SURCHARGE_BY_PERCENT"   # Surcharge by percent
+    MARKUP_BY_PERCENT = "MARKUP_BY_PERCENT"         # Markup by percent
     INPUT_PRICE = "INPUT_PRICE"                     # Input price
     INPUT_QUANTITY = "INPUT_QUANTITY"               # Input quantity
     PLU_INQUIRY = "PLU_INQUIRY"                     # PLU: show price and stock by warehouse (no sale)

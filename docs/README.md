@@ -75,7 +75,7 @@ Complete user and developer guide for the SaleFlex.PyPOS point-of-sale applicati
 |-------|----------|
 | First time setup | [Installation Guide](03-installation.md) -> [Configuration](04-configuration.md) -> [First Login](05-first-login.md) |
 | Processing a sale | [Sale Transactions](10-sale-transactions.md) |
-| Applying item discounts (%% or amount) | [Sale Transactions → Item Discounts](10-sale-transactions.md#applying-item-discounts) |
+| Applying item discounts or markups (%, amount) | [Sale Transactions → Item Discounts and Markups](10-sale-transactions.md#applying-item-discounts-and-markups) |
 | End-of-day | [End-of-Day Closure](13-end-of-day-closure.md) |
 | Cashier accounts | [Cashier Management](14-cashier-management.md) |
 | Stock management | [Inventory Management](16-inventory-management.md) |

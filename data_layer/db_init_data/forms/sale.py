@@ -478,33 +478,37 @@ def get_sale_form_controls(sale_form, cashier_id: str) -> list:
     # Discount shortcut buttons — replace the former Milk Chocolate (% discount) and
     # Orange Juice (amount discount) PLU barcode buttons in the top-right corner.
     discount_buttons = [
-        # (name, caption, event, bg_color, y, height, tooltip)
+        # (name, caption1, caption2, fn1, fn2, bg_color, y, height, tooltip)
         (
             "DISCOUNT_PERCENT_BTN",
             "DISC\n%",
+            "MARK\n%",
             EventName.DISCOUNT_BY_PERCENT.value,
+            EventName.MARKUP_BY_PERCENT.value,
             "0x7B1FA2",   # deep purple
             252,
             75,
-            "Apply percentage discount to the last sold item",
+            "Percentage discount on last line (state 1). Alternate: percentage markup 1–100 % (state 2). Use FUNC to switch all dual buttons to markup labels, or tap after a discount to cycle to MARK %.",
         ),
         (
             "DISCOUNT_AMOUNT_BTN",
             "DISC\nAMT",
+            "MARK\nAMT",
             EventName.DISCOUNT_BY_AMOUNT.value,
+            EventName.MARKUP_BY_AMOUNT.value,
             "0xD84315",   # deep orange
             327,
             76,
-            "Apply fixed-amount discount to the last sold item",
+            "Fixed discount on last line (state 1). Alternate: add markup up to line total (state 2). Use FUNC to switch labels, or tap after discount to cycle to MARK AMT.",
         ),
     ]
-    for btn_name, caption, event, bg, y, height, tip in discount_buttons:
+    for btn_name, cap1, cap2, fn1, fn2, bg, y, height, tip in discount_buttons:
         sale_controls.append(FormControl(
             fk_form_id=sale_form.id,
             fk_parent_id=None,
             name=btn_name,
-            form_control_function1=event,
-            form_control_function2=None,
+            form_control_function1=fn1,
+            form_control_function2=fn2,
             type_no=1,
             type="BUTTON",
             width=109,
@@ -512,8 +516,8 @@ def get_sale_form_controls(sale_form, cashier_id: str) -> list:
             location_x=912,
             location_y=y,
             start_position=None,
-            caption1=caption,
-            caption2=None,
+            caption1=cap1,
+            caption2=cap2,
             list_values=None,
             dock=None,
             alignment=None,
