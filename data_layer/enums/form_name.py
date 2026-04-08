@@ -125,5 +125,6 @@ class FormName(enum.Enum):
     STOCK_IN = 33                # Goods receipt (stock-in) form — receive items into SALES_FLOOR.
     STOCK_ADJUSTMENT = 34        # Manual stock adjustment / cycle-count correction form.
     STOCK_MOVEMENT = 35          # Stock movement history form — audit trail per product.
-    CUSTOMER_LIST = 36           # Customer list / search form.
+    CUSTOMER_LIST = 36           # Customer list / search form (accessible from Main Menu).
     CUSTOMER_DETAIL = 37         # Customer detail form (tab view: info + activity history).
+    CUSTOMER_SELECT = 38         # Customer selection form (accessible from SALE form; SELECT button assigns customer and returns to SALE).

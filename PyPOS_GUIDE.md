@@ -106,14 +106,26 @@ See [Product Management](docs/15-product-management.md) for full documentation.
 
 ### Customer Management
 
+#### From the Main Menu
+
 From the **Main Menu**, press **CUSTOMER** (purple button, bottom row) to open the Customer List form.
 
 | Action | How |
 |--------|-----|
 | **Search customers** | Type name, phone or e-mail in the search box — press **SEARCH** |
 | **View & edit customer** | Select a row — press **DETAIL** |
+| **Add new customer** | Press **ADD** (green, bottom-left) — fill in the blank form — press **SAVE** |
 | **Save customer changes** | In Customer Detail — edit fields — press **SAVE** |
 | **Close customer detail** | In Customer Detail — press **BACK** (bottom-right) |
+| **Return to Main Menu** | Press **BACK** (blue, bottom-right of the list) |
+
+#### Assigning a Customer to the Active Sale (from SALE Form)
+
+1. On the **SALE** form, press **FUNC** to activate alternate button functions.
+2. The **SUB TOTAL** button switches to **CUSTOMER**.
+3. Press **CUSTOMER** — the Customer List opens in *sale-assignment context*.
+4. Either select an existing customer (DETAIL) or add a new one (ADD → SAVE).
+5. Press **BACK** — the selected/added customer is linked to the active sale transaction.
 
 **Customer Detail form** shows two tabs:
 
@@ -122,7 +134,7 @@ From the **Main Menu**, press **CUSTOMER** (purple button, bottom row) to open t
 | **Customer Info** | Editable fields: First Name, Last Name, Phone, E-mail, Address lines, Post Code, Description |
 | **Activity History** | Read-only list of the customer's past transactions |
 
-Press **SAVE** (green) to persist changes to the database. Press **BACK** (blue) to close the dialog without saving.
+Press **SAVE** (green) to persist changes or create a new customer. Press **BACK** (blue) to close the dialog without saving.
 
 > **Walk-in Customer:** A special "Walk-in Customer" record is pre-seeded in the database (`is_walkin = True`). All sale transactions that have no customer explicitly assigned are automatically linked to this record. The Walk-in Customer is excluded from the customer list search and cannot be edited.
 
@@ -227,6 +239,8 @@ See [Inventory Management](docs/16-inventory-management.md) for full documentati
 
 **Customer management:** [Customer Management](docs/17-customer-management.md)
 
+**Assign customer to sale (FUNC → CUSTOMER button):** [Customer Management — Sale-Assignment Workflow](docs/17-customer-management.md#sale-assignment-workflow)
+
 **Inventory & stock management:** [Inventory Management](docs/16-inventory-management.md)
 
 **Project architecture:** [Project Structure](docs/20-project-structure.md)
@@ -240,5 +254,5 @@ See [Inventory Management](docs/16-inventory-management.md) for full documentati
 ---
 
 **Last Updated:** 2026-04-08
-**Version:** 1.0.0b6
+**Version:** 1.0.0b7
 **License:** MIT

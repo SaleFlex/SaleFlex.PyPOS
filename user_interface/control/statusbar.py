@@ -170,6 +170,13 @@ class StatusBar(QStatusBar):
         except Exception:
             pass
         
+        # Show active sale customer name
+        try:
+            customer_name = getattr(self.app, 'current_sale_customer_name', None)
+            info_parts.append(customer_name if customer_name else "Walk-in")
+        except Exception:
+            info_parts.append("Walk-in")
+
         # Show pending quantity multiplier (set by X / quantity button)
         try:
             pending_qty = getattr(self.app, 'pending_quantity', 1.0)

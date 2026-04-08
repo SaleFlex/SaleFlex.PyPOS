@@ -33,11 +33,22 @@ class CustomerEvent:
     """
     Event handlers for Customer Management operations.
 
+    Two separate customer list forms are supported:
+      - ``CUSTOMER_LIST``   — opened from the Main Menu; has DETAIL + ADD + BACK buttons.
+      - ``CUSTOMER_SELECT`` — opened from the SALE form (via FUNC → CUSTOMER dual button);
+                              has SELECT + ADD + BACK buttons.  SELECT immediately assigns
+                              the chosen customer to the active sale and returns to SALE.
+
     Provides:
-        _customer_list_form_event  – navigate to the Customer List / search form
-        _customer_search_event     – execute a customer search and populate the datagrid
-        _customer_detail_event     – open the Customer Detail dialog for the selected customer
-        _customer_detail_save_event – save customer info changes from the detail dialog
+        _customer_list_form_event    – navigate to CUSTOMER_LIST (Main Menu) or CUSTOMER_SELECT (SALE)
+        _customer_select_form_event  – navigate directly to CUSTOMER_SELECT (SALE context)
+        _customer_search_event       – execute a customer search (shared by both list forms)
+        _customer_detail_event       – open the Customer Detail dialog for the selected customer
+        _customer_detail_save_event  – save customer info changes from the detail dialog (create or update)
+        _customer_add_event          – open a blank Customer Detail modal to add a new customer
+        _customer_select_event       – assign selected (or last-added) customer to the active sale → SALE
+        _customer_list_back_event    – context-aware BACK (legacy, CUSTOMER_LIST form)
+        _assign_customer_to_sale     – helper: set fk_customer_id on the active TransactionHeadTemp
     """
 
     # ------------------------------------------------------------------ #
@@ -46,7 +57,12 @@ class CustomerEvent:
 
     def _customer_list_form_event(self) -> bool:
         """
-        Navigate to the Customer List form.
+        Navigate to the appropriate customer list form based on context:
+
+        - Called from the **SALE form** → opens ``CUSTOMER_SELECT`` (SELECT + ADD + BACK).
+        - Called from any other form   → opens ``CUSTOMER_LIST``   (DETAIL + ADD + BACK).
+
+        Sets ``_customer_from_sale`` so that subsequent events know the context.
 
         Returns:
             bool: True on success, False if the user is not authenticated.
@@ -55,8 +71,43 @@ class CustomerEvent:
             self._logout_event()
             return False
 
-        self.current_form_type = FormName.CUSTOMER_LIST
-        self.interface.redraw(form_name=FormName.CUSTOMER_LIST.name)
+        # Detect whether we were called from the SALE form
+        self._customer_from_sale = (
+            getattr(self, 'current_form_type', None) == FormName.SALE
+        )
+
+        if self._customer_from_sale:
+            # Reset previous sale-customer selection; the cashier must pick again
+            self.current_sale_customer_id = None
+            logger.info("[CUSTOMER_LIST] Opened from SALE form — routing to CUSTOMER_SELECT")
+            self.current_form_type = FormName.CUSTOMER_SELECT
+            self.interface.redraw(form_name=FormName.CUSTOMER_SELECT.name)
+        else:
+            logger.info("[CUSTOMER_LIST] Opened from non-SALE form — routing to CUSTOMER_LIST")
+            self.current_form_type = FormName.CUSTOMER_LIST
+            self.interface.redraw(form_name=FormName.CUSTOMER_LIST.name)
+
+        return True
+
+    def _customer_select_form_event(self) -> bool:
+        """
+        Navigate directly to the ``CUSTOMER_SELECT`` form (SALE context).
+
+        This is an explicit entry point for ``CUSTOMER_SELECT_FORM`` events so that
+        the SALE form dual button can target it directly if desired.
+
+        Returns:
+            bool: True on success, False if the user is not authenticated.
+        """
+        if not self.login_succeed:
+            self._logout_event()
+            return False
+
+        self._customer_from_sale = True
+        self.current_sale_customer_id = None
+        self.current_form_type = FormName.CUSTOMER_SELECT
+        self.interface.redraw(form_name=FormName.CUSTOMER_SELECT.name)
+        logger.info("[CUSTOMER_SELECT_FORM] Navigated to CUSTOMER_SELECT form")
         return True
 
     # ------------------------------------------------------------------ #
@@ -202,6 +253,17 @@ class CustomerEvent:
 
             # Store for use by DynamicDialog grid-population helpers
             self.current_customer_id = customer_id
+            # Edit mode: allow DynamicDialog to auto-load customer data into panel
+            self._customer_add_mode = False
+
+            # When opened from the SALE form, record this customer as the intended
+            # sale-customer so that BACK on the list will assign them to the transaction.
+            if getattr(self, '_customer_from_sale', False):
+                self.current_sale_customer_id = customer_id
+                logger.info(
+                    "[CUSTOMER_DETAIL] Sale context — pre-selected customer for sale: %s",
+                    customer_id
+                )
 
             # Show the DB-driven CUSTOMER_DETAIL form as a modal dialog
             self.interface.show_modal(form_name=FormName.CUSTOMER_DETAIL.name)
@@ -222,8 +284,13 @@ class CustomerEvent:
         Save customer info changes entered in the CUSTOMER panel of the
         CUSTOMER_DETAIL modal dialog back to the database.
 
-        The CUSTOMER panel contains label/textbox pairs whose textbox names
-        (uppercase) map directly to ``Customer`` model field names (lowercase).
+        Handles two scenarios:
+        - **Update** (``current_customer_id`` is set): updates the existing ``Customer`` record.
+        - **Create** (``current_customer_id`` is None / empty): inserts a new ``Customer`` record.
+
+        When the form was opened from the SALE form (``_customer_from_sale = True``), the
+        saved customer's UUID is stored in ``current_sale_customer_id`` so that the
+        context-aware BACK button on the Customer List can assign it to the active sale.
 
         Returns:
             bool: True if the customer was saved successfully, False otherwise.
@@ -248,68 +315,286 @@ class CustomerEvent:
 
             logger.debug("[CUSTOMER_DETAIL_SAVE] Collected values: %s", list(values.keys()))
 
-            # Determine which customer to update
-            customer_id = getattr(self, 'current_customer_id', None)
-            if not customer_id:
-                logger.error("[CUSTOMER_DETAIL_SAVE] current_customer_id is not set")
-                return False
-
-            from uuid import UUID as _UUID
-            if isinstance(customer_id, str):
-                customer_id = _UUID(customer_id)
-
             from data_layer.model.definition.customer import Customer
             from data_layer.engine import Engine
 
             # Only basic scalar text fields are editable in the info panel
-            _field_types = {
-                'name':           str,
-                'last_name':      str,
-                'phone_number':   str,
-                'email_address':  str,
-                'address_line_1': str,
-                'address_line_2': str,
-                'address_line_3': str,
-                'zip_code':       str,
-                'description':    str,
+            _editable_fields = {
+                'name', 'last_name', 'phone_number', 'email_address',
+                'address_line_1', 'address_line_2', 'address_line_3',
+                'zip_code', 'description',
             }
 
-            engine = Engine()
-            with engine.get_session() as session:
-                customer = session.query(Customer).filter(
-                    Customer.id == customer_id
-                ).first()
+            customer_id = getattr(self, 'current_customer_id', None)
 
-                if not customer:
-                    logger.error("[CUSTOMER_DETAIL_SAVE] Customer not found for id: %s", customer_id)
-                    return False
-
-                if customer.is_walkin:
-                    logger.warning("[CUSTOMER_DETAIL_SAVE] Walk-in customer cannot be edited")
-                    return False
-
-                updated_fields = []
-                for field_name, raw_value in values.items():
-                    if field_name.lower() not in _field_types:
-                        continue
-                    try:
+            if not customer_id:
+                # ── CREATE new customer ──────────────────────────────────
+                engine = Engine()
+                with engine.get_session() as session:
+                    new_customer = Customer(
+                        is_active=True,
+                        is_walkin=False,
+                    )
+                    for field_name, raw_value in values.items():
+                        if field_name.lower() not in _editable_fields:
+                            continue
                         coerced = str(raw_value).strip() if raw_value else None
-                        setattr(customer, field_name.lower(), coerced)
-                        updated_fields.append(field_name)
-                    except (ValueError, TypeError) as exc:
-                        logger.warning(
-                            "[CUSTOMER_DETAIL_SAVE] Could not process field '%s' value '%s': %s",
-                            field_name, raw_value, exc
-                        )
+                        setattr(new_customer, field_name.lower(), coerced)
 
-                session.commit()
-                logger.info(
-                    "[CUSTOMER_DETAIL_SAVE] Customer '%s %s' saved. Fields updated: %s",
-                    customer.name, customer.last_name, updated_fields
-                )
+                    session.add(new_customer)
+                    session.commit()
+                    session.refresh(new_customer)
+
+                    new_id = str(new_customer.id)
+                    self.current_customer_id = new_id
+                    # Leave add mode now that the record exists
+                    self._customer_add_mode = False
+
+                    # If opened from SALE, mark this new customer for assignment
+                    if getattr(self, '_customer_from_sale', False):
+                        self.current_sale_customer_id = new_id
+                        self.current_sale_customer_name = (
+                            new_customer.name or ""
+                        ).strip()
+
+                    logger.info(
+                        "[CUSTOMER_DETAIL_SAVE] New customer created: '%s %s' (id=%s)",
+                        new_customer.name, new_customer.last_name, new_id
+                    )
+            else:
+                # ── UPDATE existing customer ─────────────────────────────
+                from uuid import UUID as _UUID
+                if isinstance(customer_id, str):
+                    customer_id = _UUID(customer_id)
+
+                engine = Engine()
+                with engine.get_session() as session:
+                    customer = session.query(Customer).filter(
+                        Customer.id == customer_id
+                    ).first()
+
+                    if not customer:
+                        logger.error("[CUSTOMER_DETAIL_SAVE] Customer not found for id: %s", customer_id)
+                        return False
+
+                    if customer.is_walkin:
+                        logger.warning("[CUSTOMER_DETAIL_SAVE] Walk-in customer cannot be edited")
+                        return False
+
+                    updated_fields = []
+                    for field_name, raw_value in values.items():
+                        if field_name.lower() not in _editable_fields:
+                            continue
+                        try:
+                            coerced = str(raw_value).strip() if raw_value else None
+                            setattr(customer, field_name.lower(), coerced)
+                            updated_fields.append(field_name)
+                        except (ValueError, TypeError) as exc:
+                            logger.warning(
+                                "[CUSTOMER_DETAIL_SAVE] Could not process field '%s' value '%s': %s",
+                                field_name, raw_value, exc
+                            )
+
+                    session.commit()
+
+                    # If opened from SALE, ensure sale-customer is recorded
+                    if getattr(self, '_customer_from_sale', False):
+                        self.current_sale_customer_id = str(customer_id)
+
+                    logger.info(
+                        "[CUSTOMER_DETAIL_SAVE] Customer '%s %s' updated. Fields: %s",
+                        customer.name, customer.last_name, updated_fields
+                    )
 
             return True
 
         except Exception as exc:
             logger.error("[CUSTOMER_DETAIL_SAVE] Error: %s", exc)
+            return False
+
+    # ------------------------------------------------------------------ #
+    #  SELECT (CUSTOMER_SELECT form — SALE context)                       #
+    # ------------------------------------------------------------------ #
+
+    def _customer_select_event(self) -> bool:
+        """
+        Assign the chosen customer to the active sale transaction and navigate
+        back to the SALE form.
+
+        Selection priority:
+        1. A row highlighted in the ``CUSTOMER_LIST_DATAGRID`` on the current window.
+        2. ``current_sale_customer_id`` — set by ``_customer_add_event`` +
+           ``_customer_detail_save_event`` when a new customer was just created.
+
+        If neither source yields a customer ID the event is a no-op (warning logged).
+
+        Returns:
+            bool: True on success, False if no customer could be identified or an
+                  error occurs.
+        """
+        if not self.login_succeed:
+            return False
+
+        try:
+            customer_id = None
+
+            # Priority 1 — row selected in the datagrid
+            from user_interface.control import DataGrid
+            window = self.interface.window
+            if window:
+                for child in window.children():
+                    if isinstance(child, DataGrid):
+                        name = getattr(child, "name", "")
+                        if name == ControlName.CUSTOMER_LIST_DATAGRID.value:
+                            selected_index = child.get_selected_row_index()
+                            customer_ids = getattr(child, "_customer_ids", [])
+                            if 0 <= selected_index < len(customer_ids):
+                                customer_id = customer_ids[selected_index]
+                            break
+
+            # Priority 2 — customer created via ADD on this form
+            if not customer_id:
+                customer_id = getattr(self, 'current_sale_customer_id', None)
+
+            if not customer_id:
+                logger.warning(
+                    "[CUSTOMER_SELECT] No customer selected and no recently added customer — "
+                    "select a row or press ADD first"
+                )
+                return False
+
+            # Assign customer to sale and navigate back
+            self._assign_customer_to_sale(customer_id)
+            self._customer_from_sale = False
+
+            logger.info("[CUSTOMER_SELECT] Customer %s selected — returning to SALE", customer_id)
+            return self._back_event()
+
+        except Exception as exc:
+            logger.error("[CUSTOMER_SELECT] Error: %s", exc)
+            return False
+
+    # ------------------------------------------------------------------ #
+    #  Add new customer                                                    #
+    # ------------------------------------------------------------------ #
+
+    def _customer_add_event(self) -> bool:
+        """
+        Open the Customer Detail modal dialog with an empty (blank) panel,
+        allowing the cashier to fill in details for a new customer and save.
+
+        Sets ``current_customer_id = None`` so that the SAVE handler knows to
+        create a new ``Customer`` record instead of updating an existing one.
+        Sets ``_customer_add_mode = True`` so that DynamicDialog skips the
+        fallback model-loading step (which would otherwise load the Walk-in
+        Customer and pre-fill the panel).
+
+        Returns:
+            bool: True if the dialog was opened, False on error.
+        """
+        if not self.login_succeed:
+            return False
+
+        # Signal "add" mode: no existing customer; suppress auto-load in DynamicDialog
+        self.current_customer_id = None
+        self._customer_add_mode = True
+
+        self.interface.show_modal(form_name=FormName.CUSTOMER_DETAIL.name)
+        logger.info("[CUSTOMER_ADD] Opened blank Customer Detail modal for new customer")
+        return True
+
+    # ------------------------------------------------------------------ #
+    #  Context-aware BACK from Customer List                               #
+    # ------------------------------------------------------------------ #
+
+    def _customer_list_back_event(self) -> bool:
+        """
+        Context-aware BACK navigation from the Customer List form.
+
+        - **SALE context** (``_customer_from_sale = True``): If a customer was
+          selected or created (``current_sale_customer_id`` is set), the customer
+          is assigned to the active sale transaction's ``TransactionHeadTemp`` record
+          before navigating back to SALE.  If no customer was chosen the form history
+          is still popped and the cashier returns to SALE without any change.
+        - **Main-Menu context**: behaves identically to the generic ``_back_event``.
+
+        Returns:
+            bool: True on successful navigation, False otherwise.
+        """
+        if getattr(self, '_customer_from_sale', False):
+            sale_customer_id = getattr(self, 'current_sale_customer_id', None)
+            if sale_customer_id:
+                self._assign_customer_to_sale(sale_customer_id)
+            else:
+                logger.info(
+                    "[CUSTOMER_LIST_BACK] Sale context but no customer selected — "
+                    "returning to SALE without customer assignment"
+                )
+            # Always clear the SALE context flag when leaving the list
+            self._customer_from_sale = False
+
+        return self._back_event()
+
+    # ------------------------------------------------------------------ #
+    #  Helper                                                              #
+    # ------------------------------------------------------------------ #
+
+    def _assign_customer_to_sale(self, customer_id) -> bool:
+        """
+        Assign the given customer to the active sale transaction.
+
+        Updates ``fk_customer_id`` on the ``TransactionHeadTemp`` record held in
+        ``self.document_data['head']`` and persists the change to the database.
+
+        Args:
+            customer_id: UUID or UUID string of the customer to assign.
+
+        Returns:
+            bool: True on success, False if no active document is present or an
+                  error occurs.
+        """
+        try:
+            if not self.document_data:
+                logger.warning("[ASSIGN_CUSTOMER] No active document — cannot assign customer")
+                return False
+
+            doc = self.document_data
+            if hasattr(doc, 'unwrap'):
+                doc = doc.unwrap()
+
+            head = doc.get('head') if isinstance(doc, dict) else None
+            if head is None:
+                logger.warning("[ASSIGN_CUSTOMER] No 'head' key in document_data")
+                return False
+
+            from data_layer.auto_save import AutoSaveModel
+            head_obj = head.unwrap() if isinstance(head, AutoSaveModel) else head
+
+            from uuid import UUID as _UUID
+            if isinstance(customer_id, str):
+                customer_id = _UUID(customer_id)
+
+            head_obj.fk_customer_id = customer_id
+            if hasattr(head_obj, 'save'):
+                head_obj.save()
+
+            # Update the display name shown in the status bar
+            try:
+                from data_layer.model.definition.customer import Customer as _Customer
+                cust = _Customer.get_by_id(customer_id)
+                if cust:
+                    self.current_sale_customer_name = (cust.name or "").strip() or "Walk-in"
+                else:
+                    self.current_sale_customer_name = "Walk-in"
+            except Exception:
+                self.current_sale_customer_name = "Walk-in"
+
+            logger.info(
+                "[ASSIGN_CUSTOMER] Customer %s (%s) assigned to active sale transaction",
+                customer_id, self.current_sale_customer_name
+            )
+            return True
+
+        except Exception as exc:
+            logger.error("[ASSIGN_CUSTOMER] Error assigning customer to sale: %s", exc)
             return False

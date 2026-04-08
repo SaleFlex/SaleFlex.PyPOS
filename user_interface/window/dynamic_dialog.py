@@ -1063,18 +1063,24 @@ class DynamicDialog(QDialog):
                     except Exception:
                         pass
                 if not model_instance and model_class_name == "Customer":
-                    # Load from current_customer_id for the CUSTOMER panel in CUSTOMER_DETAIL
-                    try:
-                        from uuid import UUID as _UUID
-                        from data_layer.model.definition.customer import Customer as _Customer
-                        customer_id = getattr(self.app, 'current_customer_id', None)
-                        if customer_id:
-                            if isinstance(customer_id, str):
-                                customer_id = _UUID(customer_id)
-                            model_instance = _Customer.get_by_id(customer_id)
-                    except Exception:
-                        pass
-                if not model_instance:
+                    # Load from current_customer_id for the CUSTOMER panel in CUSTOMER_DETAIL.
+                    # Skip entirely when _customer_add_mode is True (ADD button) so the panel
+                    # stays blank and the cashier can fill in fresh data.
+                    if not getattr(self.app, '_customer_add_mode', False):
+                        try:
+                            from uuid import UUID as _UUID
+                            from data_layer.model.definition.customer import Customer as _Customer
+                            customer_id = getattr(self.app, 'current_customer_id', None)
+                            if customer_id:
+                                if isinstance(customer_id, str):
+                                    customer_id = _UUID(customer_id)
+                                model_instance = _Customer.get_by_id(customer_id)
+                        except Exception:
+                            pass
+                if not model_instance and model_class_name != "Customer":
+                    # For non-Customer panels use the generic first-record fallback.
+                    # Customer panels are intentionally excluded to avoid loading Walk-in
+                    # data when no specific customer is selected (e.g., ADD mode).
                     try:
                         import data_layer.model.definition as model_module
                         from data_layer.model.definition import __all__ as model_names
@@ -1148,17 +1154,18 @@ class DynamicDialog(QDialog):
                 except Exception:
                     pass
             if not model_instance and model_class_name == "Customer":
-                try:
-                    from uuid import UUID as _UUID
-                    from data_layer.model.definition.customer import Customer as _Customer
-                    customer_id = getattr(self.app, 'current_customer_id', None)
-                    if customer_id:
-                        if isinstance(customer_id, str):
-                            customer_id = _UUID(customer_id)
-                        model_instance = _Customer.get_by_id(customer_id)
-                except Exception:
-                    pass
-            if not model_instance:
+                if not getattr(self.app, '_customer_add_mode', False):
+                    try:
+                        from uuid import UUID as _UUID
+                        from data_layer.model.definition.customer import Customer as _Customer
+                        customer_id = getattr(self.app, 'current_customer_id', None)
+                        if customer_id:
+                            if isinstance(customer_id, str):
+                                customer_id = _UUID(customer_id)
+                            model_instance = _Customer.get_by_id(customer_id)
+                    except Exception:
+                        pass
+            if not model_instance and model_class_name != "Customer":
                 try:
                     import data_layer.model.definition as model_module
                     from data_layer.model.definition import __all__ as model_names

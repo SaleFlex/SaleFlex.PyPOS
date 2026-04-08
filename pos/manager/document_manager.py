@@ -1,7 +1,7 @@
 """
 SaleFlex.PyPOS - Document Manager Mixin
 
-Copyright (c) 2025 Ferhat Mousavi
+Copyright (c) 2025-2026 Ferhat Mousavi
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -306,7 +306,10 @@ class DocumentManager:
             logger.info("[DEBUG] Created new empty document: %s", transaction_unique_id)
             logger.debug("[DEBUG] Document type: %s, Transaction type: %s, Receipt number: %s", document_type, transaction_type, receipt_number)
             logger.debug("[DEBUG] head.document_type: %s, head.transaction_type: %s, head.receipt_number: %s", head.document_type, head.transaction_type, head.receipt_number)
-            
+
+            # Reset sale-customer display name: new documents always start as Walk-in
+            self.current_sale_customer_name = "Walk-in"
+
             # Update StatusBar if available
             self._update_statusbar()
             
@@ -380,7 +383,20 @@ class DocumentManager:
                 if not incomplete_head:
                     logger.debug("[DEBUG] No incomplete document found")
                     return False
-                
+
+                # Resolve the customer display name for the status bar
+                try:
+                    from data_layer.model import Customer as _Customer
+                    cust = session.query(_Customer).filter(
+                        _Customer.id == incomplete_head.fk_customer_id
+                    ).first()
+                    if cust and not cust.is_walkin:
+                        self.current_sale_customer_name = (cust.name or "").strip() or "Walk-in"
+                    else:
+                        self.current_sale_customer_name = "Walk-in"
+                except Exception:
+                    self.current_sale_customer_name = "Walk-in"
+
                 # Load all related temp models
                 self._load_document_data(incomplete_head.id)
                 

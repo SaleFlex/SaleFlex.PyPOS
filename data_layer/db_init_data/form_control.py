@@ -64,6 +64,7 @@ def _insert_form_controls(session: Session, cashier_id: str):
     stock_movement_form = session.query(Form).filter(Form.form_no == 16).first()
     customer_list_form = session.query(Form).filter(Form.form_no == 17).first()
     customer_detail_form = session.query(Form).filter(Form.form_no == 18).first()
+    customer_select_form = session.query(Form).filter(Form.form_no == 19).first()
 
     if not login_form or not sale_form or not main_menu_form or not config_form or not cashier_form or not closure_form or not suspended_sales_market_form or not product_list_form:
         logger.warning("Forms not found. Cannot insert form controls.")
@@ -1032,12 +1033,16 @@ def _insert_form_controls(session: Session, cashier_id: str):
             fk_cashier_create_id=cashier_id,
             fk_cashier_update_id=cashier_id
         ),
+        # Dual-function SUB TOTAL / CUSTOMER button
+        # Normal state  (caption1/function1): SUB TOTAL — calculate transaction subtotal
+        # Alternate state (caption2/function2): CUSTOMER — open customer list to assign customer to the active sale
+        # The FUNC button toggles between the two states for all dual-function buttons.
         FormControl(
             fk_form_id=sale_form.id,
             fk_parent_id=None,
             name="SUBTOTAL",
             form_control_function1=EventName.SUBTOTAL.value,
-            form_control_function2=None,
+            form_control_function2=EventName.CUSTOMER_LIST_FORM.value,
             type_no=1,
             type="BUTTON",
             width=250,
@@ -1046,7 +1051,7 @@ def _insert_form_controls(session: Session, cashier_id: str):
             location_y=517,
             start_position=None,
             caption1="SUB TOTAL",
-            caption2=None,
+            caption2="CUSTOMER",
             list_values=None,
             dock=None,
             alignment=None,
@@ -1054,7 +1059,7 @@ def _insert_form_controls(session: Session, cashier_id: str):
             character_casing="UPPER",
             font="Tahoma",
             icon=None,
-            tool_tip=None,
+            tool_tip="Calculate subtotal (FUNC: Open customer list to assign customer to sale)",
             image=None,
             image_selected=None,
             font_auto_height=False,
@@ -2856,7 +2861,7 @@ def _insert_form_controls(session: Session, cashier_id: str):
             type_no=9,
             type="DATAGRID",
             width=1000,
-            height=555,
+            height=540,
             location_x=10,
             location_y=75,
             start_position=None,
@@ -2882,6 +2887,7 @@ def _insert_form_controls(session: Session, cashier_id: str):
             fk_cashier_create_id=cashier_id,
             fk_cashier_update_id=cashier_id
         ),
+        # DETAIL button — open Customer Detail modal for the selected customer (bottom-left)
         FormControl(
             fk_form_id=customer_list_form.id,
             fk_parent_id=None,
@@ -2917,11 +2923,48 @@ def _insert_form_controls(session: Session, cashier_id: str):
             fk_cashier_create_id=cashier_id,
             fk_cashier_update_id=cashier_id
         ),
+        # ADD button — open blank Customer Detail modal to create a new customer (bottom-left, next to DETAIL)
         FormControl(
             fk_form_id=customer_list_form.id,
             fk_parent_id=None,
-            name=ControlName.BACK.value,
-            form_control_function1=EventName.BACK.value,
+            name="CUSTOMER_ADD_BTN",
+            form_control_function1=EventName.CUSTOMER_ADD.value,
+            form_control_function2=None,
+            type_no=1,
+            type="BUTTON",
+            width=150,
+            height=65,
+            location_x=175,
+            location_y=650,
+            start_position=None,
+            caption1="ADD",
+            caption2=None,
+            list_values=None,
+            dock=None,
+            alignment=None,
+            text_alignment="CENTER",
+            character_casing="UPPER",
+            font="Tahoma",
+            icon=None,
+            tool_tip="Add a new customer",
+            image=None,
+            image_selected=None,
+            font_auto_height=False,
+            font_size=14,
+            input_type="ALPHANUMERIC",
+            text_image_relation=None,
+            back_color="0x228B22",  # Forest Green
+            fore_color="0xFFFFFF",
+            keyboard_value=None,
+            fk_cashier_create_id=cashier_id,
+            fk_cashier_update_id=cashier_id
+        ),
+        # BACK button — context-aware: returns to SALE (assigning selected customer) or to Main Menu (bottom-right)
+        FormControl(
+            fk_form_id=customer_list_form.id,
+            fk_parent_id=None,
+            name="CUSTOMER_LIST_BACK_BTN",
+            form_control_function1=EventName.CUSTOMER_LIST_BACK.value,
             form_control_function2=None,
             type_no=1,
             type="BUTTON",
@@ -2939,7 +2982,7 @@ def _insert_form_controls(session: Session, cashier_id: str):
             character_casing="UPPER",
             font="Tahoma",
             icon=None,
-            tool_tip="Return to main menu",
+            tool_tip="Return to previous screen (assigns selected customer to sale if opened from SALE form)",
             image=None,
             image_selected=None,
             font_auto_height=False,
@@ -2953,6 +2996,237 @@ def _insert_form_controls(session: Session, cashier_id: str):
             fk_cashier_update_id=cashier_id
         ),
     ]
+
+    # ------------------------------------------------------------------ #
+    #  CUSTOMER_SELECT form controls  (form_no = 19)                     #
+    # ------------------------------------------------------------------ #
+    # Layout (1024 x 768) — identical to CUSTOMER_LIST but with SELECT
+    # instead of DETAIL.  The SELECT button assigns the chosen customer to
+    # the active sale transaction and navigates back to the SALE form.
+    #
+    #   y=10   : Search textbox  (x=10, w=820, h=50)
+    #   y=10   : SEARCH button   (x=840, w=170, h=50)
+    #   y=75   : DataGrid        (x=10, w=1000, h=540)
+    #   y=650  : SELECT button   (x=10, w=150, h=65)   ← bottom-left
+    #   y=650  : ADD button      (x=175, w=150, h=65)  ← bottom-left
+    #   y=650  : BACK button     (x=860, w=150, h=65)  ← bottom-right
+    customer_select_form_controls = []
+    if customer_select_form:
+        customer_select_form_controls = [
+            FormControl(
+                fk_form_id=customer_select_form.id,
+                fk_parent_id=None,
+                name=ControlName.CUSTOMER_SEARCH_TEXTBOX.value,
+                form_control_function1=EventName.NONE.value,
+                form_control_function2=None,
+                type_no=2,
+                type="TEXTBOX",
+                width=820,
+                height=50,
+                location_x=10,
+                location_y=10,
+                start_position=None,
+                caption1="Search by name, phone or e-mail...",
+                caption2=None,
+                list_values=None,
+                dock=None,
+                alignment=None,
+                text_alignment="LEFT",
+                character_casing="NORMAL",
+                font="Tahoma",
+                icon=None,
+                tool_tip="Type customer name, phone number or e-mail to search",
+                image=None,
+                image_selected=None,
+                font_auto_height=False,
+                font_size=14,
+                input_type="ALPHANUMERIC",
+                text_image_relation=None,
+                back_color="0xFFFFFF",
+                fore_color="0x000000",
+                keyboard_value=None,
+                fk_cashier_create_id=cashier_id,
+                fk_cashier_update_id=cashier_id
+            ),
+            FormControl(
+                fk_form_id=customer_select_form.id,
+                fk_parent_id=None,
+                name="CUSTOMER_SELECT_SEARCH_BTN",
+                form_control_function1=EventName.CUSTOMER_SEARCH.value,
+                form_control_function2=None,
+                type_no=1,
+                type="BUTTON",
+                width=170,
+                height=50,
+                location_x=840,
+                location_y=10,
+                start_position=None,
+                caption1="SEARCH",
+                caption2=None,
+                list_values=None,
+                dock=None,
+                alignment=None,
+                text_alignment="CENTER",
+                character_casing="UPPER",
+                font="Tahoma",
+                icon=None,
+                tool_tip="Search customers",
+                image=None,
+                image_selected=None,
+                font_auto_height=False,
+                font_size=14,
+                input_type="ALPHANUMERIC",
+                text_image_relation=None,
+                back_color="0x228B22",
+                fore_color="0xFFFFFF",
+                keyboard_value=None,
+                fk_cashier_create_id=cashier_id,
+                fk_cashier_update_id=cashier_id
+            ),
+            FormControl(
+                fk_form_id=customer_select_form.id,
+                fk_parent_id=None,
+                name=ControlName.CUSTOMER_LIST_DATAGRID.value,
+                form_control_function1=EventName.NONE.value,
+                form_control_function2=None,
+                type_no=9,
+                type="DATAGRID",
+                width=1000,
+                height=540,
+                location_x=10,
+                location_y=75,
+                start_position=None,
+                caption1="Customer List",
+                caption2=None,
+                list_values=None,
+                dock=None,
+                alignment=None,
+                text_alignment="CENTER",
+                character_casing="NORMAL",
+                font="Tahoma",
+                icon=None,
+                tool_tip="Customer search results — select a row then press SELECT",
+                image=None,
+                image_selected=None,
+                font_auto_height=False,
+                font_size=11,
+                input_type="ALPHANUMERIC",
+                text_image_relation=None,
+                back_color="0xFFFFFF",
+                fore_color="0x000000",
+                keyboard_value=None,
+                fk_cashier_create_id=cashier_id,
+                fk_cashier_update_id=cashier_id
+            ),
+            # SELECT button — assign highlighted customer to active sale, return to SALE (bottom-left)
+            FormControl(
+                fk_form_id=customer_select_form.id,
+                fk_parent_id=None,
+                name="CUSTOMER_SELECT_BTN",
+                form_control_function1=EventName.CUSTOMER_SELECT.value,
+                form_control_function2=None,
+                type_no=1,
+                type="BUTTON",
+                width=150,
+                height=65,
+                location_x=10,
+                location_y=650,
+                start_position=None,
+                caption1="SELECT",
+                caption2=None,
+                list_values=None,
+                dock=None,
+                alignment=None,
+                text_alignment="CENTER",
+                character_casing="UPPER",
+                font="Tahoma",
+                icon=None,
+                tool_tip="Assign selected customer to active sale and return to SALE form",
+                image=None,
+                image_selected=None,
+                font_auto_height=False,
+                font_size=14,
+                input_type="ALPHANUMERIC",
+                text_image_relation=None,
+                back_color="0x7D3C98",  # Purple
+                fore_color="0xFFFFFF",
+                keyboard_value=None,
+                fk_cashier_create_id=cashier_id,
+                fk_cashier_update_id=cashier_id
+            ),
+            # ADD button — open blank Customer Detail modal to create a new customer (bottom-left, next to SELECT)
+            FormControl(
+                fk_form_id=customer_select_form.id,
+                fk_parent_id=None,
+                name="CUSTOMER_SELECT_ADD_BTN",
+                form_control_function1=EventName.CUSTOMER_ADD.value,
+                form_control_function2=None,
+                type_no=1,
+                type="BUTTON",
+                width=150,
+                height=65,
+                location_x=175,
+                location_y=650,
+                start_position=None,
+                caption1="ADD",
+                caption2=None,
+                list_values=None,
+                dock=None,
+                alignment=None,
+                text_alignment="CENTER",
+                character_casing="UPPER",
+                font="Tahoma",
+                icon=None,
+                tool_tip="Add a new customer, then press SELECT to assign",
+                image=None,
+                image_selected=None,
+                font_auto_height=False,
+                font_size=14,
+                input_type="ALPHANUMERIC",
+                text_image_relation=None,
+                back_color="0x228B22",  # Forest Green
+                fore_color="0xFFFFFF",
+                keyboard_value=None,
+                fk_cashier_create_id=cashier_id,
+                fk_cashier_update_id=cashier_id
+            ),
+            # BACK button — return to SALE without assigning any customer (bottom-right)
+            FormControl(
+                fk_form_id=customer_select_form.id,
+                fk_parent_id=None,
+                name=ControlName.BACK.value,
+                form_control_function1=EventName.BACK.value,
+                form_control_function2=None,
+                type_no=1,
+                type="BUTTON",
+                width=150,
+                height=65,
+                location_x=860,
+                location_y=650,
+                start_position=None,
+                caption1="BACK",
+                caption2=None,
+                list_values=None,
+                dock=None,
+                alignment=None,
+                text_alignment="CENTER",
+                character_casing="UPPER",
+                font="Tahoma",
+                icon=None,
+                tool_tip="Return to SALE form without assigning a customer",
+                image=None,
+                image_selected=None,
+                font_auto_height=False,
+                font_size=14,
+                input_type="ALPHANUMERIC",
+                text_image_relation=None,
+                back_color="0x4682B4",
+                fore_color="0xFFFFFF",
+                keyboard_value=None,
+                fk_cashier_create_id=cashier_id,
+                fk_cashier_update_id=cashier_id
+            ),
+        ]
 
     # Combine all controls
     all_controls = (
@@ -2969,6 +3243,7 @@ def _insert_form_controls(session: Session, cashier_id: str):
         suspended_sales_market_controls +
         product_list_form_controls +
         customer_list_form_controls +
+        customer_select_form_controls +
         closure_detail_form_controls +
         closure_receipts_form_controls +
         closure_receipt_detail_form_controls

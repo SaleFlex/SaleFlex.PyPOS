@@ -28,7 +28,7 @@ Complete user and developer guide for the SaleFlex.PyPOS point-of-sale applicati
 | 14 | [Cashier Management](14-cashier-management.md) | Create/edit cashiers, role permissions, ADD NEW CASHIER |
 | 15 | [Product Management](15-product-management.md) | Product List search, Product Detail tabbed dialog |
 | 16 | [Inventory Management](16-inventory-management.md) | Stock levels, goods receipt, adjustments, movement history, negative stock policy |
-| 17 | [Customer Management](17-customer-management.md) | Customer List search, Customer Detail tabbed dialog, Walk-in Customer, activity history |
+| 17 | [Customer Management](17-customer-management.md) | Customer List search, ADD new customer, Customer Detail tabbed dialog, Walk-in Customer, activity history, SALE form CUSTOMER dual button, sale-assignment workflow |
 
 ---
 
@@ -78,7 +78,7 @@ Complete user and developer guide for the SaleFlex.PyPOS point-of-sale applicati
 | End-of-day | [End-of-Day Closure](13-end-of-day-closure.md) |
 | Cashier accounts | [Cashier Management](14-cashier-management.md) |
 | Stock management | [Inventory Management](16-inventory-management.md) |
-| Customer management | [Customer Management](17-customer-management.md) |
+| Customer management / sale assignment | [Customer Management](17-customer-management.md) |
 | UI customization | [Dynamic Forms System](22-dynamic-forms-system.md) |
 | Database schema | [Database Models Overview](21-database-models.md) |
 | Event wiring | [Event System](24-event-system.md) |
@@ -92,5 +92,5 @@ Complete user and developer guide for the SaleFlex.PyPOS point-of-sale applicati
 ---
 
 **Last Updated:** 2026-04-08
-**Version:** 1.0.0b6
+**Version:** 1.0.0b7
 **License:** MIT

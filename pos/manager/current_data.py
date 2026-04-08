@@ -151,6 +151,19 @@ class CurrentData(DocumentManager, CacheManager, ClosureManager):
         # Set by _customer_detail_event before opening the modal dialog.
         self.current_customer_id = None
 
+        # Customer-from-sale workflow state.
+        # _customer_from_sale: True when CUSTOMER_LIST was opened via the CUSTOMER button on the SALE form.
+        # current_sale_customer_id: UUID string of the customer to assign to the active sale transaction
+        #   when the cashier navigates back from CUSTOMER_LIST to SALE.
+        # current_sale_customer_name: Display name shown in the status bar for the active sale's customer.
+        #   Defaults to "Walk-in"; updated whenever a customer is assigned or a document is loaded/created.
+        # _customer_add_mode: True while the CUSTOMER_DETAIL modal is open in "create new customer" mode
+        #   (ADD button). Prevents DynamicDialog from auto-loading any existing customer into the panel.
+        self._customer_from_sale = False
+        self.current_sale_customer_id = None
+        self.current_sale_customer_name = "Walk-in"
+        self._customer_add_mode = False
+
         # Transient closure / receipt selection state used by closure sub-forms.
         # current_closure_id: UUID string of the closure selected in the CLOSURE datagrid.
         # current_receipt_id: UUID string of the receipt selected in the CLOSURE_RECEIPTS datagrid.

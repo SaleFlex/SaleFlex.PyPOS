@@ -173,9 +173,13 @@ class EventHandler(GeneralEvent, SaleEvent, PaymentEvent, ConfigurationEvent,
                 EventName.CUSTOMER_FORM.name: self._customer_list_form_event,
                 EventName.CUSTOMER.name: self._customer_list_form_event,
                 EventName.CUSTOMER_LIST_FORM.name: self._customer_list_form_event,
+                EventName.CUSTOMER_SELECT_FORM.name: self._customer_select_form_event,
                 EventName.CUSTOMER_SEARCH.name: self._customer_search_event,
                 EventName.CUSTOMER_DETAIL.name: self._customer_detail_event,
                 EventName.CUSTOMER_DETAIL_SAVE.name: self._customer_detail_save_event,
+                EventName.CUSTOMER_ADD.name: self._customer_add_event,
+                EventName.CUSTOMER_SELECT.name: self._customer_select_event,
+                EventName.CUSTOMER_LIST_BACK.name: self._customer_list_back_event,
                 
                 # Sales Events - From SaleEvent
                 EventName.SALE_DEPARTMENT.name: self._sale_department_event,

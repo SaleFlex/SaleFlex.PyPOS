@@ -1,6 +1,6 @@
 # Customer Management
 
-SaleFlex.PyPOS provides a fully DB-driven Customer Management module accessible from the Main Menu. It covers customer list search, viewing and editing customer details, and browsing each customer's transaction activity history.
+SaleFlex.PyPOS provides a fully DB-driven Customer Management module that is accessible both from the **Main Menu** and directly from the **SALE form**. It covers customer list search, adding new customers, viewing and editing customer details, and browsing each customer's transaction activity history. When accessed from the SALE form, the selected or newly created customer is automatically linked to the active sale transaction.
 
 ---
 
@@ -8,16 +8,40 @@ SaleFlex.PyPOS provides a fully DB-driven Customer Management module accessible 
 
 | Form | Form No | Display Mode | Purpose |
 |------|---------|-------------|---------|
-| `CUSTOMER_LIST` | 17 | MAIN | Search and browse the customer database |
-| `CUSTOMER_DETAIL` | 18 | MODAL | View, edit, and review activity for a selected customer |
+| `CUSTOMER_LIST` | 17 | MAIN | Search and browse the customer database; add new customers |
+| `CUSTOMER_DETAIL` | 18 | MODAL | View, edit, or create a customer record; review activity history |
 
 ---
 
 ## Accessing Customer Management
 
+### From the Main Menu
+
 1. Log in with any cashier account.
 2. From the **Main Menu**, press the **CUSTOMER** button (purple, bottom row).
 3. The **Customer List** form opens.
+
+### From the SALE Form (Assign Customer to a Sale)
+
+1. While on the **SALE** form, press **FUNC** to activate the alternate button functions.
+2. The **SUB TOTAL** button switches to **CUSTOMER**.
+3. Press **CUSTOMER** — the Customer List form opens in *sale-assignment context*.
+4. Search for an existing customer, select a row, and press **DETAIL** (to view/edit), **or** press **ADD** to create a brand-new customer.
+5. Press **BACK** to return to the SALE form.
+   - If a customer was selected via **DETAIL** or saved via **ADD**, they are automatically assigned to the active sale transaction.
+
+---
+
+## SALE Form — CUSTOMER Dual Button
+
+The **SUB TOTAL** button on the SALE form is a **dual-function** button:
+
+| State | Caption | Function | Trigger |
+|-------|---------|----------|---------|
+| Normal | `SUB TOTAL` | Calculate transaction subtotal | Default |
+| Alternate | `CUSTOMER` | Open Customer List to assign a customer | After pressing **FUNC** |
+
+Pressing **FUNC** toggles all dual-function buttons on the SALE form between their normal and alternate states.
 
 ---
 
@@ -34,19 +58,20 @@ SaleFlex.PyPOS provides a fully DB-driven Customer Management module accessible 
 │ │ ...        │ ...       │ ...            │ ...    │ ...         │  │
 │ └─────────────────────────────────────────────────────────────────┘  │
 │                                                                      │
-│ [DETAIL]                                              [BACK]         │
+│ [DETAIL]  [ADD]                                        [BACK]        │
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Controls
 
-| Control | Type | Function |
-|---------|------|----------|
-| Search textbox | TextBox | Enter search query (name, phone, e-mail) |
-| **SEARCH** | Button (green) | Execute search — populates the DataGrid |
-| DataGrid | DataGrid | Displays matching customers |
-| **DETAIL** | Button (purple) | Open Customer Detail for selected row |
-| **BACK** | Button (blue) | Return to Main Menu |
+| Control | Type | Position | Function |
+|---------|------|----------|----------|
+| Search textbox | TextBox | Top | Enter search query (name, phone, e-mail) |
+| **SEARCH** | Button (green) | Top-right | Execute search — populates the DataGrid |
+| DataGrid | DataGrid | Centre | Displays matching customers |
+| **DETAIL** | Button (purple) | Bottom-left | Open Customer Detail for selected row |
+| **ADD** | Button (green) | Bottom-left (next to DETAIL) | Open blank Customer Detail to create a new customer |
+| **BACK** | Button (blue) | Bottom-right | Return to previous form (assigns selected/added customer to sale when in sale-assignment context) |
 
 ### Search Behaviour
 
@@ -59,7 +84,10 @@ SaleFlex.PyPOS provides a fully DB-driven Customer Management module accessible 
 
 ## Customer Detail Form (Modal)
 
-Pressing **DETAIL** with a row selected opens the `CUSTOMER_DETAIL` modal dialog.
+Pressing **DETAIL** (with a row selected) or **ADD** opens the `CUSTOMER_DETAIL` modal dialog.
+
+- **DETAIL mode**: The panel is pre-populated with the selected customer's data (edit mode).
+- **ADD mode**: The panel is blank (create mode). The SAVE button creates a new `Customer` record.
 
 ### Tab 0 — Customer Info
 
@@ -77,7 +105,7 @@ Editable fields displayed as label + textbox pairs inside a `CUSTOMER` panel:
 | Post Code | Postal / ZIP code |
 | Description | Free-text notes |
 
-Press **SAVE** (green, bottom) to write changes to the database.
+Press **SAVE** (green, bottom) to write changes or create the record in the database.
 
 > Walk-in Customer cannot be edited — SAVE is blocked when `is_walkin = True`.
 
@@ -89,8 +117,32 @@ A read-only DataGrid listing the customer's past transactions (receipts / invoic
 
 | Button | Position | Action |
 |--------|----------|--------|
-| **SAVE** | Bottom-left (green) | Persist Customer Info panel changes |
+| **SAVE** | Bottom-left (green) | Persist Customer Info panel changes, or create a new customer |
 | **BACK** | Bottom-right (blue) | Close the dialog (discards unsaved changes) |
+
+---
+
+## Sale-Assignment Workflow
+
+When the Customer List is opened from the SALE form via the **CUSTOMER** dual button:
+
+```
+SALE form
+  └─ [FUNC] → CUSTOMER button appears
+       └─ [CUSTOMER] ──► CUSTOMER_LIST (sale-assignment context)
+                              ├─ [DETAIL] ──► CUSTOMER_DETAIL (modal, edit mode)
+                              │                   └─ [BACK] ──► CUSTOMER_LIST
+                              ├─ [ADD]    ──► CUSTOMER_DETAIL (modal, add mode)
+                              │                   └─ [SAVE]  → new customer created
+                              │                   └─ [BACK] ──► CUSTOMER_LIST
+                              └─ [BACK]  ──► SALE (customer assigned to transaction)
+```
+
+**Assignment rules:**
+- If the cashier pressed **DETAIL** on a row, that customer is marked as the selected sale-customer.
+- If the cashier pressed **ADD** and saved a new customer, the new customer is marked as the selected sale-customer.
+- On **BACK** from Customer List (in sale-assignment context), the marked customer's UUID is written to `TransactionHeadTemp.fk_customer_id` and saved to the database.
+- If neither **DETAIL** nor **ADD** was used, the cashier returns to SALE with no customer assigned (the Walk-in Customer placeholder retains the transaction).
 
 ---
 
@@ -111,7 +163,7 @@ A special customer record is seeded at database initialisation:
 
 ## Database Model — Customer
 
-Key fields added or relevant to this module:
+Key fields relevant to this module:
 
 | Column | Type | Notes |
 |--------|------|-------|
@@ -141,12 +193,14 @@ Key fields added or relevant to this module:
 
 | Event | Handler Method | Description |
 |-------|---------------|-------------|
-| `CUSTOMER_LIST_FORM` | `_customer_list_form_event` | Navigate to Customer List |
+| `CUSTOMER_LIST_FORM` | `_customer_list_form_event` | Navigate to Customer List; sets sale-context flag if called from SALE |
 | `CUSTOMER_FORM` | `_customer_list_form_event` | Legacy alias — same as above |
 | `CUSTOMER` | `_customer_list_form_event` | Legacy alias |
 | `CUSTOMER_SEARCH` | `_customer_search_event` | Execute search, populate DataGrid |
-| `CUSTOMER_DETAIL` | `_customer_detail_event` | Open Customer Detail modal |
-| `CUSTOMER_DETAIL_SAVE` | `_customer_detail_save_event` | Save Customer Info panel to DB |
+| `CUSTOMER_DETAIL` | `_customer_detail_event` | Open Customer Detail modal (edit mode) |
+| `CUSTOMER_DETAIL_SAVE` | `_customer_detail_save_event` | Save Customer Info panel (create or update) |
+| `CUSTOMER_ADD` | `_customer_add_event` | Open blank Customer Detail modal (add mode) |
+| `CUSTOMER_LIST_BACK` | `_customer_list_back_event` | Context-aware BACK: assign customer to sale if in sale-context, then navigate back |
 
 All handlers are defined in `pos/manager/event/customer.py` (`CustomerEvent` mixin class) and registered in `pos/manager/event_handler.py`.
 
@@ -186,13 +240,36 @@ Sample data is only inserted once (skipped if any Customer rows already exist).
 
 ## Form Navigation Flow
 
+### From Main Menu
+
 ```
 MAIN_MENU
   └─ [CUSTOMER] ──► CUSTOMER_LIST
-                        └─ [DETAIL] ──► CUSTOMER_DETAIL (modal)
-                                            └─ [BACK] ──► CUSTOMER_LIST
+                        ├─ [DETAIL] ──► CUSTOMER_DETAIL (modal)
+                        │                   └─ [BACK] ──► CUSTOMER_LIST
+                        ├─ [ADD]    ──► CUSTOMER_DETAIL (modal, blank)
+                        │                   └─ [SAVE / BACK] ──► CUSTOMER_LIST
                         └─ [BACK]  ──► MAIN_MENU
 ```
+
+### From SALE Form (Sale-Assignment Context)
+
+```
+SALE
+  └─ [FUNC → CUSTOMER] ──► CUSTOMER_LIST (sale-assignment context active)
+                                ├─ [DETAIL] ──► CUSTOMER_DETAIL (modal, edit mode)
+                                │                   └─ [BACK] ──► CUSTOMER_LIST
+                                ├─ [ADD]    ──► CUSTOMER_DETAIL (modal, add mode)
+                                │                   └─ [SAVE]  → new customer created & selected
+                                │                   └─ [BACK] ──► CUSTOMER_LIST
+                                └─ [BACK]  ──► SALE (selected/added customer assigned to transaction)
+```
+
+---
+
+## Database Reset Note
+
+> **Important:** The Customer List ADD button and the SALE form CUSTOMER dual button are defined in the database-driven form control initialization. If you are upgrading an existing installation, **delete `db.sqlite3`** and restart the application so the new form controls are seeded correctly.
 
 ---
 
@@ -202,9 +279,10 @@ MAIN_MENU
 - [Database Models Overview](21-database-models.md) — Customer, CustomerLoyalty, CustomerSegment models
 - [Event System](24-event-system.md) — CustomerEvent handler class
 - [Database Initialization](33-database-initialization.md) — `_insert_customers()` seed function
+- [Sale Transactions](10-sale-transactions.md) — SALE form NumPad modes and dual-function buttons
 
 ---
 
 **Last Updated:** 2026-04-08  
-**Version:** 1.0.0b6  
+**Version:** 1.0.0b7  
 **License:** MIT

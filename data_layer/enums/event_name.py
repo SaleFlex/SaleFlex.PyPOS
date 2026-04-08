@@ -228,3 +228,7 @@ class EventName(enum.Enum):
     CUSTOMER_SEARCH = "CUSTOMER_SEARCH"            # Execute customer search from search textbox
     CUSTOMER_DETAIL = "CUSTOMER_DETAIL"            # Open customer detail dialog for selected customer
     CUSTOMER_DETAIL_SAVE = "CUSTOMER_DETAIL_SAVE"  # Save customer info changes from customer detail dialog
+    CUSTOMER_ADD = "CUSTOMER_ADD"                  # Open blank customer detail form to add a new customer
+    CUSTOMER_LIST_BACK = "CUSTOMER_LIST_BACK"      # Context-aware BACK from customer list; assigns selected/added customer to the active sale when opened from SALE form
+    CUSTOMER_SELECT = "CUSTOMER_SELECT"            # Select highlighted customer from CUSTOMER_SELECT form, assign to active sale, and return to SALE form
+    CUSTOMER_SELECT_FORM = "CUSTOMER_SELECT_FORM"  # Navigate to CUSTOMER_SELECT form (used by SALE form's CUSTOMER dual button)
