@@ -23,8 +23,8 @@ SOFTWARE.
 """
 
 from PySide6.QtWidgets import QPushButton
-from PySide6.QtGui import QFont, QFontMetrics
-from PySide6.QtCore import QEvent, Qt
+from PySide6.QtGui import QFont, QFontMetrics, QPainter, QColor
+from PySide6.QtCore import QEvent, Qt, QRect
 
 
 class Button(QPushButton):
@@ -38,6 +38,14 @@ class Button(QPushButton):
         # Set NoFocus policy to prevent stealing focus from widgets like NumPad
         # This ensures keyboard input continues to work on focused controls
         self.setFocusPolicy(Qt.NoFocus)
+
+        # Dual-function state: active when both caption2 and function2 are configured
+        self._is_dual_function = False
+        self._dual_caption1 = None
+        self._dual_caption2 = None
+        self._dual_handler1 = None
+        self._dual_handler2 = None
+        self._dual_state = 1  # 1 = caption1/function1 active, 2 = caption2/function2 active
         
     def setText(self, text):
         """Override setText to auto-adjust font size and wrap text"""
@@ -122,6 +130,81 @@ class Button(QPushButton):
         # Set text directly to avoid recursion
         QPushButton.setText(self, final_text)
 
+    def setup_dual_function(self, caption1, caption2, handler1, handler2):
+        """Configure the button for dual-function (toggle) mode.
+
+        When enabled, each click alternates between (caption1, handler1) and
+        (caption2, handler2).  A small 'F' badge is drawn in the top-right
+        corner to indicate that the button has two functions.
+
+        Args:
+            caption1 (str): Label shown while function 1 is active.
+            caption2 (str): Label shown while function 2 is active.
+            handler1 (callable): Called when the button is in state 1.
+            handler2 (callable): Called when the button is in state 2.
+        """
+        self._is_dual_function = True
+        self._dual_caption1 = caption1
+        self._dual_caption2 = caption2
+        self._dual_handler1 = handler1
+        self._dual_handler2 = handler2
+        self._dual_state = 1
+        self.setText(caption1)
+        self.clicked.connect(self._handle_dual_click)
+
+    def _handle_dual_click(self):
+        """Execute the active function and toggle to the other state."""
+        if self._dual_state == 1:
+            if self._dual_handler1:
+                self._dual_handler1()
+            self._dual_state = 2
+            self.setText(self._dual_caption2)
+        else:
+            if self._dual_handler2:
+                self._dual_handler2()
+            self._dual_state = 1
+            self.setText(self._dual_caption1)
+        self.update()
+
+    def toggle_state(self):
+        """Switch to the other state without calling any event handler.
+
+        Called by the FUNC button to flip all dual-function buttons on the form
+        between their normal (state 1) and alternate (state 2) appearance.
+        Has no effect on buttons that are not in dual-function mode.
+        """
+        if not self._is_dual_function:
+            return
+        if self._dual_state == 1:
+            self._dual_state = 2
+            self.setText(self._dual_caption2)
+        else:
+            self._dual_state = 1
+            self.setText(self._dual_caption1)
+        self.update()
+
+    def paintEvent(self, event):
+        """Draw the button and, for dual-function buttons, a small 'F' badge."""
+        super().paintEvent(event)
+        if not self._is_dual_function:
+            return
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        badge_size = 13
+        margin = 3
+        x = self.width() - badge_size - margin
+        y = margin
+        # Semi-transparent dark circle background
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(QColor(0, 0, 0, 140))
+        painter.drawEllipse(x, y, badge_size, badge_size)
+        # White "F" label
+        indicator_font = QFont(self._font_name, 7, QFont.Bold)
+        painter.setFont(indicator_font)
+        painter.setPen(QColor(255, 255, 255))
+        painter.drawText(QRect(x, y, badge_size, badge_size), Qt.AlignCenter, "F")
+        painter.end()
+
     def event(self, event):
         """Prevent tooltips from showing for this control"""
         if event.type() == QEvent.ToolTip:
@@ -186,6 +269,12 @@ class Button(QPushButton):
         return (r << 16) | (g << 8) | b
 
     def set_event(self, function):
-        # Connect the clicked signal to the provided function
+        """Connect clicked signal to *function*.
+
+        Skipped for dual-function buttons because their click handling is
+        managed internally by :meth:`_handle_dual_click`.
+        """
+        if self._is_dual_function:
+            return
         self.clicked.connect(function)
 

@@ -4,9 +4,20 @@ The **SUSPEND** feature lets you park the current cart and start a new sale imme
 
 ---
 
-## The SUSPEND Button
+## The SUSPEND Button (dual-function)
 
-The **SUSPEND** button appears on the SALE screen, in the same button row as **PLU** and **X**, aligned under the denomination buttons.
+The **SUSPEND** button (`PAYMENT_SUSPEND`) appears on the SALE screen at the bottom-right of the action button area. It is a **dual-function button** with two states controlled by the **FUNC** button:
+
+| State | Label shown | Event dispatched | How to activate |
+|-------|-------------|-----------------|-----------------|
+| 1 — normal | **SUSPEND** | `SUSPEND_SALE` | Default / press **FUNC** again |
+| 2 — alternate | **CANCEL** | `CANCEL_DOCUMENT` | Press **FUNC** first |
+
+A small **"F"** badge in the top-right corner of the button indicates dual-function mode.
+
+**FUNC button:** Pressing **FUNC** (Steel Blue button to the left of CHANGE) flips all dual-function buttons on the SALE form between their normal and alternate functions. Press **FUNC** a second time to return to normal.
+
+> For the full dual-function button specification see [UI Controls — Dual-Function Buttons](23-ui-controls.md#dual-function-toggle-buttons) and [UI Controls — FUNC Button](23-ui-controls.md#func-button--global-function-mode-toggle).
 
 ### Behaviour at a Glance
 

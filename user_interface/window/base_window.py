@@ -47,6 +47,10 @@ class BaseWindow(QMainWindow):
         # blocks mouse events on the upper portion of the window).
         self.keyboard.hide()
 
+        # Dual-function button registry — populated during draw_window
+        self._dual_function_buttons = []
+        self._func_mode_active = False
+
         # Set window icon from settings
         self._set_window_icon()
 
@@ -80,6 +84,8 @@ class BaseWindow(QMainWindow):
         self._panels = {}
         self._tab_controls = {}
         self._tab_pages = {}   # str(tab_id) → QWidget (tab page)
+        self._dual_function_buttons = []
+        self._func_mode_active = False
 
         for control_design_data in design:
             if control_design_data["type"] == "textbox":
@@ -322,16 +328,39 @@ class BaseWindow(QMainWindow):
         button.control_name = button_name  # Store control name for SALE_PLU_CODE handling
         
         function_name = design_data.get("function")
+        function2_name = design_data.get("function2")
+        caption2 = design_data.get("caption2")
         event_handler = self.app.event_distributor(function_name)
-        
-        if event_handler:
+
+        # Special event categories that pass the button object to the handler
+        payment_events = ["CASH_PAYMENT", "CREDIT_PAYMENT", "CHECK_PAYMENT", "EXCHANGE_PAYMENT",
+                         "PREPAID_PAYMENT", "CHARGE_SALE_PAYMENT", "OTHER_PAYMENT", "CHANGE_PAYMENT"]
+        sale_events = ["SALE_PLU_CODE", "SALE_PLU_BARCODE", "SALE_DEPARTMENT"]
+        quantity_events = ["INPUT_QUANTITY", "PLU_INQUIRY"]
+
+        # Dual-function mode: requires function2, caption2, and function1 must not be a
+        # sale/PLU event (those buttons derive their text from product data, not caption1)
+        is_dual_function = (
+            bool(function2_name) and bool(caption2)
+            and function_name not in sale_events
+        )
+
+        if is_dual_function:
+            handler2 = self.app.event_distributor(function2_name)
+            caption1 = design_data.get("caption", "")
+            button.setup_dual_function(caption1, caption2, event_handler, handler2)
+            self._dual_function_buttons.append(button)
+        elif button_name == "FUNC":
+            # FUNC is a mode-toggle button: each press flips all dual-function buttons
+            # on this form between their normal (state 1) and alternate (state 2) labels.
+            def _func_click(checked=False, win=self):
+                win._func_mode_active = not win._func_mode_active
+                for btn in win._dual_function_buttons:
+                    btn.toggle_state()
+            button.clicked.connect(_func_click)
+        elif event_handler:
             # Special handling for sale and payment events: pass button object to handler
             # Use default parameter to avoid closure issues
-            payment_events = ["CASH_PAYMENT", "CREDIT_PAYMENT", "CHECK_PAYMENT", "EXCHANGE_PAYMENT", 
-                             "PREPAID_PAYMENT", "CHARGE_SALE_PAYMENT", "OTHER_PAYMENT", "CHANGE_PAYMENT"]
-            sale_events = ["SALE_PLU_CODE", "SALE_PLU_BARCODE", "SALE_DEPARTMENT"]
-            # INPUT_QUANTITY (X) and PLU_INQUIRY need the button to find the NumPad widget
-            quantity_events = ["INPUT_QUANTITY", "PLU_INQUIRY"]
             if function_name in sale_events or function_name in payment_events or function_name in quantity_events:
                 button.clicked.connect(lambda checked=False, btn=button: event_handler(btn))
             else:

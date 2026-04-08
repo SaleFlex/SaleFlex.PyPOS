@@ -847,12 +847,12 @@ def _insert_form_controls(session: Session, cashier_id: str):
             fk_cashier_create_id=cashier_id,
             fk_cashier_update_id=cashier_id
         ),
-        # CANCEL document button — same row/height as PLU, X, and SUSPEND buttons
+        # CHANGE payment button — placed where CANCEL used to be
         FormControl(
             fk_form_id=sale_form.id,
             fk_parent_id=None,
-            name="CANCEL_DOCUMENT",
-            form_control_function1=EventName.CANCEL_DOCUMENT.value,
+            name="CHANGE",
+            form_control_function1=EventName.CHANGE_PAYMENT.value,
             form_control_function2=None,
             type_no=1,
             type="BUTTON",
@@ -861,7 +861,7 @@ def _insert_form_controls(session: Session, cashier_id: str):
             location_x=251,
             location_y=652,
             start_position=None,
-            caption1="CANCEL",
+            caption1="CHANGE",
             caption2=None,
             list_values=None,
             dock=None,
@@ -870,15 +870,15 @@ def _insert_form_controls(session: Session, cashier_id: str):
             character_casing="UPPER",
             font="Tahoma",
             icon=None,
-            tool_tip="Cancel the current transaction",
+            tool_tip="Calculate and record change amount",
             image=None,
             image_selected=None,
             font_auto_height=False,
             font_size=14,
             input_type="ALPHANUMERIC",
             text_image_relation=None,
-            back_color="0xDC143C",  # Crimson
-            fore_color="0xFFFFFF",
+            back_color="0x87CEEB",  # Sky Blue
+            fore_color="0x000000",
             keyboard_value=None,
             fk_cashier_create_id=cashier_id,
             fk_cashier_update_id=cashier_id
@@ -953,12 +953,16 @@ def _insert_form_controls(session: Session, cashier_id: str):
             fk_cashier_create_id=cashier_id,
             fk_cashier_update_id=cashier_id
         ),
+        # Dual-function SUSPEND/CANCEL button
+        # Normal state  (caption1/function1): SUSPEND — suspend the current sale
+        # Alternate state (caption2/function2): CANCEL  — cancel the current document
+        # The FUNC button toggles between the two states for all dual-function buttons.
         FormControl(
             fk_form_id=sale_form.id,
             fk_parent_id=None,
             name="PAYMENT_SUSPEND",
             form_control_function1=EventName.SUSPEND_SALE.value,
-            form_control_function2=None,
+            form_control_function2=EventName.CANCEL_DOCUMENT.value,
             type_no=1,
             type="BUTTON",
             width=150,
@@ -967,7 +971,7 @@ def _insert_form_controls(session: Session, cashier_id: str):
             location_y=652,
             start_position=None,
             caption1="SUSPEND",
-            caption2=None,
+            caption2="CANCEL",
             list_values=None,
             dock=None,
             alignment=None,
@@ -975,7 +979,7 @@ def _insert_form_controls(session: Session, cashier_id: str):
             character_casing="UPPER",
             font="Tahoma",
             icon=None,
-            tool_tip="Suspend current sale or open suspended receipts list",
+            tool_tip="Suspend current sale (FUNC: Cancel document)",
             image=None,
             image_selected=None,
             font_auto_height=False,
@@ -988,11 +992,14 @@ def _insert_form_controls(session: Session, cashier_id: str):
             fk_cashier_create_id=cashier_id,
             fk_cashier_update_id=cashier_id
         ),
+        # FUNC mode-toggle button — pressing this switches all dual-function buttons
+        # on the form between their first (normal) and second (alternate) function.
+        # This button has no event of its own; it is handled specially by the renderer.
         FormControl(
             fk_form_id=sale_form.id,
             fk_parent_id=None,
-            name="CHANGE",
-            form_control_function1=EventName.CHANGE_PAYMENT.value,
+            name="FUNC",
+            form_control_function1=None,
             form_control_function2=None,
             type_no=1,
             type="BUTTON",
@@ -1001,7 +1008,7 @@ def _insert_form_controls(session: Session, cashier_id: str):
             location_x=126,
             location_y=630,
             start_position=None,
-            caption1="Change",
+            caption1="FUNC",
             caption2=None,
             list_values=None,
             dock=None,
@@ -1010,15 +1017,15 @@ def _insert_form_controls(session: Session, cashier_id: str):
             character_casing="UPPER",
             font="Tahoma",
             icon=None,
-            tool_tip=None,
+            tool_tip="Switch dual-function buttons to their alternate function",
             image=None,
             image_selected=None,
             font_auto_height=False,
-            font_size=12,
+            font_size=14,
             input_type="ALPHANUMERIC",
             text_image_relation=None,
-            back_color=None,
-            fore_color=None,
+            back_color="0x4682B4",  # Steel Blue
+            fore_color="0xFFFFFF",
             keyboard_value=None,
             fk_cashier_create_id=cashier_id,
             fk_cashier_update_id=cashier_id

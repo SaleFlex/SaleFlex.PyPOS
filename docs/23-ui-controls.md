@@ -18,6 +18,54 @@ All custom Qt widgets live under `user_interface/control/`. They extend standard
 
 **FormControl `type` value:** `"button"` or `"BUTTON"`
 
+#### Dual-Function (Toggle) Buttons
+
+A button becomes a **dual-function button** when both `form_control_function2` and `caption2` are set in the `FormControl` record **and** `form_control_function1` is not a sale/PLU event (`SALE_PLU_CODE`, `SALE_PLU_BARCODE`, `SALE_DEPARTMENT` — those buttons derive their label from product data and cannot toggle).
+
+| DB field | Role |
+|----------|------|
+| `form_control_function1` | Event called when the button is in **state 1** (normal) |
+| `caption1` | Label shown in state 1 |
+| `form_control_function2` | Event called when the button is in **state 2** (alternate) |
+| `caption2` | Label shown in state 2 |
+
+**Behaviour on each click:**
+1. The event for the *current* state is dispatched.
+2. The button toggles to the other state and its label changes to the corresponding caption.
+
+**Visual indicator:** A small circular **"F"** badge is drawn in the top-right corner of every dual-function button so operators can immediately identify them at a glance.
+
+**Examples in the default SALE form:**
+
+| Button name | State 1 (normal) | State 2 (alternate) |
+|-------------|-----------------|---------------------|
+| `PAYMENT_SUSPEND` | `SUSPEND` → `SUSPEND_SALE` | `CANCEL` → `CANCEL_DOCUMENT` |
+
+**Limitation:** Dual-function mode is not available for buttons whose `form_control_function1` is a sale or PLU event, because the renderer overwrites `caption1` with the product name from the database.
+
+---
+
+#### FUNC Button — Global Function-Mode Toggle
+
+The **FUNC** button (`name="FUNC"`) is a special mode-toggle control. It has no event of its own. Instead, each press switches **all dual-function buttons** on the current form between their normal state (state 1, `caption1`) and alternate state (state 2, `caption2`).
+
+| Press | Effect |
+|-------|--------|
+| 1st press | All dual-function buttons flip to **state 2** (show `caption2`) |
+| 2nd press | All dual-function buttons flip back to **state 1** (show `caption1`) |
+
+This design allows operators to access alternate functions (e.g. CANCEL instead of SUSPEND) without requiring a separate button for each.
+
+**FormControl configuration for the FUNC button:**
+
+| DB field | Value |
+|----------|-------|
+| `name` | `FUNC` |
+| `form_control_function1` | `NULL` |
+| `form_control_function2` | `NULL` |
+| `caption1` | `FUNC` |
+| `caption2` | `NULL` |
+
 ---
 
 ### Label (`control/label.py`)

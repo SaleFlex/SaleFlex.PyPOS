@@ -130,6 +130,21 @@ Tapping any row in the sale list opens an **Item Actions** popup:
 
 ---
 
+## SALE Form — Action Buttons (lower area)
+
+| Button | Name | Normal state | Alternate state (FUNC active) |
+|--------|------|-------------|-------------------------------|
+| **FUNC** | `FUNC` | Switches all dual-function buttons to alternate state | Switches them back to normal |
+| **CHANGE** | `CHANGE` | Records change given to the customer (`CHANGE_PAYMENT`) | — |
+| **SUSPEND** *(dual)* | `PAYMENT_SUSPEND` | `SUSPEND` → `SUSPEND_SALE` | `CANCEL` → `CANCEL_DOCUMENT` |
+
+- **FUNC** is a mode-toggle button. It has no event of its own. Pressing it flips all dual-function buttons between their normal (`caption1`) and alternate (`caption2`) state.
+- **SUSPEND** carries a small **"F"** badge in its top-right corner indicating it is a dual-function button.
+
+> See [UI Controls — Dual-Function Buttons](23-ui-controls.md#dual-function-toggle-buttons) and [UI Controls — FUNC Button](23-ui-controls.md#func-button--global-function-mode-toggle) for the full mechanism.
+
+---
+
 ## Payment Types
 
 | Button naming convention | Behaviour |
