@@ -160,17 +160,36 @@ class DynamicFormRenderer:
         parent_controls = {}       # control.id  → FormControl (parents only)
         tab_lookup_by_ctrl = {}    # str(tabcontrol_id) → {str(tab_id): tab_info_dict}
 
-        # First pass: parent controls
+        # First pass – two sub-passes so that tab lookup is complete before panels run.
+        # Sub-pass 1: TABCONTROL only – builds tab_lookup_by_ctrl
         for control in self.controls:
-            if control.type.lower() in ['panel', 'tabcontrol', 'toolbar', 'statusbar']:
+            if control.type.lower() == 'tabcontrol':
                 design_dict = self._convert_control_to_design(control)
                 if design_dict:
-                    if control.type.lower() == 'tabcontrol':
-                        tabs = self._load_tabs_for_control(control.id)
-                        design_dict['tabs'] = tabs
-                        tab_lookup_by_ctrl[str(control.id)] = {
-                            t['id']: t for t in tabs
-                        }
+                    tabs = self._load_tabs_for_control(control.id)
+                    design_dict['tabs'] = tabs
+                    tab_lookup_by_ctrl[str(control.id)] = {
+                        t['id']: t for t in tabs
+                    }
+                    design_list.append(design_dict)
+                    parent_controls[control.id] = control
+
+        # Sub-pass 2: PANEL, TOOLBAR, STATUSBAR
+        # A PANEL that is a direct child of a TABCONTROL gets tab_id injected so
+        # _create_panel can parent it to the correct tab-page QWidget.
+        for control in self.controls:
+            if control.type.lower() in ['panel', 'toolbar', 'statusbar']:
+                design_dict = self._convert_control_to_design(control)
+                if design_dict:
+                    if (control.type.lower() == 'panel'
+                            and control.fk_parent_id
+                            and control.fk_tab_id):
+                        parent = self._find_control_by_id(control.fk_parent_id)
+                        if parent and parent.type.lower() == 'tabcontrol':
+                            tab_map = tab_lookup_by_ctrl.get(str(parent.id), {})
+                            tab_info = tab_map.get(str(control.fk_tab_id))
+                            if tab_info:
+                                design_dict['tab_id'] = tab_info['id']
                     design_list.append(design_dict)
                     parent_controls[control.id] = control
 

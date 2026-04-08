@@ -1,7 +1,7 @@
 """
 SaleFlex.PyPOS - Point of Sale Application
 
-Copyright (c) 2025 Ferhat Mousavi
+Copyright (c) 2025-2026 Ferhat Mousavi
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -326,6 +326,7 @@ class EventHandler(GeneralEvent, SaleEvent, PaymentEvent, ConfigurationEvent,
                 EventName.PRODUCT_LIST_FORM.name: self._product_list_form_event,
                 EventName.PRODUCT_SEARCH.name: self._product_search_event,
                 EventName.PRODUCT_DETAIL.name: self._product_detail_event,
+                EventName.PRODUCT_DETAIL_SAVE.name: self._product_detail_save_event,
             }
             
             # Try to find the event handler in the dictionary

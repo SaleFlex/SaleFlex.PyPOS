@@ -1023,6 +1023,18 @@ class DynamicDialog(QDialog):
                     model_instance = getattr(self.app, cache_attr_name)
                     if model_instance and hasattr(model_instance, 'unwrap'):
                         model_instance = model_instance.unwrap()
+                if not model_instance and model_class_name == "Product":
+                    # Load from current_product_id for the PRODUCT panel in PRODUCT_DETAIL
+                    try:
+                        from uuid import UUID as _UUID
+                        from data_layer.model.definition.product import Product as _Product
+                        product_id = getattr(self.app, 'current_product_id', None)
+                        if product_id:
+                            if isinstance(product_id, str):
+                                product_id = _UUID(product_id)
+                            model_instance = _Product.get_by_id(product_id)
+                    except Exception:
+                        pass
                 if not model_instance:
                     try:
                         import data_layer.model.definition as model_module
@@ -1085,6 +1097,17 @@ class DynamicDialog(QDialog):
                 model_instance = getattr(self.app, cache_attr_name)
                 if model_instance and hasattr(model_instance, 'unwrap'):
                     model_instance = model_instance.unwrap()
+            if not model_instance and model_class_name == "Product":
+                try:
+                    from uuid import UUID as _UUID
+                    from data_layer.model.definition.product import Product as _Product
+                    product_id = getattr(self.app, 'current_product_id', None)
+                    if product_id:
+                        if isinstance(product_id, str):
+                            product_id = _UUID(product_id)
+                        model_instance = _Product.get_by_id(product_id)
+                except Exception:
+                    pass
             if not model_instance:
                 try:
                     import data_layer.model.definition as model_module
@@ -1294,7 +1317,12 @@ class DynamicDialog(QDialog):
     def _create_panel(self, design_data):
         """
         Create a Panel control with scrollbar support.
-        
+
+        If ``design_data`` contains a ``tab_id`` key the panel is parented to
+        the matching tab-page ``QWidget`` (looked up in ``self._tab_pages``) and
+        added to its layout so it fills the tab area.  Otherwise the panel is
+        parented directly to this dialog.
+
         Args:
             design_data (dict): Design specifications for the panel
         """
@@ -1302,9 +1330,17 @@ class DynamicDialog(QDialog):
         height = design_data.get("height", 600)
         background_color = design_data.get("background_color", 0xFFFFFF)
         foreground_color = design_data.get("foreground_color", 0x000000)
-        
+
+        # Resolve parent: tab page or dialog
+        parent_widget = self
+        tab_id = design_data.get("tab_id")
+        if tab_id and hasattr(self, "_tab_pages"):
+            tab_page = self._tab_pages.get(tab_id)
+            if tab_page:
+                parent_widget = tab_page
+
         panel = Panel(
-            self,
+            parent_widget,
             width=width,
             height=height,
             location_x=design_data.get("location_x", 0),
@@ -1312,12 +1348,17 @@ class DynamicDialog(QDialog):
             background_color=background_color,
             foreground_color=foreground_color
         )
-        
+
         if "name" in design_data:
             panel.name = design_data["name"]
             if not hasattr(self, '_panels'):
                 self._panels = {}
             self._panels[design_data["name"]] = panel
-        
+
+        # If parented to a tab page that has a layout, add panel to it so it
+        # stretches to fill the tab content area automatically.
+        if parent_widget is not self and parent_widget.layout() is not None:
+            parent_widget.layout().addWidget(panel)
+
         panel.show()
 

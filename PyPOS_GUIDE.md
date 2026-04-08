@@ -78,6 +78,32 @@ CLOSURE → CLOSURE_RECEIPTS → CLOSURE_RECEIPT_DETAIL [BACK → CLOSURE_RECEIP
 CLOSURE_RECEIPTS [BACK → CLOSURE]
 ```
 
+### Product Management
+
+From the **Main Menu**, press **PRODUCTS** to open the Product List form.
+
+| Action | How |
+|--------|-----|
+| **Search products** | Type name or short name in the search box — press **SEARCH** |
+| **View & edit product** | Select a row — press **DETAIL** |
+| **Save product changes** | In Product Detail — edit fields — press **SAVE** |
+| **Return to product list** | In Product Detail — press **BACK** (bottom-right) |
+
+**Product Detail form** shows four tabs:
+
+| Tab | Content |
+|-----|---------|
+| **Product Info** | Editable fields: Code, Name, Short Name, Sale Price, Purchase Price, Stock, Min Stock, Max Stock, Description |
+| **Barcodes** | Read-only list of assigned barcodes |
+| **Attributes** | Read-only list of custom product attributes |
+| **Variants** | Read-only list of product variants (colour, size, etc.) |
+
+Press **SAVE** (green, bottom-left) to persist changes to the database. Press **BACK** (blue, bottom-right) to close the dialog without saving.
+
+See [Product Management](docs/15-product-management.md) for full documentation.
+
+---
+
 ### Inventory Management (Stock)
 
 From the **Product List** screen, press the **STOCK** button (dark-blue, bottom row) to enter the Inventory Management module.
@@ -184,6 +210,6 @@ See [Inventory Management](docs/16-inventory-management.md) for full documentati
 
 ---
 
-**Last Updated:** 2026-04-07
+**Last Updated:** 2026-04-08
 **Version:** 1.0.0b6
 **License:** MIT

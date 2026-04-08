@@ -2771,11 +2771,14 @@ def _insert_form_controls(session: Session, cashier_id: str):
                 control.fk_parent_id = cashier_panel_control.id
 
     # ------------------------------------------------------------------ #
-    # PRODUCT_DETAIL form: TABCONTROL + FormControlTab pages + DATAGRIDs  #
+    # PRODUCT_DETAIL form: TABCONTROL + FormControlTab pages              #
+    # Tab 0 (Product Info): PANEL with label/textbox pairs (editable)     #
+    # Tabs 1-3: DATAGRIDs for barcodes, attributes, variants              #
+    # SAVE + BACK buttons at bottom (outside tabs)                        #
     # These must be inserted after the first flush so UUIDs are available. #
     # ------------------------------------------------------------------ #
     if product_detail_form:
-        # 1. Create the TABCONTROL that fills most of the 1000×720 dialog
+        # 1. Create the TABCONTROL that fills most of the 1004×694 dialog area
         pd_tab_control = FormControl(
             fk_form_id=product_detail_form.id,
             fk_parent_id=None,
@@ -2820,9 +2823,119 @@ def _insert_form_controls(session: Session, cashier_id: str):
             tab_records.append(tab_rec)
         session.flush()  # obtain tab UUIDs
 
-        # 3. Create one full-size DATAGRID per tab page
+        # 3a. Create PANEL named "PRODUCT" inside Tab 0 (Product Info)
+        #     Panel name "PRODUCT" maps to the Product model for data loading.
+        #     fk_parent_id = pd_tab_control.id  →  renderer sees it as a tab-child panel
+        #     fk_tab_id    = tab_records[0].id  →  places panel inside tab page 0
+        product_panel = FormControl(
+            fk_form_id=product_detail_form.id,
+            fk_parent_id=pd_tab_control.id,
+            fk_tab_id=tab_records[0].id,
+            name="PRODUCT",
+            type_no=10,
+            type="PANEL",
+            width=980,
+            height=500,
+            location_x=0,
+            location_y=0,
+            back_color="0x1C2833",
+            fore_color="0xECF0F1",
+            font_size=12,
+            tool_tip="Product information panel",
+            is_visible=True,
+            fk_cashier_create_id=cashier_id,
+            fk_cashier_update_id=cashier_id,
+        )
+        session.add(product_panel)
+        session.flush()  # obtain product_panel.id for child controls
+
+        # 3b. Create label/textbox pairs inside the PRODUCT panel
+        #     Field names (lowercase) must match Product model attributes exactly.
+        #     Control names (uppercase) are used by _create_textbox to load field values.
+        product_info_fields = [
+            ("Code",           "code",           "ALPHANUMERIC"),
+            ("Name",           "name",           "ALPHANUMERIC"),
+            ("Short Name",     "short_name",     "ALPHANUMERIC"),
+            ("Sale Price",     "sale_price",     "NUMERIC"),
+            ("Purchase Price", "purchase_price", "NUMERIC"),
+            ("Stock",          "stock",          "NUMERIC"),
+            ("Min Stock",      "min_stock",      "NUMERIC"),
+            ("Max Stock",      "max_stock",      "NUMERIC"),
+            ("Description",    "description",    "ALPHANUMERIC"),
+        ]
+
+        _pd_label_width  = 200
+        _pd_field_width  = 560
+        _pd_ctrl_height  = 40
+        _pd_spacing      = 10
+        _pd_row_height   = _pd_ctrl_height + _pd_spacing
+        _pd_start_y      = 20
+
+        product_panel_controls = []
+        for i, (lbl_text, field_name, input_type) in enumerate(product_info_fields):
+            y_pos = _pd_start_y + (i * _pd_row_height)
+
+            label_ctrl = FormControl(
+                fk_form_id=product_detail_form.id,
+                fk_parent_id=product_panel.id,
+                parent_name="PRODUCT",
+                name=f"LBL_{field_name.upper()}",
+                form_control_function1=EventName.NONE.value,
+                form_control_function2=None,
+                type_no=8,
+                type="LABEL",
+                width=_pd_label_width,
+                height=_pd_ctrl_height,
+                location_x=10,
+                location_y=y_pos,
+                caption1=lbl_text + ":",
+                text_alignment="RIGHT",
+                character_casing="NORMAL",
+                font="Tahoma",
+                font_auto_height=False,
+                font_size=12,
+                back_color=None,
+                fore_color="0xECF0F1",
+                is_visible=True,
+                fk_cashier_create_id=cashier_id,
+                fk_cashier_update_id=cashier_id,
+            )
+            product_panel_controls.append(label_ctrl)
+
+            field_ctrl = FormControl(
+                fk_form_id=product_detail_form.id,
+                fk_parent_id=product_panel.id,
+                parent_name="PRODUCT",
+                name=field_name.upper(),
+                form_control_function1=EventName.NONE.value,
+                form_control_function2=None,
+                type_no=2,
+                type="TEXTBOX",
+                width=_pd_field_width,
+                height=_pd_ctrl_height,
+                location_x=_pd_label_width + 20,
+                location_y=y_pos,
+                caption1="",
+                text_alignment="LEFT",
+                character_casing="NORMAL",
+                font="Tahoma",
+                font_auto_height=False,
+                font_size=12,
+                input_type=input_type,
+                tool_tip=f"Enter {lbl_text.lower()}",
+                back_color="0xFFFFFF",
+                fore_color="0x000000",
+                is_visible=True,
+                fk_cashier_create_id=cashier_id,
+                fk_cashier_update_id=cashier_id,
+            )
+            product_panel_controls.append(field_ctrl)
+
+        for ctrl in product_panel_controls:
+            session.add(ctrl)
+
+        # 3c. Create DATAGRIDs for tabs 1, 2, 3 (Barcodes, Attributes, Variants)
         _grid_defs = [
-            (ControlName.PRODUCT_INFO_GRID.value,      tab_records[0], "Product / unit / manufacturer info"),
             (ControlName.PRODUCT_BARCODE_GRID.value,   tab_records[1], "Product barcodes"),
             (ControlName.PRODUCT_ATTRIBUTE_GRID.value, tab_records[2], "Product attributes"),
             (ControlName.PRODUCT_VARIANT_GRID.value,   tab_records[3], "Product variants"),
@@ -2849,32 +2962,59 @@ def _insert_form_controls(session: Session, cashier_id: str):
             )
             session.add(grid_ctrl)
 
-        # 4. CLOSE button at the bottom of the dialog (not inside any tab)
-        close_btn = FormControl(
+        # 4. SAVE button — saves changes from the PRODUCT panel to the database
+        save_detail_btn = FormControl(
             fk_form_id=product_detail_form.id,
             fk_parent_id=None,
-            name="CLOSE_DETAIL",
+            name="SAVE_DETAIL",
+            form_control_function1=EventName.PRODUCT_DETAIL_SAVE.value,
+            type_no=1,
+            type="BUTTON",
+            width=150,
+            height=48,
+            location_x=680,
+            location_y=710,
+            caption1="SAVE",
+            text_alignment="CENTER",
+            character_casing="UPPER",
+            font="Tahoma",
+            font_auto_height=False,
+            font_size=14,
+            tool_tip="Save product changes",
+            back_color="0x228B22",
+            fore_color="0xFFFFFF",
+            is_visible=True,
+            fk_cashier_create_id=cashier_id,
+            fk_cashier_update_id=cashier_id,
+        )
+        session.add(save_detail_btn)
+
+        # 5. BACK button — closes the dialog (right side, no data loss)
+        back_detail_btn = FormControl(
+            fk_form_id=product_detail_form.id,
+            fk_parent_id=None,
+            name="BACK_DETAIL",
             form_control_function1="CLOSE_FORM",
             type_no=1,
             type="BUTTON",
-            width=160,
+            width=150,
             height=48,
-            location_x=432,
-            location_y=712,
-            caption1="CLOSE",
+            location_x=840,
+            location_y=710,
+            caption1="BACK",
             text_alignment="CENTER",
             character_casing="UPPER",
             font="Tahoma",
             font_auto_height=False,
             font_size=14,
             tool_tip="Close this dialog",
-            back_color="0x922B21",
+            back_color="0x4682B4",
             fore_color="0xFFFFFF",
             is_visible=True,
             fk_cashier_create_id=cashier_id,
             fk_cashier_update_id=cashier_id,
         )
-        session.add(close_btn)
+        session.add(back_detail_btn)
         session.flush()
 
     # ------------------------------------------------------------------ #

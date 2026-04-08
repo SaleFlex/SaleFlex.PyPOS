@@ -8,7 +8,7 @@ product management:
 | Form | FormName enum | form_no | Type | Purpose |
 |------|---------------|---------|------|---------|
 | Product List | `PRODUCT_LIST` | 8 | Full-screen form | Search products and open detail |
-| Product Detail | `PRODUCT_DETAIL` | 9 | Modal dialog (`DynamicDialog`) | Read-only tabbed detail view |
+| Product Detail | `PRODUCT_DETAIL` | 9 | Modal dialog (`DynamicDialog`) | Editable tabbed view with SAVE |
 
 Both forms are rendered by `DynamicFormRenderer` from records in
 `form.py` / `form_control.py`.  No static Python form classes are
@@ -133,55 +133,88 @@ This column uses `use_alter=True` to resolve the circular FK between
 **Form no:** 9  
 **Renderer:** `DynamicDialog` (DB-driven modal dialog, 1024 × 768)
 
-The Product Detail form is fully database-driven.  Its controls are
-defined in `form_control.py` and rendered at runtime by
-`DynamicFormRenderer` + `DynamicDialog`.
+The Product Detail form is fully database-driven and **editable**.
+Its controls are defined in `form_control.py` and rendered at runtime
+by `DynamicFormRenderer` + `DynamicDialog`.
 
 ### Controls
 
 | Control | Type | Description |
 |---------|------|-------------|
 | `PRODUCT_DETAIL_TAB` | TABCONTROL | x=10, y=10, 1004 × 694 — four tabs |
-| `PRODUCT_INFO_GRID` | DATAGRID | Tab 0 — Product Info |
-| `PRODUCT_BARCODE_GRID` | DATAGRID | Tab 1 — Barcodes |
-| `PRODUCT_ATTRIBUTE_GRID` | DATAGRID | Tab 2 — Attributes |
-| `PRODUCT_VARIANT_GRID` | DATAGRID | Tab 3 — Variants |
-| `CLOSE_DETAIL` | BUTTON | x=432, y=712, 160 × 48 — closes dialog |
+| `PRODUCT` | PANEL | Tab 0 — editable product info (scrollable) |
+| `PRODUCT_BARCODE_GRID` | DATAGRID | Tab 1 — Barcodes (read-only) |
+| `PRODUCT_ATTRIBUTE_GRID` | DATAGRID | Tab 2 — Attributes (read-only) |
+| `PRODUCT_VARIANT_GRID` | DATAGRID | Tab 3 — Variants (read-only) |
+| `SAVE_DETAIL` | BUTTON | x=680, y=720, 150 × 48 — saves product info |
+| `BACK_DETAIL` | BUTTON | x=840, y=720, 150 × 48 — closes dialog |
 
-Each DataGrid is parented to its tab page via a `QVBoxLayout`, so it
-automatically fills the available tab content area.
+The `PRODUCT` panel is a `Panel` (QScrollArea) child of the TABCONTROL
+placed inside tab page 0. DATAGRIDs for tabs 1–3 continue to use
+`QVBoxLayout` so they fill the tab content area.
 
-### Tab 0 — Product Info
+### Tab 0 — Product Info (editable)
 
-Key/value DataGrid (two columns: **Field**, **Value**).  
-Rows come from three tables:
+The first tab hosts a scrollable **PANEL** named `"PRODUCT"`.
+The panel contains label/textbox pairs styled identically to the
+SETTING form (`FormName.SETTING`). Textbox names (uppercase) map
+directly to `Product` model attributes (lowercase):
 
-| Field | Source |
-|-------|--------|
-| Code, Name, Short Name | `product` |
-| Sale Price, Purchase Price | `product` |
-| Stock, Min Stock, Max Stock | `product` |
-| Unit | `product_unit` (via `fk_product_unit_id`) |
-| Manufacturer | `product_manufacturer` (via `fk_manufacturer_id`) |
+| Label | Textbox name | Model field | Type |
+|-------|-------------|-------------|------|
+| Code: | `CODE` | `product.code` | str |
+| Name: | `NAME` | `product.name` | str |
+| Short Name: | `SHORT_NAME` | `product.short_name` | str |
+| Sale Price: | `SALE_PRICE` | `product.sale_price` | float |
+| Purchase Price: | `PURCHASE_PRICE` | `product.purchase_price` | float |
+| Stock: | `STOCK` | `product.stock` | int |
+| Min Stock: | `MIN_STOCK` | `product.min_stock` | int |
+| Max Stock: | `MAX_STOCK` | `product.max_stock` | int |
+| Description: | `DESCRIPTION` | `product.description` | str |
 
-### Tab 1 — Barcodes
+Field values are loaded automatically when `DynamicDialog._create_textbox`
+detects that the parent panel name is `"PRODUCT"` and loads the product
+via `app.current_product_id`.
+
+### Tab 1 — Barcodes (read-only)
 
 Columns: **Barcode**, **Old Barcode**, **Purchase Price**, **Sale Price**
 
 Source: `product_barcode` rows where `fk_product_id` matches the
 selected product.
 
-### Tab 2 — Attributes
+### Tab 2 — Attributes (read-only)
 
 Columns: **Attribute**, **Value**, **Category**, **Unit**
 
 Source: `product_attribute` rows sorted by `display_order`.
 
-### Tab 3 — Variants
+### Tab 3 — Variants (read-only)
 
 Columns: **Name**, **Code**, **Color**, **Size**, **Additional Info**
 
 Source: `product_variant` rows for the selected product.
+
+### SAVE button
+
+Pressing **SAVE** fires `EventName.PRODUCT_DETAIL_SAVE` →
+`ProductEvent._product_detail_save_event()`.
+
+The handler:
+1. Retrieves the active modal dialog from `interface.active_dialogs[-1]`.
+2. Calls `dialog.get_panel_textbox_values("PRODUCT")` to read all textbox values.
+3. Loads the `Product` record from the database by `current_product_id`.
+4. Applies type coercion (`str`, `float`, `int`) for each known field.
+5. Commits the session and logs the updated fields.
+
+Only scalar fields listed in the table above are written. FK references
+(unit, manufacturer) are not modified by this form.
+
+### BACK button
+
+`BACK_DETAIL` has `form_control_function1 = "CLOSE_FORM"` so pressing it
+closes the modal dialog via `dialog.accept()` — placed in the
+**bottom-right corner** following the application button convention.
 
 ---
 
@@ -239,9 +272,10 @@ PRODUCT_DETAIL = 28   # Product detail modal dialog
 ### EventName
 
 ```python
-PRODUCT_LIST_FORM = "PRODUCT_LIST_FORM"  # Navigate to product list
-PRODUCT_SEARCH    = "PRODUCT_SEARCH"     # Execute search
-PRODUCT_DETAIL    = "PRODUCT_DETAIL"     # Open detail dialog
+PRODUCT_LIST_FORM    = "PRODUCT_LIST_FORM"     # Navigate to product list
+PRODUCT_SEARCH       = "PRODUCT_SEARCH"        # Execute search
+PRODUCT_DETAIL       = "PRODUCT_DETAIL"        # Open detail dialog
+PRODUCT_DETAIL_SAVE  = "PRODUCT_DETAIL_SAVE"   # Save product info from detail dialog
 ```
 
 ### ControlName
@@ -268,6 +302,7 @@ PRODUCT_VARIANT_GRID    = "PRODUCT_VARIANT_GRID"
 | `_product_list_form_event()` | Navigate to Product List form |
 | `_product_search_event()` | Query DB and populate DataGrid |
 | `_product_detail_event()` | Store `current_product_id` and open modal |
+| `_product_detail_save_event()` | Read PRODUCT panel values and save to DB |
 
 `ProductEvent` is mixed into `EventHandler` alongside the existing
 event classes.
@@ -289,7 +324,7 @@ inside `DynamicDialog`.
 | File | Change |
 |------|--------|
 | `data_layer/db_init_data/form.py` | Added form_no=8 (`PRODUCT_LIST`), form_no=9 (`PRODUCT_DETAIL`, 1024×768) |
-| `data_layer/db_init_data/form_control.py` | Product List controls (5); Product Detail TABCONTROL + 4 × FormControlTab + 4 × DATAGRID + CLOSE button; PRODUCTS nav button on Main Menu |
+| `data_layer/db_init_data/form_control.py` | Product List controls (5); Product Detail TABCONTROL + 4 × FormControlTab + PANEL(PRODUCT) + label/textbox pairs + 3 × DATAGRID + SAVE + BACK; PRODUCTS nav button on Main Menu |
 
 > **Note:** After adding these changes, delete the existing database
 > (`db.sqlite3`) and restart so `_insert_default_forms` and
@@ -316,9 +351,9 @@ inside `DynamicDialog`.
 | `pos/manager/event/__init__.py` | Modified | Exports `ProductEvent` |
 | `pos/manager/event_handler.py` | Modified | Inherits `ProductEvent`; maps events |
 | `pos/manager/current_data.py` | Modified | Added `current_product_id` (transient) |
-| `user_interface/render/dynamic_renderer.py` | Modified | Handles `TABCONTROL` type + `FormControlTab` loading |
+| `user_interface/render/dynamic_renderer.py` | Modified | Two-sub-pass first pass: TABCONTROL first, then PANEL with tab_id injection |
 | `user_interface/window/base_window.py` | Modified | `_create_tab_control()` (QVBoxLayout pages), `keyboard.hide()`, `_get_current_product()` + populate helpers |
-| `user_interface/window/dynamic_dialog.py` | Modified | Same as `base_window.py`; also `keyboard.hide()` |
+| `user_interface/window/dynamic_dialog.py` | Modified | `_create_panel` tab-parenting; `_create_textbox`/`_create_checkbox` Product model loading from `current_product_id` |
 
 ---
 

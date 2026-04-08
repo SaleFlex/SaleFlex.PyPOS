@@ -1,7 +1,7 @@
 """
 SaleFlex.PyPOS - Point of Sale Application
 
-Copyright (c) 2025 Ferhat Mousavi
+Copyright (c) 2025-2026 Ferhat Mousavi
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -221,3 +221,4 @@ class EventName(enum.Enum):
     PRODUCT_LIST_FORM = "PRODUCT_LIST_FORM"        # Navigate to product list / search form
     PRODUCT_SEARCH = "PRODUCT_SEARCH"              # Execute product search from search textbox
     PRODUCT_DETAIL = "PRODUCT_DETAIL"              # Open product detail dialog for selected product
+    PRODUCT_DETAIL_SAVE = "PRODUCT_DETAIL_SAVE"    # Save product info changes from product detail dialog

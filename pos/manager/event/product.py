@@ -22,7 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-from data_layer.enums import FormName, ControlName
+from data_layer.enums import FormName, ControlName, EventName
 
 from core.logger import get_logger
 
@@ -207,4 +207,108 @@ class ProductEvent:
 
         except Exception as exc:
             logger.error("[PRODUCT_DETAIL] Error: %s", exc)
+            return False
+
+    # ------------------------------------------------------------------ #
+    #  Save                                                                #
+    # ------------------------------------------------------------------ #
+
+    def _product_detail_save_event(self) -> bool:
+        """
+        Save product info changes entered in the PRODUCT panel of the
+        PRODUCT_DETAIL modal dialog back to the database.
+
+        The PRODUCT panel contains label/textbox pairs whose textbox names
+        (uppercase) map directly to ``Product`` model field names (lowercase).
+        Only basic scalar fields (code, name, short_name, sale_price,
+        purchase_price, stock, min_stock, max_stock, description) are written;
+        FK references (unit, manufacturer) are not modified here.
+
+        Returns:
+            bool: True if the product was saved successfully, False otherwise.
+        """
+        if not self.login_succeed:
+            return False
+
+        try:
+            # Retrieve the active modal dialog (PRODUCT_DETAIL is a modal)
+            active_dialogs = getattr(self.interface, 'active_dialogs', [])
+            if not active_dialogs:
+                logger.error("[PRODUCT_DETAIL_SAVE] No active dialog found")
+                return False
+
+            dialog = active_dialogs[-1]
+
+            # Read all textbox values from the PRODUCT panel
+            values = dialog.get_panel_textbox_values("PRODUCT")
+            if not values:
+                logger.warning("[PRODUCT_DETAIL_SAVE] No values found in PRODUCT panel")
+                return False
+
+            logger.debug("[PRODUCT_DETAIL_SAVE] Collected values: %s", list(values.keys()))
+
+            # Determine which product to update
+            product_id = getattr(self, 'current_product_id', None)
+            if not product_id:
+                logger.error("[PRODUCT_DETAIL_SAVE] current_product_id is not set")
+                return False
+
+            from uuid import UUID as _UUID
+            if isinstance(product_id, str):
+                product_id = _UUID(product_id)
+
+            from data_layer.model.definition.product import Product
+            from data_layer.engine import Engine
+
+            # Field type coercion map — only scalar editable fields
+            _field_types = {
+                'code':           str,
+                'name':           str,
+                'short_name':     str,
+                'description':    str,
+                'sale_price':     float,
+                'purchase_price': float,
+                'stock':          int,
+                'min_stock':      int,
+                'max_stock':      int,
+            }
+
+            engine = Engine()
+            with engine.get_session() as session:
+                product = session.query(Product).filter(
+                    Product.id == product_id
+                ).first()
+
+                if not product:
+                    logger.error("[PRODUCT_DETAIL_SAVE] Product not found for id: %s", product_id)
+                    return False
+
+                updated_fields = []
+                for field_name, raw_value in values.items():
+                    if field_name not in _field_types:
+                        continue
+                    try:
+                        conv = _field_types[field_name]
+                        if raw_value == '' or raw_value is None:
+                            coerced = None
+                        else:
+                            coerced = conv(raw_value)
+                        setattr(product, field_name, coerced)
+                        updated_fields.append(field_name)
+                    except (ValueError, TypeError) as exc:
+                        logger.warning(
+                            "[PRODUCT_DETAIL_SAVE] Could not convert field '%s' value '%s': %s",
+                            field_name, raw_value, exc
+                        )
+
+                session.commit()
+                logger.info(
+                    "[PRODUCT_DETAIL_SAVE] Product '%s' saved. Fields updated: %s",
+                    product.name, updated_fields
+                )
+
+            return True
+
+        except Exception as exc:
+            logger.error("[PRODUCT_DETAIL_SAVE] Error: %s", exc)
             return False
