@@ -422,7 +422,7 @@ def get_sale_form_controls(sale_form, cashier_id: str) -> list:
             fk_cashier_update_id=cashier_id,
         ))
 
-    # Product barcode shortcut buttons (grid of 14 buttons)
+    # Product barcode shortcut buttons (grid of 12 buttons – two rightmost replaced by discount buttons)
     product_barcode_buttons = [
         ("PLU5000157070008", 252, 252),
         ("PLU7622210449283", 362, 252),
@@ -430,14 +430,12 @@ def get_sale_form_controls(sale_form, cashier_id: str) -> list:
         ("PLU8711200334532", 582, 252),
         ("PLU5449000000996", 692, 252),
         ("PLU0746817004304", 802, 252),
-        ("PLU7622210700394", 912, 252),
         ("PLU5000328355037", 252, 327),
         ("PLU5000157077916", 362, 327),
         ("PLU5010044003089", 472, 327),   # product 13 – Warburtons Sliced White Bread
         ("PLU5740900802725", 582, 327),   # product 14 – Lurpak Butter Spreadable
         ("PLU8001090390021", 692, 327),
         ("PLU8714100852703", 802, 327),
-        ("PLU5000171054815", 912, 327),
     ]
     for plu_name, x, y in product_barcode_buttons:
         height = 75 if y == 252 else 76
@@ -472,6 +470,66 @@ def get_sale_form_controls(sale_form, cashier_id: str) -> list:
             text_image_relation=None,
             back_color="0xFFB6C1",  # Light Pink
             fore_color="0x000000",
+            keyboard_value=None,
+            fk_cashier_create_id=cashier_id,
+            fk_cashier_update_id=cashier_id,
+        ))
+
+    # Discount shortcut buttons — replace the former Milk Chocolate (% discount) and
+    # Orange Juice (amount discount) PLU barcode buttons in the top-right corner.
+    discount_buttons = [
+        # (name, caption, event, bg_color, y, height, tooltip)
+        (
+            "DISCOUNT_PERCENT_BTN",
+            "DISC\n%",
+            EventName.DISCOUNT_BY_PERCENT.value,
+            "0x7B1FA2",   # deep purple
+            252,
+            75,
+            "Apply percentage discount to the last sold item",
+        ),
+        (
+            "DISCOUNT_AMOUNT_BTN",
+            "DISC\nAMT",
+            EventName.DISCOUNT_BY_AMOUNT.value,
+            "0xD84315",   # deep orange
+            327,
+            76,
+            "Apply fixed-amount discount to the last sold item",
+        ),
+    ]
+    for btn_name, caption, event, bg, y, height, tip in discount_buttons:
+        sale_controls.append(FormControl(
+            fk_form_id=sale_form.id,
+            fk_parent_id=None,
+            name=btn_name,
+            form_control_function1=event,
+            form_control_function2=None,
+            type_no=1,
+            type="BUTTON",
+            width=109,
+            height=height,
+            location_x=912,
+            location_y=y,
+            start_position=None,
+            caption1=caption,
+            caption2=None,
+            list_values=None,
+            dock=None,
+            alignment=None,
+            text_alignment="CENTER",
+            character_casing="UPPER",
+            font="Tahoma",
+            icon=None,
+            tool_tip=tip,
+            image=None,
+            image_selected=None,
+            font_auto_height=False,
+            font_size=11,
+            input_type="ALPHANUMERIC",
+            text_image_relation=None,
+            back_color=bg,
+            fore_color="0xFFFFFF",
             keyboard_value=None,
             fk_cashier_create_id=cashier_id,
             fk_cashier_update_id=cashier_id,

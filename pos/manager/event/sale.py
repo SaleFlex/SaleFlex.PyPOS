@@ -1564,28 +1564,29 @@ class SaleEvent:
     
     def _discount_by_amount_event(self, key=None):
         """
-        Handle discount application by fixed amount.
-        
-        Applies a specific monetary discount to selected items
-        or entire transaction.
-        
-        Parameters:
-            key: Optional parameter from numpad input
-        
+        Apply a fixed monetary discount to the last sold line item.
+
+        Flow
+        ----
+        1. Verify authentication and that at least one active product exists.
+        2. Open ``DiscountInputDialog`` (MODE_AMOUNT, max = last item total).
+        3. On APPLY:
+           a. Strike through / cancel the last product row in the sale list.
+           b. Mark the matching ``TransactionProductTemp`` as cancelled in DB.
+           c. Recalculate VAT for the discounted price.
+           d. Clone the original DB record with the new price/VAT and save it.
+           e. Add the discounted product row to the sale list.
+           f. Recalculate document totals and refresh the amount table.
+
         Returns:
-            bool: True if discount applied successfully, False otherwise
+            bool: True if discount was applied, False otherwise.
         """
         if not self.login_succeed:
             self._logout()
             return False
-            
-        # TODO: Implement fixed amount discount logic
-        if key is not None:
-            logger.debug("Discount by amount - key pressed: %s", key)
-        else:
-            logger.debug("Discount by amount - functionality to be implemented")
-        return False
-    
+
+        return self._apply_item_discount(mode="AMOUNT")
+
     def _surcharge_by_amount_event(self, key=None):
         """
         Handle surcharge application by fixed amount.
@@ -1612,28 +1613,259 @@ class SaleEvent:
     
     def _discount_by_percent_event(self, key=None):
         """
-        Handle discount application by percentage.
-        
-        Applies a percentage-based discount to selected items
-        or entire transaction.
-        
-        Parameters:
-            key: Optional parameter from numpad input
-        
+        Apply a percentage-based discount to the last sold line item.
+
+        Flow
+        ----
+        1. Verify authentication and that at least one active product exists.
+        2. Open ``DiscountInputDialog`` (MODE_PERCENT, range 1 %–100 %).
+        3. On APPLY:
+           a. Strike through / cancel the last product row in the sale list.
+           b. Mark the matching ``TransactionProductTemp`` as cancelled in DB.
+           c. Calculate the discounted total (total × (1 − pct/100)).
+           d. Recalculate VAT for the discounted price.
+           e. Clone the original DB record with the new price/VAT and save it.
+           f. Add the discounted product row to the sale list.
+           g. Recalculate document totals and refresh the amount table.
+
         Returns:
-            bool: True if discount applied successfully, False otherwise
+            bool: True if discount was applied, False otherwise.
         """
         if not self.login_succeed:
             self._logout()
             return False
-            
-        # TODO: Implement percentage discount logic
-        if key is not None:
-            logger.debug("Discount by percent - key pressed: %s", key)
+
+        return self._apply_item_discount(mode="PERCENT")
+
+    # ------------------------------------------------------------------
+    # Shared discount implementation
+    # ------------------------------------------------------------------
+
+    def _apply_item_discount(self, mode: str) -> bool:
+        """
+        Core implementation shared by amount- and percentage-discount events.
+
+        Parameters
+        ----------
+        mode : str
+            ``"AMOUNT"`` or ``"PERCENT"``
+
+        Returns
+        -------
+        bool
+            ``True`` if a discount was successfully applied, ``False`` otherwise.
+        """
+        from decimal import Decimal
+        from uuid import uuid4
+
+        from PySide6.QtWidgets import QApplication
+
+        from data_layer.auto_save import AutoSaveModel
+        from data_layer.model import TransactionProductTemp
+        from pos.service import SaleService
+        from pos.service.vat_service import VatService
+        from user_interface.form.discount_input_dialog import DiscountInputDialog
+        from user_interface.form.message_form import MessageForm
+
+        # ── 1. Locate the active window and sale_list ──────────────────
+        active_window = None
+        app_qt = QApplication.instance()
+        if app_qt:
+            active_window = app_qt.activeWindow()
+        if not active_window or not hasattr(active_window, "sale_list"):
+            if hasattr(self, "interface") and self.interface:
+                active_window = getattr(self.interface, "window", None)
+        if not active_window or not hasattr(active_window, "sale_list"):
+            logger.error("[DISCOUNT] No window with sale_list found")
+            return False
+
+        sale_list = active_window.sale_list
+
+        # ── 2. Find the last non-cancelled PLU / DEPARTMENT row ────────
+        last_row_index = -1
+        last_sales_data = None
+        for idx in range(len(sale_list.custom_sales_data_list) - 1, -1, -1):
+            sd = sale_list.custom_sales_data_list[idx]
+            if sd.transaction_type in ("PLU", "DEPARTMENT") and not sd.is_canceled:
+                last_row_index = idx
+                last_sales_data = sd
+                break
+
+        if last_sales_data is None:
+            MessageForm.show_error(
+                active_window,
+                "No product found to apply discount to.",
+                "Please sell at least one product first.",
+            )
+            return False
+
+        product_name   = last_sales_data.name_of_product
+        product_total  = last_sales_data.total_amount   # float
+        product_qty    = last_sales_data.quantity        # float
+        reference_id   = str(last_sales_data.reference_id)
+
+        # ── 3. Determine currency decimal places ───────────────────────
+        currency_sign = getattr(self, "current_currency", None) or "GBP"
+        decimal_places = VatService.get_currency_decimal_places(
+            currency_sign, getattr(self, "product_data", None)
+        )
+
+        # ── 4. Open the discount input dialog ─────────────────────────
+        if mode == "PERCENT":
+            entered = DiscountInputDialog.show_percent(
+                active_window, product_name, product_total
+            )
         else:
-            logger.debug("Discount by percent - functionality to be implemented")
-        return False
-    
+            entered = DiscountInputDialog.show_amount(
+                active_window, product_name, product_total, decimal_places
+            )
+
+        if entered is None:
+            return False  # user cancelled
+
+        # ── 5. Calculate new totals ───────────────────────────────────
+        if mode == "PERCENT":
+            discount_factor  = Decimal(str(entered)) / Decimal("100")
+            discount_amount  = Decimal(str(product_total)) * discount_factor
+            new_total        = Decimal(str(product_total)) - discount_amount
+        else:
+            discount_amount  = Decimal(str(entered))
+            new_total        = Decimal(str(product_total)) - discount_amount
+
+        # Prevent zero or negative totals
+        min_total = Decimal(str(10 ** (-decimal_places)))
+        if new_total < min_total:
+            new_total = min_total
+
+        new_unit_price = new_total / Decimal(str(product_qty)) if product_qty else new_total
+
+        # ── 6. Find original TransactionProductTemp in document_data ──
+        original_db_record = None
+        if self.document_data and reference_id:
+            for rec in self.document_data.get("products", []):
+                actual = rec.unwrap() if isinstance(rec, AutoSaveModel) else rec
+                if str(actual.id) == reference_id:
+                    original_db_record = actual
+                    break
+
+        # ── 7. Cancel the last row in the sale list (UI strikethrough) ─
+        sale_list.cancel_transaction(last_row_index)
+
+        # ── 8. Cancel the original DB record ──────────────────────────
+        if original_db_record:
+            original_db_record.is_cancel = True
+            try:
+                original_db_record.save()
+                logger.info("[DISCOUNT] Cancelled original record %s", original_db_record.id)
+            except Exception as exc:
+                logger.error("[DISCOUNT] Error saving cancelled record: %s", exc)
+
+        # ── 9. Recalculate VAT for the new price ──────────────────────
+        vat_rate = Decimal("0")
+        if original_db_record and hasattr(original_db_record, "vat_rate"):
+            vat_rate = Decimal(str(original_db_record.vat_rate or "0"))
+
+        new_total_vat = VatService.calculate_vat(
+            float(new_total), float(vat_rate), currency_sign,
+            getattr(self, "product_data", None)
+        )
+
+        # ── 10. Clone the DB record with discounted amounts ───────────
+        new_line_no = (
+            len(self.document_data.get("products", []))
+            + len(self.document_data.get("departments", []))
+            + 1
+        ) if self.document_data else 1
+
+        new_db_id = None
+        if original_db_record:
+            try:
+                new_prod = TransactionProductTemp()
+                for col in original_db_record.__table__.columns.keys():
+                    if hasattr(original_db_record, col):
+                        setattr(new_prod, col, getattr(original_db_record, col))
+                new_prod.id            = uuid4()
+                new_prod.line_no       = new_line_no
+                new_prod.unit_price    = new_unit_price
+                new_prod.total_price   = new_total
+                new_prod.total_vat     = Decimal(str(new_total_vat))
+                new_prod.unit_discount = discount_amount
+                new_prod.is_cancel     = False
+                new_prod.is_voided     = False
+
+                if mode == "PERCENT":
+                    new_prod.discount_rate   = Decimal(str(entered))
+                    new_prod.discount_reason = f"Discount {entered:.2f}%"
+                else:
+                    new_prod.discount_rate   = None
+                    new_prod.discount_reason = (
+                        f"Discount {entered:.{decimal_places}f} {currency_sign}"
+                    )
+
+                new_prod.save()
+                new_db_id = str(new_prod.id)
+
+                if "products" not in self.document_data:
+                    self.document_data["products"] = []
+                self.document_data["products"].append(new_prod)
+                logger.info("[DISCOUNT] Saved discounted record %s, total=%s", new_db_id, new_total)
+
+            except Exception as exc:
+                logger.error("[DISCOUNT] Error cloning DB record: %s", exc)
+
+        # ── 11. Add the discounted row to the sale list ────────────────
+        sale_list.add_product(
+            product_name=product_name,
+            quantity=product_qty,
+            unit_price=float(new_unit_price),
+            reference_id=new_db_id or 0,
+            plu_no=last_sales_data.plu_no,
+            department_no=last_sales_data.department_no,
+            transaction_type=last_sales_data.transaction_type,
+        )
+        # Ensure the new row's reference_id is linked to the new DB record
+        if new_db_id and sale_list.custom_sales_data_list:
+            sale_list.custom_sales_data_list[-1].reference_id = new_db_id
+
+        # ── 12. Recalculate document totals ───────────────────────────
+        if self.document_data and self.document_data.get("head"):
+            head = self.document_data["head"]
+            if isinstance(head, AutoSaveModel):
+                head = head.unwrap()
+            try:
+                totals = SaleService.calculate_document_totals(self.document_data)
+                head.total_amount     = totals["total_amount"]
+                head.total_vat_amount = totals["total_vat_amount"]
+                head.save()
+                logger.info(
+                    "[DISCOUNT] Updated totals: total=%s vat=%s",
+                    head.total_amount, head.total_vat_amount,
+                )
+            except Exception as exc:
+                logger.error("[DISCOUNT] Error recalculating totals: %s", exc)
+
+            if hasattr(active_window, "amount_table") and active_window.amount_table:
+                try:
+                    SaleService.update_amount_table_from_document(
+                        active_window.amount_table, head
+                    )
+                except Exception as exc:
+                    logger.error("[DISCOUNT] Error updating amount_table: %s", exc)
+
+        # ── 13. Line display sync ─────────────────────────────────────
+        try:
+            from pos.peripherals.hooks import sync_line_display_from_document
+            if self.document_data:
+                sync_line_display_from_document(self, self.document_data)
+        except Exception:
+            pass
+
+        logger.info(
+            "[DISCOUNT] mode=%s entered=%s discount_amount=%s new_total=%s product='%s'",
+            mode, entered, discount_amount, new_total, product_name,
+        )
+        return True
+
     def _surcharge_by_percent_event(self, key=None):
         """
         Handle surcharge application by percentage.

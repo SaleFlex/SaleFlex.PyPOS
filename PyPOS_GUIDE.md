@@ -47,6 +47,22 @@ Press **SUSPEND** on the SALE screen to park the current cart. A new empty draft
 
 Press **CANCEL** on the SALE screen to void the entire active transaction. A confirmation dialog shows the receipt number, closure number, and total. A new draft opens automatically.
 
+### Apply a Discount to the Last Item
+
+Two buttons appear in the top-right corner of the product shortcut grid:
+
+| Button | How to use |
+|--------|------------|
+| **DISC %** (purple) | Press after selling a product → type percentage (1–100) → press **APPLY** |
+| **DISC AMT** (deep orange) | Press after selling a product → type amount (0.01 to product total) → press **APPLY** |
+
+Both dialogs include an embedded numeric keypad (7 8 9 / 4 5 6 / 1 2 3 / . 0 ⌫) and **CLEAR / APPLY / CANCEL** buttons. On **APPLY**:
+- The original product line is cancelled (strikethrough).
+- A new line is added with the recalculated (discounted) price.
+- VAT is recalculated and document totals update immediately.
+
+See [Sale Transactions — Applying Item Discounts](docs/10-sale-transactions.md#applying-item-discounts) for full details.
+
 ### Cancel a Single Line Item
 
 Tap a row in the sale list → choose **DELETE** from the popup. The line is soft-cancelled (strikethrough) and totals are recalculated. If the last active line is deleted, the document is automatically cancelled.

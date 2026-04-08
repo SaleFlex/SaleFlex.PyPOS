@@ -130,6 +130,70 @@ Tapping any row in the sale list opens an **Item Actions** popup:
 
 ---
 
+## Applying Item Discounts
+
+Two dedicated discount buttons appear in the top-right corner of the product shortcut grid on the SALE form:
+
+| Button | Colour | Event | Description |
+|--------|--------|-------|-------------|
+| **DISC %** | Purple | `DISCOUNT_BY_PERCENT` | Apply a percentage discount to the last sold item |
+| **DISC AMT** | Deep orange | `DISCOUNT_BY_AMOUNT` | Apply a fixed-amount discount to the last sold item |
+
+### Prerequisites
+
+- At least one active (non-cancelled) product line must exist in the sale list before a discount can be applied.
+- If no eligible line exists, an error dialog is displayed.
+
+### Discount by Percentage
+
+1. Sell at least one product.
+2. Press **DISC %**.
+3. A modal dialog opens showing the product name and the allowed range (1 % – 100 %).
+4. Use the embedded numeric keypad to type the percentage (e.g. `10` for 10 %).
+5. Press **APPLY** (or the Enter equivalent).
+6. The original product line is cancelled with a strikethrough.
+7. A new line is added with the discounted price (quantity × unit_price × (1 − pct/100)).
+8. VAT is recalculated for the new price and document totals update immediately.
+
+### Discount by Amount
+
+1. Sell at least one product.
+2. Press **DISC AMT**.
+3. A modal dialog opens showing the product name and the allowed range (minimum: smallest currency unit, maximum: product total).
+4. Use the embedded numeric keypad to type the discount amount (e.g. `1.50`).
+5. Press **APPLY**.
+6. The original product line is cancelled with a strikethrough.
+7. A new line is added at the reduced price (original total − discount amount).
+8. VAT is recalculated and document totals update immediately.
+
+### Behind the Scenes
+
+- The original `TransactionProductTemp` record is marked `is_cancel = True` and persisted.
+- A new `TransactionProductTemp` record is created with:
+  - `unit_price` and `total_price` recalculated for the discounted amount
+  - `total_vat` recalculated using `VatService.calculate_vat()` with the original VAT rate
+  - `unit_discount` set to the monetary discount amount
+  - `discount_rate` set to the percentage (for percentage discounts)
+  - `discount_reason` set to a human-readable description
+- `calculate_document_totals()` is called to update `total_amount` and `total_vat_amount` on the document head.
+- The currency's `decimal_places` setting controls minimum amount and display precision (e.g. 2 for GBP).
+
+### Dialog Controls
+
+Both dialogs provide the same layout:
+
+| Area | Description |
+|------|-------------|
+| Header | Coloured title (purple for %, orange for amount) |
+| Info row | Product name + allowed range |
+| Display field | Shows the number being entered |
+| Numpad | 3 × 4 grid: 7 8 9 / 4 5 6 / 1 2 3 / . 0 ⌫ |
+| CLEAR | Erases the current input |
+| APPLY | Validates and applies the discount |
+| CANCEL | Closes the dialog without any change |
+
+---
+
 ## SALE Form — Action Buttons (lower area)
 
 | Button | Name | Normal state | Alternate state (FUNC active) |

@@ -30,6 +30,7 @@ SaleFlex.PyPOS POS system is designed to streamline the sales process and improv
 - **Returns & Exchanges**: Handle product returns and exchanges efficiently
 - **Employee Management**: Track employee time, attendance, and performance
 - **Cashier Management**: Role-based cashier account management with dynamic combobox selection. Admin users can view and edit all cashier accounts and create new cashier accounts directly from the Cashier Management form via the **ADD NEW CASHIER** button (admin-only, hidden for non-admin users). Non-admin cashiers can update only their own password. Field-level read-only protection enforced at the form layer (`is_administrator` flag). New cashier entry uses in-place form manipulation (no full redraw) for seamless UX
+- **Item Discount Buttons**: Two dedicated buttons on the SALE form (**DISC %** and **DISC AMT**) let cashiers apply a percentage (1–100 %) or fixed-amount discount to the last sold item in one tap. A modal input dialog with an embedded numeric keypad opens; on **APPLY** the original line is cancelled (strikethrough) and a new line with the recalculated price and VAT is inserted. Both original and discounted records are persisted with full discount metadata (`unit_discount`, `discount_rate`, `discount_reason`). Currency `decimal_places` from the `Currency` table controls minimum amount and display precision. See [Sale Transactions](docs/10-sale-transactions.md#applying-item-discounts)
 - **Campaign & Promotion Management**: Flexible promotional campaigns with time-based, product-specific, and basket discounts
 - **Loyalty Programs**: Tiered membership rewards system with points earning, redemption, and customer segmentation
 - **Country-Specific Closure Templates**: Flexible template system for country-specific closure data (E-Fatura for Turkey, state tax for USA, VAT reporting for EU, etc.) stored as JSON templates in `static_files/closures/` directory
@@ -519,7 +520,8 @@ All models support:
 - [x] **Customer Module** - Customer list search, new-customer creation (ADD button), detail view/edit, and activity history via DB-driven dynamic forms. Walk-in Customer placeholder automatically receives all unassigned transactions. Dual-function **SUB TOTAL / CUSTOMER** button on the SALE form lets cashiers assign a customer to the active sale in one tap
 - [ ] **Printer Module** - Receipt and invoice printing
 - [x] **Inventory Management** - Real-time stock tracking, goods receipt, manual adjustments, movement history, negative-stock control (SALES_FLOOR location)
-- [ ] **Tax & Discount Engine** - Advanced tax calculation and discount management
+- [x] **Item Discount Engine** - Cashier-applied per-item discounts by percentage (1–100 %) or fixed amount via DISC% / DISC AMT buttons on the SALE form; original line cancelled with strikethrough, new line inserted with recalculated price and VAT
+- [ ] **Tax & Discount Engine** - Advanced tax calculation and discount management (bulk/basket/campaign discounts)
 
 ### Hardware Integration
 - [ ] **Payment Device Integration**:
