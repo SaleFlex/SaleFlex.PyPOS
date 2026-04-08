@@ -41,7 +41,7 @@ SaleFlex.PyPOS POS system is designed to streamline the sales process and improv
 - **Startup Guards**: `saleflex.py` entry point runs four pre-flight checks before any module is imported: (1) working-directory normalisation so relative paths always resolve correctly; (2) Python >= 3.13 version guard with a clear error message; (3) file-based single-instance lock (`msvcrt.locking` on Windows, `fcntl.flock` on Linux/macOS) that is automatically released on process exit; (4) global exception handler that logs unhandled errors at `CRITICAL` level before terminating. See [docs/34-startup-entry-point.md](docs/34-startup-entry-point.md)
 - **Central Logging**: Configurable logging via `core/logger.py` with a single `saleflex` root logger. Log level (DEBUG/INFO/WARNING/ERROR/CRITICAL), console output, and file output are controlled from the `[logging]` section in `settings.toml`. All modules use `get_logger(__name__)` for consistent, hierarchical log records
 - **Centralized Exception Handling**: Typed exception hierarchy rooted at `SaleFlexError` (`core/exceptions.py`). Domain-specific subclasses (`PaymentError`, `FiscalDeviceError`, `GATEConnectionError`, `TaxCalculationError`, `DatabaseError`, etc.) replace bare `Exception` raises throughout the codebase. All exceptions are chained with `raise ... from e` to preserve the full traceback
-- **Product Management**: Dedicated **Product List** form (form_no=8) accessible from the Main Menu. Supports real-time search by product name or short name with instant DataGrid results. Selecting a row and pressing **DETAIL** opens the **Product Detail** modal dialog (form_no=9, fully DB-driven via `DynamicDialog`) — a tabbed view with four tabs: **Product Info** (editable label/textbox panel — identical pattern to the SETTING form), Barcodes, Attributes, and Variants. The **SAVE** button (bottom-left) persists product info changes to the database; the **BACK** button (bottom-right) closes the dialog. See [docs/15-product-management.md](docs/15-product-management.md)
+- **Product Management**: Dedicated **Product List** form (form_no=8) accessible from the Main Menu. Supports real-time search by product name or short name with instant DataGrid results. Selecting a row and pressing **DETAIL** opens the **Product Detail** modal dialog (form_no=9, fully DB-driven via `DynamicDialog`) — a tabbed view built with the new `TabControl` widget and `FormControlTab` model, showing Product Info, Barcodes, Attributes, and Variants in four separate read-only tabs. See [docs/15-product-management.md](docs/15-product-management.md)
 - **Optimized Performance**: In-memory caching of reference data (`pos_data`) and product data (`product_data`) minimizes disk I/O, extending disk life for POS devices with limited write cycles. All product lookups, currency calculations, VAT rate lookups, button rendering, and sale operations use cached data instead of database queries
 - **Smart NumPad (4 Modes)**: The SALE form NumPad supports four operating modes: (1) **Barcode/PLU lookup** — type a barcode or product code and press ENTER to find and sell the product (searches `ProductBarcode` then `Product.code`); (2) **Inline quantity** — type a quantity then press a PLU product button to sell that many units; (3) **X (Quantity Multiplier) button** — pre-set the quantity before a barcode scan; status bar shows the active multiplier (`x1`, `x3`, etc.); (4) **Payment amount** — enter the tendered amount in minor currency units (e.g. 10000 → £100.00) then press CASH or CREDIT CARD. **PLU inquiry** (separate green **PLU** button beside **X**) shows price and per-warehouse stock from cached `WarehouseProductStock` without selling — either enter the code then **PLU**, or press **PLU** first then enter the code and **ENTER**
 
@@ -431,6 +431,30 @@ Clicking "DETAIL" on a selected product opens the tabbed product detail dialog:
 
 > Product Detail modal dialog (DB-driven, 1024×768) with four tabs: **Product Info** (code, name, price, stock, unit, manufacturer), **Barcodes**, **Attributes**, and **Variants**. Tabs are fully navigable via touch.
 
+Selecting "WAREHOUSE" from the Main Menu opens the warehouse stock management screen:
+
+![Warehouse Stock List Form](static_files/images/sample_warehouse_stock_list_form.jpg)
+
+> Warehouse Stock List form showing all products with columns for Code, Name, Short Name, Sale Price, Stock, and Low Stock indicator. Selecting a product displays a per-location breakdown (Warehouse, Type, Location, Qty, Available, Reserved, Min, Reorder, Alert) in the panel below. Four action buttons are available: **DETAIL** (opens Product Detail dialog), **STOCK IN** (goods receipt), **ADJUSTMENT** (manual stock correction), and **HISTORY** (movement log).
+
+Clicking **STOCK IN** opens the goods receipt form to record incoming stock:
+
+![Warehouse Stock In Form](static_files/images/sample_warehouse_stock_in_form.jpg)
+
+> Warehouse Stock In form with a searchable product list (Code, Name, Current Stock). Select a product, enter the received **Quantity** and an optional **Reason / note**, then press **RECEIVE** to record the stock-in movement and update inventory.
+
+Clicking **ADJUSTMENT** opens the manual stock adjustment form:
+
+![Warehouse Adjustment Form](static_files/images/sample_warehouse_adjustment_form.jpg)
+
+> Warehouse Adjustment form with a searchable product list (Code, Name, Current Stock, Min Stock). Select a product, enter the correction **Quantity** (positive or negative) and an optional **Reason / note**, then press **ADJUST** to record the adjustment movement and update inventory.
+
+Clicking **HISTORY** opens the stock movement history for the selected product:
+
+![Warehouse History Form](static_files/images/sample_warehouse_history_form.jpg)
+
+> Warehouse History form listing all stock movements for a product with columns: Movement No, Type, Qty, Before, After, Date, Status, and Reason. Use the search bar to filter movements by product name or code.
+
 ### Configuration
 - Edit `settings.toml` to configure database connections and basic application settings
 - **Note**: Many POS settings (hardware ports, display settings, backend connections) are now managed through the database (`PosSettings` model) and can be configured via the application UI or API
@@ -537,7 +561,7 @@ All models support:
 - [ ] **Multi-Store Support** - Chain store management capabilities
 
 ### Warehouse & Inventory Management
-- [x] **Inventory Control (Phase 1)**:
+- [x] **Inventory Control**:
   - [x] Real-time Stock Tracking (SALES_FLOOR location)
   - [x] Automatic stock deduction on sale completion
   - [x] Negative-stock policy enforcement per product
