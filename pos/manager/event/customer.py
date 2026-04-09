@@ -361,6 +361,9 @@ class CustomerEvent:
                         "[CUSTOMER_DETAIL_SAVE] New customer created: '%s %s' (id=%s)",
                         new_customer.name, new_customer.last_name, new_id
                     )
+
+                    if hasattr(dialog, "repopulate_customer_activity_grid"):
+                        dialog.repopulate_customer_activity_grid()
             else:
                 # ── UPDATE existing customer ─────────────────────────────
                 from uuid import UUID as _UUID
@@ -405,6 +408,9 @@ class CustomerEvent:
                         "[CUSTOMER_DETAIL_SAVE] Customer '%s %s' updated. Fields: %s",
                         customer.name, customer.last_name, updated_fields
                     )
+
+                    if hasattr(dialog, "repopulate_customer_activity_grid"):
+                        dialog.repopulate_customer_activity_grid()
 
             return True
 

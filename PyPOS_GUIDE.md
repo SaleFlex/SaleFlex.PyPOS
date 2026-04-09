@@ -150,7 +150,7 @@ From the **Main Menu**, press **CUSTOMER** (purple button, bottom row) to open t
 | Tab | Content |
 |-----|---------|
 | **Customer Info** | Editable fields: First Name, Last Name, Phone, E-mail, Address lines, Post Code, Description |
-| **Activity History** | Read-only list of the customer's past transactions |
+| **Activity History** | Read-only grid of completed receipts from `TransactionHead` where `fk_customer_id` matches the open customer (newest first; up to 500 rows). Refreshes after SAVE when a new customer is created. |
 
 Press **SAVE** (green) to persist changes or create a new customer. Press **BACK** (blue) to close the dialog without saving.
 

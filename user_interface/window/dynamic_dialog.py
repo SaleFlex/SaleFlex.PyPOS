@@ -626,6 +626,86 @@ class DynamicDialog(QDialog):
             datagrid.set_data([])
             datagrid._receipt_ids = []
 
+    def _populate_customer_activity_grid(self, datagrid):
+        """
+        Fill ``CUSTOMER_ACTIVITY_GRID`` on ``CUSTOMER_DETAIL`` with permanent
+        ``TransactionHead`` rows where ``fk_customer_id`` matches
+        ``app.current_customer_id`` (newest first, capped at 500 rows).
+        """
+        datagrid.set_columns([
+            "Receipt No", "Closure No", "Date/Time", "Type",
+            "Total", "Payment", "Change", "Status",
+        ])
+        customer_id = getattr(self.app, "current_customer_id", None)
+        if not customer_id:
+            datagrid.set_data([])
+            datagrid._customer_transaction_head_ids = []
+            return
+        try:
+            from uuid import UUID as _UUID
+            from data_layer.model import TransactionHead
+
+            cid = _UUID(str(customer_id)) if not isinstance(customer_id, _UUID) else customer_id
+            heads = TransactionHead.filter_by(
+                fk_customer_id=cid,
+                is_deleted=False,
+            ) or []
+
+            def _ts(h):
+                if h.transaction_date_time:
+                    try:
+                        return h.transaction_date_time.timestamp()
+                    except (TypeError, ValueError, OSError):
+                        pass
+                return 0.0
+
+            heads = sorted(
+                heads,
+                key=lambda h: (_ts(h), h.closure_number or 0, h.receipt_number or 0),
+                reverse=True,
+            )[:500]
+
+            def _num(val):
+                return "0.00" if val is None else f"{float(val):.2f}"
+
+            data_rows = []
+            head_ids = []
+            for head in heads:
+                dt_str = (
+                    head.transaction_date_time.strftime("%Y-%m-%d %H:%M")
+                    if head.transaction_date_time
+                    else ""
+                )
+                data_rows.append([
+                    str(head.receipt_number or ""),
+                    str(head.closure_number or ""),
+                    dt_str,
+                    head.document_type or "",
+                    _num(head.total_amount),
+                    _num(head.total_payment_amount),
+                    _num(head.total_change_amount),
+                    head.transaction_status or "",
+                ])
+                head_ids.append(str(head.id))
+
+            datagrid.set_data(data_rows)
+            datagrid._customer_transaction_head_ids = head_ids
+        except Exception as exc:
+            logger.exception("[CUSTOMER_ACTIVITY_GRID] Error: %s", exc)
+            datagrid.set_data([])
+            datagrid._customer_transaction_head_ids = []
+
+    def repopulate_customer_activity_grid(self):
+        """Reload Activity History after ``current_customer_id`` changes (e.g. first SAVE on ADD)."""
+        from data_layer.enums import ControlName
+        try:
+            for grid in self.findChildren(DataGrid):
+                if getattr(grid, "name", None) == ControlName.CUSTOMER_ACTIVITY_GRID.value:
+                    self._populate_customer_activity_grid(grid)
+                    break
+        except Exception as exc:
+            logger.exception("[CUSTOMER_ACTIVITY_GRID] Refresh error: %s", exc)
+
     def _populate_closure_receipt_detail_grid(self, datagrid):
         """
         Fill the upper CLOSURE_RECEIPT_DETAIL_GRID with key/value header rows for the
@@ -1380,6 +1460,9 @@ class DynamicDialog(QDialog):
 
         elif name_key == ControlName.PRODUCT_VARIANT_GRID.value:
             self._populate_product_variant_grid(datagrid)
+
+        elif name_key == ControlName.CUSTOMER_ACTIVITY_GRID.value:
+            self._populate_customer_activity_grid(datagrid)
 
         datagrid.show()
 

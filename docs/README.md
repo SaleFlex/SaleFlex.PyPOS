@@ -28,7 +28,7 @@ Complete user and developer guide for the SaleFlex.PyPOS point-of-sale applicati
 | 14 | [Cashier Management](14-cashier-management.md) | Create/edit cashiers, role permissions, ADD NEW CASHIER |
 | 15 | [Product Management](15-product-management.md) | Product List search, Product Detail tabbed dialog |
 | 16 | [Inventory Management](16-inventory-management.md) | Stock levels, goods receipt, adjustments, movement history, negative stock policy |
-| 17 | [Customer Management](17-customer-management.md) | Customer List search, ADD new customer, Customer Detail tabbed dialog, Walk-in Customer, activity history, SALE form CUSTOMER dual button, sale-assignment workflow |
+| 17 | [Customer Management](17-customer-management.md) | Customer List search, ADD new customer, Customer Detail tabbed dialog, Walk-in Customer, activity history (`TransactionHead` / `fk_customer_id`), SALE form CUSTOMER dual button, sale-assignment workflow |
 
 ---
 

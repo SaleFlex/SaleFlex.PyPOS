@@ -113,7 +113,18 @@ Press **SAVE** (green, bottom) to write changes or create the record in the data
 
 ### Tab 1 — Activity History
 
-A read-only DataGrid listing the customer's past transactions (receipts / invoices). Rows are populated from the transaction history linked to `fk_customer_id`.
+A read-only **DataGrid** (`CUSTOMER_ACTIVITY_GRID`) listing the customer's **completed** sales stored in the permanent `transaction_head` table. Rows are loaded when the modal opens by `DynamicDialog._populate_customer_activity_grid`: all non-deleted heads with `fk_customer_id` equal to the open customer, ordered by date/time (newest first), up to **500** rows.
+
+| Column | Source |
+|--------|--------|
+| Receipt No | `receipt_number` |
+| Closure No | `closure_number` |
+| Date/Time | `transaction_date_time` |
+| Type | `document_type` |
+| Total / Payment / Change | `total_amount`, `total_payment_amount`, `total_change_amount` |
+| Status | `transaction_status` |
+
+Open (draft) carts in `transaction_head_temp` do not appear here — only finalized documents copied to `TransactionHead` when a sale completes or is cancelled (and persisted). After **SAVE** on **ADD** (first creation of a customer), the grid is refreshed so the **Activity History** tab reflects the new `current_customer_id` (typically still empty until that customer completes a sale).
 
 ### Buttons
 
