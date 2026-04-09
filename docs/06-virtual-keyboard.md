@@ -12,6 +12,10 @@ The SaleFlex POS system supports **database-driven virtual keyboard configuratio
 - **Hot Reload**: `KeyboardSettingsLoader.reload_settings()` applies changes at runtime
 - **Fully Customizable**: Font, colours, button sizes, spacing, and more
 
+### Item discount / markup dialog
+
+The modal **`DiscountInputDialog`** (DISC % / DISC AMT / MARK % / MARK AMT) includes its own numeric keypad. Its amount field is a `TextBox` **without** the window `VirtualKeyboard` attached, so focusing it does **not** show the QWERTY keyboard even when virtual keyboard is enabled on SALE. Touch entry uses the dialog keys; a physical keyboard still works. See [Sale Transactions — Applying Item Discounts and Markups](10-sale-transactions.md#applying-item-discounts-and-markups).
+
 ---
 
 ## `PosVirtualKeyboard` Model Fields

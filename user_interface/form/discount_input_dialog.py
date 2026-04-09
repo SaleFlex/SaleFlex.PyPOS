@@ -36,8 +36,9 @@ class DiscountInputDialog(QDialog):
     """
     Modal dialog for entering a discount or markup value (percentage or fixed amount).
 
-    Uses an editable TextBox: embedded numpad, optional window VirtualKeyboard (when
-    parent is a BaseWindow with ``keyboard``), physical Enter/Return triggers APPLY.
+    Uses an editable TextBox with an embedded numpad for touch entry. The window
+    VirtualKeyboard is intentionally not attached so focus does not open the on-screen
+    QWERTY keyboard; use the dialog keys or a physical keyboard. Enter/Return triggers APPLY.
     """
 
     MODE_DISCOUNT_PERCENT = "DISCOUNT_PERCENT"
@@ -55,7 +56,6 @@ class DiscountInputDialog(QDialog):
         product_name: str = "",
         max_value: float = 100.0,
         decimal_places: int = 2,
-        keyboard=None,
     ) -> None:
         super().__init__(parent)
 
@@ -68,17 +68,6 @@ class DiscountInputDialog(QDialog):
         self.setModal(True)
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
         self.setFixedSize(self._W, self._H)
-
-        if keyboard is None and parent is not None:
-            w = parent
-            while w is not None:
-                kb = getattr(w, "keyboard", None)
-                if kb is not None:
-                    keyboard = kb
-                    break
-                w = w.parent()
-
-        self._keyboard = keyboard
 
         self._build_ui()
         self._center_on_screen()
@@ -163,8 +152,6 @@ class DiscountInputDialog(QDialog):
             }
         """)
         self._display.setPlaceholderText("0")
-        if self._keyboard is not None:
-            self._display.keyboard = self._keyboard
         self._display.enter_function = self._on_apply
         body_lay.addWidget(self._display)
 

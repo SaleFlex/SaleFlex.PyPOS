@@ -88,7 +88,7 @@ Displays static or dynamic text. Used as field labels beside textboxes and check
 
 **Base:** `QLineEdit`
 
-Standard text input field. When focused, the virtual keyboard is displayed automatically (if enabled). In panels, the control name maps directly to a model field name via `.lower()`.
+Standard text input field. When focused, the virtual keyboard is displayed automatically (if enabled) **only when** the control’s `keyboard` property is set to the window’s `VirtualKeyboard` instance (dynamic forms and panels do this). **`DiscountInputDialog`** (`user_interface/form/discount_input_dialog.py`) uses a `TextBox` **without** that binding so touch users rely on the dialog’s own numpad and the QWERTY keyboard does not appear. In panels, the control name maps directly to a model field name via `.lower()`.
 
 **FormControl `type` value:** `"textbox"` or `"TEXTBOX"`
 

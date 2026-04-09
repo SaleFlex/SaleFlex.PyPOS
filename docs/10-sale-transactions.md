@@ -156,7 +156,7 @@ Two **dual-function** buttons appear in the top-right corner of the product shor
 2. Ensure the button shows **DISC %** (use **FUNC** if it currently shows **MARK %**).
 3. Press **DISC %**.
 4. A modal dialog opens (purple header): allowed range **1 % – 100 %**.
-5. Enter the value with the keypad, the on-screen virtual keyboard (when the SALE window provides one), or a physical keyboard; **Enter** or **APPLY** confirms.
+5. Enter the value with the embedded keypad or a physical keyboard; **Enter** or **APPLY** confirms. (The SALE form’s on-screen virtual keyboard does **not** open in this dialog—the built-in number buttons are sufficient for touch.)
 6. The original line is cancelled (strikethrough); a new line is added at total × (1 − pct/100); VAT and document totals refresh.
 
 ### Discount by Amount
@@ -198,7 +198,7 @@ Two **dual-function** buttons appear in the top-right corner of the product shor
 |------|-------------|
 | Header | Coloured title (purple / orange = discount % / amount; teal / blue = markup % / amount) |
 | Info row | Product name + allowed range |
-| Input field | Editable `TextBox`; focus shows virtual keyboard when configured on the parent window |
+| Input field | Editable `TextBox`; **no** window virtual keyboard (embedded numpad covers touch entry; physical keyboard still works) |
 | Numpad | 3 × 4 grid: 7 8 9 / 4 5 6 / 1 2 3 / . 0 ⌫ (buttons do not steal focus) |
 | CLEAR | Erases the current input |
 | APPLY / **Enter** | Validates and applies |

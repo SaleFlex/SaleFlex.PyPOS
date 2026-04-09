@@ -58,7 +58,7 @@ Two **dual-function** buttons (small **F** badge) sit in the top-right corner of
 
 Press **FUNC** to switch **all** dual-function buttons on the SALE form between their first and second labels **without** running a sale action. Tapping a dual-function button always runs **only** the function that matches the label currently shown; the tap does **not** change that button’s caption. After **any** dual-function button is used, **every** dual-function button on the form resets to its **first** label—press **FUNC** again when you need the second function.
 
-Each dialog has a text field, an embedded numeric keypad (7 8 9 / 4 5 6 / 1 2 3 / . 0 ⌫), the on-screen **virtual keyboard** when the SALE window has one (touch entry), **CLEAR / APPLY / CANCEL**, and **Enter** to apply. On **APPLY**:
+Each dialog has a text field, an embedded numeric keypad (7 8 9 / 4 5 6 / 1 2 3 / . 0 ⌫) for touch entry—the SALE window’s on-screen **virtual keyboard** is **not** used here (redundant with the built-in keys). **CLEAR / APPLY / CANCEL**, and **Enter** (physical keyboard) to apply. On **APPLY**:
 - The original product line is cancelled (strikethrough).
 - A new line is added with the recalculated price and VAT (lower for discount, higher for markup).
 - Document totals update immediately.
@@ -243,7 +243,7 @@ See [Inventory Management](docs/16-inventory-management.md) for full documentati
 
 **Closure history (DETAIL / RECEIPTS):** [Closure History Navigation](docs/13-end-of-day-closure.md#closure-history-navigation-detail-and-receipts)
 
-**Virtual keyboard:** [Virtual Keyboard Configuration](docs/06-virtual-keyboard.md)
+**Virtual keyboard:** [Virtual Keyboard Configuration](docs/06-virtual-keyboard.md) (item discount/markup dialogs use the embedded numpad only, not the QWERTY keyboard)
 
 **TextBox Enter key action:** [UI Controls — TextBox ENTER Key](docs/23-ui-controls.md#enter-key--form_control_function1)
 
