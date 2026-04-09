@@ -488,7 +488,7 @@ def get_sale_form_controls(sale_form, cashier_id: str) -> list:
             "0x7B1FA2",   # deep purple
             252,
             75,
-            "Percentage discount on last line (state 1). Alternate: percentage markup 1–100 % (state 2). Use FUNC to switch all dual buttons to markup labels, or tap after a discount to cycle to MARK %.",
+            "Percentage discount on last line (state 1). Alternate: percentage markup 1–100 % (state 2). Press FUNC to show alternate labels on all dual buttons; after any dual-button action all return to state 1.",
         ),
         (
             "DISCOUNT_AMOUNT_BTN",
@@ -499,7 +499,7 @@ def get_sale_form_controls(sale_form, cashier_id: str) -> list:
             "0xD84315",   # deep orange
             327,
             76,
-            "Fixed discount on last line (state 1). Alternate: add markup up to line total (state 2). Use FUNC to switch labels, or tap after discount to cycle to MARK AMT.",
+            "Fixed discount on last line (state 1). Alternate: add markup up to line total (state 2). Press FUNC for alternate labels; after any dual-button action all dual buttons reset to state 1.",
         ),
     ]
     for btn_name, cap1, cap2, fn1, fn2, bg, y, height, tip in discount_buttons:
@@ -774,7 +774,7 @@ def get_sale_form_controls(sale_form, cashier_id: str) -> list:
             character_casing="UPPER",
             font="Tahoma",
             icon=None,
-            tool_tip="Suspend current sale (FUNC: Cancel document)",
+            tool_tip="Suspend current sale. Press FUNC for CANCEL label (then tap to cancel document); any dual action resets all dual buttons.",
             image=None,
             image_selected=None,
             font_auto_height=False,
@@ -787,7 +787,7 @@ def get_sale_form_controls(sale_form, cashier_id: str) -> list:
             fk_cashier_create_id=cashier_id,
             fk_cashier_update_id=cashier_id,
         ),
-        # FUNC mode-toggle button — switches all dual-function buttons between states
+        # FUNC — switches captions on all dual-function buttons between state 1 and 2 (no event)
         FormControl(
             fk_form_id=sale_form.id,
             fk_parent_id=None,
@@ -810,7 +810,7 @@ def get_sale_form_controls(sale_form, cashier_id: str) -> list:
             character_casing="UPPER",
             font="Tahoma",
             icon=None,
-            tool_tip="Switch dual-function buttons to their alternate function",
+            tool_tip="Toggle dual-function button labels between primary and alternate (same FUNC again restores)",
             image=None,
             image_selected=None,
             font_auto_height=False,
@@ -846,7 +846,7 @@ def get_sale_form_controls(sale_form, cashier_id: str) -> list:
             character_casing="UPPER",
             font="Tahoma",
             icon=None,
-            tool_tip="Calculate subtotal (FUNC: Open customer list to assign customer to sale)",
+            tool_tip="Calculate subtotal. Press FUNC for CUSTOMER label to open customer list; any dual action resets all dual buttons.",
             image=None,
             image_selected=None,
             font_auto_height=False,

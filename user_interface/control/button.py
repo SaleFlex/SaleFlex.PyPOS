@@ -45,8 +45,9 @@ class Button(QPushButton):
         self._dual_caption2 = None
         self._dual_handler1 = None
         self._dual_handler2 = None
+        self._dual_after_action_reset = None
         self._dual_state = 1  # 1 = caption1/function1 active, 2 = caption2/function2 active
-        
+
     def setText(self, text):
         """Override setText to auto-adjust font size and wrap text"""
         # Store original text
@@ -130,40 +131,52 @@ class Button(QPushButton):
         # Set text directly to avoid recursion
         QPushButton.setText(self, final_text)
 
-    def setup_dual_function(self, caption1, caption2, handler1, handler2):
-        """Configure the button for dual-function (toggle) mode.
+    def setup_dual_function(self, caption1, caption2, handler1, handler2, after_action_reset=None):
+        """Configure the button for dual-function mode.
 
-        When enabled, each click alternates between (caption1, handler1) and
-        (caption2, handler2).  A small 'F' badge is drawn in the top-right
-        corner to indicate that the button has two functions.
+        The visible label follows **state 1** vs **state 2**; only the **FUNC**
+        control (or a full-form reset) switches captions—clicks do not. Each
+        click runs the handler for the *current* state. A small **F** badge is
+        drawn in the top-right corner.
 
         Args:
-            caption1 (str): Label shown while function 1 is active.
-            caption2 (str): Label shown while function 2 is active.
-            handler1 (callable): Called when the button is in state 1.
-            handler2 (callable): Called when the button is in state 2.
+            caption1 (str): Label shown in state 1.
+            caption2 (str): Label shown in state 2.
+            handler1 (callable): Invoked on click while in state 1.
+            handler2 (callable): Invoked on click while in state 2.
+            after_action_reset (callable, optional): Called after each dual
+                click (e.g. reset all dual buttons on the form to state 1).
         """
         self._is_dual_function = True
         self._dual_caption1 = caption1
         self._dual_caption2 = caption2
         self._dual_handler1 = handler1
         self._dual_handler2 = handler2
+        self._dual_after_action_reset = after_action_reset
         self._dual_state = 1
         self.setText(caption1)
         self.clicked.connect(self._handle_dual_click)
 
     def _handle_dual_click(self):
-        """Execute the active function and toggle to the other state."""
-        if self._dual_state == 1:
-            if self._dual_handler1:
-                self._dual_handler1()
-            self._dual_state = 2
-            self.setText(self._dual_caption2)
-        else:
-            if self._dual_handler2:
-                self._dual_handler2()
-            self._dual_state = 1
-            self.setText(self._dual_caption1)
+        """Run the handler for the current state; optional form-wide reset in ``finally``."""
+        try:
+            if self._dual_state == 1:
+                if self._dual_handler1:
+                    self._dual_handler1()
+            else:
+                if self._dual_handler2:
+                    self._dual_handler2()
+        finally:
+            reset = self._dual_after_action_reset
+            if reset:
+                reset()
+
+    def reset_to_primary_state(self):
+        """Force state 1 (``caption1``) without invoking handlers."""
+        if not self._is_dual_function:
+            return
+        self._dual_state = 1
+        self.setText(self._dual_caption1)
         self.update()
 
     def toggle_state(self):
@@ -272,7 +285,8 @@ class Button(QPushButton):
         """Connect clicked signal to *function*.
 
         Skipped for dual-function buttons because their click handling is
-        managed internally by :meth:`_handle_dual_click`.
+        managed internally by :meth:`_handle_dual_click` for dual-function
+        buttons.
         """
         if self._is_dual_function:
             return

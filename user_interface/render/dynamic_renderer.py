@@ -334,7 +334,7 @@ class DynamicFormRenderer:
                 design['function'] = f"NAVIGATE_TO_FORM:{control.fk_target_form_id}:{control.form_transition_mode or 'REPLACE'}"
             else:
                 design['function'] = control.form_control_function1 or 'NONE'
-            # Second function and caption for dual-function (toggle) buttons
+            # Second function and caption for dual-function buttons (FUNC switches labels)
             design['function2'] = control.form_control_function2 or None
             design['caption2'] = control.caption2 or None
             # Add font information

@@ -141,8 +141,9 @@ Two **dual-function** buttons appear in the top-right corner of the product shor
 
 ### Dual-function behaviour
 
-- On each click, the **currently shown** function runs, then the button label toggles to the other caption.
-- The **FUNC** button flips **all** dual-function controls on the SALE form between state 1 and state 2 **without** invoking any handler—so operators can align every dual button to “markup mode” before tapping.
+- A tap runs the **currently shown** function only; the caption does **not** flip on that tap.
+- The **FUNC** button switches **all** dual-function controls on the SALE form between state 1 and state 2 **without** invoking any handler (labels only).
+- After **any** dual-function button on the form is used, **every** dual-function button returns to state 1 (normal captions), and FUNC’s alternate mode is cleared—press **FUNC** again if you still need alternate labels.
 
 ### Prerequisites
 
@@ -169,7 +170,7 @@ Two **dual-function** buttons appear in the top-right corner of the product shor
 ### Markup by Percentage
 
 1. Sell at least one product.
-2. Switch the control to **MARK %** (**FUNC**, or tap **DISC %** once to run a discount and expose **MARK %** on the next state—choose the workflow that fits).
+2. Press **FUNC** until **MARK %** is visible (alternate captions on all dual buttons).
 3. Press **MARK %**.
 4. Dialog (teal header): **1 % – 100 %**; new line total = line total × (1 + pct/100).
 5. Original line cancelled; new line with higher total and recalculated VAT.
@@ -177,7 +178,7 @@ Two **dual-function** buttons appear in the top-right corner of the product shor
 ### Markup by Amount
 
 1. Sell at least one product.
-2. Switch to **MARK AMT**.
+2. Press **FUNC** until **MARK AMT** is visible.
 3. Dialog (blue header): amount from **smallest currency step** up to **current line total** (e.g. for a £5.00 line, up to **5.00**).
 4. New line total = line total + entered amount; VAT and document totals update.
 
@@ -209,16 +210,17 @@ Two **dual-function** buttons appear in the top-right corner of the product shor
 
 | Button | Name | Normal state | Alternate state (FUNC active) |
 |--------|------|-------------|-------------------------------|
-| **FUNC** | `FUNC` | Switches all dual-function buttons to alternate state | Switches them back to normal |
+| **FUNC** | `FUNC` | Switches all dual-function button **labels** to alternate (`caption2`) | Switches labels back to normal (`caption1`) |
 | **CHANGE** | `CHANGE` | Records change given to the customer (`CHANGE_PAYMENT`) | — |
+| **SUB TOTAL** *(dual)* | `SUBTOTAL` | `SUB TOTAL` → subtotal | `CUSTOMER` → customer list (sale assignment) |
 | **SUSPEND** *(dual)* | `PAYMENT_SUSPEND` | `SUSPEND` → `SUSPEND_SALE` | `CANCEL` → `CANCEL_DOCUMENT` |
 | **DISC %** *(dual)* | `DISCOUNT_PERCENT_BTN` | `DISC %` → `DISCOUNT_BY_PERCENT` | `MARK %` → `MARKUP_BY_PERCENT` |
 | **DISC AMT** *(dual)* | `DISCOUNT_AMOUNT_BTN` | `DISC AMT` → `DISCOUNT_BY_AMOUNT` | `MARK AMT` → `MARKUP_BY_AMOUNT` |
 
-- **FUNC** is a mode-toggle button. It has no event of its own. Pressing it flips all dual-function buttons between their normal (`caption1`) and alternate (`caption2`) state.
-- Dual-function sale buttons (**SUSPEND**, **DISC %**, **DISC AMT**) carry a small **"F"** badge in the top-right corner.
+- **FUNC** toggles labels on all dual-function buttons between normal (`caption1`) and alternate (`caption2`); it does not run sale handlers. Any dual-button tap runs the visible function and resets **all** dual buttons to normal captions.
+- Dual-function sale buttons (**SUSPEND**, **SUB TOTAL** / **CUSTOMER**, **DISC %**, **DISC AMT**) carry a small **"F"** badge in the top-right corner.
 
-> See [UI Controls — Dual-Function Buttons](23-ui-controls.md#dual-function-toggle-buttons) and [UI Controls — FUNC Button](23-ui-controls.md#func-button--global-function-mode-toggle) for the full mechanism.
+> See [UI Controls — Dual-Function Buttons](23-ui-controls.md#dual-function-buttons) and [UI Controls — FUNC Button](23-ui-controls.md#func-button--global-function-mode-toggle) for the full mechanism.
 
 ---
 

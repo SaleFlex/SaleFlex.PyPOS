@@ -15,9 +15,9 @@ The **SUSPEND** button (`PAYMENT_SUSPEND`) appears on the SALE screen at the bot
 
 A small **"F"** badge in the top-right corner of the button indicates dual-function mode.
 
-**FUNC button:** Pressing **FUNC** (Steel Blue button to the left of CHANGE) flips all dual-function buttons on the SALE form between their normal and alternate functions. Press **FUNC** a second time to return to normal.
+**FUNC button:** Pressing **FUNC** (Steel Blue button to the left of CHANGE) flips **labels** on all dual-function buttons on the SALE form between normal and alternate. Press **FUNC** again to return to normal. Tapping **SUSPEND** or **CANCEL** (when shown) runs that action and resets **every** dual-function button on the form to normal captions.
 
-> For the full dual-function button specification see [UI Controls — Dual-Function Buttons](23-ui-controls.md#dual-function-toggle-buttons) and [UI Controls — FUNC Button](23-ui-controls.md#func-button--global-function-mode-toggle).
+> For the full dual-function button specification see [UI Controls — Dual-Function Buttons](23-ui-controls.md#dual-function-buttons) and [UI Controls — FUNC Button](23-ui-controls.md#func-button--global-function-mode-toggle).
 
 ### Behaviour at a Glance
 

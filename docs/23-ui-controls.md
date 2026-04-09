@@ -18,9 +18,9 @@ All custom Qt widgets live under `user_interface/control/`. They extend standard
 
 **FormControl `type` value:** `"button"` or `"BUTTON"`
 
-#### Dual-Function (Toggle) Buttons
+#### Dual-Function Buttons
 
-A button becomes a **dual-function button** when both `form_control_function2` and `caption2` are set in the `FormControl` record **and** `form_control_function1` is not a sale/PLU event (`SALE_PLU_CODE`, `SALE_PLU_BARCODE`, `SALE_DEPARTMENT` — those buttons derive their label from product data and cannot toggle).
+A button becomes a **dual-function button** when both `form_control_function2` and `caption2` are set in the `FormControl` record **and** `form_control_function1` is not a sale/PLU event (`SALE_PLU_CODE`, `SALE_PLU_BARCODE`, `SALE_DEPARTMENT` — those buttons derive their label from product data and cannot participate in dual-function mode).
 
 | DB field | Role |
 |----------|------|
@@ -29,9 +29,11 @@ A button becomes a **dual-function button** when both `form_control_function2` a
 | `form_control_function2` | Event called when the button is in **state 2** (alternate) |
 | `caption2` | Label shown in state 2 |
 
-**Behaviour on each click:**
-1. The event for the *current* state is dispatched.
-2. The button toggles to the other state and its label changes to the corresponding caption.
+**How labels change:** Only the **FUNC** button (see below) flips dual-function controls between state 1 and state 2. Tapping a dual-function button does **not** change its caption.
+
+**Behaviour on each dual-button click:**
+1. The event for the *currently displayed* state is dispatched (`form_control_function1` or `form_control_function2`).
+2. **All** dual-function buttons on the same form are reset to **state 1** (`caption1`): the FUNC “alternate mode” flag is cleared so the next FUNC press behaves from a known baseline.
 
 **Visual indicator:** A small circular **"F"** badge is drawn in the top-right corner of every dual-function button so operators can immediately identify them at a glance.
 
@@ -49,14 +51,16 @@ A button becomes a **dual-function button** when both `form_control_function2` a
 
 #### FUNC Button — Global Function-Mode Toggle
 
-The **FUNC** button (`name="FUNC"`) is a special mode-toggle control. It has no event of its own. Instead, each press switches **all dual-function buttons** on the current form between their normal state (state 1, `caption1`) and alternate state (state 2, `caption2`).
+The **FUNC** button (`name="FUNC"`) is a special control. It has no sale/event of its own. Each press toggles **only the visible labels** on **all** dual-function buttons on the current form between state 1 (`caption1`) and state 2 (`caption2`). It does **not** run `form_control_function1` or `form_control_function2`.
 
 | Press | Effect |
 |-------|--------|
-| 1st press | All dual-function buttons flip to **state 2** (show `caption2`) |
-| 2nd press | All dual-function buttons flip back to **state 1** (show `caption1`) |
+| While buttons show `caption1` | All dual-function buttons switch to **state 2** (`caption2`) |
+| While buttons show `caption2` | All dual-function buttons switch back to **state 1** (`caption1`) |
 
-This design allows operators to access alternate functions (e.g. CANCEL instead of SUSPEND) without requiring a separate button for each.
+Using any dual-function button runs that button’s handler for the visible state and then **resets every dual-function button on the form to state 1**, so operators who need an alternate action press **FUNC** first, then tap the desired control.
+
+This design allows alternate functions (e.g. CANCEL instead of SUSPEND, CUSTOMER instead of SUB TOTAL) without a separate physical key for each.
 
 **FormControl configuration for the FUNC button:**
 

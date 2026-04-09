@@ -138,7 +138,7 @@ Populates all 19 forms with their controls (buttons, textboxes, labels, combobox
 
 **Phase 3 — Tab-based and inventory forms:** Forms with `TABCONTROL` hierarchies (`PRODUCT_DETAIL`, `CUSTOMER_DETAIL`) and inventory forms issue their own internal `session.flush()` calls to obtain UUIDs before creating child controls.
 
-**SALE form:** `SALESLIST`, `NUMPAD`, `PAYMENTLIST`, department buttons, PLU buttons, product barcode shortcut buttons, cash payment denomination buttons, and dual-function buttons (`PAYMENT_SUSPEND`, `SUB TOTAL`/`CUSTOMER`, `DISC %`/`MARK %`, `DISC AMT`/`MARK AMT`) controlled by the **FUNC** toggle where applicable.
+**SALE form:** `SALESLIST`, `NUMPAD`, `PAYMENTLIST`, department buttons, PLU buttons, product barcode shortcut buttons, cash payment denomination buttons, and dual-function buttons (`PAYMENT_SUSPEND`, `SUB TOTAL`/`CUSTOMER`, `DISC %`/`MARK %`, `DISC AMT`/`MARK AMT`). **FUNC** only swaps their captions between primary and alternate; a dual-button tap runs the visible event and resets **all** dual buttons on the form to primary captions.
 
 **SUSPENDED_SALES_MARKET form:** `SUSPENDED_SALES_DATAGRID` (receipt no, line count, total), **ACTIVATE** (`RESUME_SALE`), and **BACK** button.
 

@@ -56,7 +56,7 @@ Two **dual-function** buttons (small **F** badge) sit in the top-right corner of
 | **DISC %** → **MARK %** (purple) | Percentage **discount** 1–100 % on the last line | Percentage **markup** 1–100 % on the last line |
 | **DISC AMT** → **MARK AMT** (deep orange) | Fixed **discount** from minimum currency step up to line total | Fixed **markup** over the same range (adds up to the current line total) |
 
-Press **FUNC** to switch **all** dual-function buttons on the SALE form between their first and second labels **without** running a sale action—use this when you want the next tap to be markup (or discount) consistently. You can also tap a button to run its **current** function; the label then flips to the other mode for the next tap.
+Press **FUNC** to switch **all** dual-function buttons on the SALE form between their first and second labels **without** running a sale action. Tapping a dual-function button always runs **only** the function that matches the label currently shown; the tap does **not** change that button’s caption. After **any** dual-function button is used, **every** dual-function button on the form resets to its **first** label—press **FUNC** again when you need the second function.
 
 Each dialog has a text field, an embedded numeric keypad (7 8 9 / 4 5 6 / 1 2 3 / . 0 ⌫), the on-screen **virtual keyboard** when the SALE window has one (touch entry), **CLEAR / APPLY / CANCEL**, and **Enter** to apply. On **APPLY**:
 - The original product line is cancelled (strikethrough).

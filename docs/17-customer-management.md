@@ -41,7 +41,9 @@ The **SUB TOTAL** button on the SALE form is a **dual-function** button:
 | Normal | `SUB TOTAL` | Calculate transaction subtotal | Default |
 | Alternate | `CUSTOMER` | Open Customer List to assign a customer | After pressing **FUNC** |
 
-Pressing **FUNC** toggles all dual-function buttons on the SALE form between their normal and alternate states.
+Pressing **FUNC** toggles **labels** on all dual-function buttons on the SALE form between their normal and alternate states (no sale event is fired by FUNC alone).
+
+After **any** dual-function button on the SALE form is used—including **SUB TOTAL** / **CUSTOMER**—every dual-function control returns to its **normal** caption; press **FUNC** again if you still need alternate labels.
 
 ---
 
@@ -53,9 +55,9 @@ Pressing **FUNC** toggles all dual-function buttons on the SALE form between the
 ┌──────────────────────────────────────────────────────────────────────┐
 │ [Search textbox (820px wide)                         ] [SEARCH]      │
 │                                                                      │
-│ ┌──────────────────────────── DataGrid ──────────────────────────┐  │
-│ │ First Name │ Last Name │ Phone          │ E-mail │ City        │  │
-│ │ ...        │ ...       │ ...            │ ...    │ ...         │  │
+│ ┌──────────────────────────── DataGrid ───────────────────────────┐  │
+│ │ First Name │ Last Name │ Phone          │ E-mail │ City         │  │
+│ │ ...        │ ...       │ ...            │ ...    │ ...          │  │
 │ └─────────────────────────────────────────────────────────────────┘  │
 │                                                                      │
 │ [DETAIL]  [ADD]                                        [BACK]        │

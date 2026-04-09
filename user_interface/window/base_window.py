@@ -64,6 +64,12 @@ class BaseWindow(QMainWindow):
         except Exception:
             pass  # Silently fail if icon cannot be loaded
 
+    def _reset_all_dual_buttons_to_primary(self):
+        """After any dual-function action, return every dual button to state 1 (caption1)."""
+        self._func_mode_active = False
+        for btn in self._dual_function_buttons:
+            btn.reset_to_primary_state()
+
     def draw_window(self, settings: dict, toolbar_settings: dict, design: list):
         self.setUpdatesEnabled(False)
         self.setWindowTitle(settings["name"])
@@ -348,11 +354,17 @@ class BaseWindow(QMainWindow):
         if is_dual_function:
             handler2 = self.app.event_distributor(function2_name)
             caption1 = design_data.get("caption", "")
-            button.setup_dual_function(caption1, caption2, event_handler, handler2)
+            button.setup_dual_function(
+                caption1,
+                caption2,
+                event_handler,
+                handler2,
+                after_action_reset=self._reset_all_dual_buttons_to_primary,
+            )
             self._dual_function_buttons.append(button)
         elif button_name == "FUNC":
-            # FUNC is a mode-toggle button: each press flips all dual-function buttons
-            # on this form between their normal (state 1) and alternate (state 2) labels.
+            # FUNC switches labels only; clicks on dual buttons never toggle captions.
+            # Each press flips all dual-function buttons between state 1 and state 2.
             def _func_click(checked=False, win=self):
                 win._func_mode_active = not win._func_mode_active
                 for btn in win._dual_function_buttons:
