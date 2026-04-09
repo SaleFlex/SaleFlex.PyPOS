@@ -14,7 +14,7 @@ pip install -r requirements.txt
 python saleflex.py
 ```
 
-**Default credentials:** `admin` / `admin` (administrator) Â· `jdoe` / `1234` (standard cashier)
+**Default credentials:** `admin` / `admin` (administrator) · `jdoe` / `1234` (standard cashier)
 
 ---
 
@@ -26,7 +26,7 @@ python saleflex.py
 2. Add products by:
    - Clicking a **PLU product button**, or
    - Typing a **barcode/product code** on the NumPad and pressing **ENTER**
-3. Accept payment by clicking a **denomination button** (e.g. "20 Â£") or entering a custom amount on the NumPad then pressing **CASH** or **CREDIT CARD**.
+3. Accept payment by clicking a **denomination button** (e.g. "20 £") or entering a custom amount on the NumPad then pressing **CASH** or **CREDIT CARD**.
 4. The receipt is printed and the transaction closes automatically when fully paid. The receipt lists every product line, the balance due (with item count), each payment, change (if any), and VAT — all sent line-by-line to `POSPrinter` and written to the application log.
 
 ### NumPad Modes (SALE screen)
@@ -38,6 +38,12 @@ python saleflex.py
 | **Quantity multiplier (X)** | Type qty → press **X** → scan/ENTER | Pre-sets quantity for next scan |
 | **Payment amount** | Type amount → press CASH/CREDIT CARD | Pays that amount (minor currency units) |
 | **PLU inquiry** | Type code → press **PLU** (or press PLU first → ENTER) | Shows price and stock without selling |
+
+![SALE form](static_files/images/sample_sale_form.jpg)
+
+After **FUNC**, dual-function buttons show their alternate labels (e.g. **SUB TOTAL** → **CUSTOMER**, discount buttons → markup):
+
+![SALE form — FUNC alternate labels](static_files/images/sample_sale_func_dual_functions_form.jpg)
 
 ### Suspend a Sale (Market Mode)
 
@@ -122,11 +128,25 @@ See [Product Management](docs/15-product-management.md) for full documentation.
 
 ---
 
+### Cashier Management
+
+From the **Main Menu**, press **CASHIER MANAGEMENT**. Administrators see all accounts and **ADD NEW CASHIER**; standard cashiers only edit their own password.
+
+![Cashier Management](static_files/images/sample_cashier_form.jpg)
+
+![Add New Cashier](static_files/images/sample_cashier_add_form.jpg)
+
+See [Cashier Management](docs/14-cashier-management.md) for full documentation.
+
+---
+
 ### Customer Management
 
 #### From the Main Menu
 
 From the **Main Menu**, press **CUSTOMER** (purple button, bottom row) to open the Customer List form.
+
+![Customer List](static_files/images/sample_customer_list_form.jpg)
 
 | Action | How |
 |--------|-----|
@@ -145,6 +165,8 @@ From the **Main Menu**, press **CUSTOMER** (purple button, bottom row) to open t
 4. Either select an existing customer (DETAIL) or add a new one (ADD → SAVE).
 5. Press **BACK** — the selected/added customer is linked to the active sale transaction.
 
+![SALE form — CUSTOMER (after FUNC)](static_files/images/sample_sale_customer_form.jpg)
+
 **Customer Detail form** shows two tabs:
 
 | Tab | Content |
@@ -153,6 +175,8 @@ From the **Main Menu**, press **CUSTOMER** (purple button, bottom row) to open t
 | **Activity History** | Read-only grid of completed receipts from `TransactionHead` where `fk_customer_id` matches the open customer (newest first; up to 500 rows). Refreshes after SAVE when a new customer is created. |
 
 Press **SAVE** (green) to persist changes or create a new customer. Press **BACK** (blue) to close the dialog without saving.
+
+![Customer Detail](static_files/images/sample_customer_detail_form.jpg)
 
 > **Walk-in Customer:** A special "Walk-in Customer" record is pre-seeded in the database (`is_walkin = True`). All sale transactions that have no customer explicitly assigned are automatically linked to this record. The Walk-in Customer is excluded from the customer list search and cannot be edited.
 
@@ -163,6 +187,8 @@ See [Customer Management](docs/17-customer-management.md) for full documentation
 ### Inventory Management (Stock)
 
 From the **Main Menu**, press **WAREHOUSE** to enter the Inventory Management module.
+
+![Warehouse stock list](static_files/images/sample_warehouse_list_form.jpg)
 
 | Action | How |
 |---|---|
@@ -271,6 +297,6 @@ See [Inventory Management](docs/16-inventory-management.md) for full documentati
 
 ---
 
-**Last Updated:** 2026-04-08
+**Last Updated:** 2026-04-09
 **Version:** 1.0.0b7
 **License:** MIT

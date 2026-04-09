@@ -7,6 +7,20 @@ The Inventory Management module provides real-time stock tracking, goods receipt
 Stock is always tracked at the **warehouse location** level.  
 The **primary deduction location** is `SALES_FLOOR` (`SALES-001-A`). The `product.stock` column mirrors the `WarehouseProductStock.quantity` for that location and is kept in sync automatically after every mutation.
 
+![Warehouse list — product grid, location breakdown, actions](../static_files/images/sample_warehouse_list_form.jpg)
+
+**Stock in** (goods receipt):
+
+![Warehouse stock in](../static_files/images/sample_warehouse_stock_in_form.jpg)
+
+**Manual adjustment:**
+
+![Warehouse adjustment](../static_files/images/sample_warehouse_adjustment_form.jpg)
+
+**Movement history:**
+
+![Warehouse history](../static_files/images/sample_warehouse_history_form.jpg)
+
 ---
 
 ## Architecture

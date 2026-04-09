@@ -21,14 +21,20 @@ SaleFlex.PyPOS provides a fully DB-driven Customer Management module that is acc
 2. From the **Main Menu**, press the **CUSTOMER** button (purple, bottom row).
 3. The **Customer List** form opens.
 
+![Customer List (management context: DETAIL / ADD / BACK)](../static_files/images/sample_customer_list_form.jpg)
+
 ### From the SALE Form (Assign Customer to a Sale)
 
 1. While on the **SALE** form, press **FUNC** to activate the alternate button functions.
 2. The **SUB TOTAL** button switches to **CUSTOMER**.
 3. Press **CUSTOMER** — the Customer List form opens in *sale-assignment context*.
-4. Search for an existing customer, select a row, and press **DETAIL** (to view/edit), **or** press **ADD** to create a brand-new customer.
+4. Search for an existing customer, select a row, and press **DETAIL** or **SELECT** (to view/edit or confirm assignment), **or** press **ADD** to create a brand-new customer.
 5. Press **BACK** to return to the SALE form.
    - If a customer was selected via **DETAIL** or saved via **ADD**, they are automatically assigned to the active sale transaction.
+
+In *sale-assignment context*, the list may show **SELECT** instead of **DETAIL** for the primary action on the bottom row.
+
+![SALE form — CUSTOMER path (after FUNC)](../static_files/images/sample_sale_customer_form.jpg)
 
 ---
 
@@ -44,6 +50,8 @@ The **SUB TOTAL** button on the SALE form is a **dual-function** button:
 Pressing **FUNC** toggles **labels** on all dual-function buttons on the SALE form between their normal and alternate states (no sale event is fired by FUNC alone).
 
 After **any** dual-function button on the SALE form is used—including **SUB TOTAL** / **CUSTOMER**—every dual-function control returns to its **normal** caption; press **FUNC** again if you still need alternate labels.
+
+![SALE form — alternate dual-function labels after FUNC](../static_files/images/sample_sale_func_dual_functions_form.jpg)
 
 ---
 
@@ -71,7 +79,7 @@ After **any** dual-function button on the SALE form is used—including **SUB TO
 | Search textbox | TextBox | Top | Enter search query (name, phone, e-mail) |
 | **SEARCH** | Button (green) | Top-right | Execute search — populates the DataGrid |
 | DataGrid | DataGrid | Centre | Displays matching customers |
-| **DETAIL** | Button (purple) | Bottom-left | Open Customer Detail for selected row |
+| **DETAIL** / **SELECT** | Button (purple) | Bottom-left | **DETAIL**: open Customer Detail for selected row (management). **SELECT**: confirm assignment when opened from SALE after **FUNC** → **CUSTOMER** |
 | **ADD** | Button (green) | Bottom-left (next to DETAIL) | Open blank Customer Detail to create a new customer |
 | **BACK** | Button (blue) | Bottom-right | Return to previous form (assigns selected/added customer to sale when in sale-assignment context) |
 
@@ -108,6 +116,8 @@ Editable fields displayed as label + textbox pairs inside a `CUSTOMER` panel:
 | Description | Free-text notes |
 
 Press **SAVE** (green, bottom) to write changes or create the record in the database.
+
+![Customer Detail — Customer Info tab](../static_files/images/sample_customer_detail_form.jpg)
 
 > Walk-in Customer cannot be edited — SAVE is blocked when `is_walkin = True`.
 

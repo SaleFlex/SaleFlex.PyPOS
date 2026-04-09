@@ -94,6 +94,13 @@ The **closure operation** is triggered when an authorized cashier presses the CL
 
 After a closure has been performed, the operator can browse historical closures using the two buttons at the bottom-left of the CLOSURE form.
 
+| Step | Screenshot |
+|------|------------|
+| Closure history grid + **DETAIL** / **RECEIPTS** | ![Closure form](../static_files/images/sample_closure_form.jpg) |
+| Key/value closure summary | ![Closure detail](../static_files/images/sample_closure_detail_form.jpg) |
+| Receipts in selected closure | ![Closure receipts list](../static_files/images/sample_closure_receipts_form.jpg) |
+| Selected receipt header + lines | ![Closure receipt detail](../static_files/images/sample_closure_receipt_details_form.jpg) |
+
 ### DETAIL button — Closure Summary
 
 | Property | Value |

@@ -2,6 +2,8 @@
 
 Upon first launch, you will be presented with the login screen.
 
+![Login screen](../static_files/images/sample_login.jpg)
+
 ## Default Login Credentials
 
 | Username | Password | Role |
@@ -20,6 +22,8 @@ Upon first launch, you will be presented with the login screen.
 > **Tip (physical keyboard users):** If `form_control_function1` is set to `LOGIN` on the PASSWORD textbox in the database, pressing **Enter** after typing your password is equivalent to clicking the LOGIN button. This makes the login flow keyboard-friendly for workstations with a physical keyboard.
 
 If the credentials are correct, you will be redirected to the **Main Menu**.
+
+![Main Menu](../static_files/images/sample_main_menu.jpg)
 
 ## Role Differences
 

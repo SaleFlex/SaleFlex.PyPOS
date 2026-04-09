@@ -4,6 +4,8 @@
 
 From the main menu, press **SALES**. If no open document exists the system automatically creates a new draft document and displays an empty sale screen. If an incomplete transaction was interrupted (e.g. by a previous application restart), it is restored automatically.
 
+![SALE form (default dual labels)](../static_files/images/sample_sale_form.jpg)
+
 ---
 
 ## NumPad — Four Operating Modes
@@ -132,6 +134,8 @@ Tapping any row in the sale list opens an **Item Actions** popup:
 
 ## Applying Item Discounts and Markups
 
+![SALE form — FUNC alternate labels (discount ↔ markup, SUB TOTAL ↔ CUSTOMER, etc.)](../static_files/images/sample_sale_func_dual_functions_form.jpg)
+
 Two **dual-function** buttons appear in the top-right corner of the product shortcut grid on the SALE form (they show a small **F** badge). Each has `form_control_function1` / `caption1` for **discount** and `form_control_function2` / `caption2` for **markup**.
 
 | Button | Colour | State 1 (caption / event) | State 2 (caption / event) |
@@ -216,6 +220,8 @@ Two **dual-function** buttons appear in the top-right corner of the product shor
 | **SUSPEND** *(dual)* | `PAYMENT_SUSPEND` | `SUSPEND` → `SUSPEND_SALE` | `CANCEL` → `CANCEL_DOCUMENT` |
 | **DISC %** *(dual)* | `DISCOUNT_PERCENT_BTN` | `DISC %` → `DISCOUNT_BY_PERCENT` | `MARK %` → `MARKUP_BY_PERCENT` |
 | **DISC AMT** *(dual)* | `DISCOUNT_AMOUNT_BTN` | `DISC AMT` → `DISCOUNT_BY_AMOUNT` | `MARK AMT` → `MARKUP_BY_AMOUNT` |
+
+![SALE form — CUSTOMER button visible after FUNC](../static_files/images/sample_sale_customer_form.jpg)
 
 - **FUNC** toggles labels on all dual-function buttons between normal (`caption1`) and alternate (`caption2`); it does not run sale handlers. Any dual-button tap runs the visible function and resets **all** dual buttons to normal captions.
 - Dual-function sale buttons (**SUSPEND**, **SUB TOTAL** / **CUSTOMER**, **DISC %**, **DISC AMT**) carry a small **"F"** badge in the top-right corner.

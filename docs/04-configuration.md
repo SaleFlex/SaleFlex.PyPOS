@@ -2,6 +2,10 @@
 
 SaleFlex.PyPOS has two layers of configuration: the file-based `settings.toml` for infrastructure settings that must be available before the database is open, and the database-driven `PosSettings` model for all runtime POS settings.
 
+Runtime POS and hardware fields (printers, customer display, store identity, etc.) are edited in the app under **SETTINGS** on the Main Menu:
+
+![Settings form (POS / hardware fields)](../static_files/images/sample_settings_form.jpg)
+
 ---
 
 ## `settings.toml`

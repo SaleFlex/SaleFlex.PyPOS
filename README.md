@@ -382,13 +382,25 @@ After successful login, you will be redirected to the main menu:
 
 ![Main Menu](static_files/images/sample_main_menu.jpg)
 
-> Main Menu listing all major modules: Sales, Closure, Settings, Cashier Management, and Products.
+> Main Menu listing all major modules: Sales, Closure, Settings, Cashier Management, Products, Warehouse, Customer, and Logout.
 
 If you select "SALES", you will see a form as shown below:
 
 ![Sale Form](static_files/images/sample_sale_form.jpg)
 
 > SALE form with PLU product buttons, department buttons, sale list, payment methods (Cash/Credit Card), NumPad, and real-time transaction totals.
+
+Press **FUNC** once to switch **all** dual-function controls to their alternate captions (for example **SUB TOTAL** → **CUSTOMER**, **DISC %** / **DISC AMT** → **MARK %** / **MARK AMT**, **SUSPEND** → **CANCEL**). **FUNC** only changes labels; it does not run a sale action.
+
+![Sale Form — FUNC alternate labels](static_files/images/sample_sale_func_dual_functions_form.jpg)
+
+> Same SALE layout with alternate dual-function labels visible after **FUNC** (including **CUSTOMER** for assigning a customer to the active sale).
+
+With alternate labels active, tap **CUSTOMER** to open the Customer List in *sale-assignment context* (BACK links the chosen or newly added customer to the open document).
+
+![Sale Form — CUSTOMER assignment](static_files/images/sample_sale_customer_form.jpg)
+
+> SALE form illustrating the **CUSTOMER** path from the dual-function row (after **FUNC**), next to **BACK** and **FUNC**.
 
 Selecting "CLOSURE" opens the end-of-day closure screen:
 
@@ -431,6 +443,12 @@ Selecting "CASHIER MANAGEMENT" allows managing cashier accounts:
 
 > Cashier Management form with cashier selection combobox, editable profile fields, and administrator-only **ADD NEW CASHIER** button. Field-level read-only protection enforced based on the `is_administrator` flag.
 
+Administrators can press **ADD NEW CASHIER** to clear the panel and create a record in-place (combobox hidden until save):
+
+![Add New Cashier Form](static_files/images/sample_cashier_add_form.jpg)
+
+> Blank cashier entry form: No, Username, Name, Last Name, Password, Identity Number, Description, **Is Administrator**, **Is Active**, plus **SAVE** / **BACK**.
+
 Selecting "PRODUCTS" opens the product search and listing screen:
 
 ![Product List Form](static_files/images/sample_product_form.jpg)
@@ -443,9 +461,19 @@ Clicking "DETAIL" on a selected product opens the tabbed product detail dialog:
 
 > Product Detail modal dialog (DB-driven, 1024×768) with four tabs: **Product Info** (code, name, price, stock, unit, manufacturer), **Barcodes**, **Attributes**, and **Variants**. Tabs are fully navigable via touch.
 
+Selecting **CUSTOMER** from the Main Menu opens the customer database (management context — **DETAIL** / **ADD** / **BACK**). The same list opened from the SALE form after **FUNC** → **CUSTOMER** may show **SELECT** instead of **DETAIL** when assigning a customer to the active sale.
+
+![Customer List Form](static_files/images/sample_customer_list_form.jpg)
+
+> Customer List with search (name, phone, e-mail), results grid, and action buttons (**DETAIL** or **SELECT**, **ADD**, **BACK** depending on context).
+
+![Customer Detail Form](static_files/images/sample_customer_detail_form.jpg)
+
+> Customer Detail modal with **Customer Info** and **Activity History** tabs; **SAVE** / **BACK** to persist or close.
+
 Selecting "WAREHOUSE" from the Main Menu opens the warehouse stock management screen:
 
-![Warehouse Stock List Form](static_files/images/sample_warehouse_stock_list_form.jpg)
+![Warehouse Stock List Form](static_files/images/sample_warehouse_list_form.jpg)
 
 > Warehouse Stock List form showing all products with columns for Code, Name, Short Name, Sale Price, Stock, and Low Stock indicator. Selecting a product displays a per-location breakdown (Warehouse, Type, Location, Qty, Available, Reserved, Min, Reorder, Alert) in the panel below. Four action buttons are available: **DETAIL** (opens Product Detail dialog), **STOCK IN** (goods receipt), **ADJUSTMENT** (manual stock correction), and **HISTORY** (movement log).
 

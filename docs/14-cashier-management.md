@@ -2,6 +2,8 @@
 
 Access cashier management from the main menu by pressing **CASHIER MANAGEMENT**.
 
+![Cashier Management form](../static_files/images/sample_cashier_form.jpg)
+
 ---
 
 ## Cashier Roles
@@ -45,6 +47,8 @@ Selecting a cashier from the combobox updates `CurrentData.editing_cashier` and 
 ---
 
 ## Adding a New Cashier (Admin Only)
+
+![Add New Cashier — blank entry form](../static_files/images/sample_cashier_add_form.jpg)
 
 1. Press the **ADD NEW CASHIER** button (SaddleBrown, bottom-left).
    - The button is hidden for non-admin users.

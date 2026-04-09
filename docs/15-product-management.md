@@ -14,6 +14,10 @@ Both forms are rendered by `DynamicFormRenderer` from records in
 `form.py` / `form_control.py`.  No static Python form classes are
 needed — all layout data lives in the database.
 
+![Product List form](../static_files/images/sample_product_form.jpg)
+
+![Product Detail — tabbed dialog](../static_files/images/sample_product_detail_form.jpg)
+
 ---
 
 ## New Control: TabControl
