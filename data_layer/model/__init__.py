@@ -86,7 +86,7 @@ from data_layer.model.definition.transaction_note_temp import TransactionNoteTem
 from data_layer.model.definition.transaction_refund import TransactionRefund
 from data_layer.model.definition.transaction_refund_temp import TransactionRefundTemp
 from data_layer.model.definition.transaction_surcharge import TransactionSurcharge
-from data_layer.model.definition.Transaction_surcharge_temp import TransactionSurchargeTemp
+from data_layer.model.definition.transaction_surcharge_temp import TransactionSurchargeTemp
 from data_layer.model.definition.transaction_tax import TransactionTax
 from data_layer.model.definition.transaction_tax_temp import TransactionTaxTemp
 from data_layer.model.definition.transaction_tip import TransactionTip
