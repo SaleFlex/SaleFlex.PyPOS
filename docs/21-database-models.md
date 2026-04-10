@@ -1,6 +1,6 @@
 # Database Models Overview
 
-SaleFlex.PyPOS uses a comprehensive database schema with 98+ models organized into logical categories. All models inherit from base classes that provide CRUD operations, audit trails, soft delete functionality, and auto-save capabilities.
+SaleFlex.PyPOS uses a comprehensive database schema with 100+ models organized into logical categories. All models inherit from base classes that provide CRUD operations, audit trails, soft delete functionality, and auto-save capabilities.
 
 ## Core System Models
 
@@ -89,7 +89,7 @@ SaleFlex.PyPOS uses a comprehensive database schema with 98+ models organized in
 
 ## Customer Management Models
 
-- **Customer**: Customer master data with contact information, preferences, and consent management
+- **Customer**: Customer master data with contact information, preferences, and consent management. **`phone_normalized`** stores a digits-only canonical phone for loyalty uniqueness and search; see [Loyalty Programs](41-loyalty-programs.md).
 - **CustomerSegment**: Customer segmentation definitions (VIP, New, Frequent, etc.)
 - **CustomerSegmentMember**: Customer membership in segments
 
@@ -105,10 +105,15 @@ SaleFlex.PyPOS uses a comprehensive database schema with 98+ models organized in
 
 ## Loyalty Program Models
 
-- **LoyaltyProgram**: Loyalty program definitions with point earning rules
+- **LoyaltyProgram**: Loyalty program definitions (rates, welcome/birthday points, expiry settings)
 - **LoyaltyTier**: Membership tiers (Bronze, Silver, Gold, Platinum) with benefits
-- **CustomerLoyalty**: Customer loyalty account with current points and tier
-- **LoyaltyPointTransaction**: Point transaction history (earned, redeemed, expired)
+- **CustomerLoyalty**: One loyalty account per customer for a program; optional legacy **`loyalty_card_number`**; primary POS identity is the customer’s normalized phone
+- **LoyaltyPointTransaction**: Point transaction history (earned, redeemed, expired, welcome, etc.)
+- **LoyaltyProgramPolicy**: Per-program operational policy — customer identifier mode (`PHONE` / `LOYALTY_CARD`), phone required for enrollment, default country code for normalization, void/refund point policy placeholder, integration provider (`LOCAL` / `GATE` / `EXTERNAL`)
+- **LoyaltyEarnRule**: Rows for future earning rules (`DOCUMENT_TOTAL`, line, bundle, …) with `config_json` and priority
+- **LoyaltyRedemptionPolicy**: Per-program redemption caps and step size (consumed by payment logic when implemented)
+
+See [Loyalty Programs](41-loyalty-programs.md) for runtime behaviour and upgrade notes.
 
 ## Cashier Performance Models
 

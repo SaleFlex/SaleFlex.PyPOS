@@ -128,6 +128,9 @@ from data_layer.model.definition.loyalty_program import LoyaltyProgram
 from data_layer.model.definition.loyalty_tier import LoyaltyTier
 from data_layer.model.definition.customer_loyalty import CustomerLoyalty
 from data_layer.model.definition.loyalty_point_transaction import LoyaltyPointTransaction
+from data_layer.model.definition.loyalty_program_policy import LoyaltyProgramPolicy
+from data_layer.model.definition.loyalty_earn_rule import LoyaltyEarnRule
+from data_layer.model.definition.loyalty_redemption_policy import LoyaltyRedemptionPolicy
 
 # Customer Segmentation Models
 from data_layer.model.definition.customer_segment import CustomerSegment

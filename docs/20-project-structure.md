@@ -27,7 +27,7 @@ SaleFlex.PyPOS/
 │   ├── model/
 │   │   ├── crud_model.py       ← BaseModel with CRUD + UUID + soft-delete
 │   │   ├── mixins.py           ← AutoSave, AuditMixin, etc.
-│   │   └── definition/         ← 98+ SQLAlchemy model classes (one file each)
+│   │   └── definition/         ← 100+ SQLAlchemy model classes (one file each)
 │   ├── db_init_data/           ← Seed data functions (one file per model)
 │   │   └── forms/              ← Form + control definitions split by topic
 │   ├── auto_save/              ← AutoSaveDescriptor / AutoSaveModel / AutoSaveDict
@@ -37,7 +37,7 @@ SaleFlex.PyPOS/
 │   ├── data/                   ← Lightweight data classes / enums (DocumentState, etc.)
 │   ├── hardware/               ← Device info detection
 │   ├── peripherals/            ← OPOS-style device stubs (printer, drawer, scanner, …)
-│   ├── service/                ← VatService, SaleService, PaymentService
+│   ├── service/                ← VatService, SaleService, PaymentService, LoyaltyService
 │   └── manager/
 │       ├── application.py      ← Singleton Application (inherits all managers)
 │       ├── current_status.py   ← CurrentStatus mixin (login state, form stack)

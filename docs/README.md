@@ -39,6 +39,7 @@ In Markdown under `docs/`, reference them as `../static_files/images/<filename>`
 | 15 | [Product Management](15-product-management.md) | Product List search, Product Detail tabbed dialog |
 | 16 | [Inventory Management](16-inventory-management.md) | Stock levels, goods receipt, adjustments, movement history, negative stock policy |
 | 17 | [Customer Management](17-customer-management.md) | Customer List search, ADD new customer, Customer Detail tabbed dialog, Walk-in Customer, activity history (`TransactionHead` / `fk_customer_id`), SALE form CUSTOMER dual button, sale-assignment workflow |
+| 41 | [Loyalty Programs](41-loyalty-programs.md) | Local loyalty: `LoyaltyProgramPolicy` / earn / redemption policy models, `phone_normalized`, `LoyaltyService`, auto-enrollment on sale assignment, welcome points; not yet: earning engine, payment redemption |
 
 ---
 
@@ -90,6 +91,7 @@ In Markdown under `docs/`, reference them as `../static_files/images/<filename>`
 | Cashier accounts | [Cashier Management](14-cashier-management.md) |
 | Stock management | [Inventory Management](16-inventory-management.md) |
 | Customer management / sale assignment | [Customer Management](17-customer-management.md) |
+| Loyalty (local, phone ID, enrollment) | [Loyalty Programs](41-loyalty-programs.md) |
 | UI customization | [Dynamic Forms System](22-dynamic-forms-system.md) |
 | Database schema | [Database Models Overview](21-database-models.md) |
 | Event wiring | [Event System](24-event-system.md) |
@@ -102,6 +104,6 @@ In Markdown under `docs/`, reference them as `../static_files/images/<filename>`
 
 ---
 
-**Last Updated:** 2026-04-09
+**Last Updated:** 2026-04-10
 **Version:** 1.0.0b7
 **License:** MIT

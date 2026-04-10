@@ -86,9 +86,20 @@ After **any** dual-function button on the SALE form is used—including **SUB TO
 ### Search Behaviour
 
 - Matching is case-insensitive `LIKE` on `name`, `last_name`, `phone_number`, and `email_address`.
+- If the search text can be normalized to a digits-only phone key (using the default country calling code from **`LoyaltyProgramPolicy`**, e.g. `90`), an **exact match** on **`Customer.phone_normalized`** is also included in the filter.
 - An empty search term returns all active, non-deleted customers (max 500 rows).
 - Walk-in Customer (`is_walkin = True`) is **always excluded** from results.
 - Results are sorted by Last Name, then First Name.
+
+---
+
+## Phone number and loyalty (local)
+
+- **`phone_number`**: What the cashier types (display format).
+- **`phone_normalized`**: Digits-only canonical value, **unique** per customer when set. Maintained on **SAVE** from the Customer Detail form via `LoyaltyService`; used for loyalty de-duplication and phone-first lookup. Saving fails with a dialog if another customer already has the same normalized phone.
+- When a **non–walk-in** customer is assigned to the **active sale** (BACK from the list or SELECT in sale-assignment context), `LoyaltyService.ensure_loyalty_on_sale_assignment()` may create **`CustomerLoyalty`**, set **`TransactionHeadTemp.loyalty_member_id`**, and record **welcome** points per `LoyaltyProgram.welcome_points`. Enrollment requires a valid phone when `LoyaltyProgramPolicy.require_customer_phone_for_enrollment` is true. Walk-in customers are never enrolled.
+
+Full data model and seed behaviour: [Loyalty Programs](41-loyalty-programs.md).
 
 ---
 
@@ -294,18 +305,21 @@ SALE
 
 > **Important:** The Customer List ADD button and the SALE form CUSTOMER dual button are defined in the database-driven form control initialization. If you are upgrading an existing installation, **delete `db.sqlite3`** and restart the application so the new form controls are seeded correctly.
 
+> **Loyalty / phone column:** New installations add **`customer.phone_normalized`** and loyalty policy tables automatically. Older SQLite files do not gain new columns from `create_all()` alone — recreate the database or migrate the schema before relying on phone uniqueness and loyalty seed data.
+
 ---
 
 ## Related Documentation
 
 - [Dynamic Forms System](22-dynamic-forms-system.md) — how DB-driven forms and panels work
 - [Database Models Overview](21-database-models.md) — Customer, CustomerLoyalty, CustomerSegment models
+- [Loyalty Programs](41-loyalty-programs.md) — policy tables, `LoyaltyService`, enrollment on sale assignment
 - [Event System](24-event-system.md) — CustomerEvent handler class
 - [Database Initialization](33-database-initialization.md) — `_insert_customers()` seed function
 - [Sale Transactions](10-sale-transactions.md) — SALE form NumPad modes and dual-function buttons
 
 ---
 
-**Last Updated:** 2026-04-08  
+**Last Updated:** 2026-04-10  
 **Version:** 1.0.0b7  
 **License:** MIT

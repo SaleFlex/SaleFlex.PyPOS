@@ -37,7 +37,7 @@ class Customer(Model, CRUD, SoftDeleteMixin):
     Extended to support loyalty programs and customer segmentation
     """
     def __init__(self, name=None, last_name=None, address_line_1=None, address_line_2=None, address_line_3=None,
-                 email_address=None, phone_number=None, zip_code=None, description=None,
+                 email_address=None, phone_number=None, phone_normalized=None, zip_code=None, description=None,
                  date_of_birth=None, gender=None, national_id=None, tax_id=None,
                  registration_source=None, marketing_consent=False, sms_consent=False,
                  email_consent=False, preferences_json=None, is_walkin=False,
@@ -52,6 +52,7 @@ class Customer(Model, CRUD, SoftDeleteMixin):
         self.address_line_3 = address_line_3
         self.email_address = email_address
         self.phone_number = phone_number
+        self.phone_normalized = phone_normalized
         self.zip_code = zip_code
         self.description = description
         self.date_of_birth = date_of_birth
@@ -81,6 +82,8 @@ class Customer(Model, CRUD, SoftDeleteMixin):
     address_line_3 = Column(String(100), nullable=True)
     email_address = Column(String(100), nullable=True)
     phone_number = Column(String(100), nullable=True)
+    # Digits-only canonical phone for loyalty lookup and de-duplication (E.164 body without '+')
+    phone_normalized = Column(String(32), nullable=True, unique=True)
     zip_code = Column(String(50), nullable=True)
     
     # Additional personal information

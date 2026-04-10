@@ -162,14 +162,19 @@ class CustomerEvent:
 
                 if search_term:
                     like_term = f"%{search_term}%"
-                    query = query.filter(
-                        or_(
-                            Customer.name.ilike(like_term),
-                            Customer.last_name.ilike(like_term),
-                            Customer.phone_number.ilike(like_term),
-                            Customer.email_address.ilike(like_term),
-                        )
-                    )
+                    from pos.service.loyalty_service import LoyaltyService
+
+                    or_clauses = [
+                        Customer.name.ilike(like_term),
+                        Customer.last_name.ilike(like_term),
+                        Customer.phone_number.ilike(like_term),
+                        Customer.email_address.ilike(like_term),
+                    ]
+                    cc = LoyaltyService.default_phone_country_for_search()
+                    normalized = LoyaltyService.normalize_phone(search_term, cc)
+                    if normalized:
+                        or_clauses.append(Customer.phone_normalized == normalized)
+                    query = query.filter(or_(*or_clauses))
 
                 customers = query.order_by(Customer.last_name, Customer.name).limit(500).all()
 
@@ -341,6 +346,16 @@ class CustomerEvent:
                         coerced = str(raw_value).strip() if raw_value else None
                         setattr(new_customer, field_name.lower(), coerced)
 
+                    from pos.service.loyalty_service import LoyaltyService
+
+                    LoyaltyService.sync_customer_phone_normalized(session, new_customer)
+                    dup = LoyaltyService.validate_unique_phone_normalized(session, new_customer)
+                    if dup:
+                        from user_interface.form.message_form import MessageForm
+
+                        MessageForm.show_error(self.interface.window, dup, "Telefon")
+                        return False
+
                     session.add(new_customer)
                     session.commit()
                     session.refresh(new_customer)
@@ -397,6 +412,16 @@ class CustomerEvent:
                                 "[CUSTOMER_DETAIL_SAVE] Could not process field '%s' value '%s': %s",
                                 field_name, raw_value, exc
                             )
+
+                    from pos.service.loyalty_service import LoyaltyService
+
+                    LoyaltyService.sync_customer_phone_normalized(session, customer)
+                    dup = LoyaltyService.validate_unique_phone_normalized(session, customer)
+                    if dup:
+                        from user_interface.form.message_form import MessageForm
+
+                        MessageForm.show_error(self.interface.window, dup, "Telefon")
+                        return False
 
                     session.commit()
 
@@ -583,6 +608,10 @@ class CustomerEvent:
             head_obj.fk_customer_id = customer_id
             if hasattr(head_obj, 'save'):
                 head_obj.save()
+
+            from pos.service.loyalty_service import LoyaltyService
+
+            LoyaltyService.ensure_loyalty_on_sale_assignment(head_obj, customer_id)
 
             # Update the display name shown in the status bar
             try:

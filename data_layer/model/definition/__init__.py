@@ -94,6 +94,9 @@ from .loyalty_program import LoyaltyProgram
 from .loyalty_tier import LoyaltyTier
 from .customer_loyalty import CustomerLoyalty
 from .loyalty_point_transaction import LoyaltyPointTransaction
+from .loyalty_program_policy import LoyaltyProgramPolicy
+from .loyalty_earn_rule import LoyaltyEarnRule
+from .loyalty_redemption_policy import LoyaltyRedemptionPolicy
 # Customer Segmentation Models
 from .customer_segment import CustomerSegment
 from .customer_segment_member import CustomerSegmentMember
@@ -195,6 +198,9 @@ __all__ = [
     'LoyaltyTier',
     'CustomerLoyalty',
     'LoyaltyPointTransaction',
+    'LoyaltyProgramPolicy',
+    'LoyaltyEarnRule',
+    'LoyaltyRedemptionPolicy',
     # Customer Segmentation Models
     'CustomerSegment',
     'CustomerSegmentMember',

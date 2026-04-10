@@ -67,8 +67,8 @@ class CustomerLoyalty(Model, CRUD, AuditMixin, SoftDeleteMixin):
     fk_loyalty_program_id = Column(UUID, ForeignKey('loyalty_program.id'), nullable=False)
     fk_loyalty_tier_id = Column(UUID, ForeignKey('loyalty_tier.id'), nullable=True)  # Current tier
     
-    # Card identification
-    loyalty_card_number = Column(String(100), nullable=True, unique=True)  # Physical/digital card number
+    # Optional legacy card / external id; primary loyalty lookup is customer.phone_normalized (see LoyaltyProgramPolicy)
+    loyalty_card_number = Column(String(100), nullable=True, unique=True)
     
     # Points tracking
     total_points = Column(Integer, nullable=False, default=0)  # Current total points (including reserved)

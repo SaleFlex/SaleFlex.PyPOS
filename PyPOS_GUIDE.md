@@ -154,7 +154,7 @@ From the **Main Menu**, press **CUSTOMER** (purple button, bottom row) to open t
 
 | Action | How |
 |--------|-----|
-| **Search customers** | Type name, phone or e-mail in the search box — press **SEARCH** |
+| **Search customers** | Type name, phone or e-mail in the search box — press **SEARCH** (phone queries also match normalized digits when applicable) |
 | **View & edit customer** | Select a row — press **DETAIL** |
 | **Add new customer** | Press **ADD** (green, bottom-left) — fill in the blank form — press **SAVE** |
 | **Save customer changes** | In Customer Detail — edit fields — press **SAVE** |
@@ -183,6 +183,8 @@ Press **SAVE** (green) to persist changes or create a new customer. Press **BACK
 ![Customer Detail](static_files/images/sample_customer_detail_form.jpg)
 
 > **Walk-in Customer:** A special "Walk-in Customer" record is pre-seeded in the database (`is_walkin = True`). All sale transactions that have no customer explicitly assigned are automatically linked to this record. The Walk-in Customer is excluded from the customer list search and cannot be edited.
+
+**Loyalty (local):** Saving a customer updates **`phone_normalized`** (digits-only, unique). Assigning a registered customer to the active sale can create **`CustomerLoyalty`** and set **`loyalty_member_id`** on the open document; welcome points use `LoyaltyProgram` settings. Earning points at checkout and spending points in payment are not implemented yet. Details: [Loyalty Programs](docs/41-loyalty-programs.md).
 
 See [Customer Management](docs/17-customer-management.md) for full documentation.
 
@@ -229,6 +231,7 @@ See [Inventory Management](docs/16-inventory-management.md) for full documentati
 15. [Product Management](docs/15-product-management.md)
 16. [Inventory Management](docs/16-inventory-management.md)
 17. [Customer Management](docs/17-customer-management.md)
+41. [Loyalty Programs](docs/41-loyalty-programs.md)
 
 ### Part 3 — Architecture (Developer)
 
@@ -289,6 +292,8 @@ See [Inventory Management](docs/16-inventory-management.md) for full documentati
 
 **Assign customer to sale (FUNC → CUSTOMER button):** [Customer Management — Sale-Assignment Workflow](docs/17-customer-management.md#sale-assignment-workflow)
 
+**Loyalty (phone ID, enrollment):** [Loyalty Programs](docs/41-loyalty-programs.md)
+
 **Inventory & stock management:** [Inventory Management](docs/16-inventory-management.md)
 
 **Project architecture:** [Project Structure](docs/20-project-structure.md)
@@ -301,6 +306,6 @@ See [Inventory Management](docs/16-inventory-management.md) for full documentati
 
 ---
 
-**Last Updated:** 2026-04-09
+**Last Updated:** 2026-04-10
 **Version:** 1.0.0b7
 **License:** MIT

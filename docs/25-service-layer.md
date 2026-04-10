@@ -4,7 +4,7 @@
 
 SaleFlex.PyPOS implements a **service layer pattern** to separate business logic from event handlers and UI components. This architecture improves code organization, reusability, and testability by centralizing business operations in dedicated service classes.
 
-The service layer is located in the `pos/service/` directory and contains business logic services that handle core POS operations such as VAT calculations, sale processing, and transaction management.
+The service layer is located in the `pos/service/` directory and contains business logic services that handle core POS operations such as VAT calculations, sale processing, transaction management, and local loyalty enrollment.
 
 ## Service Layer Structure
 
@@ -13,7 +13,8 @@ pos/service/
 ├── __init__.py          # Service layer exports
 ├── vat_service.py       # VAT calculation service
 ├── sale_service.py      # Sale processing service
-└── payment_service.py   # Payment processing service
+├── payment_service.py   # Payment processing service
+└── loyalty_service.py   # Phone normalization, loyalty membership on sale assignment
 ```
 
 ## Available Services
@@ -271,6 +272,25 @@ if is_complete:
 - **`update_closure_for_completion(closure, document_data)`**: Update closure with transaction totals
 - **`copy_temp_to_permanent(document_data)`**: Copy all temp models to permanent models
 - **`_safe_decimal(value)`**: Safely convert value to Decimal (handles None, string, int, float, Decimal)
+
+### LoyaltyService
+
+`LoyaltyService` (`pos/service/loyalty_service.py`) supports the **local** loyalty program only.
+
+#### Responsibilities
+
+- **`normalize_phone(phone, default_country_calling_code)`** — digits-only canonical phone for storage and matching.
+- **`sync_customer_phone_normalized(session, customer)`** — sets `Customer.phone_normalized` using active program policy.
+- **`validate_unique_phone_normalized(session, customer)`** — detects conflicts before commit.
+- **`ensure_loyalty_on_sale_assignment(head_obj, customer_id)`** — after a customer is linked to the open sale, may create `CustomerLoyalty`, set `TransactionHeadTemp.loyalty_member_id`, and post welcome points (`LoyaltyPointTransaction`).
+
+Called from `CustomerEvent` (customer SAVE, customer search country code helper, sale assignment). Checkout earning and payment redemption are **not** handled here; see [Loyalty Programs](41-loyalty-programs.md).
+
+#### Import
+
+```python
+from pos.service.loyalty_service import LoyaltyService
+```
 
 ## Sale List Item Actions (REPEAT / DELETE)
 

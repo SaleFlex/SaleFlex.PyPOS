@@ -35,7 +35,7 @@ The `insert_initial_data()` function in `db_init_data/__init__.py` orchestrates 
 27. **Virtual Keyboard Settings** (`_insert_virtual_keyboard_settings`): Creates default keyboard theme
 28. **Alternative Keyboard Themes** (`_insert_alternative_keyboard_themes`): Adds additional keyboard themes
 29. **Campaigns** (`_insert_campaigns`): Creates sample promotional campaigns
-30. **Loyalty Programs** (`_insert_loyalty`): Sets up loyalty program with tiers
+30. **Loyalty Programs** (`_insert_loyalty`): Sets up loyalty program with tiers, `LoyaltyProgramPolicy`, `LoyaltyRedemptionPolicy`, and default `LoyaltyEarnRule`
 31. **Customer Segments** (`_insert_customer_segments`): Creates default customer segments
 32. **POS Settings** (`_insert_pos_settings`): Configures system-wide POS settings including device serial number (generated from MAC address and disk serial), operating system information, default country (United Kingdom), default currency (GBP), customer display settings (INTERNAL), barcode reader port (PS/2), backend connection settings (127.0.0.1:5000), and backend type (GATE)
 
@@ -164,9 +164,13 @@ Creates the default virtual keyboard theme:
 
 ### `_insert_loyalty(session, admin_cashier_id)`
 Sets up loyalty program:
-- Default loyalty program with point earning rules
-- Membership tiers (Bronze, Silver, Gold, Platinum)
-- Tier benefits and point multipliers
+- Default loyalty program with point earning configuration on `LoyaltyProgram`
+- Membership tiers (Bronze, Silver, Gold, Platinum) with benefits and point multipliers
+- **`LoyaltyProgramPolicy`** — phone-first identity, default country calling code (`90` in seed), enrollment rules, integration provider (`LOCAL`)
+- **`LoyaltyRedemptionPolicy`** — redemption caps/steps (used when payment redemption is implemented)
+- **`LoyaltyEarnRule`** — default `DOCUMENT_TOTAL` placeholder row for a future earning engine
+
+Inserts are idempotent (skip when rows already exist). See [Loyalty Programs](41-loyalty-programs.md).
 
 ### `_insert_campaigns(session, admin_cashier_id)`
 Creates sample promotional campaigns:

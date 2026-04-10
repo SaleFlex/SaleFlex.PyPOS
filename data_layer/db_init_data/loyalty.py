@@ -24,7 +24,13 @@ SOFTWARE.
 
 from datetime import datetime
 from sqlalchemy.orm import Session
-from data_layer.model.definition import LoyaltyProgram, LoyaltyTier
+from data_layer.model.definition import (
+    LoyaltyProgram,
+    LoyaltyTier,
+    LoyaltyProgramPolicy,
+    LoyaltyEarnRule,
+    LoyaltyRedemptionPolicy,
+)
 
 
 
@@ -145,6 +151,77 @@ def _insert_loyalty_tiers(session: Session, loyalty_program_id):
     logger.info("✓ Inserted %s loyalty tiers", len(tiers))
 
 
+def _insert_loyalty_program_policy(session: Session, loyalty_program_id):
+    existing = session.query(LoyaltyProgramPolicy).filter(
+        LoyaltyProgramPolicy.fk_loyalty_program_id == loyalty_program_id
+    ).first()
+    if existing:
+        logger.warning("Loyalty program policy already exists, skipping...")
+        return
+
+    session.add(
+        LoyaltyProgramPolicy(
+            fk_loyalty_program_id=loyalty_program_id,
+            customer_identifier_type="PHONE",
+            require_customer_phone_for_enrollment=True,
+            default_phone_country_calling_code="90",
+            void_loyalty_points_policy="NONE",
+            integration_provider="LOCAL",
+        )
+    )
+    session.commit()
+    logger.info("✓ Inserted loyalty program policy")
+
+
+def _insert_loyalty_redemption_policy(session: Session, loyalty_program_id):
+    existing = session.query(LoyaltyRedemptionPolicy).filter(
+        LoyaltyRedemptionPolicy.fk_loyalty_program_id == loyalty_program_id
+    ).first()
+    if existing:
+        logger.warning("Loyalty redemption policy already exists, skipping...")
+        return
+
+    session.add(
+        LoyaltyRedemptionPolicy(
+            fk_loyalty_program_id=loyalty_program_id,
+            max_basket_amount_share_from_points=None,
+            minimum_points_to_redeem=1,
+            points_redemption_step=1,
+            allow_partial_redemption=True,
+        )
+    )
+    session.commit()
+    logger.info("✓ Inserted loyalty redemption policy")
+
+
+def _insert_loyalty_default_earn_rule(session: Session, loyalty_program_id):
+    existing = (
+        session.query(LoyaltyEarnRule)
+        .filter(
+            LoyaltyEarnRule.fk_loyalty_program_id == loyalty_program_id,
+            LoyaltyEarnRule.rule_code == "DEFAULT_DOCUMENT_TOTAL",
+        )
+        .first()
+    )
+    if existing:
+        logger.warning("Default loyalty earn rule already exists, skipping...")
+        return
+
+    session.add(
+        LoyaltyEarnRule(
+            fk_loyalty_program_id=loyalty_program_id,
+            rule_code="DEFAULT_DOCUMENT_TOTAL",
+            rule_type="DOCUMENT_TOTAL",
+            priority=1000,
+            is_active=True,
+            config_json="{}",
+            description="Base earning from document total (engine not yet implemented)",
+        )
+    )
+    session.commit()
+    logger.info("✓ Inserted default loyalty earn rule")
+
+
 def _insert_loyalty(session: Session, admin_cashier_id):
     """
     Main function to insert all loyalty-related data
@@ -152,4 +229,7 @@ def _insert_loyalty(session: Session, admin_cashier_id):
     loyalty_program = _insert_loyalty_program(session, admin_cashier_id)
     if loyalty_program:
         _insert_loyalty_tiers(session, loyalty_program.id)
+        _insert_loyalty_program_policy(session, loyalty_program.id)
+        _insert_loyalty_redemption_policy(session, loyalty_program.id)
+        _insert_loyalty_default_earn_rule(session, loyalty_program.id)
 
