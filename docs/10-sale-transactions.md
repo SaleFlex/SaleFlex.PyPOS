@@ -218,13 +218,35 @@ Two **dual-function** buttons appear in the top-right corner of the product shor
 | **CHANGE** | `CHANGE` | Records change given to the customer (`CHANGE_PAYMENT`) | — |
 | **SUB TOTAL** *(dual)* | `SUBTOTAL` | `SUB TOTAL` → subtotal | `CUSTOMER` → customer list (sale assignment) |
 | **SUSPEND** *(dual)* | `PAYMENT_SUSPEND` | `SUSPEND` → `SUSPEND_SALE` | `CANCEL` → `CANCEL_DOCUMENT` |
+| **CREDIT CARD** *(dual)* | `PAYMENT_CREDIT` | `CREDIT CARD` → `CREDIT_PAYMENT` | `PAYMENT` → opens **PAYMENT** form (`FormName.PAYMENT`) |
 | **DISC %** *(dual)* | `DISCOUNT_PERCENT_BTN` | `DISC %` → `DISCOUNT_BY_PERCENT` | `MARK %` → `MARKUP_BY_PERCENT` |
 | **DISC AMT** *(dual)* | `DISCOUNT_AMOUNT_BTN` | `DISC AMT` → `DISCOUNT_BY_AMOUNT` | `MARK AMT` → `MARKUP_BY_AMOUNT` |
 
 ![SALE form — CUSTOMER button visible after FUNC](../static_files/images/sample_sale_customer_form.jpg)
 
 - **FUNC** toggles labels on all dual-function buttons between normal (`caption1`) and alternate (`caption2`); it does not run sale handlers. Any dual-button tap runs the visible function and resets **all** dual buttons to normal captions.
-- Dual-function sale buttons (**SUSPEND**, **SUB TOTAL** / **CUSTOMER**, **DISC %**, **DISC AMT**) carry a small **"F"** badge in the top-right corner.
+- Dual-function sale buttons (**SUSPEND**, **SUB TOTAL** / **CUSTOMER**, **CREDIT CARD** / **PAYMENT**, **DISC %**, **DISC AMT**) carry a small **"F"** badge in the top-right corner.
+
+---
+
+## PAYMENT form
+
+Enum / DB name: **`FormName.PAYMENT`** (default seed `form_no` **20**). Opened from SALE after **FUNC** → **PAYMENT** (dual caption on **CREDIT CARD**) only when there is a payable open receipt (head present, not closed/cancelled/completed, `total_amount` > 0, document not already complete); otherwise a modal error is shown and the form does not open. **BACK** returns to SALE (form history). The same active sale document is used; payments post through the existing `PaymentService` handlers.
+
+| Area | Description |
+|------|-------------|
+| **AMOUNTSTABLE** | Live totals (same control family as SALE) |
+| **PAYMENTLIST** | Lines already tendered on the document |
+| **NUMPAD** | Tender amount in **minor units**; **Enter** is a no-op (`NONE`). On this screen you **must** enter an amount before each payment type — the app does **not** auto-take the full balance in one tap (unlike the SALE form). Split tenders repeat until the balance is zero, then the receipt completes. |
+| **BACK** | `BACK` event → previous form (SALE) |
+| **CHANGE** | `CHANGE_PAYMENT` — same as SALE form; when over-tendered, records change and can complete the receipt (no MessageForm fallback if this button exists on the form) |
+| Payment grid | Buttons for cash, card, cheque, on credit, prepaid, mobile, bonus, exchange, current account, bank transfer (see seed data in `data_layer/db_init_data/forms/payment_screen.py` for `EventName` mapping) |
+
+When the ticket is fully paid from this screen, the app completes the sale, prints, and redraws **SALE** with a new empty document (same behaviour as completing on the main sale layout). The stacked **SALE** entry that was added when opening PAYMENT is then popped from ``form_history`` (`prepare_navigation_return_from_payment_form`) so **BACK** leaves the sale screen for the real previous form (e.g. **MAIN_MENU**), not a duplicate SALE.
+
+**Data sync:** `AMOUNTSTABLE` and `PAYMENTLIST` are filled from the same `document_data` as the SALE screen. After each main-window draw of **SALE** or **PAYMENT**, `Interface.draw` schedules `SaleService.update_sale_screen_controls()` (via `_update_sale_screen_controls`) so totals and payment lines match the active temp document when opening PAYMENT, after partial tenders, and when pressing **BACK** to SALE.
+
+> **DB note:** Form **#20** and its controls are inserted only when the database is first initialised (empty `Form` / `FormControl` tables). Existing deployments need a migration or manual form row + controls if they predate this feature.
 
 > See [UI Controls — Dual-Function Buttons](23-ui-controls.md#dual-function-buttons) and [UI Controls — FUNC Button](23-ui-controls.md#func-button--global-function-mode-toggle) for the full mechanism.
 

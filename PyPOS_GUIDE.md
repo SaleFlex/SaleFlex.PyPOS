@@ -36,14 +36,16 @@ python saleflex.py
 | **Barcode/PLU lookup** | Type code → press ENTER | Finds and sells the product |
 | **Inline quantity** | Type qty → click PLU button | Sells that many units |
 | **Quantity multiplier (X)** | Type qty → press **X** → scan/ENTER | Pre-sets quantity for next scan |
-| **Payment amount** | Type amount → press CASH/CREDIT CARD | Pays that amount (minor currency units) |
+| **Payment amount** | Type amount → press CASH/CREDIT CARD (or a type on the **PAYMENT** screen) | Pays that amount (minor currency units) |
 | **PLU inquiry** | Type code → press **PLU** (or press PLU first → ENTER) | Shows price and stock without selling |
 
 ![SALE form](static_files/images/sample_sale_form.jpg)
 
-After **FUNC**, dual-function buttons show their alternate labels (e.g. **SUB TOTAL** → **CUSTOMER**, discount buttons → markup):
+After **FUNC**, dual-function buttons show their alternate labels (e.g. **SUB TOTAL** → **CUSTOMER**, **CREDIT CARD** → **PAYMENT**, discount buttons → markup):
 
 ![SALE form — FUNC alternate labels](static_files/images/sample_sale_func_dual_functions_form.jpg)
+
+**Full payment screen:** With alternate labels visible, **PAYMENT** opens `FormName.PAYMENT` — same document as SALE, with **AMOUNTSTABLE**, **PAYMENTLIST**, **NUMPAD**, **BACK**, and one button per payment category (aligned with `PaymentType` in code: cash, card, cheque, on credit, prepaid, mobile, bonus, exchange, current account, bank transfer). Details: [Sale Transactions — PAYMENT form](docs/10-sale-transactions.md#payment-form).
 
 ### Suspend a Sale (Market Mode)
 

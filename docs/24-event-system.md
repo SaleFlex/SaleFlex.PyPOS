@@ -115,6 +115,7 @@ if handler:
 
 | EventName | Handler | Description |
 |-----------|---------|-------------|
+| `PAYMENT` | `_payment_event` | Open **PAYMENT** form (full payment screen; SALE dual **CREDIT CARD** → **PAYMENT**) |
 | `CASH_PAYMENT` | `_cash_payment_event` | Cash payment (exact or from NumPad) |
 | `CREDIT_PAYMENT` | `_credit_payment_event` | Credit card payment |
 | `CHECK_PAYMENT` | `_check_payment_event` | Cheque payment |

@@ -33,7 +33,9 @@ from pos.peripherals.line_display import get_default_line_display
 
 
 def _is_sale_form(app: Any) -> bool:
-    return getattr(app, "current_form_type", None) == FormName.SALE
+    """True on SALE or PAYMENT screen (same active ticket / line display context)."""
+    ft = getattr(app, "current_form_type", None)
+    return ft in (FormName.SALE, FormName.PAYMENT)
 
 
 def sync_line_display_from_document(app: Any, document_data: Optional[Dict[str, Any]]) -> None:

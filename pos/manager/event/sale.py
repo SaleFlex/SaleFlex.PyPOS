@@ -2837,8 +2837,6 @@ class SaleEvent:
             if not self.create_empty_document():
                 logger.error("[SUSPEND_SALE] Failed to create new draft after suspend")
             self.interface.redraw(form_name=FormName.SALE.name)
-            from PySide6.QtCore import QTimer
-            QTimer.singleShot(100, self._update_sale_screen_controls)
             logger.info("[SUSPEND_SALE] Sale suspended; new draft created and UI refreshed")
             return True
 
@@ -2892,8 +2890,6 @@ class SaleEvent:
 
         self.prepare_navigation_resume_sale_from_suspended_market()
         self.interface.redraw(form_name=FormName.SALE.name, skip_history_update=True)
-        from PySide6.QtCore import QTimer
-        QTimer.singleShot(100, self._update_sale_screen_controls)
         logger.info("[RESUME_SALE] Resumed document %s", head_id_str)
         return True
     

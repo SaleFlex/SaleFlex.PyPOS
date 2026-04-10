@@ -48,8 +48,9 @@ class FormName(enum.Enum):
         - Controls in these forms typically use ControlName.CASHIER_NAME,
           ControlName.PASSWORD, ControlName.LOGIN, ControlName.LOGOUT
     
-    Transaction Forms (SALE, REFUND, VOID, SUSPENDED_SALES_MARKET):
+    Transaction Forms (SALE, PAYMENT, REFUND, VOID, SUSPENDED_SALES_MARKET):
         - SALE: Main sales transaction form
+        - PAYMENT: Full-screen payment entry (all payment types, numpad, lists); opened from SALE (dual CREDIT CARD → PAYMENT)
         - REFUND: Product/transaction refund form
         - VOID: Transaction voiding form
         - SUSPENDED_SALES_MARKET: List of suspended receipts (market retail); other sectors may use dedicated forms later (e.g. tables for restaurants)
@@ -128,3 +129,4 @@ class FormName(enum.Enum):
     CUSTOMER_LIST = 36           # Customer list / search form (accessible from Main Menu).
     CUSTOMER_DETAIL = 37         # Customer detail form (tab view: info + activity history).
     CUSTOMER_SELECT = 38         # Customer selection form (accessible from SALE form; SELECT button assigns customer and returns to SALE).
+    PAYMENT = 39                 # Dedicated payment screen (NUMPAD, payment list, amount table, payment-type buttons); opened from SALE via FUNC + dual CREDIT CARD / PAYMENT.

@@ -883,12 +883,12 @@ class SaleService:
     def update_sale_screen_controls(window, document_data: Dict[str, Any], 
                                    pos_data: Optional[Dict[str, Any]] = None):
         """
-        Update all sale screen controls (sale_list, amount_table, payment_list) 
+        Update sale/payment screen controls (sale_list, amount_table, payment_list)
         from document_data when transaction_status is ACTIVE.
-        
-        This method orchestrates the update of all UI controls for the sale screen.
-        It checks if transaction_status is ACTIVE before updating.
-        
+
+        On FormName.PAYMENT only ``amount_table`` and ``payment_list`` exist; ``sale_list``
+        is skipped. Used after navigating SALE↔PAYMENT so widgets match ``document_data``.
+
         Args:
             window: Window instance containing sale_list, amount_table, payment_list controls
             document_data: Dictionary containing transaction temp models (may be wrapped in AutoSaveDict)

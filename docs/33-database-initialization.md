@@ -112,7 +112,7 @@ Inserts default transaction discount types:
 - **PRODUCT**: Product-specific discount
 
 ### `_insert_default_forms(session, cashier_id)`
-Creates all 19 application forms. Form definitions are organised into topic-based sub-modules under `data_layer/db_init_data/forms/`. Each sub-module provides a `get_form_data(cashier_id)` function that returns the form row dict(s) for that topic:
+Creates all 20 application forms. Form definitions are organised into topic-based sub-modules under `data_layer/db_init_data/forms/`. Each sub-module provides a `get_form_data(cashier_id)` function that returns the form row dict(s) for that topic:
 
 | Sub-module | Forms |
 |---|---|
@@ -124,11 +124,12 @@ Creates all 19 application forms. Form definitions are organised into topic-base
 | `forms/product.py` | #8 PRODUCT_LIST, #9 PRODUCT_DETAIL |
 | `forms/stock.py` | #13 STOCK_INQUIRY, #14 STOCK_IN, #15 STOCK_ADJUSTMENT, #16 STOCK_MOVEMENT |
 | `forms/customer.py` | #17 CUSTOMER_LIST, #18 CUSTOMER_DETAIL, #19 CUSTOMER_SELECT |
+| `forms/payment_screen.py` | #20 PAYMENT |
 
 Each form row includes layout dimensions (1024×768), colors, display mode (`MAIN` or `MODAL`), and the `is_startup` flag (only MAIN_MENU is `True`).
 
 ### `_insert_form_controls(session, cashier_id)`
-Populates all 19 forms with their controls (buttons, textboxes, labels, comboboxes, panels, tab controls, data grids, etc.). Control definitions live in the same topic-based sub-modules as the form definitions.
+Populates all 20 forms with their controls (buttons, textboxes, labels, comboboxes, panels, tab controls, data grids, etc.). Control definitions live in the same topic-based sub-modules as the form definitions.
 
 **Insertion is performed in three phases:**
 
@@ -138,7 +139,9 @@ Populates all 19 forms with their controls (buttons, textboxes, labels, combobox
 
 **Phase 3 — Tab-based and inventory forms:** Forms with `TABCONTROL` hierarchies (`PRODUCT_DETAIL`, `CUSTOMER_DETAIL`) and inventory forms issue their own internal `session.flush()` calls to obtain UUIDs before creating child controls.
 
-**SALE form:** `SALESLIST`, `NUMPAD`, `PAYMENTLIST`, department buttons, PLU buttons, product barcode shortcut buttons, cash payment denomination buttons, and dual-function buttons (`PAYMENT_SUSPEND`, `SUB TOTAL`/`CUSTOMER`, `DISC %`/`MARK %`, `DISC AMT`/`MARK AMT`). **FUNC** only swaps their captions between primary and alternate; a dual-button tap runs the visible event and resets **all** dual buttons on the form to primary captions.
+**SALE form:** `SALESLIST`, `NUMPAD`, `PAYMENTLIST`, department buttons, PLU buttons, product barcode shortcut buttons, cash payment denomination buttons, and dual-function buttons (`PAYMENT_SUSPEND`, `SUB TOTAL`/`CUSTOMER`, `CREDIT CARD`/`PAYMENT`, `DISC %`/`MARK %`, `DISC AMT`/`MARK AMT`). **FUNC** only swaps their captions between primary and alternate; a dual-button tap runs the visible event and resets **all** dual buttons on the form to primary captions.
+
+**PAYMENT form (#20):** `AMOUNTSTABLE`, `PAYMENTLIST`, `NUMPAD` (Enter → `NONE`), `BACK`, `PAYMENT_CHANGE` (`CHANGE_PAYMENT`), and payment-type buttons (see `forms/payment_screen.py`).
 
 **SUSPENDED_SALES_MARKET form:** `SUSPENDED_SALES_DATAGRID` (receipt no, line count, total), **ACTIVATE** (`RESUME_SALE`), and **BACK** button.
 

@@ -86,6 +86,15 @@ class Interface:
         self.window.show()
         self.window.focus_text_box()
 
+        # After widgets exist: sync AMOUNTSTABLE, PAYMENTLIST, and (on SALE) SALESLIST from
+        # document_data so PAYMENT↔SALE navigation and BACK keep the same ticket state in view.
+        if renderer.form and getattr(self.app, "login_succeed", False):
+            fname = renderer.form.name
+            if fname in (FormName.SALE.name, FormName.PAYMENT.name):
+                from PySide6.QtCore import QTimer
+
+                QTimer.singleShot(100, self.app._update_sale_screen_controls)
+
     def redraw(self, form_id=None, form_name=None, skip_history_update=False):
         """
         Redraw the main window with a new form.

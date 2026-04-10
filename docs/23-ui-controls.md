@@ -42,6 +42,7 @@ A button becomes a **dual-function button** when both `form_control_function2` a
 | Button name | State 1 (normal) | State 2 (alternate) |
 |-------------|-----------------|---------------------|
 | `PAYMENT_SUSPEND` | `SUSPEND` → `SUSPEND_SALE` | `CANCEL` → `CANCEL_DOCUMENT` |
+| `PAYMENT_CREDIT` | `CREDIT CARD` → `CREDIT_PAYMENT` | `PAYMENT` → `PAYMENT` (opens **PAYMENT** form) |
 | `DISCOUNT_PERCENT_BTN` | `DISC %` → `DISCOUNT_BY_PERCENT` | `MARK %` → `MARKUP_BY_PERCENT` |
 | `DISCOUNT_AMOUNT_BTN` | `DISC AMT` → `DISCOUNT_BY_AMOUNT` | `MARK AMT` → `MARKUP_BY_AMOUNT` |
 

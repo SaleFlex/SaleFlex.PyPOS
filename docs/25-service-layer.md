@@ -262,8 +262,8 @@ if is_complete:
 
 #### Methods
 
-- **`process_payment(document_data, payment_type, button_name="")`**: Process a payment and create TransactionPaymentTemp record
-- **`calculate_payment_amount(button_name, remaining_amount, payment_type)`**: Calculate payment amount based on button name
+- **`process_payment(document_data, payment_type, button_name="", numpad_value=None, default_to_remaining_balance=True)`**: Process a payment and create TransactionPaymentTemp record. When `default_to_remaining_balance=False` (PAYMENT form), a positive `numpad_value` is required for non-preset cash keys.
+- **`calculate_payment_amount(..., default_to_remaining_balance=True)`**: Calculate payment amount from button name, remaining balance, optional numpad value, and whether empty numpad may default to the full remaining balance.
 - **`calculate_change(document_data)`**: Calculate change amount (total_payment_amount - total_amount)
 - **`record_change(document_data)`**: Record change amount in TransactionChangeTemp if positive
 - **`is_document_complete(document_data)`**: Check if document is fully paid (total_amount = total_payment_amount - total_change_amount)

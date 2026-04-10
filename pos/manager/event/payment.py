@@ -62,30 +62,73 @@ class PaymentEvent:
     """
     
     # ==================== GENERAL PAYMENT EVENTS ====================
-    
+
+    def _can_open_payment_form(self) -> tuple[bool, str]:
+        """
+        PAYMENT screen is only for an open, payable sale document.
+
+        Returns:
+            (True, "") if opening is allowed, else (False, user-facing Turkish message).
+        """
+        from data_layer.auto_save import AutoSaveModel
+        from data_layer.model.definition.transaction_status import TransactionStatus
+
+        if not self.document_data or not self.document_data.get("head"):
+            return False, "Açık fiş yok. Satış ekranında kalem ekleyip tekrar deneyin."
+
+        head = self.document_data["head"]
+        if isinstance(head, AutoSaveModel):
+            head = head.unwrap()
+
+        if getattr(head, "is_closed", False):
+            return False, "Bu fiş kapatılmış; ödeme ekranı açılamaz."
+
+        st = getattr(head, "transaction_status", None)
+        if st == TransactionStatus.COMPLETED.value:
+            return False, "Bu fiş tamamlanmış; ödeme ekranı açılamaz."
+        if st == TransactionStatus.CANCELLED.value:
+            return False, "Bu fiş iptal edilmiş; ödeme ekranı açılamaz."
+
+        total_amt = PaymentService._safe_decimal(getattr(head, "total_amount", 0))
+        if total_amt <= 0:
+            return False, "Ödeme alınacak tutar yok. Önce satışa kalem ekleyin."
+
+        if PaymentService.is_document_complete(self.document_data):
+            return False, "Fiş tutarı tamamen tahsil edilmiş."
+
+        return True, ""
+
     def _payment_event(self):
         """
-        Handle general payment processing selection.
-        
-        Displays payment method selection interface and routes
-        to appropriate specific payment handler based on user choice.
-        
-        Process:
-        1. Verify transaction total is ready for payment
-        2. Display payment method selection interface
-        3. Handle payment method selection
-        4. Route to specific payment processor
-        
+        Open the PAYMENT form (full-screen payment entry).
+
+        Used from the SALE form's dual CREDIT CARD button (FUNC → PAYMENT caption).
+        BACK returns to SALE via form history.
+
         Returns:
-            bool: True if payment selection successful, False otherwise
+            bool: True if navigation succeeded, False if not authenticated or no payable receipt.
         """
         if not self.login_succeed:
             self._logout()
             return False
-            
-        # TODO: Implement payment method selection interface
-        logger.debug("Payment method selection - functionality to be implemented")
-        return False
+
+        ok, message = self._can_open_payment_form()
+        if not ok:
+            logger.info("[PAYMENT] PAYMENT form blocked: %s", message)
+            win = self.interface.window if hasattr(self, "interface") else None
+            if win:
+                try:
+                    from user_interface.form.message_form import MessageForm
+
+                    MessageForm.show_error(win, "Ödeme ekranı", message)
+                except Exception:
+                    pass
+            return False
+
+        self.current_form_type = FormName.PAYMENT
+        self.interface.redraw(form_name=FormName.PAYMENT.name)
+        logger.info("[PAYMENT] Opened PAYMENT form")
+        return True
     
     def _payment_detail_event(self):
         """
@@ -151,7 +194,7 @@ class PaymentEvent:
             self._logout()
             return False
 
-        if self.current_form_type == FormName.SALE and self._cash_opens_drawer_without_payment():
+        if self.current_form_type in (FormName.SALE, FormName.PAYMENT) and self._cash_opens_drawer_without_payment():
             get_default_cash_drawer().open_drawer("CASH_PAYMENT_no_open_sale_or_nothing_to_pay")
             return True
 
@@ -206,8 +249,9 @@ class PaymentEvent:
         if not self.login_succeed:
             self._logout()
             return False
-        
-        return self._process_payment(EventName.CHECK_PAYMENT.value, button)
+
+        numpad_value = self._read_numpad_payment_amount(button)
+        return self._process_payment(EventName.CHECK_PAYMENT.value, button, numpad_value)
     
     # ==================== ALTERNATIVE PAYMENT EVENTS ====================
     
@@ -227,8 +271,9 @@ class PaymentEvent:
         if not self.login_succeed:
             self._logout()
             return False
-        
-        return self._process_payment(EventName.EXCHANGE_PAYMENT.value, button)
+
+        numpad_value = self._read_numpad_payment_amount(button)
+        return self._process_payment(EventName.EXCHANGE_PAYMENT.value, button, numpad_value)
     
     def _prepaid_payment_event(self, button=None, key=None):
         """
@@ -254,8 +299,9 @@ class PaymentEvent:
         if not self.login_succeed:
             self._logout()
             return False
-        
-        return self._process_payment(EventName.PREPAID_PAYMENT.value, button)
+
+        numpad_value = self._read_numpad_payment_amount(button)
+        return self._process_payment(EventName.PREPAID_PAYMENT.value, button, numpad_value)
     
     def _charge_sale_payment_event(self, button=None):
         """
@@ -273,8 +319,9 @@ class PaymentEvent:
         if not self.login_succeed:
             self._logout()
             return False
-        
-        return self._process_payment(EventName.CHARGE_SALE_PAYMENT.value, button)
+
+        numpad_value = self._read_numpad_payment_amount(button)
+        return self._process_payment(EventName.CHARGE_SALE_PAYMENT.value, button, numpad_value)
     
     def _other_payment_event(self, button=None, key=None):
         """
@@ -293,8 +340,9 @@ class PaymentEvent:
         if not self.login_succeed:
             self._logout()
             return False
-        
-        return self._process_payment(EventName.OTHER_PAYMENT.value, button)
+
+        numpad_value = self._read_numpad_payment_amount(button)
+        return self._process_payment(EventName.OTHER_PAYMENT.value, button, numpad_value)
     
     def _change_payment_event(self, button=None):
         """
@@ -442,13 +490,34 @@ class PaymentEvent:
             if button and hasattr(button, 'control_name'):
                 button_name = button.control_name or ""
             
+            default_to_remaining = self.current_form_type != FormName.PAYMENT
+
             # Use PaymentService to process payment
             success, payment_temp, error_message = PaymentService.process_payment(
-                self.document_data, payment_type, button_name, numpad_value
+                self.document_data,
+                payment_type,
+                button_name,
+                numpad_value,
+                default_to_remaining_balance=default_to_remaining,
             )
-            
+
             if not success:
                 logger.error("[PAYMENT] %s", error_message)
+                if (
+                    self.current_form_type == FormName.PAYMENT
+                    and error_message
+                    and self.interface.window
+                ):
+                    try:
+                        from user_interface.form.message_form import MessageForm
+
+                        MessageForm.show_info(
+                            self.interface.window,
+                            "Payment",
+                            error_message,
+                        )
+                    except Exception:
+                        pass
                 return False
             
             # Update UI controls
@@ -525,7 +594,7 @@ class PaymentEvent:
                         remaining = Decimal(str(head_temp.total_amount)) - Decimal(str(head_temp.total_payment_amount))
                         amount_table._set_amount_value(amount_table.BALANCE_AMOUNT_ROW, remaining)
 
-            if self.current_form_type == FormName.SALE:
+            if self.current_form_type in (FormName.SALE, FormName.PAYMENT):
                 sync_line_display_payment(self, self.document_data, Decimal(str(payment_amount)))
 
         except Exception as e:
@@ -545,6 +614,8 @@ class PaymentEvent:
             # Use PaymentService to check if document is complete
             if not PaymentService.is_document_complete(self.document_data):
                 return False
+
+            return_to_payment_screen = self.current_form_type == FormName.PAYMENT
             
             # Mark document as complete
             if not PaymentService.mark_document_complete(self.document_data):
@@ -581,6 +652,11 @@ class PaymentEvent:
                 logger.info("[PAYMENT] New empty document ready for next sale")
             else:
                 logger.warning("[PAYMENT] Could not pre-create next empty document")
+
+            if return_to_payment_screen:
+                self.interface.redraw(form_name=FormName.SALE.name, skip_history_update=True)
+                # Drop the SALE entry stacked when PAYMENT opened, same as BACK would.
+                self.prepare_navigation_return_from_payment_form()
 
             if self.current_form_type == FormName.SALE:
                 sync_line_display_from_document(self, self.document_data)

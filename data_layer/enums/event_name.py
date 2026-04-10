@@ -115,7 +115,7 @@ class EventName(enum.Enum):
     TOTAL = "TOTAL"                                 # Calculate total
     SALE_OPTION = "SALE_OPTION"                     # Sale options
     CLEAR_BUFFER = "CLEAR_BUFFER"                   # Clear buffer
-    PAYMENT = "PAYMENT"                             # General payment
+    PAYMENT = "PAYMENT"                             # Open PAYMENT form (full payment screen from SALE dual button)
     CASH_PAYMENT = "CASH_PAYMENT"                   # Cash payment - Customer pays with cash
     CREDIT_PAYMENT = "CREDIT_PAYMENT"               # Credit card payment - Customer pays with a credit card
     CHECK_PAYMENT = "CHECK_PAYMENT"                 # Check payment - Customer pays using a check

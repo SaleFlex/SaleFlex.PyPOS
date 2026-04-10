@@ -344,6 +344,24 @@ class CurrentStatus:
                 "[FORM_HISTORY] Resume from suspended: popped %s (BACK from SALE will not reopen list)",
                 removed.name,
             )
+
+    def prepare_navigation_return_from_payment_form(self):
+        """
+        Call after drawing SALE when a sale is completed on FormName.PAYMENT.
+
+        SALE → PAYMENT appends ``SALE`` to ``form_history``. Completing the sale
+        redraws SALE with ``skip_history_update=True``, so that stack entry would
+        otherwise remain and **BACK** would navigate to SALE again instead of the
+        real previous form (e.g. MAIN_MENU). Popping the trailing ``SALE`` matches
+        what ``_back_event`` does when leaving PAYMENT manually.
+        """
+        if self.__form_history and self.__form_history[-1] == FormName.SALE:
+            removed = self.__form_history.pop()
+            logger.debug(
+                "[FORM_HISTORY] Return from PAYMENT after completion: popped %s "
+                "(BACK from SALE targets prior form, not a duplicate SALE)",
+                removed.name,
+            )
     
     @property
     def current_currency(self):

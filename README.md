@@ -390,13 +390,15 @@ If you select "SALES", you will see a form as shown below:
 
 > SALE form with PLU product buttons, department buttons, sale list, payment methods (Cash/Credit Card), NumPad, and real-time transaction totals.
 
-Press **FUNC** once to switch **all** dual-function controls to their alternate captions (for example **SUB TOTAL** → **CUSTOMER**, **DISC %** / **DISC AMT** → **MARK %** / **MARK AMT**, **SUSPEND** → **CANCEL**). **FUNC** only changes labels; it does not run a sale action.
+Press **FUNC** once to switch **all** dual-function controls to their alternate captions (for example **SUB TOTAL** → **CUSTOMER**, **CREDIT CARD** → **PAYMENT**, **DISC %** / **DISC AMT** → **MARK %** / **MARK AMT**, **SUSPEND** → **CANCEL**). **FUNC** only changes labels; it does not run a sale action.
 
 ![Sale Form — FUNC alternate labels](static_files/images/sample_sale_func_dual_functions_form.jpg)
 
 > Same SALE layout with alternate dual-function labels visible after **FUNC** (including **CUSTOMER** for assigning a customer to the active sale).
 
 With alternate labels active, tap **CUSTOMER** to open the Customer List in *sale-assignment context* (BACK links the chosen or newly added customer to the open document).
+
+Tap **PAYMENT** (alternate label on **CREDIT CARD**) to open the dedicated **PAYMENT** form: **AMOUNTSTABLE**, **PAYMENTLIST**, **NUMPAD**, **BACK**, and buttons for all standard payment categories (cash, card, cheque, on credit, prepaid, mobile, bonus, exchange, current account, bank transfer). **BACK** returns to the SALE form; completing the sale from this screen returns to SALE with a new empty document. See [Sale Transactions — PAYMENT form](docs/10-sale-transactions.md#payment-form).
 
 ![Sale Form — CUSTOMER assignment](static_files/images/sample_sale_customer_form.jpg)
 

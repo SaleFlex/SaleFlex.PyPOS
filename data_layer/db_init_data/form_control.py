@@ -53,6 +53,7 @@ from data_layer.db_init_data.forms import closure
 from data_layer.db_init_data.forms import product
 from data_layer.db_init_data.forms import stock
 from data_layer.db_init_data.forms import customer
+from data_layer.db_init_data.forms import payment_screen
 
 logger = get_logger(__name__)
 
@@ -85,6 +86,7 @@ def _insert_form_controls(session: Session, cashier_id: str):
     customer_list_form          = _form(17)
     customer_detail_form        = _form(18)
     customer_select_form        = _form(19)
+    payment_form                = _form(20)
 
     required = [login_form, main_menu_form, config_form, cashier_form,
                 sale_form, closure_form, suspended_sales_market_form, product_list_form]
@@ -114,6 +116,7 @@ def _insert_form_controls(session: Session, cashier_id: str):
         + product.get_product_list_form_controls(product_list_form, cashier_id)
         + customer.get_customer_list_form_controls(customer_list_form, cashier_id)
         + customer.get_customer_select_form_controls(customer_select_form, cashier_id)
+        + payment_screen.get_payment_form_controls(payment_form, cashier_id)
     )
 
     for control in all_controls:

@@ -836,9 +836,12 @@ class GeneralEvent:
 
     def _update_sale_screen_controls(self):
         """
-        Update sale screen controls (sale_list, amount_table, payment_list) 
+        Update sale/payment screen controls (sale_list, amount_table, payment_list)
         from document_data when transaction_status is ACTIVE.
-        
+
+        Used for FormName.SALE and FormName.PAYMENT after each main-window draw so
+        totals and tender lines stay aligned when switching between those forms.
+
         This method delegates to SaleService for the actual update logic.
         
         Returns:
@@ -897,14 +900,9 @@ class GeneralEvent:
                         logger.error("[SALES_FORM] Failed to create empty document")
                         # Continue anyway - form will open but transaction won't work
             
-            # Redraw the form
+            # Redraw the form (Interface.draw schedules _update_sale_screen_controls for SALE)
             self.interface.redraw(form_name=FormName.SALE.name)
-            
-            # Update controls if transaction_status is ACTIVE
-            # Use QTimer to ensure controls are created before updating
-            from PySide6.QtCore import QTimer
-            QTimer.singleShot(100, self._update_sale_screen_controls)
-            
+
             return True
         else:
             self._logout_event()

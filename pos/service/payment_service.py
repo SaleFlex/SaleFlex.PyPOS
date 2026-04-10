@@ -90,16 +90,23 @@ class PaymentService:
             return Decimal('0')
     
     @staticmethod
-    def calculate_payment_amount(button_name: str, remaining_amount: Decimal, payment_type: str,
-                                 numpad_value: Optional[Decimal] = None) -> Decimal:
+    def calculate_payment_amount(
+        button_name: str,
+        remaining_amount: Decimal,
+        payment_type: str,
+        numpad_value: Optional[Decimal] = None,
+        default_to_remaining_balance: bool = True,
+    ) -> Decimal:
         """
         Calculate payment amount based on button name, numpad input, and payment type.
 
         Button name parsing rules:
         - CASH + digits (e.g. CASH2000)   → Preset denomination: integer suffix / 100.
                                             numpad_value is ignored for these buttons.
-        - Any other button name           → Use numpad_value if provided, else remaining balance.
-                                            Covers PAYMENT_CASH, PAYMENT_CREDIT, CASH (no suffix), etc.
+        - Any other button name           → Use numpad_value if provided; if missing and
+                                            ``default_to_remaining_balance`` is True, use remaining balance
+                                            (SALE screen). If False (PAYMENT split-pay screen), raises
+                                            ``InvalidAmountError`` so the cashier must enter an amount.
 
         Payment type rules:
         - CASH_PAYMENT, CHECK_PAYMENT, EXCHANGE_PAYMENT: Exact amount (can exceed balance → change)
@@ -135,9 +142,13 @@ class PaymentService:
             payment_amount = numpad_value
             logger.debug("[PAYMENT_SERVICE] Using numpad_value: %s", payment_amount)
 
-        else:
-            # No encoded amount and no numpad input → pay the full remaining balance.
+        elif default_to_remaining_balance:
+            # SALE screen: no numpad input → pay the full remaining balance.
             payment_amount = remaining_amount
+        else:
+            raise InvalidAmountError(
+                "Enter the payment amount on the numpad (minor units), then press a payment type."
+            )
 
         # For non-cash types, cap at remaining balance (no overpayment/change)
         if payment_type in [EventName.CREDIT_PAYMENT.value, EventName.PREPAID_PAYMENT.value,
@@ -148,9 +159,13 @@ class PaymentService:
         return payment_amount
     
     @staticmethod
-    def process_payment(document_data: Dict[str, Any], payment_type: str,
-                       button_name: str = "",
-                       numpad_value: Optional[Decimal] = None) -> tuple[bool, Optional[TransactionPaymentTemp], Optional[str]]:
+    def process_payment(
+        document_data: Dict[str, Any],
+        payment_type: str,
+        button_name: str = "",
+        numpad_value: Optional[Decimal] = None,
+        default_to_remaining_balance: bool = True,
+    ) -> tuple[bool, Optional[TransactionPaymentTemp], Optional[str]]:
         """
         Process a payment and create TransactionPaymentTemp record.
 
@@ -160,6 +175,8 @@ class PaymentService:
             button_name:   Optional button control name for amount calculation
             numpad_value:  Optional pre-parsed Decimal amount from the numpad.
                            Only used for general buttons (no digit suffix in name).
+            default_to_remaining_balance: If False (PAYMENT form), numpad entry is required
+                for non-preset buttons; full balance is not applied in one tap.
 
         Returns:
             tuple: (success, payment_temp, error_message)
@@ -181,7 +198,11 @@ class PaymentService:
             # Calculate payment amount
             try:
                 payment_amount = PaymentService.calculate_payment_amount(
-                    button_name, remaining_amount, payment_type, numpad_value
+                    button_name,
+                    remaining_amount,
+                    payment_type,
+                    numpad_value,
+                    default_to_remaining_balance=default_to_remaining_balance,
                 )
             except (PaymentError, InvalidAmountError) as e:
                 return False, None, str(e)
