@@ -24,7 +24,7 @@ SOFTWARE.
 
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem, QHeaderView
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QFont
+from PySide6.QtGui import QFont, QFontMetrics
 from decimal import Decimal, InvalidOperation
 from typing import Optional, Callable
 
@@ -103,8 +103,8 @@ class AmountTable(QWidget):
         # Configure table appearance
         self._configure_table_appearance()
         
-        # Add table to layout
-        self.layout.addWidget(self.table_widget)
+        # Table fills the control; row heights are synced to the viewport (see _sync_row_heights_to_viewport).
+        self.layout.addWidget(self.table_widget, 1)
     
     def _setup_table_rows(self):
         """Setup the table rows with labels and initial values."""
@@ -162,11 +162,38 @@ class AmountTable(QWidget):
         
         # Disable context menu
         self.table_widget.setContextMenuPolicy(Qt.NoContextMenu)
-        
-        # Set row heights
-        for row in range(5):
-            self.table_widget.setRowHeight(row, 35)
     
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._sync_row_heights_to_viewport()
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self._sync_row_heights_to_viewport()
+
+    def _minimum_data_row_height(self) -> int:
+        """Floor row height from the tallest row font (balance row); does not change font size."""
+        fm = QFontMetrics(QFont("Verdana", 12, QFont.Bold))
+        return max(22, fm.height() + 10)
+
+    def _sync_row_heights_to_viewport(self):
+        """Divide viewport height evenly across data rows so empty space below the last row is avoided."""
+        tw = self.table_widget
+        n = tw.rowCount()
+        if n <= 0:
+            return
+        avail = tw.viewport().height()
+        if avail < 1:
+            return
+        min_rh = self._minimum_data_row_height()
+        if avail < n * min_rh:
+            for r in range(n):
+                tw.setRowHeight(r, min_rh)
+            return
+        base, rem = divmod(avail, n)
+        for r in range(n):
+            tw.setRowHeight(r, base + (1 if r < rem else 0))
+
     def _apply_colors(self):
         """Apply background and foreground colors to the table."""
         # Apply colors to the widget itself

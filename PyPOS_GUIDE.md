@@ -45,7 +45,7 @@ After **FUNC**, dual-function buttons show their alternate labels (e.g. **SUB TO
 
 ![SALE form — FUNC alternate labels](static_files/images/sample_sale_func_dual_functions_form.jpg)
 
-**Full payment screen:** With alternate labels visible, **PAYMENT** opens `FormName.PAYMENT` — same document as SALE, with **AMOUNTSTABLE**, **PAYMENTLIST**, **NUMPAD**, **BACK**, and one button per payment category (aligned with `PaymentType` in code: cash, card, cheque, on credit, prepaid, mobile, bonus, exchange, current account, bank transfer). Details: [Sale Transactions — PAYMENT form](docs/10-sale-transactions.md#payment-form).
+**Full payment screen:** With alternate labels visible, **PAYMENT** opens `FormName.PAYMENT` — same document as SALE, with **AMOUNTSTABLE**, **PAYMENTLIST**, **NUMPAD**, **BACK**, and one button per payment category (aligned with `PaymentType` in code: cash, card, cheque, on credit, prepaid, mobile, bonus, exchange, current account, bank transfer). **AMOUNTSTABLE** stretches its rows to fill the control height without changing font size. Details: [Sale Transactions — PAYMENT form](docs/10-sale-transactions.md#payment-form).
 
 ![PAYMENT form](static_files/images/sample_sale_payment_form.jpg)
 

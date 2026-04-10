@@ -398,7 +398,7 @@ Press **FUNC** once to switch **all** dual-function controls to their alternate 
 
 With alternate labels active, tap **CUSTOMER** to open the Customer List in *sale-assignment context* (BACK links the chosen or newly added customer to the open document).
 
-Tap **PAYMENT** (alternate label on **CREDIT CARD**) to open the dedicated **PAYMENT** form: **AMOUNTSTABLE**, **PAYMENTLIST**, **NUMPAD**, **BACK**, and buttons for all standard payment categories (cash, card, cheque, on credit, prepaid, mobile, bonus, exchange, current account, bank transfer). **BACK** returns to the SALE form; completing the sale from this screen returns to SALE with a new empty document. See [Sale Transactions — PAYMENT form](docs/10-sale-transactions.md#payment-form).
+Tap **PAYMENT** (alternate label on **CREDIT CARD**) to open the dedicated **PAYMENT** form: **AMOUNTSTABLE**, **PAYMENTLIST**, **NUMPAD**, **BACK**, and buttons for all standard payment categories (cash, card, cheque, on credit, prepaid, mobile, bonus, exchange, current account, bank transfer). **AMOUNTSTABLE** stretches its summary rows to fill the control height (same font). **BACK** returns to the SALE form; completing the sale from this screen returns to SALE with a new empty document. See [Sale Transactions — PAYMENT form](docs/10-sale-transactions.md#payment-form).
 
 ![PAYMENT form](static_files/images/sample_sale_payment_form.jpg)
 

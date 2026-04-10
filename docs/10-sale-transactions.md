@@ -237,7 +237,7 @@ Enum / DB name: **`FormName.PAYMENT`** (default seed `form_no` **20**). Opened f
 
 | Area | Description |
 |------|-------------|
-| **AMOUNTSTABLE** | Live totals (same control family as SALE) |
+| **AMOUNTSTABLE** | Live totals (same control family as SALE); row heights stretch to fill the control height without increasing font size |
 | **PAYMENTLIST** | Lines already tendered on the document |
 | **NUMPAD** | Tender amount in **minor units**; **Enter** is a no-op (`NONE`). On this screen you **must** enter an amount before each payment type — the app does **not** auto-take the full balance in one tap (unlike the SALE form). Split tenders repeat until the balance is zero, then the receipt completes. |
 | **BACK** | `BACK` event → previous form (SALE) |

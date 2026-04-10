@@ -265,8 +265,11 @@ Summary table showing live running totals for the active transaction. Updated af
 |-----|---------|
 | Sales Amount | Sum of active lines |
 | Discount Amount | Applied discounts |
+| Net Amount | Sales minus discount |
 | Payment Amount | Sum of payments received |
-| Change Amount | Change due |
+| Balance Amount | Net minus payments (bold) |
+
+Row heights are recalculated on resize and when the control is shown so the five summary rows fill the table viewport evenly (no large empty band under the last row). Font size is unchanged; if the control is too short, a minimum row height is used and the table may scroll.
 
 **FormControl `type` value:** `"amount_table"` or `"AMOUNT_TABLE"` (custom control type)
 
