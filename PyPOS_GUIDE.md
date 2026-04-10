@@ -47,6 +47,8 @@ After **FUNC**, dual-function buttons show their alternate labels (e.g. **SUB TO
 
 **Full payment screen:** With alternate labels visible, **PAYMENT** opens `FormName.PAYMENT` — same document as SALE, with **AMOUNTSTABLE**, **PAYMENTLIST**, **NUMPAD**, **BACK**, and one button per payment category (aligned with `PaymentType` in code: cash, card, cheque, on credit, prepaid, mobile, bonus, exchange, current account, bank transfer). Details: [Sale Transactions — PAYMENT form](docs/10-sale-transactions.md#payment-form).
 
+![PAYMENT form](static_files/images/sample_sale_payment_form.jpg)
+
 ### Suspend a Sale (Market Mode)
 
 Press **SUSPEND** on the SALE screen to park the current cart. A new empty draft is created for the next customer. To resume a parked sale, press **SUSPEND** with no open document → select a row → press **ACTIVATE**.

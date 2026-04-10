@@ -233,6 +233,8 @@ Two **dual-function** buttons appear in the top-right corner of the product shor
 
 Enum / DB name: **`FormName.PAYMENT`** (default seed `form_no` **20**). Opened from SALE after **FUNC** → **PAYMENT** (dual caption on **CREDIT CARD**) only when there is a payable open receipt (head present, not closed/cancelled/completed, `total_amount` > 0, document not already complete); otherwise a modal error is shown and the form does not open. **BACK** returns to SALE (form history). The same active sale document is used; payments post through the existing `PaymentService` handlers.
 
+![PAYMENT form — totals, payment grid, tender log, NumPad](../static_files/images/sample_sale_payment_form.jpg)
+
 | Area | Description |
 |------|-------------|
 | **AMOUNTSTABLE** | Live totals (same control family as SALE) |

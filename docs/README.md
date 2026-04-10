@@ -8,7 +8,7 @@ Complete user and developer guide for the SaleFlex.PyPOS point-of-sale applicati
 
 Touch UI reference images live under [`static_files/images/`](../static_files/images/) in the project root (same paths as the root [`README.md`](../README.md) **First Login** tour). Filenames include:
 
-`sample_login.jpg`, `sample_main_menu.jpg`, `sample_sale_form.jpg`, `sample_sale_func_dual_functions_form.jpg`, `sample_sale_customer_form.jpg`, `sample_closure_form.jpg`, `sample_closure_detail_form.jpg`, `sample_closure_receipts_form.jpg`, `sample_closure_receipt_details_form.jpg`, `sample_settings_form.jpg`, `sample_cashier_form.jpg`, `sample_cashier_add_form.jpg`, `sample_product_form.jpg`, `sample_product_detail_form.jpg`, `sample_customer_list_form.jpg`, `sample_customer_detail_form.jpg`, `sample_warehouse_list_form.jpg`, `sample_warehouse_stock_in_form.jpg`, `sample_warehouse_adjustment_form.jpg`, `sample_warehouse_history_form.jpg`.
+`sample_login.jpg`, `sample_main_menu.jpg`, `sample_sale_form.jpg`, `sample_sale_func_dual_functions_form.jpg`, `sample_sale_payment_form.jpg`, `sample_sale_customer_form.jpg`, `sample_closure_form.jpg`, `sample_closure_detail_form.jpg`, `sample_closure_receipts_form.jpg`, `sample_closure_receipt_details_form.jpg`, `sample_settings_form.jpg`, `sample_cashier_form.jpg`, `sample_cashier_add_form.jpg`, `sample_product_form.jpg`, `sample_product_detail_form.jpg`, `sample_customer_list_form.jpg`, `sample_customer_detail_form.jpg`, `sample_warehouse_list_form.jpg`, `sample_warehouse_stock_in_form.jpg`, `sample_warehouse_adjustment_form.jpg`, `sample_warehouse_history_form.jpg`.
 
 In Markdown under `docs/`, reference them as `../static_files/images/<filename>`.
 
