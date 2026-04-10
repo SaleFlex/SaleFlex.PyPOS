@@ -6,11 +6,11 @@ Built with PySide6 (Qt framework) and SQLAlchemy ORM, SaleFlex.PyPOS features:
 
 - **Dynamic Forms System**: Database-driven UI forms that can be customized without code changes
 - **Document Management**: Complete transaction lifecycle management with temporary and permanent models
-- **Service Layer Architecture**: Centralized business logic services (VatService, SaleService, PaymentService, LoyaltyService)
+- **Service Layer Architecture**: Centralized business logic services (VatService, SaleService, PaymentService, LoyaltyService, CustomerSegmentService)
 - **In-Memory Caching**: Optimized performance with reference data and product data caching
 - **Auto-Save Functionality**: Automatic database persistence ensuring data integrity
-- **Event-Driven Architecture**: Modular event handling with 9 specialized event handler classes
-- **100+ Database Models**: Comprehensive data model covering all POS operations (including loyalty policy and customer `phone_normalized`)
+- **Event-Driven Architecture**: Modular event handling with 10 specialized event handler classes (including CustomerEvent)
+- **100+ Database Models**: Comprehensive data model covering all POS operations (loyalty policy tables, customer `phone_normalized`, customer segments and auto-assigned memberships)
 - **Cashier Management**: Role-based access control with admin and standard cashier roles
 - **Smart NumPad**: Four operating modes — barcode/PLU lookup, inline quantity, quantity multiplier (X), and payment amount
 - **Transaction Suspend/Resume**: Park and resume sales (market mode) or table orders (restaurant mode)

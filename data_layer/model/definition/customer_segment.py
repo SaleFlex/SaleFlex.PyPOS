@@ -65,7 +65,8 @@ class CustomerSegment(Model, CRUD, AuditMixin, SoftDeleteMixin):
     # VIP, NEW_CUSTOMER, FREQUENT_BUYER, HIGH_VALUE, INACTIVE, BIRTHDAY, CUSTOM
     
     # Segment criteria stored as JSON
-    # Example: {"min_annual_spending": 10000, "min_purchases": 50, "loyalty_tier": "GOLD"}
+    # Example: {"min_annual_spending": 10000, "min_total_purchases": 12}
+    # Do not encode loyalty tier in JSON; use CustomerSegmentService.marketing_profile() to combine with LoyaltyTier.
     criteria_json = Column(Text, nullable=True)
     
     # Status

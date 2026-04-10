@@ -48,7 +48,7 @@ Applying **tier multipliers** or **tier discounts** to line totals or point earn
 | Customer phone column | `data_layer/model/definition/customer.py` |
 | Seed data | `data_layer/db_init_data/loyalty.py` (`_insert_loyalty_program_policy`, `_insert_loyalty_redemption_policy`, `_insert_loyalty_default_earn_rule`) |
 | Business helpers | `pos/service/loyalty_service.py` (`LoyaltyService`) |
-| Completed sale hook | `pos/service/payment_service.py` → `LoyaltyService.on_sale_transaction_completed` |
+| Completed sale hook | `pos/service/payment_service.py` → `LoyaltyService.on_sale_transaction_completed` (then `CustomerSegmentService.on_sale_transaction_completed` for marketing segments) |
 | UI / events | `pos/manager/event/customer.py` (save, search, assign) |
 
 ## Schema upgrades
@@ -58,9 +58,10 @@ Applying **tier multipliers** or **tier discounts** to line totals or point earn
 ## Related documentation
 
 - [Customer Management](17-customer-management.md) — search, save, sale assignment
+- [Customer Segmentation](42-customer-segmentation.md) — marketing segments and `marketing_profile()` (tier stays on loyalty side)
 - [Database Models Overview](21-database-models.md) — full model list
 - [Database Initialization](33-database-initialization.md) — `_insert_loyalty`
-- [Service Layer](25-service-layer.md) — `LoyaltyService`
+- [Service Layer](25-service-layer.md) — `LoyaltyService`, `CustomerSegmentService`
 
 ---
 

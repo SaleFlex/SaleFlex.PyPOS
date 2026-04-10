@@ -90,8 +90,8 @@ SaleFlex.PyPOS uses a comprehensive database schema with 100+ models organized i
 ## Customer Management Models
 
 - **Customer**: Customer master data with contact information, preferences, and consent management. **`phone_normalized`** stores a digits-only canonical phone for loyalty uniqueness and search; see [Loyalty Programs](41-loyalty-programs.md).
-- **CustomerSegment**: Customer segmentation definitions (VIP, New, Frequent, etc.)
-- **CustomerSegmentMember**: Customer membership in segments
+- **CustomerSegment**: Customer segmentation definitions (VIP, New, Frequent, etc.); auto-assignment rules in **`criteria_json`** are evaluated by **`CustomerSegmentService`** (see [Customer Segmentation](42-customer-segmentation.md))
+- **CustomerSegmentMember**: Customer membership in segments (`assigned_by` distinguishes **AUTO** vs future **MANUAL** rows)
 
 ## Campaign and Promotion Models
 

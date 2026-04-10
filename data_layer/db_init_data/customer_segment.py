@@ -46,7 +46,7 @@ def _insert_customer_segments(session: Session):
             name="VIP Customers",
             description="High-value customers with significant purchase history",
             segment_type="VIP",
-            criteria_json='{"min_annual_spending": 10000, "min_lifetime_spending": 50000}',
+            criteria_json='{"min_annual_spending": 10000, "min_lifetime_spending": 50000, "honor_preferences_vip": true}',
             is_active=True,
             customer_count=0,
             display_order=1,

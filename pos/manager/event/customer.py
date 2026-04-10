@@ -377,6 +377,10 @@ class CustomerEvent:
                         new_customer.name, new_customer.last_name, new_id
                     )
 
+                    from pos.service.customer_segment_service import CustomerSegmentService
+
+                    CustomerSegmentService.sync_for_customer_id(new_customer.id)
+
                     if hasattr(dialog, "repopulate_customer_activity_grid"):
                         dialog.repopulate_customer_activity_grid()
             else:
@@ -424,6 +428,10 @@ class CustomerEvent:
                         return False
 
                     session.commit()
+
+                    from pos.service.customer_segment_service import CustomerSegmentService
+
+                    CustomerSegmentService.sync_for_customer_id(customer_id)
 
                     # If opened from SALE, ensure sale-customer is recorded
                     if getattr(self, '_customer_from_sale', False):

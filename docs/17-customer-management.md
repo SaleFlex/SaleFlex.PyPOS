@@ -98,9 +98,10 @@ After **any** dual-function button on the SALE form is used—including **SUB TO
 - **`phone_number`**: What the cashier types (display format).
 - **`phone_normalized`**: Digits-only canonical value, **unique** per customer when set. Maintained on **SAVE** from the Customer Detail form via `LoyaltyService`; used for loyalty de-duplication and phone-first lookup. Saving fails with a dialog if another customer already has the same normalized phone.
 - When a **non–walk-in** customer is assigned to the **active sale** (BACK from the list or SELECT in sale-assignment context), `LoyaltyService.ensure_loyalty_on_sale_assignment()` may create **`CustomerLoyalty`**, set **`TransactionHeadTemp.loyalty_member_id`**, record **welcome** points per `LoyaltyProgram.welcome_points`, and **recompute tier**. Enrollment requires a valid phone when `LoyaltyProgramPolicy.require_customer_phone_for_enrollment` is true. Walk-in customers are never enrolled.
-- When that sale is **fully paid** and copied to permanent tables, **`CustomerLoyalty`** spending fields and **`fk_loyalty_tier_id`** are updated again (see [Loyalty Programs](41-loyalty-programs.md) — *Tier assignment*).
+- When that sale is **fully paid** and copied to permanent tables, **`CustomerLoyalty`** spending fields and **`fk_loyalty_tier_id`** are updated again (see [Loyalty Programs](41-loyalty-programs.md) — *Tier assignment*). **`CustomerSegmentService`** also refreshes **marketing** segment memberships from **`CustomerSegment.criteria_json`** (independent of tier).
+- Saving the Customer Detail form runs the same segment sync so rules such as **NEW_CUSTOMER** or **BIRTHDAY** can apply without a new sale.
 
-Full data model and seed behaviour: [Loyalty Programs](41-loyalty-programs.md).
+Full data model and seed behaviour: [Loyalty Programs](41-loyalty-programs.md) · [Customer Segmentation](42-customer-segmentation.md).
 
 ---
 
@@ -315,6 +316,7 @@ SALE
 - [Dynamic Forms System](22-dynamic-forms-system.md) — how DB-driven forms and panels work
 - [Database Models Overview](21-database-models.md) — Customer, CustomerLoyalty, CustomerSegment models
 - [Loyalty Programs](41-loyalty-programs.md) — policy tables, `LoyaltyService`, enrollment on sale assignment
+- [Customer Segmentation](42-customer-segmentation.md) — `CustomerSegmentService`, `criteria_json`, `marketing_profile`
 - [Event System](24-event-system.md) — CustomerEvent handler class
 - [Database Initialization](33-database-initialization.md) — `_insert_customers()` seed function
 - [Sale Transactions](10-sale-transactions.md) — SALE form NumPad modes and dual-function buttons

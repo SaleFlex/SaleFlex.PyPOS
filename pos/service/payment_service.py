@@ -531,8 +531,10 @@ class PaymentService:
                     change.create()
 
             from pos.service.loyalty_service import LoyaltyService
+            from pos.service.customer_segment_service import CustomerSegmentService
 
             LoyaltyService.on_sale_transaction_completed(document_data)
+            CustomerSegmentService.on_sale_transaction_completed(document_data)
 
             return True
             

@@ -1,6 +1,6 @@
 ﻿# SaleFlex.PyPOS
 
-> **Current Status:** Beta v1.0.0b6 - Active Development
+> **Current Status:** Beta v1.0.0b7 - Active Development
 > Core POS functionality operational. See [roadmap](#development-roadmap) for upcoming features.
 
 [Watch Demo](https://youtu.be/HoA2p6M8fuM) | [Documentation](docs/README.md) | [Quick Start](#quick-start)
@@ -52,7 +52,7 @@ SaleFlex.PyPOS follows a layered architecture pattern with clear separation of c
 
 - **Entry Point** (`saleflex.py`): Pre-flight startup guards — working-directory normalisation, Python version check, single-instance lock, and global exception handler
 - **Application Layer** (`pos/manager/application.py`): Main application class implementing Singleton pattern, combining CurrentStatus, CurrentData, and EventHandler
-- **Business Logic Layer** (`pos/service/`): Service classes (VatService, SaleService, PaymentService, LoyaltyService) for centralized business operations
+- **Business Logic Layer** (`pos/service/`): Service classes (VatService, SaleService, PaymentService, LoyaltyService, CustomerSegmentService) for centralized business operations
 - **Peripherals Layer** (`pos/peripherals/`): OPOS-style device abstractions (cash drawer, receipt printer, line display, scanner, scale, customer display, remote order display). Current implementation is **log-only** (no device probing); see [docs/30-peripherals.md](docs/30-peripherals.md)
 - **Event Handling Layer** (`pos/manager/event/`): 10 specialized event handler classes for modular event processing (General, Sale, Payment, Closure, Config, Service, Report, Hardware, Warehouse, **Product**). Event handler methods use `_event` suffix naming convention (e.g., `_sales_form_event`, `_closure_event`, `_product_detail_event`) to distinguish them from properties
 - **Integration Layer** (`pos/integration/`): External system connectivity with two tiers — **SaleFlex.GATE** (primary hub for transactions, closures, warehouse, campaigns, notifications) and **third-party direct connectors** (ERP, payment gateways, campaign modules). Uses offline outbox pattern (`SyncQueueItem`) and a background `SyncWorker` (QThread). All connectors are log-only stubs until configured; see [docs/40-integration-layer.md](docs/40-integration-layer.md)
@@ -73,7 +73,7 @@ SaleFlex.PyPOS follows a layered architecture pattern with clear separation of c
 │  Product                                        │
 ├─────────────────────────────────────────────────┤
 │          Business Logic (Service Layer)         │
-│   VatService · SaleService · PaymentService · LoyaltyService   │
+│ VatService · SaleService · PaymentService · LoyaltyService · CustomerSegmentService │
 ├─────────────────────────────────────────────────┤
 │         OPOS Peripherals (log-only stubs)       │
 │   CashDrawer · POSPrinter · LineDisplay         │
@@ -224,7 +224,8 @@ SaleFlex.PyPOS/
 │   │   ├── vat_service.py     # VAT calculation service
 │   │   ├── sale_service.py      # Sale processing service
 │   │   ├── payment_service.py   # Payment processing service
-│   │   └── loyalty_service.py   # Phone normalization, enrollment, tier & spending after completed sale
+│   │   ├── loyalty_service.py           # Phone normalization, enrollment, tier & spending after completed sale
+│   │   └── customer_segment_service.py   # Auto segment membership from criteria_json; marketing_profile
 │   │
 │   └── manager/            # Application management
 │       ├── application.py        # Main application class
@@ -517,7 +518,7 @@ The application includes **100+ database models** organized into logical categor
 - **Product Management**: Product, ProductVariant, ProductAttribute, ProductBarcode, ProductUnit, ProductManufacturer, DepartmentMainGroup, DepartmentSubGroup
 - **Transaction Models**: TransactionHead/HeadTemp, TransactionProduct/ProductTemp, TransactionPayment/PaymentTemp, TransactionDiscount/DiscountTemp, TransactionTax/TaxTemp, TransactionTip/TipTemp, TransactionDepartment/DepartmentTemp, TransactionDelivery/DeliveryTemp, TransactionNote/NoteTemp, TransactionRefund/RefundTemp, TransactionSurcharge/SurchargeTemp, TransactionFiscal/FiscalTemp, TransactionKitchenOrder/KitchenOrderTemp, TransactionLoyalty/LoyaltyTemp, TransactionChange/ChangeTemp, TransactionVoid, TransactionLog, TransactionSequence, TransactionDocumentType, TransactionDiscountType, TransactionStatus
 - **Warehouse Management**: Warehouse, WarehouseLocation, WarehouseProductStock, WarehouseStockMovement, WarehouseStockAdjustment
-- **Customer Management**: Customer (`phone_number`, **`phone_normalized`** for loyalty), CustomerSegment, CustomerSegmentMember
+- **Customer Management**: Customer (`phone_number`, **`phone_normalized`** for loyalty), CustomerSegment, CustomerSegmentMember — **`CustomerSegmentService`** auto-assigns segment membership from **`criteria_json`** (and optional VIP flags in **`preferences_json`**), separate from loyalty tier; see [docs/42-customer-segmentation.md](docs/42-customer-segmentation.md)
 - **Campaign & Promotion**: CampaignType, Campaign, CampaignRule, CampaignProduct, CampaignUsage, Coupon, CouponUsage
 - **Loyalty Programs**: LoyaltyProgram, LoyaltyTier, CustomerLoyalty, LoyaltyPointTransaction, **LoyaltyProgramPolicy**, **LoyaltyEarnRule**, **LoyaltyRedemptionPolicy**
 - **Cashier Performance**: CashierWorkSession, CashierWorkBreak, CashierPerformanceMetrics, CashierPerformanceTarget, CashierTransactionMetrics
@@ -547,7 +548,7 @@ All models support:
 ### POS Core Modules
 - [x] **POS Manager Module** - Central business logic and transaction handling with document management system
 - [x] **Document Management System** - Transaction lifecycle management with temp/permanent models, pending documents, and restaurant mode support
-- [x] **Service Layer Architecture** - Business logic services (VatService, SaleService, PaymentService, LoyaltyService) for centralized calculations and operations
+- [x] **Service Layer Architecture** - Business logic services (VatService, SaleService, PaymentService, LoyaltyService, CustomerSegmentService) for centralized calculations and operations
 - [x] **Payment Processing System** - Multi-payment method processing with button name parsing, change calculation, and automatic document completion
 - [x] **Event Handler System** - Comprehensive event handling with 10 specialized event handler classes (GeneralEvent, SaleEvent, PaymentEvent, ClosureEvent, ConfigurationEvent, ServiceEvent, ReportEvent, HardwareEvent, WarehouseEvent, CustomerEvent) for modular and maintainable code organization. All event handler methods use `_event` suffix (e.g., `_sales_form_event`, `_closure_event`) to avoid conflicts with properties. Customer events extended with `CUSTOMER_ADD` (create new customer) and `CUSTOMER_LIST_BACK` (context-aware BACK that assigns the chosen customer to the active sale transaction)
 - [x] **Auto-Save System** - Automatic database persistence using descriptor pattern and wrapper classes (AutoSaveModel, AutoSaveDict, AutoSaveDescriptor) for seamless data integrity
@@ -591,7 +592,8 @@ All models support:
   - [ ] Time-Based Restrictions (Date Range, Daily Hours, Days of Week)
   - [ ] Product/Category/Brand/Payment Type Filters
   - [ ] Usage Limits & Priority Rules
-  - [ ] Customer Segment Targeting
+  - [ ] Customer Segment Targeting (campaign UI / rule designer)
+  - [x] Automatic **segment membership** from `CustomerSegment.criteria_json` plus **`marketing_profile()`** to combine segment codes with loyalty tier code (`CustomerSegmentService`; sync on completed sale and customer save)
   - [ ] Coupon Generation & Management (QR Code, Barcode Support)
   - [ ] Campaign Usage Tracking & Analytics
 - [ ] **Loyalty Program Management** (partial — local enrollment and policy schema; see [docs/41-loyalty-programs.md](docs/41-loyalty-programs.md)):
@@ -605,7 +607,7 @@ All models support:
   - [ ] Tier-based points multipliers and automatic discounts applied at sale time
   - [ ] Birthday bonus automation
   - [ ] Full point history UI on customer screen
-  - [ ] Customer segmentation rules tied to loyalty (segment seed data exists separately)
+  - [x] Customer segmentation rules **independent** of loyalty tables (seed segments + auto assignment); combined only in **`marketing_profile`**
   - [ ] GDPR consent workflows beyond existing customer consent fields
 - [ ] **Reports Module** - Comprehensive business analytics
 - [ ] **Employee Management** - Staff scheduling and performance tracking
@@ -736,13 +738,13 @@ Comprehensive documentation is available in the `docs/` directory:
 | **[End-of-Day Closure](docs/13-end-of-day-closure.md)** | Authorization, aggregation flow, sequence management |
 | **[Cashier Management](docs/14-cashier-management.md)** | Create/edit cashiers, role permissions, ADD NEW CASHIER |
 | **[Product Management](docs/15-product-management.md)** | Product List search, Product Detail tabbed dialog |
-| **[Customer Management](docs/17-customer-management.md)** | Customer list, detail, phone normalization, sale assignment |
+| **[Customer Management](docs/17-customer-management.md)** | Customer list, detail, phone normalization, sale assignment, loyalty + segment sync on save/sale |
 | **[Project Structure](docs/20-project-structure.md)** | Folder layout, class chain, startup sequence, design patterns |
 | **[Database Models](docs/21-database-models.md)** | 100+ models organized by domain, temp/permanent split |
 | **[Dynamic Forms System](docs/22-dynamic-forms-system.md)** | DB-driven UI forms, Panel controls, generic save pattern |
 | **[UI Controls Catalog](docs/23-ui-controls.md)** | All custom Qt widgets: Button, TextBox, NumPad, SaleList, TabControl |
 | **[Event System](docs/24-event-system.md)** | EventHandler, event_distributor(), all event categories |
-| **[Service Layer](docs/25-service-layer.md)** | VatService, SaleService, PaymentService, LoyaltyService |
+| **[Service Layer](docs/25-service-layer.md)** | VatService, SaleService, PaymentService, LoyaltyService, CustomerSegmentService |
 | **[Document Management](docs/26-document-management.md)** | Transaction lifecycle, suspend/resume, payment flow |
 | **[Data Caching](docs/27-data-caching.md)** | pos_data / product_data caches, AutoSave system |
 | **[Peripherals](docs/30-peripherals.md)** | OPOS-style device layer (cash drawer, printer, display) |
@@ -754,6 +756,7 @@ Comprehensive documentation is available in the `docs/` directory:
 | **[Support and Resources](docs/36-support.md)** | GitHub, issue tracker, donations, license |
 | **[Integration Layer](docs/40-integration-layer.md)** | GATE hub, third-party connectors, offline outbox, SyncWorker, notification system |
 | **[Loyalty Programs](docs/41-loyalty-programs.md)** | Policy models, phone ID, enrollment, tier rules, spending + tier update after each completed sale; roadmap: earn/redeem UI |
+| **[Customer Segmentation](docs/42-customer-segmentation.md)** | Auto segment membership, `criteria_json`, VIP preferences, `marketing_profile` vs loyalty tier |
 
 ## Contributing
 

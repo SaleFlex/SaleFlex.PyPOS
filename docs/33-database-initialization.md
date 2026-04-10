@@ -36,7 +36,7 @@ The `insert_initial_data()` function in `db_init_data/__init__.py` orchestrates 
 28. **Alternative Keyboard Themes** (`_insert_alternative_keyboard_themes`): Adds additional keyboard themes
 29. **Campaigns** (`_insert_campaigns`): Creates sample promotional campaigns
 30. **Loyalty Programs** (`_insert_loyalty`): Sets up loyalty program with tiers, `LoyaltyProgramPolicy`, `LoyaltyRedemptionPolicy`, and default `LoyaltyEarnRule`
-31. **Customer Segments** (`_insert_customer_segments`): Creates default customer segments
+31. **Customer Segments** (`_insert_customer_segments`): Creates default `CustomerSegment` rows (VIP, NEW_CUSTOMER, FREQUENT_BUYER, HIGH_VALUE, INACTIVE, BIRTHDAY); VIP seed includes **`honor_preferences_vip`** for `preferences_json` flags. Runtime assignment is **`CustomerSegmentService`** (see [Customer Segmentation](42-customer-segmentation.md))
 32. **POS Settings** (`_insert_pos_settings`): Configures system-wide POS settings including device serial number (generated from MAC address and disk serial), operating system information, default country (United Kingdom), default currency (GBP), customer display settings (INTERNAL), barcode reader port (PS/2), backend connection settings (127.0.0.1:5000), and backend type (GATE)
 
 ## Function Details

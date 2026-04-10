@@ -581,7 +581,7 @@ Payment processing is handled through `PaymentService` and payment event handler
    - Document is marked as COMPLETED
    - Closure totals are updated
    - Receipt number is incremented
-   - Temp models are copied to permanent models (triggers **`LoyaltyService.on_sale_transaction_completed`** — updates `CustomerLoyalty` spending and **membership tier** for non–walk-in **sale** receipts)
+   - Temp models are copied to permanent models (triggers **`LoyaltyService.on_sale_transaction_completed`** and **`CustomerSegmentService.on_sale_transaction_completed`** — loyalty spending/tier, then **marketing segment** memberships for non–walk-in **sale** receipts)
    - UI controls are cleared
    - `document_data` is reset
 

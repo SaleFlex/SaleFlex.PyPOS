@@ -4,17 +4,18 @@
 
 SaleFlex.PyPOS implements a **service layer pattern** to separate business logic from event handlers and UI components. This architecture improves code organization, reusability, and testability by centralizing business operations in dedicated service classes.
 
-The service layer is located in the `pos/service/` directory and contains business logic services that handle core POS operations such as VAT calculations, sale processing, transaction management, and local loyalty enrollment.
+The service layer is located in the `pos/service/` directory and contains business logic services that handle core POS operations such as VAT calculations, sale processing, transaction management, local loyalty enrollment, and customer segment auto-assignment.
 
 ## Service Layer Structure
 
 ```
 pos/service/
-├── __init__.py          # Service layer exports
-├── vat_service.py       # VAT calculation service
-├── sale_service.py      # Sale processing service
-├── payment_service.py   # Payment processing service
-└── loyalty_service.py   # Phone normalization, enrollment, tier & spending after completed sale
+├── __init__.py                  # Service layer exports
+├── vat_service.py               # VAT calculation service
+├── sale_service.py              # Sale processing service
+├── payment_service.py           # Payment processing service
+├── loyalty_service.py           # Phone normalization, enrollment, tier & spending after completed sale
+└── customer_segment_service.py  # criteria_json → CustomerSegmentMember; marketing_profile
 ```
 
 ## Available Services
@@ -270,7 +271,7 @@ if is_complete:
 - **`is_document_complete(document_data)`**: Check if document is fully paid (total_amount = total_payment_amount - total_change_amount)
 - **`mark_document_complete(document_data)`**: Mark document as complete by updating transaction status
 - **`update_closure_for_completion(closure, document_data)`**: Update closure with transaction totals
-- **`copy_temp_to_permanent(document_data)`**: Copy all temp models to permanent models, then call **`LoyaltyService.on_sale_transaction_completed`** to update `CustomerLoyalty` spending and tier for completed **sale** transactions
+- **`copy_temp_to_permanent(document_data)`**: Copy all temp models to permanent models, then call **`LoyaltyService.on_sale_transaction_completed`** and **`CustomerSegmentService.on_sale_transaction_completed`** for completed **sale** transactions (loyalty stats/tier, then segment memberships)
 - **`_safe_decimal(value)`**: Safely convert value to Decimal (handles None, string, int, float, Decimal)
 
 ### LoyaltyService
@@ -292,6 +293,16 @@ Called from `CustomerEvent` (customer SAVE, customer search country code helper,
 
 ```python
 from pos.service.loyalty_service import LoyaltyService
+```
+
+### CustomerSegmentService
+
+`CustomerSegmentService` (`pos/service/customer_segment_service.py`) evaluates **`CustomerSegment.criteria_json`** against spending / purchase / birthday / idle-time data (from **`CustomerLoyalty`** or **`TransactionHead`** aggregates). It maintains **`CustomerSegmentMember`** with **`assigned_by=AUTO`** and exposes **`marketing_profile(session, customer_id)`** to combine active segment codes with the current **`LoyaltyTier.code`**.
+
+Runs after completed sales (from **`PaymentService.copy_temp_to_permanent`**) and after customer create/update in **`CustomerEvent`**. See [Customer Segmentation](42-customer-segmentation.md).
+
+```python
+from pos.service.customer_segment_service import CustomerSegmentService
 ```
 
 ## Sale List Item Actions (REPEAT / DELETE)
