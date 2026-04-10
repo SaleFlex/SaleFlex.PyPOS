@@ -837,7 +837,7 @@ def ensure_customer_loyalty_points_grid(session) -> None:
     if not tab_control:
         return
 
-    admin = session.query(Cashier).filter(Cashier.username == "admin").first()
+    admin = session.query(Cashier).filter(Cashier.user_name == "admin").first()
     if not admin:
         admin = session.query(Cashier).first()
     if not admin:

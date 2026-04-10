@@ -127,7 +127,7 @@ class Application(CurrentStatus, CurrentData, EventHandler):
         _db = Engine()
         with _db.get_session() as _session:
             ensure_customer_loyalty_points_grid(_session)
-            _admin = _session.query(Cashier).filter(Cashier.username == "admin").first()
+            _admin = _session.query(Cashier).filter(Cashier.user_name == "admin").first()
             if not _admin:
                 _admin = _session.query(Cashier).first()
             if _admin:
