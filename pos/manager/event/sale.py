@@ -1832,13 +1832,14 @@ class SaleEvent:
             except Exception as exc:
                 logger.error("[DISCOUNT] Error recalculating totals: %s", exc)
 
-            if hasattr(active_window, "amount_table") and active_window.amount_table:
-                try:
-                    SaleService.update_amount_table_from_document(
-                        active_window.amount_table, head
-                    )
-                except Exception as exc:
-                    logger.error("[DISCOUNT] Error updating amount_table: %s", exc)
+            try:
+                SaleService.refresh_campaign_discounts_after_cart_change(
+                    self.document_data,
+                    active_window,
+                    getattr(self, "product_data", None),
+                )
+            except Exception as exc:
+                logger.error("[DISCOUNT] Error refreshing campaign discounts: %s", exc)
 
         # ── 13. Line display sync ─────────────────────────────────────
         try:
@@ -2044,13 +2045,14 @@ class SaleEvent:
             except Exception as exc:
                 logger.error("[MARKUP] Error recalculating totals: %s", exc)
 
-            if hasattr(active_window, "amount_table") and active_window.amount_table:
-                try:
-                    SaleService.update_amount_table_from_document(
-                        active_window.amount_table, head
-                    )
-                except Exception as exc:
-                    logger.error("[MARKUP] Error updating amount_table: %s", exc)
+            try:
+                SaleService.refresh_campaign_discounts_after_cart_change(
+                    self.document_data,
+                    active_window,
+                    getattr(self, "product_data", None),
+                )
+            except Exception as exc:
+                logger.error("[MARKUP] Error refreshing campaign discounts: %s", exc)
 
         try:
             from pos.peripherals.hooks import sync_line_display_from_document
@@ -2417,8 +2419,14 @@ class SaleEvent:
                     window.amount_table.receipt_total_payment = Decimal('0')
             else:
                 head.save()
-                if hasattr(window, 'amount_table') and window.amount_table:
-                    SaleService.update_amount_table_from_document(window.amount_table, head)
+                try:
+                    SaleService.refresh_campaign_discounts_after_cart_change(
+                        self.document_data,
+                        window,
+                        getattr(self, "product_data", None),
+                    )
+                except Exception as exc:
+                    logger.error("[SALE_OPTION] DELETE campaign refresh: %s", exc)
 
             logger.info("[SALE_OPTION] DELETE complete – total_amount=%s",
                         head.total_amount if self.document_data else Decimal('0'))
@@ -2512,8 +2520,14 @@ class SaleEvent:
             head.total_vat_amount = totals["total_vat_amount"]
             head.save()
 
-            if hasattr(window, 'amount_table') and window.amount_table:
-                SaleService.update_amount_table_from_document(window.amount_table, head)
+            try:
+                SaleService.refresh_campaign_discounts_after_cart_change(
+                    self.document_data,
+                    window,
+                    getattr(self, "product_data", None),
+                )
+            except Exception as exc:
+                logger.error("[SALE_OPTION] REPEAT campaign refresh: %s", exc)
 
             logger.info("[SALE_OPTION] REPEAT complete – total_amount=%s", head.total_amount)
             from pos.peripherals.hooks import sync_line_display_from_document

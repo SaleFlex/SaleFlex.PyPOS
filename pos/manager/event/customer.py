@@ -636,6 +636,21 @@ class CustomerEvent:
                 "[ASSIGN_CUSTOMER] Customer %s (%s) assigned to active sale transaction",
                 customer_id, self.current_sale_customer_name
             )
+
+            try:
+                from pos.service import SaleService
+
+                win = None
+                if hasattr(self, "interface") and self.interface:
+                    win = getattr(self.interface, "window", None)
+                SaleService.refresh_campaign_discounts_after_cart_change(
+                    self.document_data,
+                    win,
+                    getattr(self, "product_data", None),
+                )
+            except Exception as exc:
+                logger.warning("[ASSIGN_CUSTOMER] Campaign refresh after assign: %s", exc)
+
             return True
 
         except Exception as exc:

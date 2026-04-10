@@ -5,6 +5,11 @@ Copyright (c) 2025-2026 Ferhat Mousavi
 """
 
 from pos.service.campaign.application_policy import CAMPAIGN_DISCOUNT_TYPE_CODE
+from pos.service.campaign.campaign_document_sync import (
+    gate_manages_campaign,
+    recompute_head_total_discount_amount,
+    sync_campaign_discounts_on_document,
+)
 from pos.service.campaign.campaign_service import CampaignDiscountProposal, CampaignService, SUPPORTED_TYPE_CODES
 from pos.service.campaign.cart_snapshot import (
     CART_SNAPSHOT_SCHEMA_VERSION,
@@ -22,6 +27,9 @@ __all__ = [
     "CampaignDiscountProposal",
     "CampaignService",
     "SUPPORTED_TYPE_CODES",
+    "gate_manages_campaign",
+    "recompute_head_total_discount_amount",
+    "sync_campaign_discounts_on_document",
     "CartLineSnapshot",
     "CartSnapshot",
     "CartTotalsSnapshot",

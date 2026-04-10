@@ -99,7 +99,7 @@ SaleFlex.PyPOS/
 
 ## Class Inheritance Chain
 
-The main `Application` class is assembled from six mixins via multiple inheritance:
+The main `Application` class combines the core managers with **`IntegrationMixin`** for external routing:
 
 ```
 Application
@@ -108,20 +108,21 @@ Application
 │   ├── CacheManager       ← populate_pos_data(), populate_product_data(), update_*_cache()
 │   ├── DocumentManager    ← create_empty_document(), load_incomplete_document(), complete_document()
 │   └── ClosureManager     ← load_open_closure(), create_empty_closure(), close_closure()
-└── EventHandler           ← event_distributor() + _not_defined_function()
-    ├── GeneralEvent        ← login, logout, navigation, save, redraw
-    ├── SaleEvent           ← PLU, barcode, department, suspend, cancel, REPEAT/DELETE
-    ├── PaymentEvent        ← cash, card, change, payment detail
-    ├── ClosureEvent        ← end-of-day closure
-    ├── ConfigurationEvent  ← settings, definitions
-    ├── ProductEvent        ← product list, search, detail
-    ├── ReportEvent         ← reports and lists
-    ├── ServiceEvent        ← service-mode operations
-    ├── HardwareEvent       ← peripheral control
-    └── WarehouseEvent      ← stock operations
+├── EventHandler           ← event_distributor() + _not_defined_function()
+│   ├── GeneralEvent        ← login, logout, navigation, save, redraw
+│   ├── SaleEvent           ← PLU, barcode, department, suspend, cancel, REPEAT/DELETE
+│   ├── PaymentEvent        ← cash, card, change, payment detail
+│   ├── ClosureEvent        ← end-of-day closure
+│   ├── ConfigurationEvent  ← settings, definitions
+│   ├── ProductEvent        ← product list, search, detail
+│   ├── ReportEvent         ← reports and lists
+│   ├── ServiceEvent        ← service-mode operations
+│   ├── HardwareEvent       ← peripheral control
+│   └── WarehouseEvent      ← stock operations
+└── IntegrationMixin       ← init_integration(); apply_campaign (GATE / third-party / local proposals)
 ```
 
-All six root classes inherit ultimately from `object` — Python's standard MRO resolution applies.
+**`CurrentStatus`**, **`CurrentData`**, **`EventHandler`**, and **`IntegrationMixin`** are the direct bases of **`Application`**; nested event classes are attributes of **`EventHandler`**. Python's MRO resolves method calls (e.g. **`apply_campaign`** comes from **`IntegrationMixin`**).
 
 ---
 

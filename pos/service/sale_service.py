@@ -23,7 +23,7 @@ SOFTWARE.
 """
 
 from decimal import Decimal
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 from pos.service.vat_service import VatService
 
 
@@ -360,7 +360,26 @@ class SaleService:
             "total_amount": total_amount,
             "total_vat_amount": total_vat_amount
         }
-    
+
+    @staticmethod
+    def refresh_campaign_discounts_after_cart_change(
+        document_data: Optional[Dict[str, Any]],
+        window: Any = None,
+        pos_data: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """
+        Re-run local campaign evaluation after cart-affecting operations (discount
+        on line, delete/repeat line, customer assignment, etc.) and optionally
+        refresh sale screen widgets.
+        """
+        from pos.service.campaign.campaign_document_sync import sync_campaign_discounts_on_document
+
+        if not document_data:
+            return
+        sync_campaign_discounts_on_document(document_data)
+        if window is not None:
+            SaleService.update_sale_screen_controls(window, document_data, pos_data)
+
     @staticmethod
     def ensure_customer_for_head(head, cashier_data=None):
         """
@@ -629,7 +648,13 @@ class SaleService:
             totals = SaleService.calculate_document_totals(document_data)
             head.total_amount = totals["total_amount"]
             head.total_vat_amount = totals["total_vat_amount"]
-            
+            if hasattr(head, "save"):
+                head.save()
+
+            from pos.service.campaign.campaign_document_sync import sync_campaign_discounts_on_document
+
+            sync_campaign_discounts_on_document(document_data)
+
             logger.info("[SaleService.add_sale_to_document] ✓ Added %s sale to document", sale_type)
             return True
             

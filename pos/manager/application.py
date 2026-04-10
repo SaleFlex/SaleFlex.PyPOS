@@ -31,6 +31,7 @@ from PySide6.QtGui import QIcon
 from pos.manager.current_status import CurrentStatus
 from pos.manager.current_data import CurrentData
 from pos.manager.event_handler import EventHandler
+from pos.manager.integration_mixin import IntegrationMixin
 from user_interface.manager import Interface
 from data_layer.db_manager import init_db
 from data_layer.enums import FormName
@@ -46,7 +47,7 @@ from core.logger import get_logger
 
 logger = get_logger(__name__)
 
-class Application(CurrentStatus, CurrentData, EventHandler):
+class Application(CurrentStatus, CurrentData, EventHandler, IntegrationMixin):
     """
     Main Application class for SaleFlex Point of Sale System.
     
@@ -182,6 +183,8 @@ class Application(CurrentStatus, CurrentData, EventHandler):
         about.update_message("Loading closure data...")
         self.app.processEvents()
         self.load_open_closure()
+
+        self.init_integration()
 
         # Finalize and dispose the AboutForm
         about.update_message("Initialization complete.")

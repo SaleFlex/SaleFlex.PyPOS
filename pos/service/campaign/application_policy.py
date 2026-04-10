@@ -8,12 +8,13 @@ Runtime code should follow these rules unless settings override them later.
 
 ## Evaluation moment
 
-- **Sale / cart screen:** Auto campaigns (`Campaign.is_auto_apply`) are evaluated whenever
-  the cart snapshot is rebuilt (line add/remove, quantity, customer change, etc.).
+- **Sale / cart screen:** Auto campaigns (`Campaign.is_auto_apply`) are evaluated when
+  the open sale document changes in ways that affect eligibility (line add/remove,
+  line discount or markup, customer assignment, etc.) via `sync_campaign_discounts_on_document`.
 - **Payment screen:** **Loyalty BONUS** (`LOYALTY` `TransactionDiscountTemp`) is applied
   only during payment on **net due** (see `PaymentService`); it does not change how
   campaign eligibility is computed on merchandise, but net due includes all document
-  discounts including campaign once implemented.
+  discounts, including **CAMPAIGN** lines already on the temp document.
 
 ## Base amount for thresholds (basket minimum / maximum)
 

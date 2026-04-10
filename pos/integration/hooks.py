@@ -168,9 +168,11 @@ def apply_campaign_discounts(app: Any, cart_data: dict) -> dict:
         is not available.
     """
     try:
-        mixin = getattr(app, "_integration_mixin", None)
-        if mixin:
-            return mixin.apply_campaign(cart_data)
+        applier = getattr(app, "_integration_mixin", None)
+        if applier is None and hasattr(app, "apply_campaign"):
+            applier = app
+        if applier is not None and hasattr(applier, "apply_campaign"):
+            return applier.apply_campaign(cart_data)
     except Exception as e:
         logger.warning("apply_campaign_discounts failed (non-fatal): %s", e)
     return cart_data

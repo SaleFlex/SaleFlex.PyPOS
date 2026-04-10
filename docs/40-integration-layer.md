@@ -214,6 +214,20 @@ The same pattern applies to payment gateways (`base_payment_gateway.py`,
 | `BasePaymentGateway` | `third_party/base_payment_gateway.py` | `initiate_payment`, `confirm_payment`, `void_payment`, `refund_payment` |
 | `BaseCampaignConnector` | `third_party/base_campaign_connector.py` | `get_applicable_discounts`, `redeem_coupon`, `sync_campaigns`, `record_usage` |
 
+### Campaign discount routing
+
+`Application` (`pos/manager/application.py`) inherits **`IntegrationMixin`** and calls **`init_integration()`** after **`load_open_closure()`** during startup.
+
+**`IntegrationMixin.apply_campaign(cart_data)`** chooses the campaign source in order:
+
+1. **GATE** — if **`gate.enabled`** and **`gate.manages_campaign`** → **`GatePullService.get_campaign_discounts`** (HTTP body still a stub; shape aligns with **`CampaignSerializer`** / **`normalize_cart_data_for_campaign_request`**).
+2. **Third-party** — else if **`third_party.campaign.enabled`** and the built connector **`is_enabled()`** → **`get_applicable_discounts`**.
+3. **Local preview** — else, if **`cart_data`** includes both **`head`** and **`products`** (typical embedded **`document_data`**), runs **`CampaignService.evaluate_proposals(cart_data)`** and returns a new dict: all keys from **`cart_data`** plus **`campaign_proposals`**: a list of **`CampaignService.campaign_discount_proposal_to_dict(...)`** entries. This does **not** write **`TransactionDiscountTemp`** rows; it is for integration-style callers and tooling.
+
+**`pos/integration/hooks.apply_campaign_discounts(app, cart_data)`** calls **`app.apply_campaign(cart_data)`** when that method exists on the **`Application`** instance (or a future **`_integration_mixin`** delegate).
+
+**SALE screen totals:** Automatic **`CAMPAIGN`** lines on the open document are driven by **`sync_campaign_discounts_on_document`** in **`pos/service/campaign/campaign_document_sync.py`**, not by **`apply_campaign`**. See [Campaign & Promotions — Sale document sync](43-campaign-promotions.md#sale-document-sync-local-engine).
+
 ---
 
 ## Background Worker (`SyncWorker`)
@@ -326,12 +340,12 @@ routing logic lives there.
 
 ### Current implementation status
 
-All classes and methods are **log-only stubs**.  The folder structure, class
-hierarchy, serializer signatures, and hook points are in place; network calls
-and DB queries are marked with `TODO:` comments ready for implementation.
+**GATE and third-party connectors** remain largely **log-only stubs** for network I/O; serializers and queue shapes are in place with `TODO:` markers where HTTP or vendor APIs will attach.
+
+**Local campaign behaviour** is implemented in **`pos/service/campaign/`**: evaluation (**`CampaignService.evaluate_proposals`**), **SALE** document application (**`sync_campaign_discounts_on_document`**), and the **`apply_campaign`** fallback that adds **`campaign_proposals`** to **`document_data`-shaped** dicts when GATE and the campaign connector are not active.
 
 ---
 
-**Last Updated:** 2026-04-06
+**Last Updated:** 2026-04-11
 **Version:** 1.0.0b6
 **Related:** [Project Structure](20-project-structure.md) · [Exception Handling](32-exception-handling.md) · [Peripherals](30-peripherals.md) · [Event System](24-event-system.md)

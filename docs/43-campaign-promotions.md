@@ -2,7 +2,7 @@
 
 This document describes **promotional campaigns** in SaleFlex.PyPOS: database entities, the **initial runtime contract** (cart snapshot + stacking rules), and how it connects to **SaleFlex.GATE** / third-party campaign connectors.
 
-**Current status:** Campaign **models and seed data** exist (`Campaign`, `CampaignType`, `CampaignRule`, `CampaignProduct`, usage/coupon tables — see [Database Models → Campaign and Promotion](21-database-models.md#campaign-and-promotion-models)). The **`transaction_discount_type`** table includes **`CAMPAIGN`** (new installs and patched DBs on startup). **`CampaignService.evaluate_proposals()`** runs a **read-only local evaluation** (basket, time-based, product-linked types — see below) but **does not attach discounts to the open document**; wiring SALE/PAYMENT to create **`TransactionDiscountTemp`** rows from proposals is still outstanding. Completed sales already persist **`CAMPAIGN`** discount lines when something creates them on the temp document.
+**Current status:** Campaign **models and seed data** exist (`Campaign`, `CampaignType`, `CampaignRule`, `CampaignProduct`, usage/coupon tables — see [Database Models → Campaign and Promotion](21-database-models.md#campaign-and-promotion-models)). The **`transaction_discount_type`** table includes **`CAMPAIGN`** (new installs and patched DBs on startup). On the **SALE** screen, the local engine **writes** matching discounts to the open document as **`TransactionDiscountTemp`** rows with **`discount_type="CAMPAIGN"`** (see [Sale document sync (local engine)](#sale-document-sync-local-engine) below). **`CampaignService.evaluate_proposals()`** remains the core evaluator (same types as below); it does not persist by itself — **`sync_campaign_discounts_on_document`** applies the result. **`PaymentService.copy_temp_to_permanent`** copies **`CAMPAIGN`** lines to permanent discounts; thermal receipts show **`CAMPAIGN (code)`** via **`document_adapter`**. **`active_coupon_codes`** for evaluation is not yet wired from the UI (optional future hook).
 
 ---
 
@@ -14,8 +14,9 @@ Module: `pos/service/campaign/`.
 |------|------|
 | `application_policy.py` | Documented rules: when to evaluate, **merchandise subtotal** definition, **`priority` / `is_combinable`** greedy stacking, relationship to line discounts and **loyalty BONUS** |
 | `cart_snapshot.py` | `CartSnapshot`, `CartLineSnapshot`, `CartTotalsSnapshot`; `build_cart_snapshot_from_document_data()`; `cart_snapshot_to_dict()`; `normalize_cart_data_for_campaign_request()` |
-| `campaign_service.py` | **`CampaignService.evaluate_proposals(document_data, …)`** → **`CampaignDiscountProposal`** list (local engine; see below) |
-| `__init__.py` | Re-exports snapshot helpers, **`CampaignService`**, **`CampaignDiscountProposal`**, **`SUPPORTED_TYPE_CODES`** |
+| `campaign_service.py` | **`CampaignService.evaluate_proposals(document_data, …)`** → **`CampaignDiscountProposal`** list; **`campaign_discount_proposal_to_dict()`** for integration payloads |
+| `campaign_document_sync.py` | **`sync_campaign_discounts_on_document`**, **`recompute_head_total_discount_amount`**, **`gate_manages_campaign()`** — applies proposals to **`document_data`** (see below) |
+| `__init__.py` | Re-exports snapshot helpers, sync entry points, **`CampaignService`**, **`CampaignDiscountProposal`**, **`SUPPORTED_TYPE_CODES`** |
 
 ### Building from `document_data`
 
@@ -43,12 +44,33 @@ Reserved lists (empty until wired): `customer_segment_codes`, `active_coupon_cod
 
 ---
 
+## Sale document sync (local engine)
+
+Module: **`pos/service/campaign/campaign_document_sync.py`**.
+
+**`sync_campaign_discounts_on_document(document_data, *, active_coupon_codes=None)`**
+
+- Runs only for an **open sale** receipt: **`transaction_type`** **`sale`**, **`transaction_status`** **`ACTIVE`** (see **`TransactionType`** / **`TransactionStatus`**).
+- **Skips entirely** when **`gate.enabled`** and **`gate.manages_campaign`** are true — the terminal assumes GATE owns real-time campaign lines on the cart (see [Integration Layer — Campaign discount routing](40-integration-layer.md#campaign-discount-routing)).
+- **Cancels** previous engine-owned rows: every non-cancelled **`TransactionDiscountTemp`** with **`discount_type`** matching **`CAMPAIGN_DISCOUNT_TYPE_CODE`** (`"CAMPAIGN"`) is set to **`is_cancel=True`** and saved.
+- Calls **`CampaignService.evaluate_proposals(document_data, active_coupon_codes=…)`**, then creates **new** **`TransactionDiscountTemp`** rows (`create()` + append to **`document_data["discounts"]`**) with **`line_no`** allocated after the current max discount line number, **`fk_transaction_product_id`** set for **LINE**-scope proposals, **`discount_code`** truncated to 15 characters, **`discount_rate`** quantized for the DB column where present.
+- **`recompute_head_total_discount_amount`** sums **all** non-cancelled temp discount rows (including **LOYALTY** and **CAMPAIGN**) into **`head.total_discount_amount`** and saves the head — same bucket the **Amount Table** and **net due** use.
+
+**Call sites (cart or customer changed):**
+
+- **`SaleService.add_sale_to_document`** — after merchandise totals are updated (PLU / department line added).
+- **`SaleService.refresh_campaign_discounts_after_cart_change`** — used from **SaleEvent** after line **discount / markup**, **DELETE** (when lines remain), **REPEAT**; from **CustomerEvent** after assigning a customer to the sale. When a **window** is passed, **`update_sale_screen_controls`** refreshes **sale_list** (discount lines) and **amount_table**.
+
+**Limits (unchanged from evaluation):** only **`TransactionProductTemp`** lines feed **`CampaignService._collect_lines`** — **department-only** carts do not contribute to merchandise-based basket/product rules until that is extended.
+
+---
+
 ## Local evaluation (`CampaignService`)
 
 **`CampaignService.evaluate_proposals(document_data, evaluated_at=None, active_coupon_codes=None, session=None)`**
 
 - **Input:** same **`document_data`** shape as **`DocumentManager`** (`head`, `products`, …). **`active_coupon_codes`** uppercased strings: required when **`Campaign.requires_coupon`** or when **`is_auto_apply`** is false (then a code must be supplied to consider the row).
-- **Output:** list of **`CampaignDiscountProposal`**: `scope` **`DOCUMENT`** (basket) or **`LINE`** (one sale line), suggested **`discount_amount`** / optional **`discount_rate`**, **`temp_discount_type`** = **`CAMPAIGN`**, **`discount_code`** = truncated **`Campaign.code`**. Caller is responsible for **`TransactionDiscountTemp.line_no`** and head totals when persisting.
+- **Output:** list of **`CampaignDiscountProposal`**: `scope` **`DOCUMENT`** (basket) or **`LINE`** (one sale line), suggested **`discount_amount`** / optional **`discount_rate`**, **`temp_discount_type`** = **`CAMPAIGN`**, **`discount_code`** = truncated **`Campaign.code`**. **`sync_campaign_discounts_on_document`** assigns **`TransactionDiscountTemp.line_no`** and updates **`head.total_discount_amount`** when persisting to the open document; other callers (e.g. integration preview) may only read the list.
 
 **Supported `CampaignType.code` values (initial set):**
 
@@ -91,9 +113,9 @@ Full text lives in `application_policy.py`. In short:
 - [Database Models — Campaign and Promotion](21-database-models.md#campaign-and-promotion-models)
 - [Sale Transactions](10-sale-transactions.md) — loyalty on PAYMENT, **`CAMPAIGN`** / **`CampaignService`** note before Amount Table
 - [Service Layer — Campaign cart snapshot](25-service-layer.md#campaign-cart-snapshot)
-- [Integration Layer](40-integration-layer.md) (GATE campaign pull/calculate, `IntegrationMixin.apply_campaign`, third-party `BaseCampaignConnector`)
+- [Integration Layer](40-integration-layer.md) (GATE campaign pull/calculate, **`IntegrationMixin.apply_campaign`**, third-party **`BaseCampaignConnector`**)
 - [Customer Segmentation](42-customer-segmentation.md) — `marketing_profile()` for future segment-aware campaigns
 
 ---
 
-**Last updated:** 2026-04-11 (local `CampaignService` + seed horizon)
+**Last updated:** 2026-04-11 (SALE document sync, `apply_campaign` local proposals, `Application` + `IntegrationMixin`)

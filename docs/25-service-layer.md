@@ -19,10 +19,11 @@ pos/service/
 ├── loyalty_redemption_service.py # BONUS: points → LOYALTY TransactionDiscountTemp; policy caps
 ├── loyalty_settings_model.py    # Active program + policies for SETTING form UI
 ├── customer_segment_service.py  # criteria_json → CustomerSegmentMember; marketing_profile
-└── campaign/                    # Cart snapshot + local evaluation (proposals not wired to SALE yet)
+└── campaign/                    # Cart snapshot + evaluation + SALE document sync
     ├── application_policy.py    # Stacking / thresholds / loyalty interaction (documented)
     ├── cart_snapshot.py         # schema_version 1.0, build from document_data
-    ├── campaign_service.py      # CampaignService.evaluate_proposals (basket / time / product)
+    ├── campaign_service.py      # CampaignService.evaluate_proposals; proposal dict for integrations
+    ├── campaign_document_sync.py # sync_campaign_discounts_on_document; head.total_discount_amount
     └── __init__.py
 ```
 
@@ -40,7 +41,12 @@ See [Campaign & Promotions](43-campaign-promotions.md) for field lists, stacking
 
 ### `CampaignService` (local evaluation)
 
-**`CampaignService.evaluate_proposals(document_data, …)`** returns **`CampaignDiscountProposal`** instances (read-only; no DB writes). Supports **`BASKET_DISCOUNT`**, **`TIME_BASED`**, and **`PRODUCT_DISCOUNT`** (with **`CampaignProduct`** rows). Details and limits: [Campaign & Promotions — Local evaluation](43-campaign-promotions.md#local-evaluation-campaignservice).
+**`CampaignService.evaluate_proposals(document_data, …)`** returns **`CampaignDiscountProposal`** instances (pure evaluation; no DB writes by itself). Supports **`BASKET_DISCOUNT`**, **`TIME_BASED`**, and **`PRODUCT_DISCOUNT`** (with **`CampaignProduct`** rows). **`CampaignService.campaign_discount_proposal_to_dict`** serializes proposals for **`IntegrationMixin.apply_campaign`**. Details and limits: [Campaign & Promotions — Local evaluation](43-campaign-promotions.md#local-evaluation-campaignservice).
+
+### SALE document sync and UI refresh
+
+- **`sync_campaign_discounts_on_document`** (`campaign_document_sync.py`) — applies proposals to **`document_data`** as described in [Campaign & Promotions — Sale document sync](43-campaign-promotions.md#sale-document-sync-local-engine).
+- **`SaleService.refresh_campaign_discounts_after_cart_change`** — runs the sync, then **`update_sale_screen_controls`** when a **window** is passed (sale list + amount table).
 
 ## Available Services
 
@@ -107,6 +113,7 @@ The `SaleService` provides business logic for processing sales including PLU (co
 - **Department Sale Calculations**: Handles department-based sales
 - **VAT Integration**: Uses `VatService` for all VAT calculations
 - **Transaction Model Creation**: Creates transaction temp models with proper field mapping
+- **Campaign sync on SALE**: After **`add_sale_to_document`** updates merchandise totals, runs **`sync_campaign_discounts_on_document`** (local **`CAMPAIGN`** **`TransactionDiscountTemp`** rows when **`gate.manages_campaign`** is false). **`refresh_campaign_discounts_after_cart_change`** re-runs sync and refreshes widgets after other cart-affecting actions — see [Campaign & Promotions](43-campaign-promotions.md#sale-document-sync-local-engine).
 
 #### Usage Examples
 

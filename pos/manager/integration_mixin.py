@@ -111,6 +111,16 @@ class IntegrationMixin:
         if self._campaign_connector and self._campaign_connector.is_enabled():
             return self._campaign_connector.get_applicable_discounts(cart_data)
 
+        if isinstance(cart_data, dict) and "head" in cart_data and "products" in cart_data:
+            try:
+                from pos.service.campaign.campaign_service import CampaignService
+
+                proposals = CampaignService.evaluate_proposals(cart_data)
+                enriched = {**cart_data, "campaign_proposals": [CampaignService.campaign_discount_proposal_to_dict(p) for p in proposals]}
+                return enriched
+            except Exception as e:
+                logger.warning("[IntegrationMixin] local apply_campaign failed (non-fatal): %s", e)
+
         return cart_data
 
     def sync_erp_transaction(self, transaction_head_id: str) -> bool:

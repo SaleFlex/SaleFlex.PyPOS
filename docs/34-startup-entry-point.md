@@ -173,6 +173,8 @@ Inside `Application.__init__`, after **`init_db()`** creates tables and seeds em
 - **`ensure_customer_loyalty_points_grid`** (`data_layer/db_init_data/forms/customer.py`) adds the **Point movements** tab and `CUSTOMER_LOYALTY_POINTS_GRID` on **CUSTOMER_DETAIL** when missing — see [Customer Management — Database Reset Note](17-customer-management.md#database-reset-note) and [Loyalty Programs — Reporting and audit](41-loyalty-programs.md#reporting-and-audit-phase-6).
 - **`ensure_setting_form_tabs`** (`data_layer/db_init_data/forms/setting_form.py`) rebuilds form **#3 SETTING** controls when the tab control (`SETTING_TAB_CONTROL`) is absent, migrating legacy flat layouts to the **TABCONTROL** with POS + loyalty tabs — see [Configuration](04-configuration.md).
 
+After **`load_open_closure()`**, **`Application`** calls **`init_integration()`** (**`IntegrationMixin`**) so **`gate`** / **`third_party`** settings load and campaign routing (**`apply_campaign`**) is ready — see [Integration Layer — Campaign discount routing](40-integration-layer.md#campaign-discount-routing).
+
 ---
 
 ## 4. `if __name__ == "__main__"` Guard

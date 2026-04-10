@@ -59,7 +59,32 @@ class _LineCtx:
 
 
 class CampaignService:
-    """Evaluate auto-apply campaigns against the open sale document (read-only)."""
+    """Evaluate auto-apply campaigns against the open sale document (no DB writes here).
+
+    Persisted application to ``TransactionDiscountTemp`` is done by
+    ``campaign_document_sync.sync_campaign_discounts_on_document``.
+    """
+
+    @staticmethod
+    def campaign_discount_proposal_to_dict(p: CampaignDiscountProposal) -> Dict[str, Any]:
+        """Serialize a proposal for API-style ``cart_data`` payloads (e.g. ``apply_campaign``)."""
+        return {
+            "campaign_id": str(p.campaign_id),
+            "campaign_code": p.campaign_code,
+            "campaign_name": p.campaign_name,
+            "description": p.description,
+            "scope": p.scope,
+            "fk_transaction_product_temp_id": (
+                str(p.fk_transaction_product_temp_id)
+                if p.fk_transaction_product_temp_id is not None
+                else None
+            ),
+            "line_no": p.line_no,
+            "discount_amount": str(p.discount_amount),
+            "discount_rate": str(p.discount_rate) if p.discount_rate is not None else None,
+            "temp_discount_type": p.temp_discount_type,
+            "discount_code": p.discount_code,
+        }
 
     @staticmethod
     def evaluate_proposals(
