@@ -281,6 +281,8 @@ See [Inventory Management](docs/16-inventory-management.md) for full documentati
 
 **Closure history (DETAIL / RECEIPTS):** [Closure History Navigation](docs/13-end-of-day-closure.md#closure-history-navigation-detail-and-receipts)
 
+**SETTINGS (POS + loyalty):** [Configuration](docs/04-configuration.md) — tabbed **SETTING** form; **SAVE** writes all open tabs (`PosSettings`, `LoyaltyProgram`, policies). Existing DBs get tabs via `ensure_setting_form_tabs` on startup.
+
 **Virtual keyboard:** [Virtual Keyboard Configuration](docs/06-virtual-keyboard.md) (item discount/markup dialogs use the embedded numpad only, not the QWERTY keyboard)
 
 **TextBox Enter key action:** [UI Controls — TextBox ENTER Key](docs/23-ui-controls.md#enter-key--form_control_function1)

@@ -167,7 +167,10 @@ next start:
 
 ## Database bootstrap and UI schema patches (`Application`)
 
-Inside `Application.__init__`, after **`init_db()`** creates tables and seeds empty databases, the code runs **idempotent patches** on every startup. For example, **`ensure_customer_loyalty_points_grid`** (in `data_layer/db_init_data/forms/customer.py`) inserts the **Point movements** tab and `CUSTOMER_LOYALTY_POINTS_GRID` on **CUSTOMER_DETAIL** when they are missing — so existing SQLite files gain that audit UI without wiping the database. See [Customer Management — Database Reset Note](17-customer-management.md#database-reset-note) and [Loyalty Programs — Reporting and audit](41-loyalty-programs.md#reporting-and-audit-phase-6).
+Inside `Application.__init__`, after **`init_db()`** creates tables and seeds empty databases, the code runs **idempotent patches** on every startup. For example:
+
+- **`ensure_customer_loyalty_points_grid`** (`data_layer/db_init_data/forms/customer.py`) adds the **Point movements** tab and `CUSTOMER_LOYALTY_POINTS_GRID` on **CUSTOMER_DETAIL** when missing — see [Customer Management — Database Reset Note](17-customer-management.md#database-reset-note) and [Loyalty Programs — Reporting and audit](41-loyalty-programs.md#reporting-and-audit-phase-6).
+- **`ensure_setting_form_tabs`** (`data_layer/db_init_data/forms/setting_form.py`) rebuilds form **#3 SETTING** controls when the tab control (`SETTING_TAB_CONTROL`) is absent, migrating legacy flat layouts to the **TABCONTROL** with POS + loyalty tabs — see [Configuration](04-configuration.md).
 
 ---
 

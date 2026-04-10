@@ -21,7 +21,7 @@ In Markdown under `docs/`, reference them as `../static_files/images/<filename>`
 | 1 | [Introduction](01-introduction.md) | Overview, key features, application screens, default credentials |
 | 2 | [System Requirements](02-system-requirements.md) | Hardware, software, and supported database backends |
 | 3 | [Installation Guide](03-installation.md) | Step-by-step setup (Python, venv, pip, first run) |
-| 4 | [Configuration](04-configuration.md) | `settings.toml` reference + POS Settings (database) |
+| 4 | [Configuration](04-configuration.md) | `settings.toml` + tabbed SETTING (POS + loyalty in DB) |
 | 5 | [First Login](05-first-login.md) | Default credentials, role differences, automatic document recovery |
 | 6 | [Virtual Keyboard Configuration](06-virtual-keyboard.md) | DB-driven keyboard themes, enable/disable, custom themes |
 

@@ -114,7 +114,7 @@ textbox = FormControl(
 - `input_type="BOOLEAN"` (metadata; renderer uses `type` for the widget)
 - Control `name` is uppercase and maps to the model attribute via `.lower()` (same rule as textboxes)
 
-**Seeded forms:** In `data_layer/db_init_data/forms/management.py`, the SETTING form (`POS_SETTINGS` panel) uses a checkbox for `force_to_work_online`; the CASHIER form uses checkboxes for `is_administrator` and `is_active`.
+**Seeded forms:** The **SETTING** form (`data_layer/db_init_data/forms/setting_form.py`) is a **TABCONTROL** with a **POS** tab (`POS_SETTINGS` → `PosSettings`, including **CHECKBOX** `FORCE_TO_WORK_ONLINE`) and loyalty tabs (`LOYALTY_PROGRAM`, `LOYALTY_PROGRAM_POLICY`, `LOYALTY_REDEMPTION_POLICY`). The **CASHIER** form (`management.py`) uses checkboxes for `is_administrator` and `is_active`.
 
 **Rendering:** `DynamicFormRenderer` emits `type: "checkbox"` in the design dict. `BaseWindow._create_checkbox()` and `DynamicDialog._create_checkbox()` bind to the panel model and load/save like textboxes. Non-admin users: `is_administrator` and `is_active` checkboxes are **disabled** (not only read-only text) on the main window’s CASHIER form.
 
@@ -131,6 +131,7 @@ The system implements a generic panel-based form save mechanism that works with 
 **Rules:**
 1. **Panel Name = Model Name**: Panel name must match the model name in uppercase with underscores
    - `POS_SETTINGS` → `PosSettings` model
+   - `LOYALTY_PROGRAM` → `LoyaltyProgram`; `LOYALTY_PROGRAM_POLICY` → `LoyaltyProgramPolicy`; `LOYALTY_REDEMPTION_POLICY` → `LoyaltyRedemptionPolicy` (SETTING form tabs)
    - `CASHIER` → `Cashier` model
    - `CUSTOMER_INFO` → `CustomerInfo` model
 
@@ -153,11 +154,10 @@ The system implements a generic panel-based form save mechanism that works with 
 
 **Examples:**
 
-**PosSettings Configuration Form:**
-- Panel name: `POS_SETTINGS` (matches model name)
-- Mostly **TEXTBOX** controls; boolean `force_to_work_online` is a **CHECKBOX**
-- On form load: Values from `CurrentData.pos_settings` are automatically loaded into panel controls
-- On SAVE: All panel field values are saved to `PosSettings` model
+**SETTING form (tabbed):**
+- **POS** tab — panel `POS_SETTINGS`: mostly **TEXTBOX**; `FORCE_TO_WORK_ONLINE` is **CHECKBOX**; load/save via `CurrentData.pos_settings` / `PosSettings`
+- **Loyalty** tabs — panels map to `LoyaltyProgram`, `LoyaltyProgramPolicy`, `LoyaltyRedemptionPolicy`; preload/save uses the active-program resolution in `pos/service/loyalty_settings_model.py` (see [Configuration](04-configuration.md))
+- **SAVE** collects values from every panel on the form, not only the visible tab
 
 **Cashier Management Form:**
 - Panel name: `CASHIER` (matches model name)

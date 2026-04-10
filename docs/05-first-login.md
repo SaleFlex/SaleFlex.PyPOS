@@ -48,7 +48,7 @@ After successful login, you will be redirected to the **Main Menu** with options
 
 - **SALES** — Start processing transactions
 - **CLOSURE** — End-of-day operations (administrators only)
-- **SETTING** — POS system configuration
+- **SETTING** — Tabbed POS + loyalty settings (`PosSettings`, `LoyaltyProgram`, policies); administrators only (see [Configuration](04-configuration.md))
 - **CASHIER MANAGEMENT** — Manage cashier accounts
 - **LOGOUT** — End the current user session
 

@@ -202,6 +202,7 @@ class ControlName(enum.Enum):
     # Customer Management Controls
     CUSTOMER_SEARCH_TEXTBOX = "CUSTOMER_SEARCH_TEXTBOX"      # Textbox for customer search query
     CUSTOMER_LIST_DATAGRID = "CUSTOMER_LIST_DATAGRID"        # DataGrid displaying customer search results
+    SETTING_TAB_CONTROL = "SETTING_TAB_CONTROL"              # TABCONTROL on SETTING form (POS + loyalty tabs)
     CUSTOMER_DETAIL_TAB = "CUSTOMER_DETAIL_TAB"              # TABCONTROL on the customer detail form
     CUSTOMER_ACTIVITY_GRID = "CUSTOMER_ACTIVITY_GRID"        # DataGrid listing customer transaction history
     CUSTOMER_LOYALTY_POINTS_GRID = "CUSTOMER_LOYALTY_POINTS_GRID"  # DataGrid: LoyaltyPointTransaction audit for customer

@@ -134,7 +134,8 @@ SaleFlex.PyPOS/
 │   │   ├── forms/          # Form + control definitions split by topic
 │   │   │   ├── login.py      # Form #1: LOGIN
 │   │   │   ├── main_menu.py  # Form #2: MAIN_MENU
-│   │   │   ├── management.py # Forms #3 SETTING, #4 CASHIER
+│   │   │   ├── management.py # Form rows #3 SETTING, #4 CASHIER
+│   │   │   ├── setting_form.py # #3 SETTING controls: TABCONTROL (POS + loyalty tabs)
 │   │   │   ├── sale.py       # Forms #5 SALE, #7 SUSPENDED_SALES_MARKET
 │   │   │   ├── closure.py    # Forms #6, #10, #11, #12 (closure group)
 │   │   │   ├── product.py    # Forms #8 PRODUCT_LIST, #9 PRODUCT_DETAIL
@@ -443,11 +444,11 @@ Clicking **DETAIL** on a selected receipt opens the full receipt breakdown:
 
 > Closure Receipt Details form displaying the receipt header (receipt number, unique ID, date/time, document type, transaction type, status) alongside a line-item table showing product name, code, quantity, unit, unit price, discount, VAT%, total, and line status.
 
-Selecting "SETTINGS" opens the POS settings panel:
+Selecting **SETTINGS** opens the **SETTING** form: a **TABCONTROL** with **POS** (hardware, backend, store identity → `PosSettings`) and separate tabs for **Loyalty program**, **Loyalty policy**, and **Loyalty redemption** (`LoyaltyProgram`, `LoyaltyProgramPolicy`, `LoyaltyRedemptionPolicy`). One **SAVE** persists all edited panels. Older databases are upgraded to this layout on startup via `ensure_setting_form_tabs` (see [Configuration](docs/04-configuration.md)).
 
 ![Settings Form](static_files/images/sample_settings_form.jpg)
 
-> Settings panel showing POS hardware configuration (receipt printer, customer display, MAC address, etc.) with scroll support for long field lists.
+> Sample screenshot may show the POS tab only; loyalty fields live on the additional tabs described above.
 
 Selecting "CASHIER MANAGEMENT" allows managing cashier accounts:
 
@@ -733,7 +734,7 @@ Comprehensive documentation is available in the `docs/` directory:
 |----------|-------------|
 | **[Documentation Index](docs/README.md)** | Complete guide organized by topic |
 | **[Installation Guide](docs/03-installation.md)** | Step-by-step setup (Python, venv, pip, first run) |
-| **[Configuration](docs/04-configuration.md)** | `settings.toml` reference and POS Settings |
+| **[Configuration](docs/04-configuration.md)** | `settings.toml` + tabbed SETTING (POS + loyalty) |
 | **[First Login](docs/05-first-login.md)** | Default credentials, role differences, document recovery |
 | **[Virtual Keyboard](docs/06-virtual-keyboard.md)** | DB-driven keyboard themes, enable/disable, custom themes |
 | **[Sale Transactions](docs/10-sale-transactions.md)** | NumPad modes, adding products, payments, item actions |
@@ -748,7 +749,7 @@ Comprehensive documentation is available in the `docs/` directory:
 | **[Dynamic Forms System](docs/22-dynamic-forms-system.md)** | DB-driven UI forms, Panel controls, generic save pattern |
 | **[UI Controls Catalog](docs/23-ui-controls.md)** | All custom Qt widgets: Button, TextBox, NumPad, SaleList, TabControl |
 | **[Event System](docs/24-event-system.md)** | EventHandler, event_distributor(), all event categories |
-| **[Service Layer](docs/25-service-layer.md)** | VatService, SaleService, PaymentService, LoyaltyEarnService, LoyaltyService, CustomerSegmentService |
+| **[Service Layer](docs/25-service-layer.md)** | VatService, SaleService, PaymentService, LoyaltyEarnService, LoyaltyRedemptionService, LoyaltyService, loyalty_settings_model (SETTING form), CustomerSegmentService |
 | **[Document Management](docs/26-document-management.md)** | Transaction lifecycle, suspend/resume, payment flow |
 | **[Data Caching](docs/27-data-caching.md)** | pos_data / product_data caches, AutoSave system |
 | **[Peripherals](docs/30-peripherals.md)** | OPOS-style device layer (cash drawer, printer, display) |

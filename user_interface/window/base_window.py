@@ -671,7 +671,14 @@ class BaseWindow(QMainWindow):
                         if hasattr(model_instance, 'unwrap'):
                             model_instance = model_instance.unwrap()
                 
-                # If not in cache, try to get from model class
+                # If not in cache, try loyalty settings rows or first DB row
+                if not model_instance:
+                    if model_class_name in ("LoyaltyProgram", "LoyaltyProgramPolicy", "LoyaltyRedemptionPolicy"):
+                        try:
+                            from pos.service.loyalty_settings_model import get_settings_form_loyalty_instance
+                            model_instance = get_settings_form_loyalty_instance(model_class_name)
+                        except Exception as e:
+                            logger.error("[LOAD_DATA] Error loading loyalty settings model %s: %s", model_class_name, e)
                 if not model_instance:
                     try:
                         from data_layer.model.definition import __all__ as model_names
@@ -759,6 +766,13 @@ class BaseWindow(QMainWindow):
                 model_instance = getattr(self.app, cache_attr_name)
                 if model_instance and hasattr(model_instance, 'unwrap'):
                     model_instance = model_instance.unwrap()
+            if not model_instance:
+                if model_class_name in ("LoyaltyProgram", "LoyaltyProgramPolicy", "LoyaltyRedemptionPolicy"):
+                    try:
+                        from pos.service.loyalty_settings_model import get_settings_form_loyalty_instance
+                        model_instance = get_settings_form_loyalty_instance(model_class_name)
+                    except Exception as e:
+                        logger.error("[LOAD_DATA] Error loading loyalty settings model %s: %s", model_class_name, e)
             if not model_instance:
                 try:
                     from data_layer.model.definition import __all__ as model_names
@@ -1201,17 +1215,24 @@ class BaseWindow(QMainWindow):
     def _create_panel(self, design_data):
         """
         Create a Panel control with scrollbar support.
-        
-        Args:
-            design_data (dict): Design specifications for the panel
+
+        If ``design_data`` contains ``tab_id``, parent the panel to that tab page
+        (SETTING / PRODUCT_DETAIL / CUSTOMER_DETAIL pattern).
         """
         width = design_data.get("width", 800)
         height = design_data.get("height", 600)
         background_color = design_data.get("background_color", 0xFFFFFF)
         foreground_color = design_data.get("foreground_color", 0x000000)
-        
+
+        parent_widget = self
+        tab_id = design_data.get("tab_id")
+        if tab_id and hasattr(self, "_tab_pages"):
+            tab_page = self._tab_pages.get(tab_id)
+            if tab_page:
+                parent_widget = tab_page
+
         panel = Panel(
-            self,
+            parent_widget,
             width=width,
             height=height,
             location_x=design_data.get("location_x", 0),
@@ -1219,13 +1240,15 @@ class BaseWindow(QMainWindow):
             background_color=background_color,
             foreground_color=foreground_color
         )
-        
-        # Store panel reference by name for child controls
+
         if "name" in design_data:
             panel.name = design_data["name"]
             if not hasattr(self, '_panels'):
                 self._panels = {}
             self._panels[design_data["name"]] = panel  # noqa: always reset in draw_window
+
+        if parent_widget is not self and parent_widget.layout() is not None:
+            parent_widget.layout().addWidget(panel)
 
         panel.show()
 

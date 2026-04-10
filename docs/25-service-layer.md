@@ -4,7 +4,7 @@
 
 SaleFlex.PyPOS implements a **service layer pattern** to separate business logic from event handlers and UI components. This architecture improves code organization, reusability, and testability by centralizing business operations in dedicated service classes.
 
-The service layer is located in the `pos/service/` directory and contains business logic services that handle core POS operations such as VAT calculations, sale processing, transaction management, local loyalty enrollment, **point redemption** on the PAYMENT form (**BONUS**), **point earning** on completed sales, and customer segment auto-assignment.
+The service layer is located in the `pos/service/` directory and contains business logic services that handle core POS operations such as VAT calculations, sale processing, transaction management, local loyalty enrollment, **point redemption** on the PAYMENT form (**BONUS**), **point earning** on completed sales, and customer segment auto-assignment. **`loyalty_settings_model.py`** (same package) resolves the active `LoyaltyProgram` and related policy rows for the **SETTING** form’s loyalty tabs (preload and save), not for checkout logic.
 
 ## Service Layer Structure
 
@@ -17,6 +17,7 @@ pos/service/
 ├── loyalty_service.py           # Phone normalization, enrollment; REDEEMED/EARNED ledger, spending, tier after sale
 ├── loyalty_earn_service.py      # Stages loyalty_points_earned from program + LoyaltyEarnRule; payment-type filter; TransactionLoyaltyTemp snapshot
 ├── loyalty_redemption_service.py # BONUS: points → LOYALTY TransactionDiscountTemp; policy caps
+├── loyalty_settings_model.py    # Active program + policies for SETTING form UI
 └── customer_segment_service.py  # criteria_json → CustomerSegmentMember; marketing_profile
 ```
 

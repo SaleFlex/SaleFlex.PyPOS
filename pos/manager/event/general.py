@@ -22,6 +22,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
+from decimal import Decimal, InvalidOperation
+
 from data_layer.enums import FormName, ControlName
 from data_layer import Cashier
 
@@ -683,10 +685,60 @@ class GeneralEvent:
                                 except ValueError:
                                     logger.error("[SAVE_CHANGES] ⚠ Cannot convert '%s' to int for field '%s', skipping", field_value, field_name)
                                     continue
+                            elif isinstance(old_value, Decimal):
+                                try:
+                                    col = model_class.__table__.columns.get(field_name)
+                                except Exception:
+                                    col = None
+                                if stripped == "":
+                                    if col is not None and col.nullable:
+                                        new_value = None
+                                    else:
+                                        continue
+                                else:
+                                    try:
+                                        new_value = Decimal(stripped)
+                                    except (InvalidOperation, ValueError):
+                                        logger.error(
+                                            "[SAVE_CHANGES] ⚠ Cannot convert '%s' to Decimal for field '%s', skipping",
+                                            field_value,
+                                            field_name,
+                                        )
+                                        continue
+                            elif old_value is None and stripped != "" and model_class_name == "LoyaltyProgram" and field_name == "point_expiry_days":
+                                try:
+                                    new_value = int(stripped)
+                                except ValueError:
+                                    logger.error("[SAVE_CHANGES] ⚠ Invalid int for point_expiry_days: %s", field_value)
+                                    continue
+                            elif (
+                                old_value is None
+                                and stripped != ""
+                                and model_class_name == "LoyaltyRedemptionPolicy"
+                                and field_name == "minimum_points_to_redeem"
+                            ):
+                                try:
+                                    new_value = int(stripped)
+                                except ValueError:
+                                    logger.error("[SAVE_CHANGES] ⚠ Invalid int for minimum_points_to_redeem: %s", field_value)
+                                    continue
                             else:
                                 # String fields: use empty string instead of None so that
                                 # NOT NULL columns do not cause a constraint violation.
-                                new_value = stripped
+                                if (
+                                    stripped == ""
+                                    and model_class_name == "LoyaltyProgram"
+                                    and field_name == "point_expiry_days"
+                                ):
+                                    new_value = None
+                                elif (
+                                    stripped == ""
+                                    and model_class_name == "LoyaltyRedemptionPolicy"
+                                    and field_name == "minimum_points_to_redeem"
+                                ):
+                                    new_value = None
+                                else:
+                                    new_value = stripped
                             
                             # Only update if value changed
                             if old_value != new_value:
@@ -771,6 +823,13 @@ class GeneralEvent:
             if hasattr(model_instance, 'unwrap'):
                 model_instance = model_instance.unwrap()
             return model_instance
+
+        elif model_class_name in ("LoyaltyProgram", "LoyaltyProgramPolicy", "LoyaltyRedemptionPolicy"):
+            from pos.service.loyalty_settings_model import get_settings_form_loyalty_instance
+            inst = get_settings_form_loyalty_instance(model_class_name)
+            if not inst:
+                logger.error("[SAVE_CHANGES] ✗ No %s row found for settings form", model_class_name)
+            return inst
         
         else:
             # For other models, get the first instance or create new

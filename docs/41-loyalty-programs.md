@@ -11,6 +11,7 @@ This document describes the **local** loyalty stack: data models, seed data, pho
   - **`LoyaltyRedemptionPolicy`**: Caps and steps for POS redemption (`max_basket_amount_share_from_points`, `minimum_points_to_redeem`, `points_redemption_step`, `allow_partial_redemption`); consumed by **`LoyaltyRedemptionService`** when the cashier uses **BONUS** (`BONUS_PAYMENT`).
 - **Membership**: `CustomerLoyalty` (one row per customer for the program). Optional `loyalty_card_number` remains for legacy or external card IDs; **primary recognition is the customer’s phone**.
 - **Ledger**: `LoyaltyPointTransaction` records movements. New enrollments can create a `WELCOME` row when `LoyaltyProgram.welcome_points` is greater than zero. Completed sales create **`EARNED`** and, when applicable, **`REDEEMED`** (negative `points_amount`) rows linked to the permanent `TransactionHead`.
+- **In-app settings UI**: The main menu **SETTING** form exposes **Loyalty program**, **Loyalty policy**, and **Loyalty redemption** tabs (alongside **POS**). One **SAVE** updates the resolved active-program rows; see [Configuration](04-configuration.md) and `pos/service/loyalty_settings_model.py`.
 
 ## Phone normalization (`Customer.phone_normalized`)
 

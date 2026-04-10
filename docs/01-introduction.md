@@ -31,7 +31,7 @@ Built with PySide6 (Qt framework) and SQLAlchemy ORM, SaleFlex.PyPOS features:
 | **PAYMENT** | Dedicated payment form (`FormName.PAYMENT`): **AMOUNTSTABLE** shows live totals with row heights stretched to fill the control (font size unchanged), plus payment-type grid, tender log, NumPad — opened from SALE after **FUNC** → **PAYMENT** (see [Sale Transactions — PAYMENT form](10-sale-transactions.md#payment-form)) |
 | **SUSPENDED SALES** | List of parked (pending) transactions for resumption |
 | **CLOSURE** | End-of-day closure execution screen |
-| **SETTING** | POS system configuration (IP, ports, currency, hardware) |
+| **SETTING** | Tabbed configuration: POS / hardware (`PosSettings`) and local **loyalty** program & policies — see [Configuration](04-configuration.md) |
 | **CASHIER** | Cashier account management |
 
 ## Default Login Credentials

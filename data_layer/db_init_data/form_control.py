@@ -48,6 +48,7 @@ from data_layer.model.definition.form_control import FormControl
 from data_layer.db_init_data.forms import login
 from data_layer.db_init_data.forms import main_menu
 from data_layer.db_init_data.forms import management
+from data_layer.db_init_data.forms import setting_form
 from data_layer.db_init_data.forms import sale
 from data_layer.db_init_data.forms import closure
 from data_layer.db_init_data.forms import product
@@ -95,9 +96,6 @@ def _insert_form_controls(session: Session, cashier_id: str):
         return
 
     # ── Phase 1: Collect simple (non-tab) controls ───────────────────────────
-    config_controls, config_panel_children = management.get_config_form_controls(
-        config_form, cashier_id
-    )
     cashier_controls, cashier_panel_children = management.get_cashier_form_controls(
         cashier_form, cashier_id
     )
@@ -106,7 +104,6 @@ def _insert_form_controls(session: Session, cashier_id: str):
         login.get_form_controls(login_form, cashier_id)
         + sale.get_sale_form_controls(sale_form, cashier_id)
         + main_menu.get_form_controls(main_menu_form, cashier_id)
-        + config_controls
         + cashier_controls
         + closure.get_closure_form_controls(closure_form, cashier_id)
         + closure.get_closure_detail_form_controls(closure_detail_form, cashier_id)
@@ -125,8 +122,10 @@ def _insert_form_controls(session: Session, cashier_id: str):
     # ── Phase 2: Flush → wire panel parent IDs ───────────────────────────────
     session.flush()
 
-    management.update_config_panel_parents(config_controls, config_panel_children)
     management.update_cashier_panel_parents(cashier_controls, cashier_panel_children)
+
+    # SETTING form: TABCONTROL + POS + loyalty panels (not part of Phase 1 bulk list)
+    setting_form.insert_setting_form_controls(session, config_form, cashier_id)
 
     # ── Phase 3: Tab-based and inventory forms ───────────────────────────────
     product.insert_product_detail_controls(session, product_detail_form, cashier_id)

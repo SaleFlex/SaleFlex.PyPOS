@@ -121,10 +121,17 @@ class Application(CurrentStatus, CurrentData, EventHandler):
 
         # Idempotent UI schema patches (e.g. new grids on existing databases)
         from data_layer.db_init_data.forms.customer import ensure_customer_loyalty_points_grid
+        from data_layer.db_init_data.forms.setting_form import ensure_setting_form_tabs
         from data_layer.engine import Engine
+        from data_layer.model.definition.cashier import Cashier
         _db = Engine()
         with _db.get_session() as _session:
             ensure_customer_loyalty_points_grid(_session)
+            _admin = _session.query(Cashier).filter(Cashier.username == "admin").first()
+            if not _admin:
+                _admin = _session.query(Cashier).first()
+            if _admin:
+                ensure_setting_form_tabs(_session, _admin.id)
         
         # Initialize KeyboardSettingsLoader for virtual keyboard settings
         from user_interface.control.virtual_keyboard.keyboard_settings_loader import KeyboardSettingsLoader
