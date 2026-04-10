@@ -55,6 +55,9 @@ class CampaignSerializer:
         TODO: Upsert each into Campaign, CampaignRule, CampaignProduct tables.
         """
         logger.info("[CampaignSerializer] apply_updates (stub) count=%d", len(campaigns))
+        from pos.service.campaign.active_campaign_cache import ActiveCampaignCache
+
+        ActiveCampaignCache.reload_safely()
 
     @staticmethod
     def build_discount_request(cart_data: Dict[str, Any]) -> Dict[str, Any]:

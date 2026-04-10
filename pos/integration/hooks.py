@@ -144,6 +144,10 @@ def pull_updates_from_gate(app: Any) -> None:
         pull.pull_notifications()
     except Exception as e:
         logger.warning("pull_updates_from_gate failed (non-fatal): %s", e)
+    finally:
+        from pos.service.campaign.active_campaign_cache import ActiveCampaignCache
+
+        ActiveCampaignCache.reload_safely()
 
 
 # ---------------------------------------------------------------------------

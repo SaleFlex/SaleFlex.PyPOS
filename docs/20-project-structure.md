@@ -43,7 +43,7 @@ SaleFlex.PyPOS/
 │       ├── current_status.py   ← CurrentStatus mixin (login state, form stack)
 │       ├── current_data.py     ← CurrentData mixin (document, cache, closure)
 │       ├── event_handler.py    ← EventHandler (event map + distributor)
-│       ├── cache_manager.py    ← CacheManager mixin (pos_data / product_data)
+│       ├── cache_manager.py    ← CacheManager mixin (pos_data / product_data / refresh_active_campaign_cache)
 │       ├── document_manager.py ← DocumentManager mixin (create, load, complete)
 │       ├── closure_manager.py  ← ClosureManager mixin (load, close, sync seq)
 │       └── event/              ← 10 specialised event handler mixins
@@ -159,7 +159,7 @@ saleflex.py
 | Dictionary-based dispatch | `EventHandler.event_distributor()` | Map string event names → handler callables without large `if/elif` chains |
 | DB-driven UI | `DynamicFormRenderer` + `BaseWindow` | Forms defined in the database, not in Python source |
 | Two-phase temp/permanent | `TransactionHeadTemp` → `TransactionHead` | Protect reporting tables from incomplete transactions |
-| In-memory cache | `pos_data` / `product_data` | Avoid repeated DB reads during sale operations |
+| In-memory cache | `pos_data` / `product_data` / **`ActiveCampaignCache`** (campaign eval) | Avoid repeated DB reads during sale operations; see [Data Caching](27-data-caching.md) and [Campaign & Promotions](43-campaign-promotions.md#active-campaign-cache) |
 
 ---
 

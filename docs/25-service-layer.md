@@ -24,6 +24,7 @@ pos/service/
     ├── cart_snapshot.py         # schema_version 1.0, build from document_data
     ├── campaign_service.py      # CampaignService.evaluate_proposals; proposal dict for integrations
     ├── campaign_document_sync.py # sync_campaign_discounts_on_document; head.total_discount_amount
+    ├── active_campaign_cache.py     # ActiveCampaignCache: in-memory campaign rows for evaluation
     ├── coupon_activation_service.py # CouponActivationService; coupon rows in-session for audit
     ├── campaign_usage_limits.py     # CampaignUsageLimits (total / per-customer caps)
     ├── campaign_audit_service.py    # CampaignAuditService: CampaignUsage + reversal hook
@@ -42,9 +43,13 @@ The **`pos/service/campaign/`** package defines a **canonical cart payload** for
 
 See [Campaign & Promotions](43-campaign-promotions.md) for field lists, stacking rules, and integration notes.
 
+### Active campaign cache
+
+**`ActiveCampaignCache`** (`active_campaign_cache.py`) holds expunged **`Campaign`**, **`CampaignType`**, **`CampaignRule`**, and **`CampaignProduct`** rows for **`CampaignService.evaluate_proposals`**. Warmed at application startup via **`CacheManager.refresh_active_campaign_cache()`**; refreshed after GATE pull hooks, **`SyncWorker`** pull **`finally`**, and **`CampaignSerializer.apply_updates`**. **`reload_safely()`** avoids raising into callers. See [Campaign & Promotions — Active campaign cache](43-campaign-promotions.md#active-campaign-cache).
+
 ### `CampaignService` (local evaluation)
 
-**`CampaignService.evaluate_proposals(document_data, …)`** returns **`CampaignDiscountProposal`** instances (pure evaluation; no DB writes by itself). Supports **`BASKET_DISCOUNT`**, **`TIME_BASED`**, and **`PRODUCT_DISCOUNT`** (with **`CampaignProduct`** rows). **`CampaignService.campaign_discount_proposal_to_dict`** serializes proposals for **`IntegrationMixin.apply_campaign`**. Details and limits: [Campaign & Promotions — Local evaluation](43-campaign-promotions.md#local-evaluation-campaignservice).
+**`CampaignService.evaluate_proposals(document_data, …)`** returns **`CampaignDiscountProposal`** instances (pure evaluation; no DB writes by itself). It prefers **`ActiveCampaignCache`** and falls back to a live session query if the cache is empty or reload fails. Supports **`BASKET_DISCOUNT`**, **`TIME_BASED`**, and **`PRODUCT_DISCOUNT`** (with **`CampaignProduct`** rows). **`CampaignService.campaign_discount_proposal_to_dict`** serializes proposals for **`IntegrationMixin.apply_campaign`**. Details and limits: [Campaign & Promotions — Local evaluation](43-campaign-promotions.md#local-evaluation-campaignservice).
 
 ### SALE document sync and UI refresh
 

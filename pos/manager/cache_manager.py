@@ -380,3 +380,15 @@ class CacheManager:
         except Exception as e:
             logger.error("[DEBUG] Error refreshing %s in product_data cache: %s", model_name, e)
 
+    def refresh_active_campaign_cache(self) -> None:
+        """
+        Reload the in-memory active campaign snapshot used by ``CampaignService``.
+
+        Call after admin or integration paths persist changes to ``Campaign``,
+        ``CampaignRule``, ``CampaignProduct``, or ``CampaignType`` (same idea as
+        ``refresh_pos_data_model`` for ``pos_data``).
+        """
+        from pos.service.campaign.active_campaign_cache import ActiveCampaignCache
+
+        ActiveCampaignCache.reload_safely()
+

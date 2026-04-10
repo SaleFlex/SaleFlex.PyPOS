@@ -4,6 +4,7 @@ Campaign / promotion service helpers (cart snapshot, application policy constant
 Copyright (c) 2025-2026 Ferhat Mousavi
 """
 
+from pos.service.campaign.active_campaign_cache import ActiveCampaignCache, ActiveCampaignEvalBundle
 from pos.service.campaign.application_policy import CAMPAIGN_DISCOUNT_TYPE_CODE
 from pos.service.campaign.campaign_audit_service import CampaignAuditService
 from pos.service.campaign.coupon_activation_service import CouponActivationService
@@ -26,6 +27,8 @@ from pos.service.campaign.cart_snapshot import (
 
 __all__ = [
     "CAMPAIGN_DISCOUNT_TYPE_CODE",
+    "ActiveCampaignCache",
+    "ActiveCampaignEvalBundle",
     "CART_SNAPSHOT_SCHEMA_VERSION",
     "CampaignAuditService",
     "CampaignDiscountProposal",

@@ -129,26 +129,30 @@ class SyncWorker(QThread):
             from pos.integration.gate.gate_pull_service import get_default_gate_pull
             from pos.integration.gate.serializers.notification_serializer import (
                 NotificationSerializer,
-                CACHE_REFRESH_TYPES,
             )
 
             pull = get_default_gate_pull()
             if not pull.is_enabled():
                 return
 
-            pull.pull_product_updates()
-            pull.pull_campaign_updates()
+            try:
+                pull.pull_product_updates()
+                pull.pull_campaign_updates()
 
-            notifications = pull.pull_notifications()
-            for notif in notifications:
-                notif_type = notif.get("type", "")
-                if NotificationSerializer.requires_cache_refresh(notif_type):
-                    self.cache_refresh_needed.emit(notif_type.replace("_update", ""))
-                elif notif_type == "terminal_message":
-                    self.message_received.emit(
-                        notif.get("title", ""),
-                        notif.get("body", ""),
-                    )
+                notifications = pull.pull_notifications()
+                for notif in notifications:
+                    notif_type = notif.get("type", "")
+                    if NotificationSerializer.requires_cache_refresh(notif_type):
+                        self.cache_refresh_needed.emit(notif_type.replace("_update", ""))
+                    elif notif_type == "terminal_message":
+                        self.message_received.emit(
+                            notif.get("title", ""),
+                            notif.get("body", ""),
+                        )
+            finally:
+                from pos.service.campaign.active_campaign_cache import ActiveCampaignCache
+
+                ActiveCampaignCache.reload_safely()
 
         except (GATEConnectionError,) as e:
             logger.warning("[SyncWorker] pull cycle failed: %s", e)

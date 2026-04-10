@@ -161,6 +161,10 @@ class Application(CurrentStatus, CurrentData, EventHandler, IntegrationMixin):
         self.app.processEvents()
         self.populate_product_data(progress_callback=lambda msg: about.update_message(msg) or self.app.processEvents())
 
+        about.update_message("Loading active campaign cache...")
+        self.app.processEvents()
+        self.refresh_active_campaign_cache()
+
         # Set application icon from settings.toml
         # Icon path is configured in settings.toml under app.icon
         about.update_message("Configuring application UI...")

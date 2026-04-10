@@ -41,7 +41,7 @@ In Markdown under `docs/`, reference them as `../static_files/images/<filename>`
 | 17 | [Customer Management](17-customer-management.md) | Customer List search, ADD new customer, Customer Detail tabbed dialog (info, activity, **point movements** ledger), Walk-in Customer, SALE form CUSTOMER dual button, sale-assignment workflow |
 | 41 | [Loyalty Programs](41-loyalty-programs.md) | Local loyalty: policy / earn-rule / redemption models, `phone_normalized`, enrollment; **`LoyaltyRedemptionService`** + **BONUS**; **`LoyaltyEarnService`** + optional **`earn_eligible_payment_types`**; **`EARNED`** / **`REDEEMED`** + **`TransactionLoyalty`**; customer **Point movements** grid (`CUSTOMER_LOYALTY_POINTS_GRID`), closure **receipt detail** loyalty summary; not yet: void/refund/exchange point clawback automation |
 | 42 | [Customer Segmentation](42-customer-segmentation.md) | `CustomerSegmentService`: auto `CustomerSegmentMember` from `criteria_json`, VIP via `preferences_json`, sync on completed sale and customer save, `marketing_profile` with loyalty tier |
-| 43 | [Campaign & Promotions](43-campaign-promotions.md) | Cart snapshot, **`CampaignService`**, **`CampaignUsageLimits`**, **`CampaignAuditService`**, **`CouponActivationService`**, **`sync_campaign_discounts_on_document`** on SALE, **`CAMPAIGN`** + **`CampaignUsage`** audit, **`apply_campaign`**, reversal hook |
+| 43 | [Campaign & Promotions](43-campaign-promotions.md) | Cart snapshot, **`ActiveCampaignCache`**, **`CampaignService`**, **`CampaignUsageLimits`**, **`CampaignAuditService`**, **`CouponActivationService`**, SALE sync, audit, **`apply_campaign`**, reversal hook |
 
 ---
 
@@ -54,9 +54,9 @@ In Markdown under `docs/`, reference them as `../static_files/images/<filename>`
 | 22 | [Dynamic Forms System](22-dynamic-forms-system.md) | DB-driven UI forms, Panel controls, CheckBox, form transitions, generic save pattern |
 | 23 | [UI Controls Catalog](23-ui-controls.md) | Custom Qt widgets (Button, TextBox, NumPad, SaleList, TabControl, …); **AmountTable** viewport row-height sync |
 | 24 | [Event System](24-event-system.md) | EventHandler, `event_distributor()`, all event categories with handler mapping (incl. **`APPLY_COUPON`** on SALE) |
-| 25 | [Service Layer](25-service-layer.md) | VatService, SaleService, PaymentService (net due, discount copy, campaign audit), LoyaltyEarnService, LoyaltyRedemptionService, LoyaltyService, CustomerSegmentService, **`campaign/`** (evaluate + limits + audit + coupons), REPEAT/DELETE handlers |
+| 25 | [Service Layer](25-service-layer.md) | VatService, SaleService, PaymentService (net due, discount copy, campaign audit), LoyaltyEarnService, LoyaltyRedemptionService, LoyaltyService, CustomerSegmentService, **`campaign/`** (**`ActiveCampaignCache`** + evaluate + limits + audit + coupons), REPEAT/DELETE handlers |
 | 26 | [Document Management](26-document-management.md) | Transaction lifecycle, suspend/resume, line cancellation, payment flow |
-| 27 | [Data Caching](27-data-caching.md) | `pos_data` / `product_data` caches, AutoSave system, closure management |
+| 27 | [Data Caching](27-data-caching.md) | `pos_data` / `product_data` caches, **`ActiveCampaignCache`**, AutoSave system, closure management |
 
 ---
 
@@ -68,7 +68,7 @@ In Markdown under `docs/`, reference them as `../static_files/images/<filename>`
 | 31 | [Central Logging](31-logging.md) | `core/logger.py` configuration, log format, usage patterns |
 | 32 | [Exception Handling](32-exception-handling.md) | `SaleFlexError` hierarchy, usage patterns, design guidelines |
 | 33 | [Database Initialization](33-database-initialization.md) | Seed data functions, initialization order, adding new seed data |
-| 34 | [Startup Entry Point](34-startup-entry-point.md) | Working-directory fix, Python version guard, single-instance lock, post-`init_db` idempotent UI patches (e.g. customer **Point movements** tab, SALE **COUPON** button, demo coupon seed), global exception handler |
+| 34 | [Startup Entry Point](34-startup-entry-point.md) | Working-directory fix, Python version guard, single-instance lock, post-`init_db` idempotent UI patches (e.g. customer **Point movements** tab, SALE **COUPON** button, demo coupon seed), **`refresh_active_campaign_cache()`** after product load, global exception handler |
 | 35 | [Troubleshooting](35-troubleshooting.md) | Common issues, database problems, closure issues, sale issues |
 | 36 | [Support and Resources](36-support.md) | GitHub, issue tracker, donations, license |
 
@@ -95,7 +95,7 @@ In Markdown under `docs/`, reference them as `../static_files/images/<filename>`
 | Customer management / sale assignment | [Customer Management](17-customer-management.md) |
 | Loyalty (earn/redeem, customer point audit, closure receipt summary) | [Loyalty Programs](41-loyalty-programs.md) |
 | Marketing segments (auto rules) | [Customer Segmentation](42-customer-segmentation.md) |
-| Campaigns & coupons (cart snapshot, SALE **`CAMPAIGN`** temp lines, `CampaignService`, `CampaignAuditService`, `CouponActivationService`, `apply_campaign`) | [Campaign & Promotions](43-campaign-promotions.md) |
+| Campaigns & coupons (cart snapshot, **`ActiveCampaignCache`**, SALE **`CAMPAIGN`** temp lines, `CampaignService`, `CampaignAuditService`, `CouponActivationService`, `apply_campaign`) | [Campaign & Promotions](43-campaign-promotions.md) |
 | UI customization | [Dynamic Forms System](22-dynamic-forms-system.md) |
 | Database schema | [Database Models Overview](21-database-models.md) |
 | Event wiring | [Event System](24-event-system.md) |
@@ -105,6 +105,7 @@ In Markdown under `docs/`, reference them as `../static_files/images/<filename>`
 | Startup guards | [Startup Entry Point](34-startup-entry-point.md) |
 | Common errors | [Troubleshooting](35-troubleshooting.md) |
 | GATE & external systems | [Integration Layer](40-integration-layer.md) |
+| Reference & campaign caches (`pos_data`, `product_data`, **`ActiveCampaignCache`**) | [Data Caching](27-data-caching.md) |
 
 ---
 

@@ -2,7 +2,7 @@
 
 This document describes **promotional campaigns** in SaleFlex.PyPOS: database entities, the **initial runtime contract** (cart snapshot + stacking rules), and how it connects to **SaleFlex.GATE** / third-party campaign connectors.
 
-**Current status:** Campaign **models and seed data** exist (`Campaign`, `CampaignType`, `CampaignRule`, `CampaignProduct`, **`Coupon`**, **`CouponUsage`**, **`CampaignUsage`**, … — see [Database Models → Campaign and Promotion](21-database-models.md#campaign-and-promotion-models)). The **`transaction_discount_type`** table includes **`CAMPAIGN`** (new installs and patched DBs on startup). On the **SALE** screen, the local engine **writes** matching discounts to the open document as **`TransactionDiscountTemp`** rows with **`discount_type="CAMPAIGN"`** (see [Sale document sync (local engine)](#sale-document-sync-local-engine) below). **`CampaignService.evaluate_proposals()`** remains the core evaluator (same types as below); it does not persist by itself — **`sync_campaign_discounts_on_document`** applies the result. **[Coupon activation](#coupon-activation-on-sale)** wires **`Coupon`** validation and **`document_data["applied_coupon_ids"]`** into that flow; **`PaymentService.copy_temp_to_permanent`** runs **`CampaignAuditService.record_after_completed_sale`** (**`CampaignUsage`**, **`CouponUsage`**, **`Campaign.total_usage_count`**, **`Coupon.usage_count`**) when the sale completes, copies **`CAMPAIGN`** lines to permanent discounts, and thermal receipts show **`CAMPAIGN (code)`** via **`document_adapter`**. Optional **`active_coupon_codes`** may still be supplied by callers alongside applied coupons.
+**Current status:** Campaign **models and seed data** exist (`Campaign`, `CampaignType`, `CampaignRule`, `CampaignProduct`, **`Coupon`**, **`CouponUsage`**, **`CampaignUsage`**, … — see [Database Models → Campaign and Promotion](21-database-models.md#campaign-and-promotion-models)). The **`transaction_discount_type`** table includes **`CAMPAIGN`** (new installs and patched DBs on startup). **`ActiveCampaignCache`** speeds local evaluation by caching active campaign rows (see [Active campaign cache](#active-campaign-cache)). On the **SALE** screen, the local engine **writes** matching discounts to the open document as **`TransactionDiscountTemp`** rows with **`discount_type="CAMPAIGN"`** (see [Sale document sync (local engine)](#sale-document-sync-local-engine) below). **`CampaignService.evaluate_proposals()`** remains the core evaluator (same types as below); it does not persist by itself — **`sync_campaign_discounts_on_document`** applies the result. **[Coupon activation](#coupon-activation-on-sale)** wires **`Coupon`** validation and **`document_data["applied_coupon_ids"]`** into that flow; **`PaymentService.copy_temp_to_permanent`** runs **`CampaignAuditService.record_after_completed_sale`** (**`CampaignUsage`**, **`CouponUsage`**, **`Campaign.total_usage_count`**, **`Coupon.usage_count`**) when the sale completes, copies **`CAMPAIGN`** lines to permanent discounts, and thermal receipts show **`CAMPAIGN (code)`** via **`document_adapter`**. Optional **`active_coupon_codes`** may still be supplied by callers alongside applied coupons.
 
 ---
 
@@ -19,7 +19,22 @@ Module: `pos/service/campaign/`.
 | `coupon_activation_service.py` | **`CouponActivationService`**: validate **`Coupon`** for the open sale; derive campaign codes for evaluation; **`record_coupon_usages_in_session`** (used by audit service) |
 | `campaign_usage_limits.py` | **`CampaignUsageLimits`**: **`total_usage_limit`** / **`usage_limit_per_customer`** from **`CampaignUsage`** row counts |
 | `campaign_audit_service.py` | **`CampaignAuditService`**: **`CampaignUsage`** + **`Campaign.total_usage_count`** on completed sale; **`revoke_entitlements_for_transaction_head`** for void/refund hooks |
-| `__init__.py` | Re-exports snapshot helpers, sync entry points, **`CampaignService`**, **`CouponActivationService`**, **`CampaignDiscountProposal`**, **`SUPPORTED_TYPE_CODES`** |
+| `active_campaign_cache.py` | **`ActiveCampaignCache`**: in-memory snapshot of active **`Campaign`** / **`CampaignType`** / **`CampaignRule`** / **`CampaignProduct`** for **`CampaignService`** (expunged ORM rows) |
+| `__init__.py` | Re-exports snapshot helpers, sync entry points, **`CampaignService`**, **`ActiveCampaignCache`**, **`CouponActivationService`**, **`CampaignDiscountProposal`**, **`SUPPORTED_TYPE_CODES`** |
+
+### Active campaign cache
+
+**`ActiveCampaignCache`** avoids reloading every campaign-related table on each cart evaluation. **`CampaignService.evaluate_proposals`** uses the snapshot when present; if missing or unloadable, it falls back to a per-session DB read.
+
+**Warm-up:** **`Application`** calls **`refresh_active_campaign_cache()`** ( **`CacheManager`** ) after **`populate_product_data`**.
+
+**Refresh:** **`ActiveCampaignCache.reload()`** (or **`reload_safely()`** when errors must not abort the caller) runs after:
+
+- **`hooks.pull_updates_from_gate`** (after product/campaign/notification pull),
+- **`SyncWorker`** pull cycle (same pattern; aligns with GATE **`campaign_update`** handling once notifications drive cache signals),
+- **`CampaignSerializer.apply_updates`** after local DB writes from GATE payloads.
+
+**Admin / custom tools:** After persisting campaign rows outside these paths, call **`application.refresh_active_campaign_cache()`** so the next evaluation sees new definitions. **`CampaignUsage`** / segment checks still query the database each time.
 
 ### Building from `document_data`
 
@@ -141,9 +156,10 @@ Module: **`pos/service/campaign/coupon_activation_service.py`**. UI: **`user_int
 - [Database Models — Campaign and Promotion](21-database-models.md#campaign-and-promotion-models)
 - [Sale Transactions](10-sale-transactions.md) — loyalty on PAYMENT, **`CAMPAIGN`** / **`CampaignService`** / limits note before Amount Table
 - [Service Layer — Campaign cart snapshot](25-service-layer.md#campaign-cart-snapshot)
-- [Integration Layer](40-integration-layer.md) (GATE campaign pull/calculate, **`IntegrationMixin.apply_campaign`**, **`CampaignAuditService`** on completion / reversal, third-party **`BaseCampaignConnector`**)
+- [Integration Layer](40-integration-layer.md) (GATE campaign pull/calculate, **`ActiveCampaignCache.reload_safely()`** after pulls, **`IntegrationMixin.apply_campaign`**, **`CampaignAuditService`** on completion / reversal, third-party **`BaseCampaignConnector`**)
+- [Data Caching](27-data-caching.md) — **`pos_data`**, **`product_data`**, **`ActiveCampaignCache`**
 - [Customer Segmentation](42-customer-segmentation.md) — `marketing_profile()` for future segment-aware campaigns
 
 ---
 
-**Last updated:** 2026-04-11 (`CampaignUsage` + usage limits, `CampaignAuditService`, reversal API, coupon activation, `apply_campaign`)
+**Last updated:** 2026-04-11 (`ActiveCampaignCache`, `CampaignUsage` + usage limits, `CampaignAuditService`, reversal API, coupon activation, `apply_campaign`)

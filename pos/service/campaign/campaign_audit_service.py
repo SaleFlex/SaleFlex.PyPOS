@@ -21,6 +21,7 @@ from data_layer.model.definition.campaign_usage import CampaignUsage
 from data_layer.model.definition.coupon import Coupon
 from data_layer.model.definition.coupon_usage import CouponUsage
 from data_layer.model.definition.transaction_status import TransactionType
+from pos.service.campaign.active_campaign_cache import ActiveCampaignCache
 from pos.service.campaign.application_policy import CAMPAIGN_DISCOUNT_TYPE_CODE
 from pos.service.campaign.coupon_activation_service import CouponActivationService
 
@@ -39,12 +40,16 @@ def _resolve_campaign_by_discount_code(session: Session, discount_code: Optional
     dc = (discount_code or "").strip().upper()
     if not dc:
         return None
-    campaigns = (
-        session.query(Campaign)
-        .filter(Campaign.is_deleted.is_(False), Campaign.is_active.is_(True))
-        .order_by(Campaign.code)
-        .all()
-    )
+    bundle = ActiveCampaignCache.get()
+    if bundle is not None:
+        campaigns = sorted(bundle.campaigns, key=lambda x: str(x.code or ""))
+    else:
+        campaigns = (
+            session.query(Campaign)
+            .filter(Campaign.is_deleted.is_(False), Campaign.is_active.is_(True))
+            .order_by(Campaign.code)
+            .all()
+        )
     for c in campaigns:
         cc = (c.code or "").strip().upper()
         if not cc:

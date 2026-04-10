@@ -20,6 +20,7 @@ from data_layer.model.definition.campaign_product import CampaignProduct
 from data_layer.model.definition.campaign_rule import CampaignRule
 from data_layer.model.definition.campaign_type import CampaignType
 from data_layer.model.definition.customer_segment_member import CustomerSegmentMember
+from pos.service.campaign.active_campaign_cache import ActiveCampaignCache
 from pos.service.campaign.application_policy import CAMPAIGN_DISCOUNT_TYPE_CODE
 from pos.service.campaign.campaign_usage_limits import CampaignUsageLimits
 
@@ -176,34 +177,51 @@ class CampaignService:
         fk_store = getattr(head, "fk_store_id", None)
         fk_customer = getattr(head, "fk_customer_id", None)
 
-        types = {
-            row.id: row
-            for row in session.query(CampaignType)
-            .filter(CampaignType.is_deleted.is_(False), CampaignType.is_active.is_(True))
-            .all()
-        }
+        bundle = ActiveCampaignCache.get()
+        if bundle is None:
+            try:
+                ActiveCampaignCache.reload()
+                bundle = ActiveCampaignCache.get()
+            except Exception as exc:
+                logger.warning(
+                    "[CampaignService] active campaign cache unavailable, loading from DB: %s", exc
+                )
+                bundle = None
 
-        campaigns = (
-            session.query(Campaign)
-            .filter(Campaign.is_deleted.is_(False), Campaign.is_active.is_(True))
-            .all()
-        )
+        if bundle is not None:
+            types = bundle.types
+            campaigns = bundle.campaigns
+            rules_by = bundle.rules_by
+            cp_by = bundle.cp_by
+        else:
+            types = {
+                row.id: row
+                for row in session.query(CampaignType)
+                .filter(CampaignType.is_deleted.is_(False), CampaignType.is_active.is_(True))
+                .all()
+            }
 
-        rules_by: Dict[Any, List[CampaignRule]] = {}
-        for r in (
-            session.query(CampaignRule)
-            .filter(CampaignRule.is_deleted.is_(False))
-            .all()
-        ):
-            rules_by.setdefault(r.fk_campaign_id, []).append(r)
+            campaigns = (
+                session.query(Campaign)
+                .filter(Campaign.is_deleted.is_(False), Campaign.is_active.is_(True))
+                .all()
+            )
 
-        cp_by: Dict[Any, List[CampaignProduct]] = {}
-        for cp in (
-            session.query(CampaignProduct)
-            .filter(CampaignProduct.is_deleted.is_(False), CampaignProduct.is_active.is_(True))
-            .all()
-        ):
-            cp_by.setdefault(cp.fk_campaign_id, []).append(cp)
+            rules_by = {}
+            for r in (
+                session.query(CampaignRule)
+                .filter(CampaignRule.is_deleted.is_(False))
+                .all()
+            ):
+                rules_by.setdefault(r.fk_campaign_id, []).append(r)
+
+            cp_by = {}
+            for cp in (
+                session.query(CampaignProduct)
+                .filter(CampaignProduct.is_deleted.is_(False), CampaignProduct.is_active.is_(True))
+                .all()
+            ):
+                cp_by.setdefault(cp.fk_campaign_id, []).append(cp)
 
         candidates: List[Tuple[Campaign, str]] = []
         for c in campaigns:

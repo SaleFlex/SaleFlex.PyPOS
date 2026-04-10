@@ -103,6 +103,7 @@ class CurrentData(DocumentManager, CacheManager, ClosureManager):
         refresh_pos_data_model: Reload a specific model's data from database
         update_product_data_cache: Update product_data cache when a model instance is modified
         refresh_product_data_model: Reload a specific product model's data from database
+        refresh_active_campaign_cache: Reload ActiveCampaignCache (campaign definitions for local evaluation)
         
         (Inherited from ClosureManager)
         load_open_closure: Load the last open closure from database or create empty one

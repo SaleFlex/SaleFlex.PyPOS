@@ -178,9 +178,11 @@ GatePullService.pull_campaign_updates()   → CampaignSerializer.apply_updates()
 GatePullService.pull_notifications()      → NotificationSerializer.save_and_dispatch()
        ↓
 SyncWorker emits signals:
-  cache_refresh_needed("product")  → application rebuilds product_data cache
+  cache_refresh_needed("product" | "campaign" | "price")  → UI may rebuild caches (wire in Application)
   message_received(title, body)    → UI shows notification dialog
 ```
+
+`hooks.pull_updates_from_gate` and `SyncWorker` call **`ActiveCampaignCache.reload_safely()`** after a successful pull so local **`CampaignService`** sees updated definitions. **`campaign_update`** notifications still emit **`cache_refresh_needed("campaign")`** for optional UI wiring; the in-memory campaign snapshot reloads in the worker during the same cycle.
 
 ### Authentication
 

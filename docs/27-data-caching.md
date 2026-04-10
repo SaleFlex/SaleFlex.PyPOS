@@ -8,6 +8,8 @@ The caching system is divided into two main categories:
 1. **POS Reference Data** (`pos_data`): System configuration and reference data
 2. **Product Data** (`product_data`): Product-related models used in sales operations
 
+**Active campaign evaluation cache** (separate from `pos_data`): **`ActiveCampaignCache`** in `pos/service/campaign/active_campaign_cache.py` holds expunged **`Campaign`**, **`CampaignType`**, **`CampaignRule`**, and **`CampaignProduct`** rows for **`CampaignService.evaluate_proposals`**. It is warmed at startup via **`CacheManager.refresh_active_campaign_cache()`** and refreshed after GATE pulls, **`campaign_update`**-style notification handling in **`SyncWorker`**, and **`CampaignSerializer.apply_updates`**. Call **`refresh_active_campaign_cache()`** from admin flows after mutating campaign tables. See [Campaign & Promotions — Active campaign cache](43-campaign-promotions.md#active-campaign-cache).
+
 **Note**: In addition to caching, SaleFlex.PyPOS implements an **auto-save system** using descriptor pattern and wrapper classes (AutoSaveModel, AutoSaveDict, AutoSaveDescriptor) located in `data_layer/auto_save/`. This system automatically persists model changes to the database when attributes are modified, ensuring data integrity without manual save operations.
 
 ## POS Reference Data Cache (`pos_data`)
