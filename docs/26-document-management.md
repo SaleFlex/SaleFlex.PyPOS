@@ -608,7 +608,7 @@ if change_amount > 0:
 if PaymentService.is_document_complete(document_data):
     PaymentService.mark_document_complete(document_data)
     PaymentService.update_closure_for_completion(closure, document_data)
-    # copy_temp_to_permanent: LoyaltyEarnService + discounts + LoyaltyService + CustomerSegmentService
+    # copy_temp_to_permanent: LoyaltyEarnService + discounts + CampaignAuditService + LoyaltyService + CustomerSegmentService
     PaymentService.copy_temp_to_permanent(document_data)
 ```
 

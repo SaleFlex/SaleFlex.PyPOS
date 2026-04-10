@@ -124,7 +124,7 @@ Creates all 20 application forms. Form definitions are organised into topic-base
 | `forms/main_menu.py` | #2 MAIN_MENU |
 | `forms/management.py` | Form rows #3 SETTING, #4 CASHIER |
 | `forms/setting_form.py` | #3 SETTING controls: `SETTING_TAB_CONTROL`, tabs + panels (POS + loyalty); `insert_setting_form_controls`; startup patch `ensure_setting_form_tabs` |
-| `forms/sale.py` | #5 SALE, #7 SUSPENDED_SALES_MARKET |
+| `forms/sale.py` | #5 SALE (incl. **COUPON** / `APPLY_COUPON`; older DBs patched via **`ensure_sale_form_coupon_button`**), #7 SUSPENDED_SALES_MARKET |
 | `forms/closure.py` | #6 CLOSURE, #10 CLOSURE_DETAIL, #11 CLOSURE_RECEIPTS, #12 CLOSURE_RECEIPT_DETAIL |
 | `forms/product.py` | #8 PRODUCT_LIST, #9 PRODUCT_DETAIL |
 | `forms/stock.py` | #13 STOCK_INQUIRY, #14 STOCK_IN, #15 STOCK_ADJUSTMENT, #16 STOCK_MOVEMENT |
@@ -136,13 +136,13 @@ Each form row includes layout dimensions (1024×768), colors, display mode (`MAI
 ### `_insert_form_controls(session, cashier_id)`
 Populates all 20 forms with their controls (buttons, textboxes, labels, comboboxes, panels, tab controls, data grids, etc.). Control definitions live in the same topic-based sub-modules as the form definitions.
 
-**Insertion is performed in three phases:**
+**Insertion runs in three ordered steps:**
 
-**Phase 1 — Bulk insert:** All simple controls (no inter-control UUID dependencies) are collected from the sub-modules and added to the session together. **SETTING (#3) is excluded** from this list; its controls are inserted in Phase 2 (see below).
+**Step 1 — Bulk insert:** All simple controls (no inter-control UUID dependencies) are collected from the sub-modules and added to the session together. **SETTING (#3) is excluded** from this list; its controls are inserted in step 2 (see below).
 
-**Phase 2 — Flush, panel wiring, SETTING:** After the first `flush()`, `update_cashier_panel_parents()` wires CASHIER panel children. **`setting_form.insert_setting_form_controls()`** then builds the tabbed SETTING form (`SETTING_TAB_CONTROL` + `FormControlTab` + panels).
+**Step 2 — Flush, panel wiring, SETTING:** After the first `flush()`, `update_cashier_panel_parents()` wires CASHIER panel children. **`setting_form.insert_setting_form_controls()`** then builds the tabbed SETTING form (`SETTING_TAB_CONTROL` + `FormControlTab` + panels).
 
-**Phase 3 — Tab-based and inventory forms:** Forms with `TABCONTROL` hierarchies (`PRODUCT_DETAIL`, `CUSTOMER_DETAIL`) and inventory forms issue their own internal `session.flush()` calls to obtain UUIDs before creating child controls where needed. (**SETTING** uses `TABCONTROL` too, but its tree is built entirely in Phase 2 via `insert_setting_form_controls`.)
+**Step 3 — Tab-based and inventory forms:** Forms with `TABCONTROL` hierarchies (`PRODUCT_DETAIL`, `CUSTOMER_DETAIL`) and inventory forms issue their own internal `session.flush()` calls to obtain UUIDs before creating child controls where needed. (**SETTING** uses `TABCONTROL` too, but its tree is built entirely in step 2 via `insert_setting_form_controls`.)
 
 **SALE form:** `SALESLIST`, `NUMPAD`, `PAYMENTLIST`, department buttons, PLU buttons, product barcode shortcut buttons, cash payment denomination buttons, and dual-function buttons (`PAYMENT_SUSPEND`, `SUB TOTAL`/`CUSTOMER`, `CREDIT CARD`/`PAYMENT`, `DISC %`/`MARK %`, `DISC AMT`/`MARK AMT`). **FUNC** only swaps their captions between primary and alternate; a dual-button tap runs the visible event and resets **all** dual buttons on the form to primary captions.
 

@@ -2,7 +2,7 @@
 
 This document describes **promotional campaigns** in SaleFlex.PyPOS: database entities, the **initial runtime contract** (cart snapshot + stacking rules), and how it connects to **SaleFlex.GATE** / third-party campaign connectors.
 
-**Current status:** Campaign **models and seed data** exist (`Campaign`, `CampaignType`, `CampaignRule`, `CampaignProduct`, **`Coupon`**, **`CouponUsage`**, … — see [Database Models → Campaign and Promotion](21-database-models.md#campaign-and-promotion-models)). The **`transaction_discount_type`** table includes **`CAMPAIGN`** (new installs and patched DBs on startup). On the **SALE** screen, the local engine **writes** matching discounts to the open document as **`TransactionDiscountTemp`** rows with **`discount_type="CAMPAIGN"`** (see [Sale document sync (local engine)](#sale-document-sync-local-engine) below). **`CampaignService.evaluate_proposals()`** remains the core evaluator (same types as below); it does not persist by itself — **`sync_campaign_discounts_on_document`** applies the result. **[Coupon activation](#coupon-activation-on-sale)** wires **`Coupon`** validation and **`document_data["applied_coupon_ids"]`** into that flow; **`PaymentService.copy_temp_to_permanent`** records **`CouponUsage`** and usage counters when the sale completes, copies **`CAMPAIGN`** lines to permanent discounts, and thermal receipts show **`CAMPAIGN (code)`** via **`document_adapter`**. Optional **`active_coupon_codes`** may still be supplied by callers alongside applied coupons.
+**Current status:** Campaign **models and seed data** exist (`Campaign`, `CampaignType`, `CampaignRule`, `CampaignProduct`, **`Coupon`**, **`CouponUsage`**, **`CampaignUsage`**, … — see [Database Models → Campaign and Promotion](21-database-models.md#campaign-and-promotion-models)). The **`transaction_discount_type`** table includes **`CAMPAIGN`** (new installs and patched DBs on startup). On the **SALE** screen, the local engine **writes** matching discounts to the open document as **`TransactionDiscountTemp`** rows with **`discount_type="CAMPAIGN"`** (see [Sale document sync (local engine)](#sale-document-sync-local-engine) below). **`CampaignService.evaluate_proposals()`** remains the core evaluator (same types as below); it does not persist by itself — **`sync_campaign_discounts_on_document`** applies the result. **[Coupon activation](#coupon-activation-on-sale)** wires **`Coupon`** validation and **`document_data["applied_coupon_ids"]`** into that flow; **`PaymentService.copy_temp_to_permanent`** runs **`CampaignAuditService.record_after_completed_sale`** (**`CampaignUsage`**, **`CouponUsage`**, **`Campaign.total_usage_count`**, **`Coupon.usage_count`**) when the sale completes, copies **`CAMPAIGN`** lines to permanent discounts, and thermal receipts show **`CAMPAIGN (code)`** via **`document_adapter`**. Optional **`active_coupon_codes`** may still be supplied by callers alongside applied coupons.
 
 ---
 
@@ -16,7 +16,9 @@ Module: `pos/service/campaign/`.
 | `cart_snapshot.py` | `CartSnapshot`, `CartLineSnapshot`, `CartTotalsSnapshot`; `build_cart_snapshot_from_document_data()`; `cart_snapshot_to_dict()`; `normalize_cart_data_for_campaign_request()` |
 | `campaign_service.py` | **`CampaignService.evaluate_proposals(document_data, …)`** → **`CampaignDiscountProposal`** list; **`campaign_discount_proposal_to_dict()`** for integration payloads |
 | `campaign_document_sync.py` | **`sync_campaign_discounts_on_document`**, **`recompute_head_total_discount_amount`**, **`gate_manages_campaign()`** — applies proposals to **`document_data`** (see below) |
-| `coupon_activation_service.py` | **`CouponActivationService`**: validate **`Coupon`** for the open sale; derive campaign codes for evaluation; **`record_usages_after_completed_sale`** after permanent discounts exist |
+| `coupon_activation_service.py` | **`CouponActivationService`**: validate **`Coupon`** for the open sale; derive campaign codes for evaluation; **`record_coupon_usages_in_session`** (used by audit service) |
+| `campaign_usage_limits.py` | **`CampaignUsageLimits`**: **`total_usage_limit`** / **`usage_limit_per_customer`** from **`CampaignUsage`** row counts |
+| `campaign_audit_service.py` | **`CampaignAuditService`**: **`CampaignUsage`** + **`Campaign.total_usage_count`** on completed sale; **`revoke_entitlements_for_transaction_head`** for void/refund hooks |
 | `__init__.py` | Re-exports snapshot helpers, sync entry points, **`CampaignService`**, **`CouponActivationService`**, **`CampaignDiscountProposal`**, **`SUPPORTED_TYPE_CODES`** |
 
 ### Building from `document_data`
@@ -84,7 +86,7 @@ Module: **`pos/service/campaign/campaign_document_sync.py`**.
 
 **Not evaluated yet:** **`BUY_X_GET_Y`**, **`PAYMENT_DISCOUNT`**, **`WELCOME_BONUS`**, and rule types beyond **`PRODUCT`** / **`DEPARTMENT`**.
 
-**Filters on every campaign:** **`Campaign` / `CampaignType` active, not soft-deleted**; date range uses **calendar-day** inclusion on **`start_date` / `end_date`** (naive vs aware normalized for comparison); **`fk_store_id`** null = all stores; **`fk_customer_segment_id`** requires an active **`CustomerSegmentMember`** row for the document customer (campaigns with a segment skip walk-in–only flows without a customer id).
+**Filters on every campaign:** **`Campaign` / `CampaignType` active, not soft-deleted**; date range uses **calendar-day** inclusion on **`start_date` / `end_date`** (naive vs aware normalized for comparison); **`fk_store_id`** null = all stores; **`fk_customer_segment_id`** requires an active **`CustomerSegmentMember`** row for the document customer (campaigns with a segment skip walk-in–only flows without a customer id). **`total_usage_limit`** (global cap) and **`usage_limit_per_customer`** are enforced via non-deleted **`CampaignUsage`** rows: **`CampaignUsageLimits.allows_new_application`** in **`CampaignService`** (auto-apply and coupon-backed paths) and **`CouponActivationService.validate_for_open_sale`**. Walk-in sales (**`fk_customer_id`** null) do not consume the per-customer quota (limit applies only when a customer is on the document).
 
 **Stacking:** candidates sorted by **`priority` descending**; proposals emitted in that order; after a campaign with **`is_combinable=False`** produces at least one proposal, evaluation stops (see **`application_policy.py`**).
 
@@ -120,20 +122,28 @@ Module: **`pos/service/campaign/coupon_activation_service.py`**. UI: **`user_int
 
 **Validation (`CouponActivationService.validate_for_open_sale`):** Resolves **`Coupon`** by **`code`** or **`barcode`** (case-insensitive where applicable). Checks campaign and coupon active flags, date range, store scope, customer segment (when the campaign targets a segment), **`requires_coupon`**, **`PERSONAL`** (coupon must belong to the document customer), **`SINGLE_USE`** / existing **`CouponUsage`**, and **`usage_limit`** vs **`Coupon.usage_count`**. On success, the coupon id is appended to **`applied_coupon_ids`** (no duplicate ids); **`refresh_campaign_discounts_after_cart_change`** runs so **`sync_campaign_discounts_on_document`** re-evaluates with the merged code list.
 
-**Completion:** After **`PaymentService.copy_temp_to_permanent`** creates the permanent head and **`TransactionDiscount`** rows, **`CouponActivationService.record_usages_after_completed_sale`** inserts **`CouponUsage`** rows and increments **`Coupon.usage_count`** and **`Campaign.total_usage_count`** for coupons whose campaign produced a **CAMPAIGN** discount on that receipt (matched by **`discount_code`** / campaign code within the 15-character limit).
+**Completion:** After **`PaymentService.copy_temp_to_permanent`** creates the permanent head and **`TransactionDiscount`** rows, **`CampaignAuditService.record_after_completed_sale`** (single DB transaction) writes one **`CampaignUsage`** row per distinct campaign present on non-cancelled **CAMPAIGN** discount lines (amount = sum of those lines; **`coupon_code`** filled when an applied coupon maps to that campaign), increments **`Campaign.total_usage_count`** once per campaign on that receipt, then inserts **`CouponUsage`** rows and increments **`Coupon.usage_count`** for applied coupons whose campaign produced a **CAMPAIGN** discount (same **`discount_code`** / 15-character match as before).
 
 **Demo data:** Sample coupon **`WELCOME10-DEMO`** and linked campaign product seed support trying **`requires_coupon`** product discounts on a dev database — **`ensure_sample_coupon_welcome_demo`**, **`ensure_welcome10_demo_campaign_product`** run from **`Application`** startup alongside the SALE form patch.
+
+---
+
+## Usage audit and reversal (void / refund)
+
+**Audit trail:** **`CampaignUsage`** stores **`fk_transaction_head_id`**, **`fk_customer_id`**, **`discount_amount`**, optional **`coupon_code`**, and store/cashier FKs for reporting.
+
+**Reversal:** **`CampaignAuditService.revoke_entitlements_for_transaction_head(fk_transaction_head_id, reason=…)`** soft-deletes matching **`CampaignUsage`** and **`CouponUsage`** rows and decreases **`Campaign.total_usage_count`** / **`Coupon.usage_count`** accordingly. Call this from a void-or-refund flow when policy requires campaign benefit to be rolled back (for example after a completed sale is reversed in the back office). The standard **CANCEL** path on an unpaid open sale does not create usage rows, so nothing to revoke there.
 
 ---
 
 ## Related documentation
 
 - [Database Models — Campaign and Promotion](21-database-models.md#campaign-and-promotion-models)
-- [Sale Transactions](10-sale-transactions.md) — loyalty on PAYMENT, **`CAMPAIGN`** / **`CampaignService`** note before Amount Table
+- [Sale Transactions](10-sale-transactions.md) — loyalty on PAYMENT, **`CAMPAIGN`** / **`CampaignService`** / limits note before Amount Table
 - [Service Layer — Campaign cart snapshot](25-service-layer.md#campaign-cart-snapshot)
-- [Integration Layer](40-integration-layer.md) (GATE campaign pull/calculate, **`IntegrationMixin.apply_campaign`**, third-party **`BaseCampaignConnector`**)
+- [Integration Layer](40-integration-layer.md) (GATE campaign pull/calculate, **`IntegrationMixin.apply_campaign`**, **`CampaignAuditService`** on completion / reversal, third-party **`BaseCampaignConnector`**)
 - [Customer Segmentation](42-customer-segmentation.md) — `marketing_profile()` for future segment-aware campaigns
 
 ---
 
-**Last updated:** 2026-04-11 (SALE document sync, coupon activation + `CouponUsage` on completion, `apply_campaign`, `Application` + `IntegrationMixin`)
+**Last updated:** 2026-04-11 (`CampaignUsage` + usage limits, `CampaignAuditService`, reversal API, coupon activation, `apply_campaign`)

@@ -21,6 +21,7 @@ from data_layer.model.definition.campaign_rule import CampaignRule
 from data_layer.model.definition.campaign_type import CampaignType
 from data_layer.model.definition.customer_segment_member import CustomerSegmentMember
 from pos.service.campaign.application_policy import CAMPAIGN_DISCOUNT_TYPE_CODE
+from pos.service.campaign.campaign_usage_limits import CampaignUsageLimits
 
 logger = get_logger(__name__)
 
@@ -223,6 +224,8 @@ class CampaignService:
             if fk_customer and not CampaignService._segment_ok(session, c, fk_customer):
                 continue
             if not fk_customer and c.fk_customer_segment_id is not None:
+                continue
+            if not CampaignUsageLimits.allows_new_application(session, c, fk_customer):
                 continue
             candidates.append((c, ct.code))
 

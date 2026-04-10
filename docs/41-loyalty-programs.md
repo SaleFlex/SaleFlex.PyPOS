@@ -78,7 +78,7 @@ Walk-in, missing customer, missing membership, or inactive program → **`loyalt
 
 **Tier percentage discount** on product lines remains separate (not applied automatically at sale time).
 
-## Reporting and audit (Phase 6)
+## Reporting and audit
 
 - **Customer Detail → Point movements** (`CUSTOMER_LOYALTY_POINTS_GRID`): read-only list of **`LoyaltyPointTransaction`** for the customer (cashier-facing audit). Seeded on new installs; existing DBs get the tab via **`ensure_customer_loyalty_points_grid`** on startup (`pos/manager/application.py`).
 - **Closure → Receipt detail** (`CLOSURE_RECEIPT_DETAIL_GRID`): header includes **Loyalty — points earned** and **Loyalty — points redeemed** from **`TransactionHead`**.

@@ -103,7 +103,7 @@ SaleFlex.PyPOS uses a comprehensive database schema with 100+ models organized i
 - **Coupon**: Coupon/voucher definitions with barcode/QR code support
 - **CouponUsage**: Coupon redemption tracking
 
-Runtime design for GATE/local engines (cart snapshot `schema_version` 1.0, stacking rules), **`CampaignService.evaluate_proposals`** (read-only basket/time/product evaluation against these tables), and the **`CAMPAIGN`** **`transaction_discount_type`** row (seed + startup patch **`ensure_transaction_discount_type_campaign`**) are documented in [Campaign & Promotions](43-campaign-promotions.md). Writing evaluated discounts onto the open SALE document (`TransactionDiscountTemp`) is not implemented yet.
+Runtime design for GATE/local engines (cart snapshot `schema_version` 1.0, stacking rules), **`CampaignService.evaluate_proposals`** (read-only evaluation), **`CampaignUsageLimits`** ( **`total_usage_limit`** / **`usage_limit_per_customer`** from **`CampaignUsage`** ), **`sync_campaign_discounts_on_document`** (writes **`TransactionDiscountTemp`** with **`discount_type="CAMPAIGN"`** on the open SALE), **`CouponActivationService`** / **`applied_coupon_ids`**, and post-completion **`CampaignAuditService.record_after_completed_sale`** (**`CampaignUsage`**, **`CouponUsage`**, counters) are documented in [Campaign & Promotions](43-campaign-promotions.md). The **`CAMPAIGN`** **`transaction_discount_type`** row is seeded on new DBs and patched via **`ensure_transaction_discount_type_campaign`** on startup.
 
 ## Loyalty Program Models
 

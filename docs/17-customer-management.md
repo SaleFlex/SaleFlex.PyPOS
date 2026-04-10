@@ -333,7 +333,7 @@ SALE
 
 - [Dynamic Forms System](22-dynamic-forms-system.md) — how DB-driven forms and panels work
 - [Database Models Overview](21-database-models.md) — Customer, CustomerLoyalty, CustomerSegment models
-- [Loyalty Programs](41-loyalty-programs.md) — policy tables, `LoyaltyService`, enrollment, redemption, **Phase 6** point audit on customer detail and closure receipt summary
+- [Loyalty Programs](41-loyalty-programs.md) — policy tables, `LoyaltyService`, enrollment, redemption, point audit on Customer Detail and closure receipt summary
 - [Customer Segmentation](42-customer-segmentation.md) — `CustomerSegmentService`, `criteria_json`, `marketing_profile`
 - [Event System](24-event-system.md) — CustomerEvent handler class
 - [Database Initialization](33-database-initialization.md) — `_insert_customers()` seed function

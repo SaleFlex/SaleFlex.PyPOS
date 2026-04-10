@@ -24,7 +24,9 @@ pos/service/
     ├── cart_snapshot.py         # schema_version 1.0, build from document_data
     ├── campaign_service.py      # CampaignService.evaluate_proposals; proposal dict for integrations
     ├── campaign_document_sync.py # sync_campaign_discounts_on_document; head.total_discount_amount
-    ├── coupon_activation_service.py # CouponActivationService; CouponUsage on completed sale
+    ├── coupon_activation_service.py # CouponActivationService; coupon rows in-session for audit
+    ├── campaign_usage_limits.py     # CampaignUsageLimits (total / per-customer caps)
+    ├── campaign_audit_service.py    # CampaignAuditService: CampaignUsage + reversal hook
     └── __init__.py
 ```
 
@@ -49,9 +51,9 @@ See [Campaign & Promotions](43-campaign-promotions.md) for field lists, stacking
 - **`sync_campaign_discounts_on_document`** (`campaign_document_sync.py`) — applies proposals to **`document_data`** as described in [Campaign & Promotions — Sale document sync](43-campaign-promotions.md#sale-document-sync-local-engine). Merges **`active_coupon_codes`** with **`CouponActivationService.evaluation_campaign_codes(document_data)`** before calling **`CampaignService.evaluate_proposals`**.
 - **`SaleService.refresh_campaign_discounts_after_cart_change`** — runs the sync, then **`update_sale_screen_controls`** when a **window** is passed (sale list + amount table).
 
-### Coupon activation
+### Coupon activation and campaign audit
 
-**`CouponActivationService`** validates **`Coupon`** / **`Campaign`** rules for the open sale, maintains **`document_data["applied_coupon_ids"]`**, and after **`PaymentService.copy_temp_to_permanent`** records **`CouponUsage`** and increments usage counters when **CAMPAIGN** discounts on the receipt match applied coupons. SALE UI: **COUPON** / **`APPLY_COUPON`**. Details: [Campaign & Promotions — Coupon activation on SALE](43-campaign-promotions.md#coupon-activation-on-sale).
+**`CouponActivationService`** validates **`Coupon`** / **`Campaign`** rules for the open sale (including **`CampaignUsageLimits`**), maintains **`document_data["applied_coupon_ids"]`**, and participates in **`CampaignAuditService.record_after_completed_sale`** ( **`CouponUsage`** + **`CampaignUsage`**, counters). SALE UI: **COUPON** / **`APPLY_COUPON`**. **`CampaignAuditService.revoke_entitlements_for_transaction_head`** supports void/refund rollback when wired. Details: [Campaign & Promotions](43-campaign-promotions.md).
 
 ## Available Services
 
@@ -307,7 +309,7 @@ if is_complete:
 - **`is_document_complete(document_data)`**: Check if document is fully paid against **net** due (gross `total_amount` minus `total_discount_amount`, versus payments minus change)
 - **`mark_document_complete(document_data)`**: Mark document as complete by updating transaction status
 - **`update_closure_for_completion(closure, document_data)`**: Update closure with transaction totals
-- **`copy_temp_to_permanent(document_data)`**: Runs **`LoyaltyEarnService.stage_document_earn`** (temp head + loyalty snapshot), copies head, **discounts** (including **`LOYALTY`**), payments, changes, and **`TransactionLoyalty`** rows to permanent tables, then **`LoyaltyService.on_sale_transaction_completed(..., permanent_head_id=...)`** and **`CustomerSegmentService.on_sale_transaction_completed`** for completed **sale** transactions (spend counters, **REDEEMED** / **EARNED** ledger, tier, then segment memberships)
+- **`copy_temp_to_permanent(document_data)`**: Runs **`LoyaltyEarnService.stage_document_earn`** (temp head + loyalty snapshot), copies head, **discounts** (including **`LOYALTY`** and **`CAMPAIGN`**), payments, changes, and **`TransactionLoyalty`** rows to permanent tables, then **`CampaignAuditService.record_after_completed_sale`** (**`CampaignUsage`**, **`CouponUsage`**, counters), then **`LoyaltyService.on_sale_transaction_completed(..., permanent_head_id=...)`** and **`CustomerSegmentService.on_sale_transaction_completed`** for completed **sale** transactions (spend counters, **REDEEMED** / **EARNED** ledger, tier, then segment memberships)
 - **`_safe_decimal(value)`**: Safely convert value to Decimal (handles None, string, int, float, Decimal)
 
 ### LoyaltyService

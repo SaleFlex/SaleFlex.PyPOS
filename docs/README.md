@@ -31,7 +31,7 @@ In Markdown under `docs/`, reference them as `../static_files/images/<filename>`
 
 | # | Document | Summary |
 |---|----------|---------|
-| 10 | [Sale Transactions](10-sale-transactions.md) | NumPad modes, adding products, **COUPON** / applied coupon ids, local **`CAMPAIGN`** temp discounts when the cart changes (see doc 43), payments, **BONUS** loyalty redemption on PAYMENT (points → `LOYALTY` discount), Item Actions (REPEAT / DELETE); PAYMENT form **AMOUNTSTABLE** row-height layout |
+| 10 | [Sale Transactions](10-sale-transactions.md) | NumPad modes, adding products, **COUPON** / applied coupon ids, **`CampaignUsageLimits`**, local **`CAMPAIGN`** temp discounts when the cart changes (doc 43), **`CampaignAuditService`** on payment completion, **BONUS** loyalty redemption on PAYMENT (points → `LOYALTY` discount), Item Actions (REPEAT / DELETE); PAYMENT form **AMOUNTSTABLE** row-height layout |
 | 11 | [Suspend and Resume Sales](11-suspend-resume.md) | SUSPEND button, parked carts, market mode, Suspended Sales list |
 | 12 | [Cancellations](12-cancellations.md) | Line cancellation (DELETE), full document cancellation (CANCEL) |
 | 13 | [End-of-Day Closure](13-end-of-day-closure.md) | Authorization, aggregation flow, sequence management |
@@ -41,7 +41,7 @@ In Markdown under `docs/`, reference them as `../static_files/images/<filename>`
 | 17 | [Customer Management](17-customer-management.md) | Customer List search, ADD new customer, Customer Detail tabbed dialog (info, activity, **point movements** ledger), Walk-in Customer, SALE form CUSTOMER dual button, sale-assignment workflow |
 | 41 | [Loyalty Programs](41-loyalty-programs.md) | Local loyalty: policy / earn-rule / redemption models, `phone_normalized`, enrollment; **`LoyaltyRedemptionService`** + **BONUS**; **`LoyaltyEarnService`** + optional **`earn_eligible_payment_types`**; **`EARNED`** / **`REDEEMED`** + **`TransactionLoyalty`**; customer **Point movements** grid (`CUSTOMER_LOYALTY_POINTS_GRID`), closure **receipt detail** loyalty summary; not yet: void/refund/exchange point clawback automation |
 | 42 | [Customer Segmentation](42-customer-segmentation.md) | `CustomerSegmentService`: auto `CustomerSegmentMember` from `criteria_json`, VIP via `preferences_json`, sync on completed sale and customer save, `marketing_profile` with loyalty tier |
-| 43 | [Campaign & Promotions](43-campaign-promotions.md) | Cart snapshot, **`CampaignService`**, **`CouponActivationService`**, **`sync_campaign_discounts_on_document`** on SALE, **`CAMPAIGN`** discount type + patch, **`apply_campaign`** local **`campaign_proposals`**, **`CouponUsage`** on completed sale |
+| 43 | [Campaign & Promotions](43-campaign-promotions.md) | Cart snapshot, **`CampaignService`**, **`CampaignUsageLimits`**, **`CampaignAuditService`**, **`CouponActivationService`**, **`sync_campaign_discounts_on_document`** on SALE, **`CAMPAIGN`** + **`CampaignUsage`** audit, **`apply_campaign`**, reversal hook |
 
 ---
 
@@ -54,7 +54,7 @@ In Markdown under `docs/`, reference them as `../static_files/images/<filename>`
 | 22 | [Dynamic Forms System](22-dynamic-forms-system.md) | DB-driven UI forms, Panel controls, CheckBox, form transitions, generic save pattern |
 | 23 | [UI Controls Catalog](23-ui-controls.md) | Custom Qt widgets (Button, TextBox, NumPad, SaleList, TabControl, …); **AmountTable** viewport row-height sync |
 | 24 | [Event System](24-event-system.md) | EventHandler, `event_distributor()`, all event categories with handler mapping (incl. **`APPLY_COUPON`** on SALE) |
-| 25 | [Service Layer](25-service-layer.md) | VatService, SaleService, PaymentService (net due, discount copy, coupon usage), LoyaltyEarnService, LoyaltyRedemptionService, LoyaltyService, CustomerSegmentService, **`campaign/`** (evaluate + document sync + coupons), REPEAT/DELETE handlers |
+| 25 | [Service Layer](25-service-layer.md) | VatService, SaleService, PaymentService (net due, discount copy, campaign audit), LoyaltyEarnService, LoyaltyRedemptionService, LoyaltyService, CustomerSegmentService, **`campaign/`** (evaluate + limits + audit + coupons), REPEAT/DELETE handlers |
 | 26 | [Document Management](26-document-management.md) | Transaction lifecycle, suspend/resume, line cancellation, payment flow |
 | 27 | [Data Caching](27-data-caching.md) | `pos_data` / `product_data` caches, AutoSave system, closure management |
 
@@ -95,7 +95,7 @@ In Markdown under `docs/`, reference them as `../static_files/images/<filename>`
 | Customer management / sale assignment | [Customer Management](17-customer-management.md) |
 | Loyalty (earn/redeem, customer point audit, closure receipt summary) | [Loyalty Programs](41-loyalty-programs.md) |
 | Marketing segments (auto rules) | [Customer Segmentation](42-customer-segmentation.md) |
-| Campaigns & coupons (cart snapshot, SALE **`CAMPAIGN`** temp lines, `CampaignService`, `CouponActivationService`, `apply_campaign`) | [Campaign & Promotions](43-campaign-promotions.md) |
+| Campaigns & coupons (cart snapshot, SALE **`CAMPAIGN`** temp lines, `CampaignService`, `CampaignAuditService`, `CouponActivationService`, `apply_campaign`) | [Campaign & Promotions](43-campaign-promotions.md) |
 | UI customization | [Dynamic Forms System](22-dynamic-forms-system.md) |
 | Database schema | [Database Models Overview](21-database-models.md) |
 | Event wiring | [Event System](24-event-system.md) |

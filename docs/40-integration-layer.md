@@ -228,6 +228,8 @@ The same pattern applies to payment gateways (`base_payment_gateway.py`,
 
 **SALE screen totals:** Automatic **`CAMPAIGN`** lines on the open document are driven by **`sync_campaign_discounts_on_document`** in **`pos/service/campaign/campaign_document_sync.py`**, not by **`apply_campaign`**. See [Campaign & Promotions — Sale document sync](43-campaign-promotions.md#sale-document-sync-local-engine).
 
+**After a completed sale:** **`PaymentService.copy_temp_to_permanent`** calls **`CampaignAuditService.record_after_completed_sale`** (**`CampaignUsage`**, **`CouponUsage`**, counters). To roll back entitlements when a completed receipt is voided or refunded under your policy, use **`CampaignAuditService.revoke_entitlements_for_transaction_head`** (see [Campaign & Promotions — Usage audit and reversal](43-campaign-promotions.md#usage-audit-and-reversal-void--refund)).
+
 ---
 
 ## Background Worker (`SyncWorker`)

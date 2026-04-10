@@ -628,9 +628,9 @@ class PaymentService:
                     loy.id = uuid4()
                     loy.create()
 
-            from pos.service.campaign.coupon_activation_service import CouponActivationService
+            from pos.service.campaign.campaign_audit_service import CampaignAuditService
 
-            CouponActivationService.record_usages_after_completed_sale(
+            CampaignAuditService.record_after_completed_sale(
                 document_data,
                 permanent_head_id=head.id,
                 fk_store_id=getattr(head, "fk_store_id", None),

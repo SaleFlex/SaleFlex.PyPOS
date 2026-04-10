@@ -22,6 +22,7 @@ from data_layer.model.definition.coupon import Coupon
 from data_layer.model.definition.coupon_usage import CouponUsage
 from data_layer.model.definition.transaction_status import TransactionType
 from pos.service.campaign.application_policy import CAMPAIGN_DISCOUNT_TYPE_CODE
+from pos.service.campaign.campaign_usage_limits import CampaignUsageLimits
 
 logger = get_logger(__name__)
 
@@ -147,14 +148,17 @@ class CouponActivationService:
         if not campaign.requires_coupon:
             return False, "This promotion does not use coupon activation.", None
 
+        cust_id = getattr(head, "fk_customer_id", None)
+
+        if not CampaignUsageLimits.allows_new_application(session, campaign, cust_id):
+            return False, "Campaign usage limit reached for this customer or globally.", None
+
         when = CouponActivationService._now_cmp()
         if not CouponActivationService._coupon_valid_dates(coupon, when):
             return False, "Coupon is outside its valid dates.", None
 
         if not CouponActivationService._coupon_valid_dates_campaign(campaign, when):
             return False, "Campaign is outside its valid dates.", None
-
-        cust_id = getattr(head, "fk_customer_id", None)
         ctype = (coupon.coupon_type or "").strip().upper()
         if ctype == "PERSONAL":
             if coupon.fk_customer_id is None:
@@ -242,7 +246,8 @@ class CouponActivationService:
         return out
 
     @staticmethod
-    def record_usages_after_completed_sale(
+    def record_coupon_usages_in_session(
+        session: Session,
         document_data: Dict[str, Any],
         *,
         permanent_head_id: Any,
@@ -250,10 +255,9 @@ class CouponActivationService:
         fk_cashier_id: Any,
     ) -> None:
         """
-        After permanent ``TransactionHead`` is created, insert ``CouponUsage`` rows and
-        bump ``Coupon.usage_count`` for coupons that contributed to this sale.
-
-        Allocates CAMPAIGN discount totals per campaign across applied coupons for that campaign.
+        Insert ``CouponUsage`` rows and bump ``Coupon.usage_count`` for applied coupons whose
+        campaign produced a CAMPAIGN discount on this receipt. Does not change
+        ``Campaign.total_usage_count`` (handled by ``CampaignAuditService``).
         """
         ids = list(document_data.get("applied_coupon_ids") or [])
         if not ids:
@@ -263,72 +267,81 @@ class CouponActivationService:
         fk_customer_id = getattr(head_u, "fk_customer_id", None)
         when = datetime.now()
 
+        def _campaign_discount_total(camp_id: Any) -> Decimal:
+            total = Decimal("0")
+            camp = session.query(Campaign).filter(Campaign.id == camp_id).first()
+            if not camp or not camp.code:
+                return total
+            key = str(camp.code).strip().upper()[:15]
+            for d in document_data.get("discounts") or []:
+                row = _unwrap(d)
+                if getattr(row, "is_cancel", False):
+                    continue
+                dt = (getattr(row, "discount_type", None) or "").strip().upper()
+                if dt != CAMPAIGN_DISCOUNT_TYPE_CODE.upper():
+                    continue
+                dc = (getattr(row, "discount_code", None) or "").strip().upper()
+                if dc == key:
+                    total += Decimal(str(getattr(row, "discount_amount", 0) or 0))
+            return total
+
+        by_campaign: Dict[Any, List[Coupon]] = defaultdict(list)
+        for sid in ids:
+            try:
+                cid = UUID(str(sid))
+            except ValueError:
+                continue
+            c = (
+                session.query(Coupon)
+                .filter(Coupon.id == cid, Coupon.is_deleted.is_(False))
+                .first()
+            )
+            if c:
+                by_campaign[c.fk_campaign_id].append(c)
+
+        for camp_id, coupons in by_campaign.items():
+            if not coupons:
+                continue
+            amt_total = _campaign_discount_total(camp_id)
+            if amt_total <= 0:
+                continue
+            share = (amt_total / Decimal(len(coupons))).quantize(Decimal("0.01"))
+            for coupon in coupons:
+                usage = CouponUsage()
+                usage.id = uuid4()
+                usage.fk_coupon_id = coupon.id
+                usage.fk_customer_id = fk_customer_id
+                usage.fk_transaction_head_id = permanent_head_id
+                usage.fk_store_id = fk_store_id
+                usage.fk_cashier_id = fk_cashier_id
+                usage.discount_amount = share
+                usage.usage_date = when
+                usage.notes = None
+                session.add(usage)
+
+                row = session.query(Coupon).filter(Coupon.id == coupon.id).first()
+                if row:
+                    row.usage_count = int(getattr(row, "usage_count", 0) or 0) + 1
+
+    @staticmethod
+    def record_usages_after_completed_sale(
+        document_data: Dict[str, Any],
+        *,
+        permanent_head_id: Any,
+        fk_store_id: Any,
+        fk_cashier_id: Any,
+    ) -> None:
+        """Backward-compatible wrapper; prefer ``CampaignAuditService.record_after_completed_sale``."""
         from data_layer.engine import Engine
 
         with Engine().get_session() as session:
-
-            def _campaign_discount_total(camp_id: Any) -> Decimal:
-                total = Decimal("0")
-                camp = session.query(Campaign).filter(Campaign.id == camp_id).first()
-                if not camp or not camp.code:
-                    return total
-                key = str(camp.code).strip().upper()[:15]
-                for d in document_data.get("discounts") or []:
-                    row = _unwrap(d)
-                    if getattr(row, "is_cancel", False):
-                        continue
-                    dt = (getattr(row, "discount_type", None) or "").strip().upper()
-                    if dt != CAMPAIGN_DISCOUNT_TYPE_CODE.upper():
-                        continue
-                    dc = (getattr(row, "discount_code", None) or "").strip().upper()
-                    if dc == key:
-                        total += Decimal(str(getattr(row, "discount_amount", 0) or 0))
-                return total
-
-            by_campaign: Dict[Any, List[Coupon]] = defaultdict(list)
-            for sid in ids:
-                try:
-                    cid = UUID(str(sid))
-                except ValueError:
-                    continue
-                c = (
-                    session.query(Coupon)
-                    .filter(Coupon.id == cid, Coupon.is_deleted.is_(False))
-                    .first()
-                )
-                if c:
-                    by_campaign[c.fk_campaign_id].append(c)
-
-            for camp_id, coupons in by_campaign.items():
-                if not coupons:
-                    continue
-                amt_total = _campaign_discount_total(camp_id)
-                if amt_total <= 0:
-                    continue
-                share = (amt_total / Decimal(len(coupons))).quantize(Decimal("0.01"))
-                for coupon in coupons:
-                    usage = CouponUsage()
-                    usage.id = uuid4()
-                    usage.fk_coupon_id = coupon.id
-                    usage.fk_customer_id = fk_customer_id
-                    usage.fk_transaction_head_id = permanent_head_id
-                    usage.fk_store_id = fk_store_id
-                    usage.fk_cashier_id = fk_cashier_id
-                    usage.discount_amount = share
-                    usage.usage_date = when
-                    usage.notes = None
-                    session.add(usage)
-
-                    row = session.query(Coupon).filter(Coupon.id == coupon.id).first()
-                    if row:
-                        row.usage_count = int(getattr(row, "usage_count", 0) or 0) + 1
-
-                camp = session.query(Campaign).filter(Campaign.id == camp_id).first()
-                if camp:
-                    camp.total_usage_count = int(getattr(camp, "total_usage_count", 0) or 0) + len(
-                        coupons
-                    )
-
+            CouponActivationService.record_coupon_usages_in_session(
+                session,
+                document_data,
+                permanent_head_id=permanent_head_id,
+                fk_store_id=fk_store_id,
+                fk_cashier_id=fk_cashier_id,
+            )
             session.commit()
 
 
