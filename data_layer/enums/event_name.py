@@ -109,6 +109,7 @@ class EventName(enum.Enum):
     INPUT_PRICE = "INPUT_PRICE"                     # Input price
     INPUT_QUANTITY = "INPUT_QUANTITY"               # Input quantity
     PLU_INQUIRY = "PLU_INQUIRY"                     # PLU: show price and stock by warehouse (no sale)
+    APPLY_COUPON = "APPLY_COUPON"                  # Enter / scan coupon for requires_coupon campaigns
     INPUT_AMOUNT = "INPUT_AMOUNT"                   # Input amount
     PRICE_LOOKUP = "PRICE_LOOKUP"                   # Price lookup
     SUBTOTAL = "SUBTOTAL"                           # Calculate subtotal

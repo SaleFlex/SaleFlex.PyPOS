@@ -1002,6 +1002,95 @@ class SaleEvent:
             logger.error("[PLU_INQUIRY] Error: %s", str(e))
             return False
 
+    def _apply_coupon_event(self, key=None):
+        """
+        Open coupon entry dialog, validate ``Coupon`` / campaign rules, append to
+        ``applied_coupon_ids``, and refresh campaign discounts.
+        """
+        if not self.login_succeed:
+            self._logout()
+            return False
+
+        if not self._ensure_document_open():
+            return False
+
+        from PySide6.QtWidgets import QDialog
+
+        from pos.service.campaign.campaign_document_sync import gate_manages_campaign
+        from user_interface.form.coupon_input_dialog import CouponInputDialog
+        from user_interface.form.message_form import MessageForm
+
+        window = None
+        if key is not None and hasattr(key, "parent"):
+            window = key.parent()
+        if window is None:
+            window = self.interface.window if hasattr(self, "interface") else None
+        if not window:
+            logger.error("[APPLY_COUPON] No window")
+            return False
+
+        if gate_manages_campaign():
+            MessageForm.show_info(
+                window,
+                "Campaign pricing is managed by GATE; apply coupons in the integrated flow.",
+                "",
+            )
+            return False
+
+        initial = ""
+        try:
+            from user_interface.control.numpad.numpad import NumPad
+
+            numpads = window.findChildren(NumPad)
+            if numpads:
+                initial = (numpads[0].get_text() or "").strip()
+                numpads[0].set_text("")
+        except Exception:
+            pass
+
+        dlg = CouponInputDialog(window, initial_text=initial)
+        if dlg.exec() != QDialog.DialogCode.Accepted:
+            return False
+        code = dlg.result_code()
+        if not code:
+            return False
+
+        from data_layer.engine import Engine
+        from pos.service.campaign.coupon_activation_service import CouponActivationService
+        from pos.service.sale_service import SaleService
+
+        with Engine().get_session() as session:
+            ok, msg, coupon_id = CouponActivationService.validate_for_open_sale(
+                session, code, self.document_data
+            )
+
+        if not ok or coupon_id is None:
+            MessageForm.show_error(window, msg or "Coupon could not be applied.", "")
+            return False
+
+        self.document_data.setdefault("applied_coupon_ids", []).append(str(coupon_id))
+        self.document_data = self.document_data
+
+        try:
+            SaleService.refresh_campaign_discounts_after_cart_change(
+                self.document_data,
+                window,
+                getattr(self, "product_data", None),
+            )
+        except Exception as exc:
+            logger.error("[APPLY_COUPON] refresh: %s", exc)
+
+        try:
+            from pos.peripherals.hooks import sync_line_display_from_document
+
+            sync_line_display_from_document(self, self.document_data)
+        except Exception:
+            pass
+
+        MessageForm.show_info(window, f"Coupon applied: {msg}", "")
+        logger.info("[APPLY_COUPON] Applied coupon_id=%s", coupon_id)
+        return True
+
     def _sale_plu_numpad_enter_event(self, text):
         """
         Handle product lookup and sale triggered by numpad Enter key.

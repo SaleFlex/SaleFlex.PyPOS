@@ -23,8 +23,11 @@ SOFTWARE.
 """
 
 from datetime import datetime, timedelta
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from data_layer.model.definition import CampaignType, Campaign, CampaignRule, CampaignProduct
+from data_layer.model.definition.coupon import Coupon
+from data_layer.model.definition.product import Product
 
 
 
@@ -208,10 +211,133 @@ def _insert_sample_campaigns(session: Session, admin_cashier_id):
     logger.info("✓ Inserted %s sample campaigns", len(campaigns))
 
 
+def _insert_sample_coupons(session: Session) -> None:
+    """Seed a public coupon linked to the WELCOME10 ``requires_coupon`` campaign."""
+    if (
+        session.query(Coupon)
+        .filter(Coupon.is_deleted.is_(False), func.upper(Coupon.code) == "WELCOME10-DEMO")
+        .first()
+    ):
+        return
+    welcome = (
+        session.query(Campaign)
+        .filter(Campaign.code == "WELCOME10", Campaign.is_deleted.is_(False))
+        .first()
+    )
+    if not welcome:
+        return
+    session.add(
+        Coupon(
+            code="WELCOME10-DEMO",
+            name="Welcome 10% demo coupon",
+            description="Sample coupon for campaign WELCOME10 (scan barcode or type code).",
+            fk_campaign_id=welcome.id,
+            coupon_type="PUBLIC",
+            fk_customer_id=None,
+            start_date=welcome.start_date,
+            end_date=welcome.end_date,
+            usage_limit=None,
+            usage_count=0,
+            is_active=True,
+            barcode="2800100000001",
+            qr_code=None,
+            is_sent=False,
+            sent_date=None,
+            sent_method=None,
+            fk_created_by=None,
+        )
+    )
+    session.commit()
+    logger.info("✓ Inserted sample coupon WELCOME10-DEMO for campaign WELCOME10")
+
+
+def _insert_welcome10_campaign_product(session: Session) -> None:
+    """Link first seeded product to WELCOME10 so PRODUCT_DISCOUNT proposals can fire."""
+    welcome = (
+        session.query(Campaign)
+        .filter(Campaign.code == "WELCOME10", Campaign.is_deleted.is_(False))
+        .first()
+    )
+    if not welcome:
+        return
+    if (
+        session.query(CampaignProduct)
+        .filter(
+            CampaignProduct.fk_campaign_id == welcome.id,
+            CampaignProduct.is_deleted.is_(False),
+        )
+        .first()
+    ):
+        return
+    prod = session.query(Product).filter(Product.is_deleted.is_(False)).first()
+    if not prod:
+        return
+    session.add(
+        CampaignProduct(
+            fk_campaign_id=welcome.id,
+            fk_product_id=prod.id,
+            is_gift_product=False,
+            min_quantity=None,
+            max_quantity=None,
+            discount_value=None,
+            discount_percentage=None,
+            is_active=True,
+            display_order=0,
+        )
+    )
+    session.commit()
+
+
+def ensure_welcome10_demo_campaign_product(session: Session) -> None:
+    """Idempotent: ensure WELCOME10 has at least one ``CampaignProduct`` (existing DBs)."""
+    _insert_welcome10_campaign_product(session)
+
+
+def ensure_sample_coupon_welcome_demo(session: Session) -> None:
+    """Idempotent: add WELCOME10-DEMO coupon when campaign exists (existing databases)."""
+    if (
+        session.query(Coupon)
+        .filter(Coupon.is_deleted.is_(False), func.upper(Coupon.code) == "WELCOME10-DEMO")
+        .first()
+    ):
+        return
+    welcome = (
+        session.query(Campaign)
+        .filter(Campaign.code == "WELCOME10", Campaign.is_deleted.is_(False))
+        .first()
+    )
+    if not welcome:
+        return
+    session.add(
+        Coupon(
+            code="WELCOME10-DEMO",
+            name="Welcome 10% demo coupon",
+            description="Sample coupon for campaign WELCOME10 (scan barcode or type code).",
+            fk_campaign_id=welcome.id,
+            coupon_type="PUBLIC",
+            fk_customer_id=None,
+            start_date=welcome.start_date,
+            end_date=welcome.end_date,
+            usage_limit=None,
+            usage_count=0,
+            is_active=True,
+            barcode="2800100000001",
+            qr_code=None,
+            is_sent=False,
+            sent_date=None,
+            sent_method=None,
+            fk_created_by=None,
+        )
+    )
+    session.commit()
+
+
 def _insert_campaigns(session: Session, admin_cashier_id):
     """
     Main function to insert all campaign-related data
     """
     _insert_campaign_types(session)
     _insert_sample_campaigns(session, admin_cashier_id)
+    _insert_welcome10_campaign_product(session)
+    _insert_sample_coupons(session)
 

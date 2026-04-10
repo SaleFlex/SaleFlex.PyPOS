@@ -2,7 +2,7 @@
 
 This document describes **promotional campaigns** in SaleFlex.PyPOS: database entities, the **initial runtime contract** (cart snapshot + stacking rules), and how it connects to **SaleFlex.GATE** / third-party campaign connectors.
 
-**Current status:** Campaign **models and seed data** exist (`Campaign`, `CampaignType`, `CampaignRule`, `CampaignProduct`, usage/coupon tables — see [Database Models → Campaign and Promotion](21-database-models.md#campaign-and-promotion-models)). The **`transaction_discount_type`** table includes **`CAMPAIGN`** (new installs and patched DBs on startup). On the **SALE** screen, the local engine **writes** matching discounts to the open document as **`TransactionDiscountTemp`** rows with **`discount_type="CAMPAIGN"`** (see [Sale document sync (local engine)](#sale-document-sync-local-engine) below). **`CampaignService.evaluate_proposals()`** remains the core evaluator (same types as below); it does not persist by itself — **`sync_campaign_discounts_on_document`** applies the result. **`PaymentService.copy_temp_to_permanent`** copies **`CAMPAIGN`** lines to permanent discounts; thermal receipts show **`CAMPAIGN (code)`** via **`document_adapter`**. **`active_coupon_codes`** for evaluation is not yet wired from the UI (optional future hook).
+**Current status:** Campaign **models and seed data** exist (`Campaign`, `CampaignType`, `CampaignRule`, `CampaignProduct`, **`Coupon`**, **`CouponUsage`**, … — see [Database Models → Campaign and Promotion](21-database-models.md#campaign-and-promotion-models)). The **`transaction_discount_type`** table includes **`CAMPAIGN`** (new installs and patched DBs on startup). On the **SALE** screen, the local engine **writes** matching discounts to the open document as **`TransactionDiscountTemp`** rows with **`discount_type="CAMPAIGN"`** (see [Sale document sync (local engine)](#sale-document-sync-local-engine) below). **`CampaignService.evaluate_proposals()`** remains the core evaluator (same types as below); it does not persist by itself — **`sync_campaign_discounts_on_document`** applies the result. **[Coupon activation](#coupon-activation-on-sale)** wires **`Coupon`** validation and **`document_data["applied_coupon_ids"]`** into that flow; **`PaymentService.copy_temp_to_permanent`** records **`CouponUsage`** and usage counters when the sale completes, copies **`CAMPAIGN`** lines to permanent discounts, and thermal receipts show **`CAMPAIGN (code)`** via **`document_adapter`**. Optional **`active_coupon_codes`** may still be supplied by callers alongside applied coupons.
 
 ---
 
@@ -16,7 +16,8 @@ Module: `pos/service/campaign/`.
 | `cart_snapshot.py` | `CartSnapshot`, `CartLineSnapshot`, `CartTotalsSnapshot`; `build_cart_snapshot_from_document_data()`; `cart_snapshot_to_dict()`; `normalize_cart_data_for_campaign_request()` |
 | `campaign_service.py` | **`CampaignService.evaluate_proposals(document_data, …)`** → **`CampaignDiscountProposal`** list; **`campaign_discount_proposal_to_dict()`** for integration payloads |
 | `campaign_document_sync.py` | **`sync_campaign_discounts_on_document`**, **`recompute_head_total_discount_amount`**, **`gate_manages_campaign()`** — applies proposals to **`document_data`** (see below) |
-| `__init__.py` | Re-exports snapshot helpers, sync entry points, **`CampaignService`**, **`CampaignDiscountProposal`**, **`SUPPORTED_TYPE_CODES`** |
+| `coupon_activation_service.py` | **`CouponActivationService`**: validate **`Coupon`** for the open sale; derive campaign codes for evaluation; **`record_usages_after_completed_sale`** after permanent discounts exist |
+| `__init__.py` | Re-exports snapshot helpers, sync entry points, **`CampaignService`**, **`CouponActivationService`**, **`CampaignDiscountProposal`**, **`SUPPORTED_TYPE_CODES`** |
 
 ### Building from `document_data`
 
@@ -26,7 +27,7 @@ Module: `pos/service/campaign/`.
 - **Header context:** `transaction_head_temp_id`, `transaction_unique_id`, `pos_id`, `fk_store_id`, `fk_customer_id`, `loyalty_member_id`, `currency_code` (`base_currency`), `evaluated_at` (UTC ISO-8601).
 - **Totals:** `merchandise_subtotal` (sum of non-cancelled, non-voided line `total_price`), head `total_amount` / `total_discount_amount`, sum of non-cancelled `TransactionDiscountTemp` rows, and **`document_discount_non_campaign_total`** (same sum but **excluding** rows whose `discount_type` is `CAMPAIGN`, case-insensitive) for future basket-threshold logic.
 
-Reserved lists (empty until wired): `customer_segment_codes`, `active_coupon_codes`.
+Reserved / optional lists: `customer_segment_codes` (empty until wired); `active_coupon_codes` (optional uppercased strings for integrations or future UI). **`document_data["applied_coupon_ids"]`** holds **`Coupon.id`** UUID strings applied on this open sale (see [Coupon activation on SALE](#coupon-activation-on-sale)).
 
 ### Normalizing `cart_data` for integrations
 
@@ -53,6 +54,7 @@ Module: **`pos/service/campaign/campaign_document_sync.py`**.
 - Runs only for an **open sale** receipt: **`transaction_type`** **`sale`**, **`transaction_status`** **`ACTIVE`** (see **`TransactionType`** / **`TransactionStatus`**).
 - **Skips entirely** when **`gate.enabled`** and **`gate.manages_campaign`** are true — the terminal assumes GATE owns real-time campaign lines on the cart (see [Integration Layer — Campaign discount routing](40-integration-layer.md#campaign-discount-routing)).
 - **Cancels** previous engine-owned rows: every non-cancelled **`TransactionDiscountTemp`** with **`discount_type`** matching **`CAMPAIGN_DISCOUNT_TYPE_CODE`** (`"CAMPAIGN"`) is set to **`is_cancel=True`** and saved.
+- Builds the code list passed to evaluation as the **deduplicated union** of **`active_coupon_codes`** (if any) and **`CouponActivationService.evaluation_campaign_codes(document_data)`** (from **`applied_coupon_ids`**).
 - Calls **`CampaignService.evaluate_proposals(document_data, active_coupon_codes=…)`**, then creates **new** **`TransactionDiscountTemp`** rows (`create()` + append to **`document_data["discounts"]`**) with **`line_no`** allocated after the current max discount line number, **`fk_transaction_product_id`** set for **LINE**-scope proposals, **`discount_code`** truncated to 15 characters, **`discount_rate`** quantized for the DB column where present.
 - **`recompute_head_total_discount_amount`** sums **all** non-cancelled temp discount rows (including **LOYALTY** and **CAMPAIGN**) into **`head.total_discount_amount`** and saves the head — same bucket the **Amount Table** and **net due** use.
 
@@ -108,6 +110,22 @@ Full text lives in `application_policy.py`. In short:
 
 ---
 
+## Coupon activation on SALE
+
+Module: **`pos/service/campaign/coupon_activation_service.py`**. UI: **`user_interface/form/coupon_input_dialog.py`**. Event: **`APPLY_COUPON`** → **`SaleEvent._apply_coupon_event`** (`pos/manager/event/sale.py`).
+
+**Document field:** Each open **`document_data`** dict includes **`applied_coupon_ids`**: a list of **`Coupon.id`** strings (UUID text) appended when the cashier successfully applies a code. New and loaded documents initialise it in **`DocumentManager`**.
+
+**SALE form:** The **COUPON** control is added by seed data and by **`ensure_sale_form_coupon_button`** on startup for databases that predate the button. When **`gate.manages_campaign`** is true, the handler does **not** validate or mutate the cart; it shows an informational message that GATE owns campaigns.
+
+**Validation (`CouponActivationService.validate_for_open_sale`):** Resolves **`Coupon`** by **`code`** or **`barcode`** (case-insensitive where applicable). Checks campaign and coupon active flags, date range, store scope, customer segment (when the campaign targets a segment), **`requires_coupon`**, **`PERSONAL`** (coupon must belong to the document customer), **`SINGLE_USE`** / existing **`CouponUsage`**, and **`usage_limit`** vs **`Coupon.usage_count`**. On success, the coupon id is appended to **`applied_coupon_ids`** (no duplicate ids); **`refresh_campaign_discounts_after_cart_change`** runs so **`sync_campaign_discounts_on_document`** re-evaluates with the merged code list.
+
+**Completion:** After **`PaymentService.copy_temp_to_permanent`** creates the permanent head and **`TransactionDiscount`** rows, **`CouponActivationService.record_usages_after_completed_sale`** inserts **`CouponUsage`** rows and increments **`Coupon.usage_count`** and **`Campaign.total_usage_count`** for coupons whose campaign produced a **CAMPAIGN** discount on that receipt (matched by **`discount_code`** / campaign code within the 15-character limit).
+
+**Demo data:** Sample coupon **`WELCOME10-DEMO`** and linked campaign product seed support trying **`requires_coupon`** product discounts on a dev database — **`ensure_sample_coupon_welcome_demo`**, **`ensure_welcome10_demo_campaign_product`** run from **`Application`** startup alongside the SALE form patch.
+
+---
+
 ## Related documentation
 
 - [Database Models — Campaign and Promotion](21-database-models.md#campaign-and-promotion-models)
@@ -118,4 +136,4 @@ Full text lives in `application_policy.py`. In short:
 
 ---
 
-**Last updated:** 2026-04-11 (SALE document sync, `apply_campaign` local proposals, `Application` + `IntegrationMixin`)
+**Last updated:** 2026-04-11 (SALE document sync, coupon activation + `CouponUsage` on completion, `apply_campaign`, `Application` + `IntegrationMixin`)

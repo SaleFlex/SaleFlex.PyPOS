@@ -110,6 +110,7 @@ if handler:
 | `SUSPEND_SALE` | `_suspend_sale_event` | Park current cart |
 | `RESUME_SALE` | `_resume_sale_event` | Activate selected parked cart |
 | `SUSPEND_LIST` | `_suspend_list_event` | Open suspended sales list |
+| `APPLY_COUPON` | `_apply_coupon_event` | **COUPON** on SALE — dialog for code/barcode; **`CouponActivationService`** + **`applied_coupon_ids`**; skipped when **`gate.manages_campaign`** (info only) |
 
 ### Payment Operations — `PaymentEvent`
 

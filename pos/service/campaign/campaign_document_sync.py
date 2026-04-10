@@ -10,7 +10,7 @@ Copyright (c) 2025-2026 Ferhat Mousavi
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import Any, Dict, List, Mapping, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence, Set
 from uuid import uuid4
 
 from core.logger import get_logger
@@ -145,9 +145,16 @@ def sync_campaign_discounts_on_document(
         _cancel_existing_campaign_discounts(document_data)
         recompute_head_total_discount_amount(document_data)
 
+        from pos.service.campaign.coupon_activation_service import CouponActivationService
+
+        code_set: Set[str] = set(CouponActivationService.evaluation_campaign_codes(document_data))
+        if active_coupon_codes:
+            code_set.update(str(c).strip().upper() for c in active_coupon_codes if str(c).strip())
+        merged_codes = sorted(code_set) if code_set else None
+
         proposals: List[CampaignDiscountProposal] = CampaignService.evaluate_proposals(
             document_data,
-            active_coupon_codes=active_coupon_codes,
+            active_coupon_codes=merged_codes,
         )
         _persist_proposals(document_data, proposals)
         recompute_head_total_discount_amount(document_data)

@@ -539,6 +539,44 @@ def get_sale_form_controls(sale_form, cashier_id: str) -> list:
             fk_cashier_update_id=cashier_id,
         ))
 
+    sale_controls.append(
+        FormControl(
+            fk_form_id=sale_form.id,
+            fk_parent_id=None,
+            name="COUPON",
+            form_control_function1=EventName.APPLY_COUPON.value,
+            form_control_function2=None,
+            type_no=1,
+            type="BUTTON",
+            width=109,
+            height=76,
+            location_x=912,
+            location_y=404,
+            start_position=None,
+            caption1="COUPON",
+            caption2=None,
+            list_values=None,
+            dock=None,
+            alignment=None,
+            text_alignment="CENTER",
+            character_casing="UPPER",
+            font="Tahoma",
+            icon=None,
+            tool_tip="Enter or scan a coupon / promotion code (requires_coupon campaigns). Numpad text is used as initial input when present.",
+            image=None,
+            image_selected=None,
+            font_auto_height=False,
+            font_size=11,
+            input_type="ALPHANUMERIC",
+            text_image_relation=None,
+            back_color="0xFF9800",
+            fore_color="0xFFFFFF",
+            keyboard_value=None,
+            fk_cashier_create_id=cashier_id,
+            fk_cashier_update_id=cashier_id,
+        )
+    )
+
     # Cash payment buttons (right of PAYMENTLIST)
     sale_controls += [
         FormControl(
@@ -974,3 +1012,71 @@ def get_suspended_sales_form_controls(suspended_form, cashier_id: str) -> list:
             fk_cashier_update_id=cashier_id,
         ),
     ]
+
+
+def ensure_sale_form_coupon_button(session) -> None:
+    """
+    Idempotent: add SALE form COUPON button for databases created before APPLY_COUPON.
+    """
+    from data_layer.model.definition.cashier import Cashier
+    from data_layer.model.definition.form import Form
+    from data_layer.model.definition.form_control import FormControl
+
+    sale = session.query(Form).filter(Form.name == FormName.SALE.name).first()
+    if not sale:
+        return
+    exists = (
+        session.query(FormControl)
+        .filter(
+            FormControl.fk_form_id == sale.id,
+            FormControl.name == "COUPON",
+            FormControl.is_deleted.is_(False),
+        )
+        .first()
+    )
+    if exists:
+        return
+    admin = session.query(Cashier).filter(Cashier.user_name == "admin").first()
+    if not admin:
+        admin = session.query(Cashier).first()
+    cid = admin.id if admin else None
+    if not cid:
+        return
+    session.add(
+        FormControl(
+            fk_form_id=sale.id,
+            fk_parent_id=None,
+            name="COUPON",
+            form_control_function1=EventName.APPLY_COUPON.value,
+            form_control_function2=None,
+            type_no=1,
+            type="BUTTON",
+            width=109,
+            height=76,
+            location_x=912,
+            location_y=404,
+            start_position=None,
+            caption1="COUPON",
+            caption2=None,
+            list_values=None,
+            dock=None,
+            alignment=None,
+            text_alignment="CENTER",
+            character_casing="UPPER",
+            font="Tahoma",
+            icon=None,
+            tool_tip="Enter or scan a coupon / promotion code (requires_coupon campaigns).",
+            image=None,
+            image_selected=None,
+            font_auto_height=False,
+            font_size=11,
+            input_type="ALPHANUMERIC",
+            text_image_relation=None,
+            back_color="0xFF9800",
+            fore_color="0xFFFFFF",
+            keyboard_value=None,
+            fk_cashier_create_id=cid,
+            fk_cashier_update_id=cid,
+        )
+    )
+    session.commit()

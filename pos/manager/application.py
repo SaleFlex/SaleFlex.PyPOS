@@ -121,7 +121,12 @@ class Application(CurrentStatus, CurrentData, EventHandler, IntegrationMixin):
         init_db()
 
         # Idempotent UI schema patches (e.g. new grids on existing databases)
+        from data_layer.db_init_data.campaign import (
+            ensure_sample_coupon_welcome_demo,
+            ensure_welcome10_demo_campaign_product,
+        )
         from data_layer.db_init_data.forms.customer import ensure_customer_loyalty_points_grid
+        from data_layer.db_init_data.forms.sale import ensure_sale_form_coupon_button
         from data_layer.db_init_data.forms.setting_form import ensure_setting_form_tabs
         from data_layer.db_init_data.transaction_discount_type import ensure_transaction_discount_type_campaign
         from data_layer.engine import Engine
@@ -129,6 +134,9 @@ class Application(CurrentStatus, CurrentData, EventHandler, IntegrationMixin):
         _db = Engine()
         with _db.get_session() as _session:
             ensure_transaction_discount_type_campaign(_session)
+            ensure_welcome10_demo_campaign_product(_session)
+            ensure_sample_coupon_welcome_demo(_session)
+            ensure_sale_form_coupon_button(_session)
             ensure_customer_loyalty_points_grid(_session)
             _admin = _session.query(Cashier).filter(Cashier.user_name == "admin").first()
             if not _admin:

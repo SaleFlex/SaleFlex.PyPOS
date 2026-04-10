@@ -300,7 +300,8 @@ class DocumentManager:
                 "surcharges": [],
                 "taxes": [],
                 "tips": [],
-                "changes": []
+                "changes": [],
+                "applied_coupon_ids": [],
             }
             
             logger.info("[DEBUG] Created new empty document: %s", transaction_unique_id)
@@ -505,6 +506,7 @@ class DocumentManager:
                 "changes": TransactionChangeTemp.filter_by(
                     fk_transaction_head_id=head_id, is_deleted=False
                 ),
+                "applied_coupon_ids": [],
             }
             
         except Exception as e:
@@ -689,7 +691,8 @@ class DocumentManager:
                 ),
                 "changes": TransactionChangeTemp.filter_by(
                     fk_transaction_head_id=head_id, is_deleted=False
-                )
+                ),
+                "applied_coupon_ids": [],
             }
             
         except Exception as e:

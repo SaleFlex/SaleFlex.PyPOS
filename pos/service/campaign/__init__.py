@@ -5,6 +5,7 @@ Copyright (c) 2025-2026 Ferhat Mousavi
 """
 
 from pos.service.campaign.application_policy import CAMPAIGN_DISCOUNT_TYPE_CODE
+from pos.service.campaign.coupon_activation_service import CouponActivationService
 from pos.service.campaign.campaign_document_sync import (
     gate_manages_campaign,
     recompute_head_total_discount_amount,
@@ -26,6 +27,7 @@ __all__ = [
     "CART_SNAPSHOT_SCHEMA_VERSION",
     "CampaignDiscountProposal",
     "CampaignService",
+    "CouponActivationService",
     "SUPPORTED_TYPE_CODES",
     "gate_manages_campaign",
     "recompute_head_total_discount_amount",

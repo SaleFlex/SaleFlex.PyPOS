@@ -19,11 +19,12 @@ pos/service/
 ├── loyalty_redemption_service.py # BONUS: points → LOYALTY TransactionDiscountTemp; policy caps
 ├── loyalty_settings_model.py    # Active program + policies for SETTING form UI
 ├── customer_segment_service.py  # criteria_json → CustomerSegmentMember; marketing_profile
-└── campaign/                    # Cart snapshot + evaluation + SALE document sync
+└── campaign/                    # Cart snapshot + evaluation + SALE document sync + coupons
     ├── application_policy.py    # Stacking / thresholds / loyalty interaction (documented)
     ├── cart_snapshot.py         # schema_version 1.0, build from document_data
     ├── campaign_service.py      # CampaignService.evaluate_proposals; proposal dict for integrations
     ├── campaign_document_sync.py # sync_campaign_discounts_on_document; head.total_discount_amount
+    ├── coupon_activation_service.py # CouponActivationService; CouponUsage on completed sale
     └── __init__.py
 ```
 
@@ -45,8 +46,12 @@ See [Campaign & Promotions](43-campaign-promotions.md) for field lists, stacking
 
 ### SALE document sync and UI refresh
 
-- **`sync_campaign_discounts_on_document`** (`campaign_document_sync.py`) — applies proposals to **`document_data`** as described in [Campaign & Promotions — Sale document sync](43-campaign-promotions.md#sale-document-sync-local-engine).
+- **`sync_campaign_discounts_on_document`** (`campaign_document_sync.py`) — applies proposals to **`document_data`** as described in [Campaign & Promotions — Sale document sync](43-campaign-promotions.md#sale-document-sync-local-engine). Merges **`active_coupon_codes`** with **`CouponActivationService.evaluation_campaign_codes(document_data)`** before calling **`CampaignService.evaluate_proposals`**.
 - **`SaleService.refresh_campaign_discounts_after_cart_change`** — runs the sync, then **`update_sale_screen_controls`** when a **window** is passed (sale list + amount table).
+
+### Coupon activation
+
+**`CouponActivationService`** validates **`Coupon`** / **`Campaign`** rules for the open sale, maintains **`document_data["applied_coupon_ids"]`**, and after **`PaymentService.copy_temp_to_permanent`** records **`CouponUsage`** and increments usage counters when **CAMPAIGN** discounts on the receipt match applied coupons. SALE UI: **COUPON** / **`APPLY_COUPON`**. Details: [Campaign & Promotions — Coupon activation on SALE](43-campaign-promotions.md#coupon-activation-on-sale).
 
 ## Available Services
 

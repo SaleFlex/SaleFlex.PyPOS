@@ -211,6 +211,7 @@ class EventHandler(GeneralEvent, SaleEvent, PaymentEvent, ConfigurationEvent,
                 EventName.INPUT_PRICE.name: self._input_price_event,
                 EventName.INPUT_QUANTITY.name: self._input_quantity_event,
                 EventName.PLU_INQUIRY.name: self._plu_inquiry_event,
+                EventName.APPLY_COUPON.name: self._apply_coupon_event,
                 EventName.INPUT_AMOUNT.name: self._input_amount_event,
                 EventName.PRICE_LOOKUP.name: self._price_lookup_event,
                 
