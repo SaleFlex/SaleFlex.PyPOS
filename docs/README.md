@@ -41,6 +41,7 @@ In Markdown under `docs/`, reference them as `../static_files/images/<filename>`
 | 17 | [Customer Management](17-customer-management.md) | Customer List search, ADD new customer, Customer Detail tabbed dialog (info, activity, **point movements** ledger), Walk-in Customer, SALE form CUSTOMER dual button, sale-assignment workflow |
 | 41 | [Loyalty Programs](41-loyalty-programs.md) | Local loyalty: policy / earn-rule / redemption models, `phone_normalized`, enrollment; **`LoyaltyRedemptionService`** + **BONUS**; **`LoyaltyEarnService`** + optional **`earn_eligible_payment_types`**; **`EARNED`** / **`REDEEMED`** + **`TransactionLoyalty`**; **Phase 6** — customer **Point movements** grid (`CUSTOMER_LOYALTY_POINTS_GRID`), closure **receipt detail** loyalty summary; not yet: void/refund/exchange point clawback automation |
 | 42 | [Customer Segmentation](42-customer-segmentation.md) | `CustomerSegmentService`: auto `CustomerSegmentMember` from `criteria_json`, VIP via `preferences_json`, sync on completed sale and customer save, `marketing_profile` with loyalty tier |
+| 43 | [Campaign & Promotions](43-campaign-promotions.md) | `pos/service/campaign` cart snapshot (`schema_version` 1.0), stacking policy, GATE `CampaignSerializer.build_discount_request`; models seeded — SALE auto-apply not wired yet |
 
 ---
 
@@ -94,6 +95,7 @@ In Markdown under `docs/`, reference them as `../static_files/images/<filename>`
 | Customer management / sale assignment | [Customer Management](17-customer-management.md) |
 | Loyalty (earn/redeem, customer point audit, closure receipt summary) | [Loyalty Programs](41-loyalty-programs.md) |
 | Marketing segments (auto rules) | [Customer Segmentation](42-customer-segmentation.md) |
+| Campaigns / cart snapshot for GATE | [Campaign & Promotions](43-campaign-promotions.md) |
 | UI customization | [Dynamic Forms System](22-dynamic-forms-system.md) |
 | Database schema | [Database Models Overview](21-database-models.md) |
 | Event wiring | [Event System](24-event-system.md) |
@@ -106,6 +108,6 @@ In Markdown under `docs/`, reference them as `../static_files/images/<filename>`
 
 ---
 
-**Last Updated:** 2026-04-10
+**Last Updated:** 2026-04-11
 **Version:** 1.0.0b7
 **License:** MIT

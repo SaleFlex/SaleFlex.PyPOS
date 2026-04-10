@@ -159,7 +159,9 @@ def apply_campaign_discounts(app: Any, cart_data: dict) -> dict:
 
     Args:
         app:       Application singleton.
-        cart_data: Dict describing the current cart (products, quantities, totals).
+        cart_data: Prefer canonical snapshot dict (``schema_version`` 1.0 from
+            ``pos.service.campaign``) or ``document_data`` with ``head`` and
+            ``products``; see ``normalize_cart_data_for_campaign_request``.
 
     Returns:
         Updated cart_data with applied discounts, or original dict if integration

@@ -18,8 +18,24 @@ pos/service/
 ├── loyalty_earn_service.py      # Stages loyalty_points_earned from program + LoyaltyEarnRule; payment-type filter; TransactionLoyaltyTemp snapshot
 ├── loyalty_redemption_service.py # BONUS: points → LOYALTY TransactionDiscountTemp; policy caps
 ├── loyalty_settings_model.py    # Active program + policies for SETTING form UI
-└── customer_segment_service.py  # criteria_json → CustomerSegmentMember; marketing_profile
+├── customer_segment_service.py  # criteria_json → CustomerSegmentMember; marketing_profile
+└── campaign/                    # Cart snapshot + promotion policy (no SALE auto-apply yet)
+    ├── application_policy.py    # Stacking / thresholds / loyalty interaction (documented)
+    ├── cart_snapshot.py         # schema_version 1.0, build from document_data
+    └── __init__.py
 ```
+
+## Campaign cart snapshot
+
+The **`pos/service/campaign/`** package defines a **canonical cart payload** for local campaign evaluation and for **SaleFlex.GATE** / third-party **`get_applicable_discounts`** calls:
+
+- **`build_cart_snapshot_from_document_data(document_data)`** — from `DocumentManager`’s `head` / `products` / `discounts`.
+- **`cart_snapshot_to_dict(snapshot)`** — JSON-friendly dict with **`schema_version`: `"1.0"`**.
+- **`normalize_cart_data_for_campaign_request(cart_data)`** — accepts either a 1.0 snapshot, embedded `document_data`, or passes through unknown dicts.
+
+**`CAMPAIGN_DISCOUNT_TYPE_CODE`** (`"CAMPAIGN"`) is reserved for future `TransactionDiscountTemp.discount_type` values produced by the engine.
+
+See [Campaign & Promotions](43-campaign-promotions.md) for field lists, stacking rules, and integration notes.
 
 ## Available Services
 

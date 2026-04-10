@@ -141,7 +141,7 @@ api_key  = ""
 | **Closures** | End-of-day closure summaries pushed after closure |
 | **Warehouse** | Stock movement events pushed in real time |
 | **Products / Prices** | Pulled from GATE; triggers local cache refresh |
-| **Campaigns** | Campaign definitions pulled; optional real-time discount calc |
+| **Campaigns** | Campaign definitions pulled; optional real-time discount calc (request body normalized via `pos.service.campaign` — see [Campaign & Promotions](43-campaign-promotions.md)) |
 | **Notifications** | Terminal-to-terminal messages, system alerts, cache signals |
 | **ERP (optional)** | When `manages_erp = true` GATE relays ERP sync payloads |
 | **Payment (optional)** | When `manages_payment = true` GATE relays payment requests |

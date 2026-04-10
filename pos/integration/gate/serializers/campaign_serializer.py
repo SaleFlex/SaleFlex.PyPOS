@@ -27,9 +27,10 @@ SOFTWARE.
 
 from __future__ import annotations
 
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 
 from core.logger import get_logger
+from pos.service.campaign.cart_snapshot import normalize_cart_data_for_campaign_request
 
 logger = get_logger(__name__)
 
@@ -61,15 +62,17 @@ class CampaignSerializer:
         Build the GATE discount-calculation request payload from cart contents.
 
         Args:
-            cart_data: Current cart with products, quantities, and totals.
+            cart_data: Canonical snapshot (``schema_version`` 1.0) or legacy
+                ``document_data``-shaped dict with ``head`` and ``products``.
 
         Returns:
             Dict suitable for POSTing to GATE's campaign/calculate/ endpoint.
 
-        TODO: Map cart_data fields to GATE API field names.
+        TODO: Map normalized snapshot fields to GATE API field names.
         """
-        logger.info("[CampaignSerializer] build_discount_request (stub)")
-        return {"lines": [], "total": 0}
+        body = normalize_cart_data_for_campaign_request(cart_data)
+        logger.info("[CampaignSerializer] build_discount_request (stub) schema=%s", body.get("schema_version"))
+        return body
 
     @staticmethod
     def apply_discount_response(cart_data: Dict[str, Any],

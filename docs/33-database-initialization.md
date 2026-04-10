@@ -181,6 +181,8 @@ Creates sample promotional campaigns:
 - Time-based promotions
 - Campaign rules and conditions
 
+Inserts are idempotent. Seed rows illustrate the schema; **automatic application at the till** is not implemented yet. Runtime design (cart snapshot for GATE/local) is described in [Campaign & Promotions](43-campaign-promotions.md).
+
 ### `_insert_pos_settings(session, admin_cashier_id, gbp_currency=None)`
 Configures system-wide POS settings:
 - **Device Information**: Automatically generates unique device serial number (combining MAC address and disk serial number hash) and detects operating system

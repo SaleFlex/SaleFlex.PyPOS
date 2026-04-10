@@ -103,6 +103,8 @@ SaleFlex.PyPOS uses a comprehensive database schema with 100+ models organized i
 - **Coupon**: Coupon/voucher definitions with barcode/QR code support
 - **CouponUsage**: Coupon redemption tracking
 
+Runtime design for GATE/local engines (cart snapshot `schema_version` 1.0, stacking rules, reserved `CAMPAIGN` discount type string) is documented in [Campaign & Promotions](43-campaign-promotions.md). Automatic application of these models on the SALE screen is not implemented yet.
+
 ## Loyalty Program Models
 
 - **LoyaltyProgram**: Loyalty program definitions (rates, welcome/birthday points, expiry settings)

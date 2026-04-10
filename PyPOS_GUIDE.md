@@ -190,6 +190,8 @@ Press **SAVE** (green) to persist changes or create a new customer. Press **BACK
 
 **Marketing segments:** **`CustomerSegmentService`** updates **`CustomerSegmentMember`** from each segment’s **`criteria_json`** after **SAVE** on Customer Detail and after each **completed sale** (same payment path as loyalty). This is separate from loyalty **tier**; combine both for campaigns via **`marketing_profile()`**. Details: [Customer Segmentation](docs/42-customer-segmentation.md).
 
+**Campaigns (in progress):** Promotional **`Campaign`** rows and related tables exist in the database (seed examples), but **automatic discounts on the SALE screen are not active yet**. The **`pos/service/campaign/`** package defines a shared **cart snapshot** (`schema_version` 1.0) for a future local engine and for **GATE** discount requests (`CampaignSerializer.build_discount_request`). Stacking rules (`priority`, `is_combinable`) and how they relate to **line discounts** and **loyalty BONUS** are documented there. Full reference: [Campaign & Promotions](docs/43-campaign-promotions.md).
+
 See [Customer Management](docs/17-customer-management.md) for full documentation.
 
 ---
@@ -237,6 +239,7 @@ See [Inventory Management](docs/16-inventory-management.md) for full documentati
 17. [Customer Management](docs/17-customer-management.md)
 41. [Loyalty Programs](docs/41-loyalty-programs.md)
 42. [Customer Segmentation](docs/42-customer-segmentation.md)
+43. [Campaign & Promotions](docs/43-campaign-promotions.md)
 
 ### Part 3 — Architecture (Developer)
 
