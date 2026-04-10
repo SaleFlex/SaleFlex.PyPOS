@@ -402,7 +402,7 @@ Tap **PAYMENT** (alternate label on **CREDIT CARD**) to open the dedicated **PAY
 
 ![PAYMENT form](static_files/images/sample_sale_payment_form.jpg)
 
-> **PAYMENT** screen: live totals, payment-type grid, tender log (**PAYMENTLIST**), **NUMPAD** for amounts in minor units, **BACK**, and **CHANGE**. Use split tenders until the balance reaches zero; each payment type expects a NumPad amount first (unlike quick pay on the main SALE layout).
+> **PAYMENT** screen: live totals (**AMOUNTSTABLE** stretches summary rows to the control height; font size unchanged), payment-type grid, tender log (**PAYMENTLIST**), **NUMPAD** for amounts in minor units, **BACK**, and **CHANGE**. Use split tenders until the balance reaches zero; each payment type expects a NumPad amount first (unlike quick pay on the main SALE layout).
 
 ![Sale Form — CUSTOMER assignment](static_files/images/sample_sale_customer_form.jpg)
 

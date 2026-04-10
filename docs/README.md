@@ -31,7 +31,7 @@ In Markdown under `docs/`, reference them as `../static_files/images/<filename>`
 
 | # | Document | Summary |
 |---|----------|---------|
-| 10 | [Sale Transactions](10-sale-transactions.md) | NumPad modes, adding products, payments, Item Actions (REPEAT / DELETE) |
+| 10 | [Sale Transactions](10-sale-transactions.md) | NumPad modes, adding products, payments, Item Actions (REPEAT / DELETE); PAYMENT form **AMOUNTSTABLE** row-height layout |
 | 11 | [Suspend and Resume Sales](11-suspend-resume.md) | SUSPEND button, parked carts, market mode, Suspended Sales list |
 | 12 | [Cancellations](12-cancellations.md) | Line cancellation (DELETE), full document cancellation (CANCEL) |
 | 13 | [End-of-Day Closure](13-end-of-day-closure.md) | Authorization, aggregation flow, sequence management |
@@ -49,7 +49,7 @@ In Markdown under `docs/`, reference them as `../static_files/images/<filename>`
 | 20 | [Project Structure](20-project-structure.md) | Folder layout, class inheritance chain, startup sequence, design patterns |
 | 21 | [Database Models Overview](21-database-models.md) | 98+ models organized by domain, temp/permanent split, country-specific templates |
 | 22 | [Dynamic Forms System](22-dynamic-forms-system.md) | DB-driven UI forms, Panel controls, CheckBox, form transitions, generic save pattern |
-| 23 | [UI Controls Catalog](23-ui-controls.md) | All custom Qt widgets: Button, TextBox, NumPad, SaleList, TabControl, ... |
+| 23 | [UI Controls Catalog](23-ui-controls.md) | Custom Qt widgets (Button, TextBox, NumPad, SaleList, TabControl, …); **AmountTable** viewport row-height sync |
 | 24 | [Event System](24-event-system.md) | EventHandler, `event_distributor()`, all event categories with handler mapping |
 | 25 | [Service Layer](25-service-layer.md) | VatService, SaleService, PaymentService, REPEAT/DELETE handlers |
 | 26 | [Document Management](26-document-management.md) | Transaction lifecycle, suspend/resume, line cancellation, payment flow |
