@@ -14,7 +14,7 @@ pos/service/
 ├── vat_service.py       # VAT calculation service
 ├── sale_service.py      # Sale processing service
 ├── payment_service.py   # Payment processing service
-└── loyalty_service.py   # Phone normalization, loyalty membership on sale assignment
+└── loyalty_service.py   # Phone normalization, enrollment, tier & spending after completed sale
 ```
 
 ## Available Services
@@ -270,7 +270,7 @@ if is_complete:
 - **`is_document_complete(document_data)`**: Check if document is fully paid (total_amount = total_payment_amount - total_change_amount)
 - **`mark_document_complete(document_data)`**: Mark document as complete by updating transaction status
 - **`update_closure_for_completion(closure, document_data)`**: Update closure with transaction totals
-- **`copy_temp_to_permanent(document_data)`**: Copy all temp models to permanent models
+- **`copy_temp_to_permanent(document_data)`**: Copy all temp models to permanent models, then call **`LoyaltyService.on_sale_transaction_completed`** to update `CustomerLoyalty` spending and tier for completed **sale** transactions
 - **`_safe_decimal(value)`**: Safely convert value to Decimal (handles None, string, int, float, Decimal)
 
 ### LoyaltyService
@@ -283,6 +283,8 @@ if is_complete:
 - **`sync_customer_phone_normalized(session, customer)`** — sets `Customer.phone_normalized` using active program policy.
 - **`validate_unique_phone_normalized(session, customer)`** — detects conflicts before commit.
 - **`ensure_loyalty_on_sale_assignment(head_obj, customer_id)`** — after a customer is linked to the open sale, may create `CustomerLoyalty`, set `TransactionHeadTemp.loyalty_member_id`, and post welcome points (`LoyaltyPointTransaction`).
+- **`recalculate_membership_tier(session, membership)`** — sets `fk_loyalty_tier_id` to the highest qualifying `LoyaltyTier`.
+- **`on_sale_transaction_completed(document_data)`** — updates spending counters and tier after `PaymentService.copy_temp_to_permanent()`.
 
 Called from `CustomerEvent` (customer SAVE, customer search country code helper, sale assignment). Checkout earning and payment redemption are **not** handled here; see [Loyalty Programs](41-loyalty-programs.md).
 

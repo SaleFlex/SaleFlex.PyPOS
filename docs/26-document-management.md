@@ -261,7 +261,7 @@ if PaymentService.is_document_complete(document_data):
     # Update closure
     PaymentService.update_closure_for_completion(closure, document_data)
     
-    # Copy to permanent models
+    # Copy to permanent models (also runs loyalty spending + tier update for eligible sales)
     PaymentService.copy_temp_to_permanent(document_data)
     
     # Clear UI controls (automatically done)
@@ -581,7 +581,7 @@ Payment processing is handled through `PaymentService` and payment event handler
    - Document is marked as COMPLETED
    - Closure totals are updated
    - Receipt number is incremented
-   - Temp models are copied to permanent models
+   - Temp models are copied to permanent models (triggers **`LoyaltyService.on_sale_transaction_completed`** — updates `CustomerLoyalty` spending and **membership tier** for non–walk-in **sale** receipts)
    - UI controls are cleared
    - `document_data` is reset
 
@@ -607,6 +607,7 @@ if change_amount > 0:
 if PaymentService.is_document_complete(document_data):
     PaymentService.mark_document_complete(document_data)
     PaymentService.update_closure_for_completion(closure, document_data)
+    # copy_temp_to_permanent also invokes LoyaltyService.on_sale_transaction_completed
     PaymentService.copy_temp_to_permanent(document_data)
 ```
 

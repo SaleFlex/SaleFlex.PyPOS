@@ -39,7 +39,7 @@ In Markdown under `docs/`, reference them as `../static_files/images/<filename>`
 | 15 | [Product Management](15-product-management.md) | Product List search, Product Detail tabbed dialog |
 | 16 | [Inventory Management](16-inventory-management.md) | Stock levels, goods receipt, adjustments, movement history, negative stock policy |
 | 17 | [Customer Management](17-customer-management.md) | Customer List search, ADD new customer, Customer Detail tabbed dialog, Walk-in Customer, activity history (`TransactionHead` / `fk_customer_id`), SALE form CUSTOMER dual button, sale-assignment workflow |
-| 41 | [Loyalty Programs](41-loyalty-programs.md) | Local loyalty: `LoyaltyProgramPolicy` / earn / redemption policy models, `phone_normalized`, `LoyaltyService`, auto-enrollment on sale assignment, welcome points; not yet: earning engine, payment redemption |
+| 41 | [Loyalty Programs](41-loyalty-programs.md) | Local loyalty: policy / earn / redemption models, `phone_normalized`, enrollment, welcome points, **tier reassignment** and **spending stats** after each completed sale (`copy_temp_to_permanent`); not yet: checkout earning engine, payment redemption |
 
 ---
 
@@ -48,11 +48,11 @@ In Markdown under `docs/`, reference them as `../static_files/images/<filename>`
 | # | Document | Summary |
 |---|----------|---------|
 | 20 | [Project Structure](20-project-structure.md) | Folder layout, class inheritance chain, startup sequence, design patterns |
-| 21 | [Database Models Overview](21-database-models.md) | 98+ models organized by domain, temp/permanent split, country-specific templates |
+| 21 | [Database Models Overview](21-database-models.md) | 100+ models organized by domain, temp/permanent split, country-specific templates |
 | 22 | [Dynamic Forms System](22-dynamic-forms-system.md) | DB-driven UI forms, Panel controls, CheckBox, form transitions, generic save pattern |
 | 23 | [UI Controls Catalog](23-ui-controls.md) | Custom Qt widgets (Button, TextBox, NumPad, SaleList, TabControl, …); **AmountTable** viewport row-height sync |
 | 24 | [Event System](24-event-system.md) | EventHandler, `event_distributor()`, all event categories with handler mapping |
-| 25 | [Service Layer](25-service-layer.md) | VatService, SaleService, PaymentService, REPEAT/DELETE handlers |
+| 25 | [Service Layer](25-service-layer.md) | VatService, SaleService, PaymentService, LoyaltyService, REPEAT/DELETE handlers |
 | 26 | [Document Management](26-document-management.md) | Transaction lifecycle, suspend/resume, line cancellation, payment flow |
 | 27 | [Data Caching](27-data-caching.md) | `pos_data` / `product_data` caches, AutoSave system, closure management |
 
@@ -91,7 +91,7 @@ In Markdown under `docs/`, reference them as `../static_files/images/<filename>`
 | Cashier accounts | [Cashier Management](14-cashier-management.md) |
 | Stock management | [Inventory Management](16-inventory-management.md) |
 | Customer management / sale assignment | [Customer Management](17-customer-management.md) |
-| Loyalty (local, phone ID, enrollment) | [Loyalty Programs](41-loyalty-programs.md) |
+| Loyalty (phone ID, tier on completed sale) | [Loyalty Programs](41-loyalty-programs.md) |
 | UI customization | [Dynamic Forms System](22-dynamic-forms-system.md) |
 | Database schema | [Database Models Overview](21-database-models.md) |
 | Event wiring | [Event System](24-event-system.md) |

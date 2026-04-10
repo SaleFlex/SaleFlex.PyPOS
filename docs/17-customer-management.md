@@ -97,7 +97,8 @@ After **any** dual-function button on the SALE form is used—including **SUB TO
 
 - **`phone_number`**: What the cashier types (display format).
 - **`phone_normalized`**: Digits-only canonical value, **unique** per customer when set. Maintained on **SAVE** from the Customer Detail form via `LoyaltyService`; used for loyalty de-duplication and phone-first lookup. Saving fails with a dialog if another customer already has the same normalized phone.
-- When a **non–walk-in** customer is assigned to the **active sale** (BACK from the list or SELECT in sale-assignment context), `LoyaltyService.ensure_loyalty_on_sale_assignment()` may create **`CustomerLoyalty`**, set **`TransactionHeadTemp.loyalty_member_id`**, and record **welcome** points per `LoyaltyProgram.welcome_points`. Enrollment requires a valid phone when `LoyaltyProgramPolicy.require_customer_phone_for_enrollment` is true. Walk-in customers are never enrolled.
+- When a **non–walk-in** customer is assigned to the **active sale** (BACK from the list or SELECT in sale-assignment context), `LoyaltyService.ensure_loyalty_on_sale_assignment()` may create **`CustomerLoyalty`**, set **`TransactionHeadTemp.loyalty_member_id`**, record **welcome** points per `LoyaltyProgram.welcome_points`, and **recompute tier**. Enrollment requires a valid phone when `LoyaltyProgramPolicy.require_customer_phone_for_enrollment` is true. Walk-in customers are never enrolled.
+- When that sale is **fully paid** and copied to permanent tables, **`CustomerLoyalty`** spending fields and **`fk_loyalty_tier_id`** are updated again (see [Loyalty Programs](41-loyalty-programs.md) — *Tier assignment*).
 
 Full data model and seed behaviour: [Loyalty Programs](41-loyalty-programs.md).
 

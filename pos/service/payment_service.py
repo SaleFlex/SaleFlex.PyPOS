@@ -529,7 +529,11 @@ class PaymentService:
                                 setattr(change, key, getattr(change_temp, key))
                     change.id = uuid4()
                     change.create()
-            
+
+            from pos.service.loyalty_service import LoyaltyService
+
+            LoyaltyService.on_sale_transaction_completed(document_data)
+
             return True
             
         except Exception as e:

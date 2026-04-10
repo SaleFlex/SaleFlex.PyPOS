@@ -1,6 +1,6 @@
 # Loyalty Programs (Local)
 
-This document describes the **local** loyalty stack: data models, seed data, phone-based customer identity, automatic membership when a customer is linked to a sale, and what is **not** implemented yet (earning at totals, redemption at payment, GATE/third-party).
+This document describes the **local** loyalty stack: data models, seed data, phone-based customer identity, automatic membership when a customer is linked to a sale, **tier reassignment** from points and calendar-year spending after each completed sale, and what is **not** implemented yet (earning at totals, redemption at payment, tier multipliers at checkout, GATE/third-party).
 
 ## Overview
 
@@ -31,6 +31,15 @@ When a **non–walk-in** customer is assigned to the active sale (`_assign_custo
 
 Walk-in customers are never enrolled.
 
+## Tier assignment
+
+- **`LoyaltyService.member_qualifies_for_tier`**: For each `LoyaltyTier`, if both `min_points_required` and `min_annual_spending` are set, the member qualifies when **either** `lifetime_points` meets the point floor **or** `annual_spent` meets the spending floor (matching the model docstring). If only one threshold is set, that condition alone applies.
+- **`LoyaltyService.recalculate_membership_tier`**: Among active tiers for the program, ordered by `tier_level` descending, the member is assigned the **first** (highest) tier they qualify for. Called after new enrollment (including welcome points), when an existing member is loaded at sale assignment, and after spending is updated on a completed sale.
+- **`LoyaltyService.apply_completed_sale_to_membership`**: On each completed **sale** transaction, increments `total_purchases`, adds `total_amount` to `total_spent`, updates `annual_spent` for the **calendar year** of `transaction_date_time` (resets annual spending when the sale year is after the year of `last_activity_date`), sets `last_activity_date`, then runs tier recalculation.
+- **`LoyaltyService.on_sale_transaction_completed`**: Invoked from `PaymentService.copy_temp_to_permanent()` after the permanent `TransactionHead` is created. Skips walk-in customers and non-sale `transaction_type` values. Resolves `CustomerLoyalty` by `loyalty_member_id` on the temp head, or by `fk_customer_id` if the id was not set.
+
+Applying **tier multipliers** or **tier discounts** to line totals or point earning at checkout is not implemented yet.
+
 ## Code layout
 
 | Area | Location |
@@ -39,6 +48,7 @@ Walk-in customers are never enrolled.
 | Customer phone column | `data_layer/model/definition/customer.py` |
 | Seed data | `data_layer/db_init_data/loyalty.py` (`_insert_loyalty_program_policy`, `_insert_loyalty_redemption_policy`, `_insert_loyalty_default_earn_rule`) |
 | Business helpers | `pos/service/loyalty_service.py` (`LoyaltyService`) |
+| Completed sale hook | `pos/service/payment_service.py` → `LoyaltyService.on_sale_transaction_completed` |
 | UI / events | `pos/manager/event/customer.py` (save, search, assign) |
 
 ## Schema upgrades

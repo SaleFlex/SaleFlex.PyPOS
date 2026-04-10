@@ -6,7 +6,9 @@ Copyright (c) 2025-2026 Ferhat Mousavi
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
+from datetime import datetime
+from decimal import Decimal
+from typing import TYPE_CHECKING, Any, Dict, Optional
 from uuid import UUID
 
 from sqlalchemy.orm import Session
@@ -18,6 +20,7 @@ if TYPE_CHECKING:
     from data_layer.model.definition.customer_loyalty import CustomerLoyalty
     from data_layer.model.definition.loyalty_program import LoyaltyProgram
     from data_layer.model.definition.loyalty_program_policy import LoyaltyProgramPolicy
+    from data_layer.model.definition.loyalty_tier import LoyaltyTier
 
 logger = get_logger(__name__)
 
@@ -125,6 +128,7 @@ class LoyaltyService:
             .first()
         )
         if existing:
+            LoyaltyService.recalculate_membership_tier(session, existing)
             return existing
 
         if policy and policy.require_customer_phone_for_enrollment:
@@ -172,7 +176,158 @@ class LoyaltyService:
             )
 
         logger.info("[LOYALTY] Enrolled customer %s in program %s (welcome=%s)", customer.id, program.id, welcome)
+        LoyaltyService.recalculate_membership_tier(session, mem)
         return mem
+
+    @staticmethod
+    def _unwrap_document_head(head: Any) -> Any:
+        from data_layer.auto_save import AutoSaveModel
+
+        return head.unwrap() if isinstance(head, AutoSaveModel) else head
+
+    @staticmethod
+    def member_qualifies_for_tier(membership: "CustomerLoyalty", tier: "LoyaltyTier") -> bool:
+        """
+        Threshold semantics match ``LoyaltyTier`` docstring: if both ``min_points_required`` and
+        ``min_annual_spending`` are set, the member qualifies when either condition is met.
+        If only one is set, that condition alone applies. If neither is set, the tier is always allowed.
+        """
+        lp = int(membership.lifetime_points or 0)
+        annual = Decimal(str(membership.annual_spent or 0))
+        mp = tier.min_points_required
+        ma = tier.min_annual_spending
+        has_p = mp is not None
+        has_a = ma is not None
+        if not has_p and not has_a:
+            return True
+        if has_p and has_a:
+            return lp >= int(mp) or annual >= Decimal(str(ma))
+        if has_p:
+            return lp >= int(mp)
+        return annual >= Decimal(str(ma))
+
+    @staticmethod
+    def recalculate_membership_tier(session: Session, membership: "CustomerLoyalty") -> bool:
+        """
+        Set ``fk_loyalty_tier_id`` to the highest active tier the member qualifies for.
+        Returns True if the tier foreign key changed.
+        """
+        from data_layer.model.definition.loyalty_tier import LoyaltyTier
+
+        tiers = (
+            session.query(LoyaltyTier)
+            .filter(
+                LoyaltyTier.fk_loyalty_program_id == membership.fk_loyalty_program_id,
+                LoyaltyTier.is_active.is_(True),
+                LoyaltyTier.is_deleted.is_(False),
+            )
+            .order_by(LoyaltyTier.tier_level.desc(), LoyaltyTier.display_order.desc())
+            .all()
+        )
+        chosen_id = None
+        for tier in tiers:
+            if LoyaltyService.member_qualifies_for_tier(membership, tier):
+                chosen_id = tier.id
+                break
+        if chosen_id is None:
+            logger.warning(
+                "[LOYALTY] No qualifying tier for membership %s — leaving tier unchanged",
+                membership.id,
+            )
+            return False
+        old = membership.fk_loyalty_tier_id
+        if old != chosen_id:
+            membership.fk_loyalty_tier_id = chosen_id
+            logger.info("[LOYALTY] Tier updated for membership %s -> tier_id %s", membership.id, chosen_id)
+            return True
+        return False
+
+    @staticmethod
+    def apply_completed_sale_to_membership(session: Session, membership: "CustomerLoyalty", head: Any) -> bool:
+        """
+        Increment purchase counters and spending from a completed sale header, roll calendar-year
+        ``annual_spent`` when the sale date moves to a new year, then refresh tier.
+        """
+        sale_amount = Decimal(str(getattr(head, "total_amount", None) or 0))
+        if sale_amount < 0:
+            return False
+        sale_dt = getattr(head, "transaction_date_time", None) or datetime.now()
+        if hasattr(sale_dt, "year"):
+            pass
+        else:
+            sale_dt = datetime.now()
+
+        membership.total_purchases = int(membership.total_purchases or 0) + 1
+        prev_total = Decimal(str(membership.total_spent or 0))
+        membership.total_spent = prev_total + sale_amount
+
+        last = membership.last_activity_date
+        annual = Decimal(str(membership.annual_spent or 0))
+        if last is not None and hasattr(last, "year") and last.year < sale_dt.year:
+            annual = Decimal("0")
+        membership.annual_spent = annual + sale_amount
+        membership.last_activity_date = sale_dt
+
+        LoyaltyService.recalculate_membership_tier(session, membership)
+        return True
+
+    @staticmethod
+    def on_sale_transaction_completed(document_data: Optional[Dict[str, Any]]) -> None:
+        """
+        After temp rows are copied to permanent tables, refresh loyalty spending and tier for
+        the customer on the receipt. No-op for walk-in, non-sale types, or missing membership.
+        """
+        if not document_data or not document_data.get("head"):
+            return
+        try:
+            head = LoyaltyService._unwrap_document_head(document_data["head"])
+            from data_layer.model.definition.transaction_status import TransactionType
+
+            tx_type = (getattr(head, "transaction_type", None) or "").lower()
+            if tx_type != TransactionType.SALE.value:
+                return
+
+            from data_layer.engine import Engine
+            from data_layer.model.definition.customer import Customer
+            from data_layer.model.definition.customer_loyalty import CustomerLoyalty
+
+            cid = getattr(head, "fk_customer_id", None)
+            if not cid:
+                return
+
+            engine = Engine()
+            with engine.get_session() as session:
+                customer = session.query(Customer).filter(Customer.id == cid).first()
+                if not customer or customer.is_walkin:
+                    return
+
+                mem = None
+                lid = getattr(head, "loyalty_member_id", None)
+                if lid:
+                    mem = (
+                        session.query(CustomerLoyalty)
+                        .filter(
+                            CustomerLoyalty.id == lid,
+                            CustomerLoyalty.is_deleted.is_(False),
+                        )
+                        .first()
+                    )
+                if not mem:
+                    mem = (
+                        session.query(CustomerLoyalty)
+                        .filter(
+                            CustomerLoyalty.fk_customer_id == cid,
+                            CustomerLoyalty.is_deleted.is_(False),
+                        )
+                        .first()
+                    )
+                if not mem:
+                    return
+
+                LoyaltyService.apply_completed_sale_to_membership(session, mem, head)
+                session.commit()
+        except Exception as exc:
+            logger.error("[LOYALTY] on_sale_transaction_completed: %s", exc)
 
     @staticmethod
     def ensure_loyalty_on_sale_assignment(head_obj, customer_id) -> None:
