@@ -207,6 +207,10 @@ def format_receipt_lines(document_data: Dict[str, Any]) -> List[str]:
             code = (getattr(row, "discount_code", None) or "").strip()
             pts_note = f" ({code})" if code else ""
             left = f"LOYALTY{pts_note}"[: RECEIPT_WIDTH - len(amount_str) - 2]
+        elif dtype == "CAMPAIGN":
+            code = (getattr(row, "discount_code", None) or "").strip()
+            camp_note = f" ({code})" if code else ""
+            left = f"CAMPAIGN{camp_note}"[: RECEIPT_WIDTH - len(amount_str) - 2]
         else:
             left = dtype
         lines.append(_receipt_line(left, amount_str, W))

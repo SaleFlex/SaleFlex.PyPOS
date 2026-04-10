@@ -33,7 +33,7 @@ The **`pos/service/campaign/`** package defines a **canonical cart payload** for
 - **`cart_snapshot_to_dict(snapshot)`** — JSON-friendly dict with **`schema_version`: `"1.0"`**.
 - **`normalize_cart_data_for_campaign_request(cart_data)`** — accepts either a 1.0 snapshot, embedded `document_data`, or passes through unknown dicts.
 
-**`CAMPAIGN_DISCOUNT_TYPE_CODE`** (`"CAMPAIGN"`) is reserved for future `TransactionDiscountTemp.discount_type` values produced by the engine.
+**`CAMPAIGN_DISCOUNT_TYPE_CODE`** (`"CAMPAIGN"`) matches the **`transaction_discount_type`** row and the string on **`TransactionDiscountTemp.discount_type`** for promotion lines; see [Campaign & Promotions — CAMPAIGN transaction discount type](43-campaign-promotions.md#campaign-transaction-discount-type).
 
 See [Campaign & Promotions](43-campaign-promotions.md) for field lists, stacking rules, and integration notes.
 

@@ -2,7 +2,7 @@
 
 This document describes **promotional campaigns** in SaleFlex.PyPOS: database entities, the **initial runtime contract** (cart snapshot + stacking rules), and how it connects to **SaleFlex.GATE** / third-party campaign connectors.
 
-**Current status:** Campaign **models and seed data** exist (`Campaign`, `CampaignType`, `CampaignRule`, `CampaignProduct`, usage/coupon tables — see [Database Models → Campaign and Promotion](21-database-models.md#campaign-and-promotion-models)). **Automatic discount application on the SALE screen is not wired yet**; this document’s snapshot and policy describe the shared payload so the local engine and GATE can use the same shape.
+**Current status:** Campaign **models and seed data** exist (`Campaign`, `CampaignType`, `CampaignRule`, `CampaignProduct`, usage/coupon tables — see [Database Models → Campaign and Promotion](21-database-models.md#campaign-and-promotion-models)). The **`transaction_discount_type`** table includes **`CAMPAIGN`** (new installs and patched DBs on startup). **Automatic discount application on the SALE screen is not wired yet**; this document’s snapshot and policy describe the shared payload so the local engine and GATE can use the same shape, and completed sales can already persist **`CAMPAIGN`** discount lines when something creates them on the temp document.
 
 ---
 
@@ -52,9 +52,11 @@ Full text lives in `application_policy.py`. In short:
 
 ---
 
-## Reserved `discount_type` for campaign engine output
+## CAMPAIGN transaction discount type
 
-`CAMPAIGN_DISCOUNT_TYPE_CODE` = `"CAMPAIGN"` — intended for `TransactionDiscountTemp.discount_type` (and permanent `TransactionDiscount`) when a row is produced by the local campaign engine or merged from GATE. A dedicated **`TransactionDiscountType`** row with code `CAMPAIGN` is planned in a follow-up change.
+- **`transaction_discount_type`** includes a row with code **`CAMPAIGN`** (seeded on new databases; existing databases get it from **`ensure_transaction_discount_type_campaign`** on startup, same pattern as other reference patches).
+- On each discount line, set **`TransactionDiscountTemp.discount_type`** / **`TransactionDiscount.discount_type`** (string on temp; permanent rows use **`fk_discount_type_id`**) to **`CAMPAIGN`**, matching **`CAMPAIGN_DISCOUNT_TYPE_CODE`** in `pos/service/campaign/application_policy.py`.
+- **`discount_code`** (max **15** characters on the model): store **`Campaign.code`** (e.g. `WELCOME10`) or a short coupon token. Longer barcodes require a future column length or separate field. **`PaymentService.copy_temp_to_permanent`** copies **`discount_code`** to the permanent **`TransactionDiscount`** row. Thermal receipts show **`CAMPAIGN (code)`** when `document_adapter` formats the line.
 
 ---
 
@@ -67,4 +69,4 @@ Full text lives in `application_policy.py`. In short:
 
 ---
 
-**Last updated:** 2026-04-11
+**Last updated:** 2026-04-11 (CAMPAIGN discount type + startup patch)

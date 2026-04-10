@@ -89,3 +89,33 @@ def _insert_transaction_discount_types(session):
         )
         logger.info("✓ Loyalty transaction discount type added")
 
+    existing_campaign = session.query(TransactionDiscountType).filter(TransactionDiscountType.code == "CAMPAIGN").first()
+    if not existing_campaign:
+        session.add(
+            TransactionDiscountType(
+                code="CAMPAIGN",
+                name="Campaign / Promotion Discount",
+                display_name="Campaign",
+                description="Document discount from promotional campaign or coupon (discount_type on temp row; campaign or coupon code in discount_code)",
+            )
+        )
+        logger.info("✓ Campaign transaction discount type added")
+
+
+def ensure_transaction_discount_type_campaign(session) -> None:
+    """
+    Idempotent reference-data patch: ensure ``CAMPAIGN`` exists in ``transaction_discount_type``
+    for databases seeded before this type was added.
+    """
+    existing = session.query(TransactionDiscountType).filter(TransactionDiscountType.code == "CAMPAIGN").first()
+    if existing:
+        return
+    session.add(
+        TransactionDiscountType(
+            code="CAMPAIGN",
+            name="Campaign / Promotion Discount",
+            display_name="Campaign",
+            description="Document discount from promotional campaign or coupon (discount_type on temp row; campaign or coupon code in discount_code)",
+        )
+    )
+    logger.info("Schema patch: added CAMPAIGN transaction discount type")

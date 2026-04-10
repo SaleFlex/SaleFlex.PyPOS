@@ -543,6 +543,9 @@ class PaymentService:
             head.id = uuid4()
             head.create()
 
+            # Map temp ``discount_type`` string (e.g. LOYALTY, CAMPAIGN, PRODUCT) to FK.
+            # ``CAMPAIGN`` requires a ``transaction_discount_type`` row (seed + startup patch).
+            # ``discount_code`` on each temp row carries campaign ``Campaign.code`` or a short coupon token (column length 15).
             discount_type_map: Dict[str, Any] = {}
             if document_data.get("discounts"):
                 from data_layer.engine import Engine as _Engine

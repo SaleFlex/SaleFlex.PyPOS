@@ -24,7 +24,7 @@ The `insert_initial_data()` function in `db_init_data/__init__.py` orchestrates 
 16. **Product Variants** (`_insert_product_variants`): Creates product variations
 17. **Product Attributes** (`_insert_product_attributes`): Inserts product attribute definitions
 18. **Product Barcodes** (`_insert_product_barcodes`): Associates barcodes with products
-19. **Transaction Discount Types** (`_insert_transaction_discount_types`): Creates discount type definitions (NONE, PERSONAL, MANAGER, CUSTOMER_SATISFACTION, PRODUCT, **LOYALTY** for point redemption)
+19. **Transaction Discount Types** (`_insert_transaction_discount_types`): Creates discount type definitions (NONE, PERSONAL, MANAGER, CUSTOMER_SATISFACTION, PRODUCT, **LOYALTY** for point redemption, **CAMPAIGN** for promotions / coupons)
 20. **Transaction Document Types** (`_insert_transaction_document_types`): Creates document types (Sale, Return, etc.)
 21. **Transaction Sequences** (`_insert_transaction_sequences`): Sets up transaction numbering sequences
 22. **Product Barcode Masks** (`_insert_product_barcode_masks`): Defines barcode format rules
@@ -111,6 +111,9 @@ Inserts default transaction discount types:
 - **CUSTOMER_SATISFACTION**: Discount for customer satisfaction
 - **PRODUCT**: Product-specific discount
 - **LOYALTY**: Point redemption discount (paired with **`LoyaltyRedemptionService`** / **`TransactionDiscountTemp.discount_type="LOYALTY"`**)
+- **CAMPAIGN**: Promotion / coupon document discount (paired with **`TransactionDiscountTemp.discount_type="CAMPAIGN"`**; **`discount_code`** holds **`Campaign.code`** or a short coupon token — max 15 characters)
+
+Existing databases receive the **CAMPAIGN** row via **`ensure_transaction_discount_type_campaign`** on application startup (see [Startup Entry Point — patches](34-startup-entry-point.md#database-bootstrap-and-ui-schema-patches-application)).
 
 ### `_insert_default_forms(session, cashier_id)`
 Creates all 20 application forms. Form definitions are organised into topic-based sub-modules under `data_layer/db_init_data/forms/`. Each sub-module provides a `get_form_data(cashier_id)` function that returns the form row dict(s) for that topic:

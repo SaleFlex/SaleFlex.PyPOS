@@ -273,6 +273,8 @@ When **net** amount due (`total_amount − total_discount_amount`) is fully cove
 
 **Loyalty (local):** **Redemption** on **PAYMENT**: **BONUS** → **`LoyaltyRedemptionService`** (discount line + `loyalty_points_redeemed`); ledger **`REDEEMED`** posts on completion — see [Loyalty Programs — Redemption](41-loyalty-programs.md#redemption-at-payment-loyaltyredemptionservice-bonus_payment). **Earning**: for **sale** receipts with a **registered** (non–walk-in) customer and **`CustomerLoyalty`**, **`LoyaltyEarnService.stage_document_earn`** runs inside **`PaymentService.copy_temp_to_permanent`** — see [Earning engine](41-loyalty-programs.md#earning-engine-loyaltyearnservice). Earn may be restricted by **`earn_eligible_payment_types`** in **`LoyaltyProgram.settings_json`**. Earned/redeemed points are reflected on the receipt when discount/payment adapters emit those lines (e.g. **`LOYALTY`** discount with a points-style code).
 
+**Promotional document discounts (when present):** A future or integrated promotion engine may add **`TransactionDiscountTemp`** rows with **`discount_type="CAMPAIGN"`** and **`discount_code`** set to **`Campaign.code`** or a short coupon token (column limit 15). There is no dedicated SALE/PAYMENT button for this yet. **`PaymentService.copy_temp_to_permanent`** resolves the **`CAMPAIGN`** **`transaction_discount_type`** row and copies **`discount_code`** to **`TransactionDiscount`**; the thermal receipt shows **`CAMPAIGN (code)`** — see [Campaign & Promotions](43-campaign-promotions.md).
+
 ---
 
 ## Amount Table
@@ -282,7 +284,7 @@ The amount table at the bottom of the sale screen shows live totals:
 | Row | Content |
 |-----|---------|
 | Sales Amount | Running total of all active (non-cancelled) lines |
-| Discount Amount | Total discount applied (includes **`LOYALTY`** lines from point redemption) |
+| Discount Amount | Total discount applied (includes **`LOYALTY`** lines from point redemption and any **`CAMPAIGN`** promotion lines when present) |
 | Payment Amount | Total already paid |
 | Change Amount | Change due to the customer |
 

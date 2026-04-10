@@ -122,10 +122,12 @@ class Application(CurrentStatus, CurrentData, EventHandler):
         # Idempotent UI schema patches (e.g. new grids on existing databases)
         from data_layer.db_init_data.forms.customer import ensure_customer_loyalty_points_grid
         from data_layer.db_init_data.forms.setting_form import ensure_setting_form_tabs
+        from data_layer.db_init_data.transaction_discount_type import ensure_transaction_discount_type_campaign
         from data_layer.engine import Engine
         from data_layer.model.definition.cashier import Cashier
         _db = Engine()
         with _db.get_session() as _session:
+            ensure_transaction_discount_type_campaign(_session)
             ensure_customer_loyalty_points_grid(_session)
             _admin = _session.query(Cashier).filter(Cashier.user_name == "admin").first()
             if not _admin:

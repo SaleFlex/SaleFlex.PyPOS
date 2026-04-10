@@ -54,7 +54,7 @@ SaleFlex.PyPOS uses a comprehensive database schema with 100+ models organized i
 - **TransactionChangeTemp**: Temporary change records
 - **TransactionTax**: Tax calculations per transaction
 - **TransactionTaxTemp**: Temporary tax calculations
-- **TransactionDiscountType**: Discount type definitions (NONE, PERSONAL, MANAGER, CUSTOMER_SATISFACTION, PRODUCT, **LOYALTY** for point redemption)
+- **TransactionDiscountType**: Discount type definitions (NONE, PERSONAL, MANAGER, CUSTOMER_SATISFACTION, PRODUCT, **LOYALTY** for point redemption, **CAMPAIGN** for promotion / coupon document discounts)
 - **TransactionDiscount**: Discounts applied to transactions (linked to TransactionDiscountType via foreign key)
 - **TransactionDiscountTemp**: Temporary discount records
 - **TransactionSurcharge**: Surcharges applied to transactions
@@ -103,7 +103,7 @@ SaleFlex.PyPOS uses a comprehensive database schema with 100+ models organized i
 - **Coupon**: Coupon/voucher definitions with barcode/QR code support
 - **CouponUsage**: Coupon redemption tracking
 
-Runtime design for GATE/local engines (cart snapshot `schema_version` 1.0, stacking rules, reserved `CAMPAIGN` discount type string) is documented in [Campaign & Promotions](43-campaign-promotions.md). Automatic application of these models on the SALE screen is not implemented yet.
+Runtime design for GATE/local engines (cart snapshot `schema_version` 1.0, stacking rules) and the **`CAMPAIGN`** **`transaction_discount_type`** row (seed + startup patch **`ensure_transaction_discount_type_campaign`**) are documented in [Campaign & Promotions](43-campaign-promotions.md). Automatic application of campaign rules on the SALE screen is not implemented yet.
 
 ## Loyalty Program Models
 

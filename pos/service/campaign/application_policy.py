@@ -53,8 +53,9 @@ combinable ones can stack until a non-combinable campaign is applied (if any).
 - **Earning:** Unchanged; earn services run on completed sale as today.
 """
 
-# Reserved discount_type string on TransactionDiscountTemp / permanent discount rows
-# when the line is produced by the local campaign engine or GATE campaign response.
+# Reserved ``discount_type`` on ``TransactionDiscountTemp`` / ``TransactionDiscount`` when the row
+# comes from the local campaign engine or a GATE / connector response. Use ``discount_code`` for
+# the campaign ``Campaign.code`` or a short coupon token (DB column max length 15).
 CAMPAIGN_DISCOUNT_TYPE_CODE = "CAMPAIGN"
 
 __all__ = ["CAMPAIGN_DISCOUNT_TYPE_CODE"]

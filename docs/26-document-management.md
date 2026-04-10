@@ -261,7 +261,7 @@ if PaymentService.is_document_complete(document_data):
     # Update closure
     PaymentService.update_closure_for_completion(closure, document_data)
     
-    # Copy to permanent models (loyalty earn staging, discounts incl. LOYALTY, TransactionLoyalty copy, REDEEMED/EARNED + tier)
+    # Copy to permanent models (loyalty earn staging, discounts incl. LOYALTY / CAMPAIGN, TransactionLoyalty copy, REDEEMED/EARNED + tier)
     PaymentService.copy_temp_to_permanent(document_data)
     
     # Clear UI controls (automatically done)
@@ -582,7 +582,7 @@ Payment processing is handled through `PaymentService` and payment event handler
    - Document is marked as COMPLETED
    - Closure totals are updated
    - Receipt number is incremented
-   - Temp models are copied to permanent models: **`LoyaltyEarnService.stage_document_earn`**, then head/**discounts**/payments/changes/**`TransactionLoyalty`**; then **`LoyaltyService.on_sale_transaction_completed`** (spend counters, **`LoyaltyPointTransaction` REDEEMED / EARNED**, tier) and **`CustomerSegmentService.on_sale_transaction_completed`** for non–walk-in **sale** receipts
+   - Temp models are copied to permanent models: **`LoyaltyEarnService.stage_document_earn`**, then head/**discounts** (each temp line’s **`discount_type`** string is mapped to **`transaction_discount_type`**, including **`LOYALTY`** and **`CAMPAIGN`**)/payments/changes/**`TransactionLoyalty`**; then **`LoyaltyService.on_sale_transaction_completed`** (spend counters, **`LoyaltyPointTransaction` REDEEMED / EARNED**, tier) and **`CustomerSegmentService.on_sale_transaction_completed`** for non–walk-in **sale** receipts
    - UI controls are cleared
    - `document_data` is reset
 

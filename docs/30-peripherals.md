@@ -54,8 +54,8 @@ Rules:
 - Product with `quantity > 1` → two lines: name on first line, `  qty x unit_price` + total on the second.
 - Cancelled / voided lines (`is_cancel=True` or `is_voided=True`) are omitted.
 - Department lines (sold without a specific product) appear as `DEPT {line_no}`.
-- Discount lines appear as `{discount_type}  -£{amount}`. **`LOYALTY`** lines use the discount **code** when present (e.g. `100PTS`) so the receipt shows points-based redemption as a discount line.
-- The `{N} BALANCE DUE` label shows the count of active (non-cancelled) lines and reflects **net** due (after discounts, including loyalty redemption).
+- Discount lines appear as `{discount_type}  -£{amount}`. **`LOYALTY`** lines use **`discount_code`** when present (e.g. `100PTS`). **`CAMPAIGN`** lines use **`discount_code`** for **`Campaign.code`** or a short coupon token (e.g. `CAMPAIGN (WELCOME10)`).
+- The `{N} BALANCE DUE` label shows the count of active (non-cancelled) lines and reflects **net** due (after discounts, including loyalty redemption and campaign lines when present).
 - Each payment method is shown on its own line (e.g. `CASH`, `CREDIT`, `CHECK`).
 - `CHANGE` is printed only when change > 0, preceded by a blank line.
 - `VAT` (from `head.total_vat_amount`) is always printed, even when zero.

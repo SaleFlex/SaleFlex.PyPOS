@@ -34,7 +34,7 @@ The following reference data models are loaded into `pos_data` dictionary at sta
 - **ReceiptHeader**: Receipt header templates
 - **Store**: Store/outlet information
 - **Table**: Restaurant table management
-- **TransactionDiscountType**: Transaction discount type definitions
+- **TransactionDiscountType**: Transaction discount type definitions (includes **`CAMPAIGN`** for promotion lines when configured in the database)
 - **TransactionDocumentType**: Transaction document type definitions
 - **TransactionSequence**: Transaction sequence number generators
 
