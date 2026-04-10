@@ -124,7 +124,7 @@ Creates all 20 application forms. Form definitions are organised into topic-base
 | `forms/closure.py` | #6 CLOSURE, #10 CLOSURE_DETAIL, #11 CLOSURE_RECEIPTS, #12 CLOSURE_RECEIPT_DETAIL |
 | `forms/product.py` | #8 PRODUCT_LIST, #9 PRODUCT_DETAIL |
 | `forms/stock.py` | #13 STOCK_INQUIRY, #14 STOCK_IN, #15 STOCK_ADJUSTMENT, #16 STOCK_MOVEMENT |
-| `forms/customer.py` | #17 CUSTOMER_LIST, #18 CUSTOMER_DETAIL, #19 CUSTOMER_SELECT |
+| `forms/customer.py` | #17 CUSTOMER_LIST, #18 CUSTOMER_DETAIL (tabs: Customer Info, Activity History, **Point movements** + `CUSTOMER_LOYALTY_POINTS_GRID`), #19 CUSTOMER_SELECT; **`ensure_customer_loyalty_points_grid`** patches older DBs on app startup (see [Startup Entry Point](34-startup-entry-point.md)) |
 | `forms/payment_screen.py` | #20 PAYMENT |
 
 Each form row includes layout dimensions (1024×768), colors, display mode (`MAIN` or `MODAL`), and the `is_startup` flag (only MAIN_MENU is `True`).

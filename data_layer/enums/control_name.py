@@ -204,3 +204,4 @@ class ControlName(enum.Enum):
     CUSTOMER_LIST_DATAGRID = "CUSTOMER_LIST_DATAGRID"        # DataGrid displaying customer search results
     CUSTOMER_DETAIL_TAB = "CUSTOMER_DETAIL_TAB"              # TABCONTROL on the customer detail form
     CUSTOMER_ACTIVITY_GRID = "CUSTOMER_ACTIVITY_GRID"        # DataGrid listing customer transaction history
+    CUSTOMER_LOYALTY_POINTS_GRID = "CUSTOMER_LOYALTY_POINTS_GRID"  # DataGrid: LoyaltyPointTransaction audit for customer

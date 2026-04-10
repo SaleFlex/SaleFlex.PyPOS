@@ -97,7 +97,7 @@ The CLOSURE form also allows browsing previously completed closures. Select a ro
 | **DETAIL** | `CLOSURE_DETAIL` | Key/value summary of the selected closure (dates, cashier, document counts, sales totals, cash amounts) |
 | **RECEIPTS** | `CLOSURE_RECEIPTS` | List of all receipts (TransactionHead records) within that closure period |
 
-From `CLOSURE_RECEIPTS`, select a receipt row and press **DETAIL** to open `CLOSURE_RECEIPT_DETAIL` — a key/value view of the receipt header plus every line item.
+From `CLOSURE_RECEIPTS`, select a receipt row and press **DETAIL** to open `CLOSURE_RECEIPT_DETAIL` — a key/value view of the receipt header (including **Loyalty — points earned** / **redeemed** from `TransactionHead` when present) plus every line item.
 
 All three sub-forms are DB-driven dynamic forms. Each has a **BACK** button (bottom-right) that navigates back through the form history stack:
 
@@ -178,6 +178,7 @@ From the **Main Menu**, press **CUSTOMER** (purple button, bottom row) to open t
 |-----|---------|
 | **Customer Info** | Editable fields: First Name, Last Name, Phone, E-mail, Address lines, Post Code, Description |
 | **Activity History** | Read-only grid of completed receipts from `TransactionHead` where `fk_customer_id` matches the open customer (newest first; up to 500 rows). Refreshes after SAVE when a new customer is created. |
+| **Point movements** | Read-only grid of `LoyaltyPointTransaction` rows for audit (type, points, balance after, linked receipt). |
 
 Press **SAVE** (green) to persist changes or create a new customer. Press **BACK** (blue) to close the dialog without saving.
 
@@ -185,7 +186,7 @@ Press **SAVE** (green) to persist changes or create a new customer. Press **BACK
 
 > **Walk-in Customer:** A special "Walk-in Customer" record is pre-seeded in the database (`is_walkin = True`). All sale transactions that have no customer explicitly assigned are automatically linked to this record. The Walk-in Customer is excluded from the customer list search and cannot be edited.
 
-**Loyalty (local):** Saving a customer updates **`phone_normalized`** (digits-only, unique). Assigning a registered customer to the active sale can create **`CustomerLoyalty`**, set **`loyalty_member_id`** on the open document, apply **welcome** points, and **recompute tier**. On the **PAYMENT** form, **BONUS** (`BONUS_PAYMENT`) applies **point redemption** as a **`LOYALTY`** discount via **`LoyaltyRedemptionService`** (`currency_per_point` + **`LoyaltyRedemptionPolicy`**); completion then debits **`REDEEMED`** in **`LoyaltyPointTransaction`**. When the receipt is fully paid, **`PaymentService.copy_temp_to_permanent`** runs **`LoyaltyEarnService`** (optional **`earn_eligible_payment_types`** in program **`settings_json`**), copies discounts and loyalty rows, then **`LoyaltyService`** posts **`EARNED`** (and already-handled **`REDEEMED`**), updates spending counters, and **refreshes tier**. Void/refund point clawback is still a stub. Details: [Loyalty Programs](docs/41-loyalty-programs.md).
+**Loyalty (local):** Saving a customer updates **`phone_normalized`** (digits-only, unique). Assigning a registered customer to the active sale can create **`CustomerLoyalty`**, set **`loyalty_member_id`** on the open document, apply **welcome** points, and **recompute tier**. On the **PAYMENT** form, **BONUS** (`BONUS_PAYMENT`) applies **point redemption** as a **`LOYALTY`** discount via **`LoyaltyRedemptionService`** (`currency_per_point` + **`LoyaltyRedemptionPolicy`**); completion then debits **`REDEEMED`** in **`LoyaltyPointTransaction`**. When the receipt is fully paid, **`PaymentService.copy_temp_to_permanent`** runs **`LoyaltyEarnService`** (optional **`earn_eligible_payment_types`** in program **`settings_json`**), copies discounts and loyalty rows, then **`LoyaltyService`** posts **`EARNED`** (and already-handled **`REDEEMED`**), updates spending counters, and **refreshes tier**. **Customer Detail → Point movements** lists **`LoyaltyPointTransaction`** for audit; **Closure → receipt detail** shows per-receipt points earned/redeemed. Void/refund point clawback is still a stub. Details: [Loyalty Programs](docs/41-loyalty-programs.md).
 
 **Marketing segments:** **`CustomerSegmentService`** updates **`CustomerSegmentMember`** from each segment’s **`criteria_json`** after **SAVE** on Customer Detail and after each **completed sale** (same payment path as loyalty). This is separate from loyalty **tier**; combine both for campaigns via **`marketing_profile()`**. Details: [Customer Segmentation](docs/42-customer-segmentation.md).
 
@@ -292,11 +293,11 @@ See [Inventory Management](docs/16-inventory-management.md) for full documentati
 
 **Product management:** [Product Management](docs/15-product-management.md)
 
-**Customer management:** [Customer Management](docs/17-customer-management.md)
+**Customer management:** [Customer Management](docs/17-customer-management.md) (includes **Point movements** loyalty audit tab)
 
 **Assign customer to sale (FUNC → CUSTOMER button):** [Customer Management — Sale-Assignment Workflow](docs/17-customer-management.md#sale-assignment-workflow)
 
-**Loyalty (phone ID, earn/redeem, tier):** [Loyalty Programs](docs/41-loyalty-programs.md)
+**Loyalty (phone ID, earn/redeem, tier, point audit UI):** [Loyalty Programs](docs/41-loyalty-programs.md)
 
 **Customer segments (auto rules):** [Customer Segmentation](docs/42-customer-segmentation.md)
 

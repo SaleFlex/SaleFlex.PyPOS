@@ -152,7 +152,7 @@ Read-only grid for displaying lists of records. Used in:
 
 - **Suspended Sales** form — lists parked carts
 - **Product List** form — product search results
-- **Customer Detail** modal — **Activity History** tab (`CUSTOMER_ACTIVITY_GRID`): `DynamicDialog` populates from `TransactionHead` by `fk_customer_id` (see [Customer Management](17-customer-management.md))
+- **Customer Detail** modal — **Activity History** tab (`CUSTOMER_ACTIVITY_GRID`): `DynamicDialog` populates from `TransactionHead` by `fk_customer_id`; **Point movements** tab (`CUSTOMER_LOYALTY_POINTS_GRID`): `loyalty_point_transaction` audit (see [Customer Management](17-customer-management.md))
 
 A hidden **Id** column (index 0) carries the database UUID for each row so that action buttons can reference the correct record.
 

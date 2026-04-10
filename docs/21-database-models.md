@@ -108,7 +108,7 @@ SaleFlex.PyPOS uses a comprehensive database schema with 100+ models organized i
 - **LoyaltyProgram**: Loyalty program definitions (rates, welcome/birthday points, expiry settings)
 - **LoyaltyTier**: Membership tiers (Bronze, Silver, Gold, Platinum) with benefits
 - **CustomerLoyalty**: One loyalty account per customer for a program; **`fk_loyalty_tier_id`** is maintained by `LoyaltyService` from `LoyaltyTier` thresholds vs. `lifetime_points` and calendar-year **`annual_spent`**; optional legacy **`loyalty_card_number`**; primary POS identity is the customer’s normalized phone
-- **LoyaltyPointTransaction**: Point transaction history (earned, redeemed, expired, welcome, etc.)
+- **LoyaltyPointTransaction**: Point transaction history (earned, redeemed, expired, welcome, etc.); listed per customer on **Customer Detail → Point movements** (`CUSTOMER_LOYALTY_POINTS_GRID`)
 - **LoyaltyProgramPolicy**: Per-program operational policy — customer identifier mode (`PHONE` / `LOYALTY_CARD`), phone required for enrollment, default country code for normalization, void/refund point policy placeholder, integration provider (`LOCAL` / `GATE` / `EXTERNAL`)
 - **LoyaltyEarnRule**: Configurable earning rules (`DOCUMENT_TOTAL`, `LINE_ITEM`, `CATEGORY` / `DEPARTMENT`, `PRODUCT_SET` / `BUNDLE`) with `config_json` and `priority`; evaluated at sale completion by **`LoyaltyEarnService`**
 - **LoyaltyRedemptionPolicy**: Per-program redemption caps and step size; consumed by **`LoyaltyRedemptionService`** at PAYMENT time (**BONUS**)

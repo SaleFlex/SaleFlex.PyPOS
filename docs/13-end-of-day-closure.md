@@ -150,7 +150,7 @@ After a closure has been performed, the operator can browse historical closures 
 2. The DETAIL button calls `_closure_receipt_detail_form_event()`.  
 3. The selected receipt UUID is stored in `CurrentData.current_receipt_id`.  
 4. The application navigates to `CLOSURE_RECEIPT_DETAIL`.  
-5. `CLOSURE_RECEIPT_DETAIL` renders a key/value DataGrid (`ControlName.CLOSURE_RECEIPT_DETAIL_GRID`) with all header fields of the receipt plus individual line items (`TransactionProduct` rows) appended below a separator row.  
+5. `CLOSURE_RECEIPT_DETAIL` renders a key/value DataGrid (`ControlName.CLOSURE_RECEIPT_DETAIL_GRID`) with all header fields of the receipt (including **Loyalty — points earned** and **Loyalty — points redeemed** from `TransactionHead`) plus individual line items (`TransactionProduct` rows) appended below a separator row.  
 6. A **BACK** button returns to `CLOSURE_RECEIPTS`.
 
 ### Navigation Summary

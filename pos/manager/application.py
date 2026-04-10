@@ -118,9 +118,15 @@ class Application(CurrentStatus, CurrentData, EventHandler):
         about.update_message("Initializing database...")
         self.app.processEvents()
         init_db()
+
+        # Idempotent UI schema patches (e.g. new grids on existing databases)
+        from data_layer.db_init_data.forms.customer import ensure_customer_loyalty_points_grid
+        from data_layer.engine import Engine
+        _db = Engine()
+        with _db.get_session() as _session:
+            ensure_customer_loyalty_points_grid(_session)
         
         # Initialize KeyboardSettingsLoader for virtual keyboard settings
-        from data_layer.engine import Engine
         from user_interface.control.virtual_keyboard.keyboard_settings_loader import KeyboardSettingsLoader
         keyboard_engine = Engine()
         KeyboardSettingsLoader.initialize(keyboard_engine)

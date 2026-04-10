@@ -77,6 +77,11 @@ Walk-in, missing customer, missing membership, or inactive program → **`loyalt
 
 **Tier percentage discount** on product lines remains separate (not applied automatically at sale time).
 
+## Reporting and audit (Phase 6)
+
+- **Customer Detail → Point movements** (`CUSTOMER_LOYALTY_POINTS_GRID`): read-only list of **`LoyaltyPointTransaction`** for the customer (cashier-facing audit). Seeded on new installs; existing DBs get the tab via **`ensure_customer_loyalty_points_grid`** on startup (`pos/manager/application.py`).
+- **Closure → Receipt detail** (`CLOSURE_RECEIPT_DETAIL_GRID`): header includes **Loyalty — points earned** and **Loyalty — points redeemed** from **`TransactionHead`**.
+
 ## Code layout
 
 | Area | Location |
@@ -90,6 +95,7 @@ Walk-in, missing customer, missing membership, or inactive program → **`loyalt
 | Completed sale hook | `pos/service/payment_service.py` → `LoyaltyEarnService.stage_document_earn`, discount/payment/loyalty permanent copy, `LoyaltyService.on_sale_transaction_completed`, then `CustomerSegmentService.on_sale_transaction_completed` |
 | Full temp→perm copy (e.g. cancel path) | `pos/manager/document_manager.py` — payment completion uses the slimmer `PaymentService.copy_temp_to_permanent` |
 | UI / events | `pos/manager/event/customer.py` (save, search, assign) |
+| Point-movements grid + receipt loyalty lines | `user_interface/window/dynamic_dialog.py` (`_populate_customer_loyalty_points_grid`, `_populate_closure_receipt_detail_grid`) |
 
 ## Schema upgrades
 
@@ -97,7 +103,7 @@ Walk-in, missing customer, missing membership, or inactive program → **`loyalt
 
 ## Related documentation
 
-- [Customer Management](17-customer-management.md) — search, save, sale assignment
+- [Customer Management](17-customer-management.md) — search, save, sale assignment, **Point movements** tab (`CUSTOMER_LOYALTY_POINTS_GRID`)
 - [Customer Segmentation](42-customer-segmentation.md) — marketing segments and `marketing_profile()` (tier stays on loyalty side)
 - [Database Models Overview](21-database-models.md) — full model list
 - [Database Initialization](33-database-initialization.md) — `_insert_loyalty`

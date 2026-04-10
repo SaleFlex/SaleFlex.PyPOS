@@ -38,8 +38,8 @@ In Markdown under `docs/`, reference them as `../static_files/images/<filename>`
 | 14 | [Cashier Management](14-cashier-management.md) | Create/edit cashiers, role permissions, ADD NEW CASHIER |
 | 15 | [Product Management](15-product-management.md) | Product List search, Product Detail tabbed dialog |
 | 16 | [Inventory Management](16-inventory-management.md) | Stock levels, goods receipt, adjustments, movement history, negative stock policy |
-| 17 | [Customer Management](17-customer-management.md) | Customer List search, ADD new customer, Customer Detail tabbed dialog, Walk-in Customer, activity history (`TransactionHead` / `fk_customer_id`), SALE form CUSTOMER dual button, sale-assignment workflow |
-| 41 | [Loyalty Programs](41-loyalty-programs.md) | Local loyalty: policy / earn-rule / redemption models, `phone_normalized`, enrollment; **`LoyaltyRedemptionService`** + **BONUS** (`LOYALTY` discount, `REDEEMED` ledger); **`LoyaltyEarnService`** + optional **`earn_eligible_payment_types`**; **`EARNED`** + **`TransactionLoyalty`**; not yet: void/refund/exchange point clawback automation |
+| 17 | [Customer Management](17-customer-management.md) | Customer List search, ADD new customer, Customer Detail tabbed dialog (info, activity, **point movements** ledger), Walk-in Customer, SALE form CUSTOMER dual button, sale-assignment workflow |
+| 41 | [Loyalty Programs](41-loyalty-programs.md) | Local loyalty: policy / earn-rule / redemption models, `phone_normalized`, enrollment; **`LoyaltyRedemptionService`** + **BONUS**; **`LoyaltyEarnService`** + optional **`earn_eligible_payment_types`**; **`EARNED`** / **`REDEEMED`** + **`TransactionLoyalty`**; **Phase 6** — customer **Point movements** grid (`CUSTOMER_LOYALTY_POINTS_GRID`), closure **receipt detail** loyalty summary; not yet: void/refund/exchange point clawback automation |
 | 42 | [Customer Segmentation](42-customer-segmentation.md) | `CustomerSegmentService`: auto `CustomerSegmentMember` from `criteria_json`, VIP via `preferences_json`, sync on completed sale and customer save, `marketing_profile` with loyalty tier |
 
 ---
@@ -67,7 +67,7 @@ In Markdown under `docs/`, reference them as `../static_files/images/<filename>`
 | 31 | [Central Logging](31-logging.md) | `core/logger.py` configuration, log format, usage patterns |
 | 32 | [Exception Handling](32-exception-handling.md) | `SaleFlexError` hierarchy, usage patterns, design guidelines |
 | 33 | [Database Initialization](33-database-initialization.md) | Seed data functions, initialization order, adding new seed data |
-| 34 | [Startup Entry Point](34-startup-entry-point.md) | Working-directory fix, Python version guard, single-instance lock, global exception handler |
+| 34 | [Startup Entry Point](34-startup-entry-point.md) | Working-directory fix, Python version guard, single-instance lock, post-`init_db` idempotent UI patches (e.g. customer **Point movements** tab), global exception handler |
 | 35 | [Troubleshooting](35-troubleshooting.md) | Common issues, database problems, closure issues, sale issues |
 | 36 | [Support and Resources](36-support.md) | GitHub, issue tracker, donations, license |
 
@@ -92,7 +92,7 @@ In Markdown under `docs/`, reference them as `../static_files/images/<filename>`
 | Cashier accounts | [Cashier Management](14-cashier-management.md) |
 | Stock management | [Inventory Management](16-inventory-management.md) |
 | Customer management / sale assignment | [Customer Management](17-customer-management.md) |
-| Loyalty (phone ID, earn on completed sale, tier) | [Loyalty Programs](41-loyalty-programs.md) |
+| Loyalty (earn/redeem, customer point audit, closure receipt summary) | [Loyalty Programs](41-loyalty-programs.md) |
 | Marketing segments (auto rules) | [Customer Segmentation](42-customer-segmentation.md) |
 | UI customization | [Dynamic Forms System](22-dynamic-forms-system.md) |
 | Database schema | [Database Models Overview](21-database-models.md) |

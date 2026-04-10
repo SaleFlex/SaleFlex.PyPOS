@@ -165,6 +165,12 @@ next start:
 
 ---
 
+## Database bootstrap and UI schema patches (`Application`)
+
+Inside `Application.__init__`, after **`init_db()`** creates tables and seeds empty databases, the code runs **idempotent patches** on every startup. For example, **`ensure_customer_loyalty_points_grid`** (in `data_layer/db_init_data/forms/customer.py`) inserts the **Point movements** tab and `CUSTOMER_LOYALTY_POINTS_GRID` on **CUSTOMER_DETAIL** when they are missing — so existing SQLite files gain that audit UI without wiping the database. See [Customer Management — Database Reset Note](17-customer-management.md#database-reset-note) and [Loyalty Programs — Reporting and audit](41-loyalty-programs.md#reporting-and-audit-phase-6).
+
+---
+
 ## 4. `if __name__ == "__main__"` Guard
 
 ```python

@@ -559,8 +559,9 @@ def insert_customer_detail_controls(session, customer_detail_form, cashier_id: s
     Must be called AFTER the first session.flush().  Issues its own flushes internally.
 
     Tab layout:
-      Tab 0 – Customer Info    : PANEL "CUSTOMER" with label/textbox pairs
-      Tab 1 – Activity History : DATAGRID with transaction history
+      Tab 0 – Customer Info     : PANEL "CUSTOMER" with label/textbox pairs
+      Tab 1 – Activity History  : DATAGRID with transaction history
+      Tab 2 – Point movements   : DATAGRID with loyalty ledger (LoyaltyPointTransaction)
     SAVE + BACK buttons are placed outside the tab control.
     """
     if not customer_detail_form:
@@ -589,8 +590,9 @@ def insert_customer_detail_controls(session, customer_detail_form, cashier_id: s
 
     # 2. Tab page records
     cd_tab_defs = [
-        (0, "Customer Info",    "Personal details and contact information"),
-        (1, "Activity History", "Transaction history for this customer"),
+        (0, "Customer Info",     "Personal details and contact information"),
+        (1, "Activity History",  "Transaction history for this customer"),
+        (2, "Point movements",   "Loyalty point ledger for this customer"),
     ]
     cd_tab_records = []
     for tab_index, tab_title, tab_tooltip in cd_tab_defs:
@@ -729,6 +731,27 @@ def insert_customer_detail_controls(session, customer_detail_form, cashier_id: s
         fk_cashier_update_id=cashier_id,
     ))
 
+    # 5b. Loyalty point movements DATAGRID in Tab 2
+    session.add(FormControl(
+        fk_form_id=customer_detail_form.id,
+        fk_parent_id=cd_tab_control.id,
+        fk_tab_id=cd_tab_records[2].id,
+        name=ControlName.CUSTOMER_LOYALTY_POINTS_GRID.value,
+        type_no=1,
+        type="DATAGRID",
+        width=1002,
+        height=647,
+        location_x=1,
+        location_y=1,
+        back_color="0x1B2631",
+        fore_color="0xECF0F1",
+        font_size=11,
+        tool_tip="Loyalty point movements (earned, redeemed, welcome, …)",
+        is_visible=True,
+        fk_cashier_create_id=cashier_id,
+        fk_cashier_update_id=cashier_id,
+    ))
+
     # 6. SAVE button (outside tab control)
     session.add(FormControl(
         fk_form_id=customer_detail_form.id,
@@ -782,3 +805,82 @@ def insert_customer_detail_controls(session, customer_detail_form, cashier_id: s
     ))
 
     session.flush()
+
+
+def ensure_customer_loyalty_points_grid(session) -> None:
+    """
+    Idempotent schema patch: add ``Point movements`` tab and ``CUSTOMER_LOYALTY_POINTS_GRID``
+    to existing CUSTOMER_DETAIL (#18) when form controls were seeded before this grid existed.
+    """
+    from sqlalchemy import func
+
+    from core.logger import get_logger
+    from data_layer.model.definition.cashier import Cashier
+    from data_layer.model.definition.form import Form
+    from data_layer.model.definition.form_control import FormControl
+
+    logger = get_logger(__name__)
+
+    if session.query(FormControl).filter(
+        FormControl.name == ControlName.CUSTOMER_LOYALTY_POINTS_GRID.value
+    ).first():
+        return
+
+    customer_form = session.query(Form).filter(Form.form_no == 18).first()
+    if not customer_form:
+        return
+
+    tab_control = session.query(FormControl).filter(
+        FormControl.fk_form_id == customer_form.id,
+        FormControl.name == ControlName.CUSTOMER_DETAIL_TAB.value,
+    ).first()
+    if not tab_control:
+        return
+
+    admin = session.query(Cashier).filter(Cashier.username == "admin").first()
+    if not admin:
+        admin = session.query(Cashier).first()
+    if not admin:
+        logger.warning("ensure_customer_loyalty_points_grid: no cashier row; skipping patch")
+        return
+    cashier_id = admin.id
+
+    max_idx = session.query(func.max(FormControlTab.tab_index)).filter(
+        FormControlTab.fk_form_control_id == tab_control.id
+    ).scalar()
+    next_index = (max_idx + 1) if max_idx is not None else 0
+
+    tab_rec = FormControlTab(
+        fk_form_control_id=tab_control.id,
+        tab_index=next_index,
+        tab_title="Point movements",
+        tab_tooltip="Loyalty point ledger for this customer",
+        back_color="0x1B2631",
+        fore_color="0xECF0F1",
+        is_visible=True,
+        fk_cashier_create_id=cashier_id,
+        fk_cashier_update_id=cashier_id,
+    )
+    session.add(tab_rec)
+    session.flush()
+
+    session.add(FormControl(
+        fk_form_id=customer_form.id,
+        fk_parent_id=tab_control.id,
+        fk_tab_id=tab_rec.id,
+        name=ControlName.CUSTOMER_LOYALTY_POINTS_GRID.value,
+        type_no=1,
+        type="DATAGRID",
+        width=1002,
+        height=647,
+        location_x=1,
+        location_y=1,
+        back_color="0x1B2631",
+        fore_color="0xECF0F1",
+        font_size=11,
+        tool_tip="Loyalty point movements (earned, redeemed, welcome, …)",
+        is_visible=True,
+        fk_cashier_create_id=cashier_id,
+        fk_cashier_update_id=cashier_id,
+    ))
+    logger.info("Schema patch: added CUSTOMER_LOYALTY_POINTS_GRID to CUSTOMER_DETAIL")

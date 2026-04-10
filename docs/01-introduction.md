@@ -10,7 +10,7 @@ Built with PySide6 (Qt framework) and SQLAlchemy ORM, SaleFlex.PyPOS features:
 - **In-Memory Caching**: Optimized performance with reference data and product data caching
 - **Auto-Save Functionality**: Automatic database persistence ensuring data integrity
 - **Event-Driven Architecture**: Modular event handling with 10 specialized event handler classes (including CustomerEvent)
-- **100+ Database Models**: Comprehensive data model covering all POS operations (loyalty policy, earn-rule, and redemption tables; `TransactionDiscountType` **`LOYALTY`**; customer `phone_normalized`; customer segments and auto-assigned memberships)
+- **100+ Database Models**: Comprehensive data model covering all POS operations (loyalty policy, earn-rule, and redemption tables; `TransactionDiscountType` **`LOYALTY`**; customer `phone_normalized`; **`LoyaltyPointTransaction`** with **Customer Detail → Point movements** audit grid and closure **receipt detail** earned/redeemed summary; customer segments and auto-assigned memberships)
 - **Cashier Management**: Role-based access control with admin and standard cashier roles
 - **Smart NumPad**: Four operating modes — barcode/PLU lookup, inline quantity, quantity multiplier (X), and payment amount
 - **Transaction Suspend/Resume**: Park and resume sales (market mode) or table orders (restaurant mode)

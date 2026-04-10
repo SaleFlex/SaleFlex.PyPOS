@@ -1,6 +1,6 @@
 # Customer Management
 
-SaleFlex.PyPOS provides a fully DB-driven Customer Management module that is accessible both from the **Main Menu** and directly from the **SALE form**. It covers customer list search, adding new customers, viewing and editing customer details, and browsing each customer's transaction activity history. When accessed from the SALE form, the selected or newly created customer is automatically linked to the active sale transaction.
+SaleFlex.PyPOS provides a fully DB-driven Customer Management module that is accessible both from the **Main Menu** and directly from the **SALE form**. It covers customer list search, adding new customers, viewing and editing customer details, browsing **Activity History** (completed receipts), and **Point movements** (loyalty ledger audit). When accessed from the SALE form, the selected or newly created customer is automatically linked to the active sale transaction.
 
 ---
 
@@ -9,7 +9,7 @@ SaleFlex.PyPOS provides a fully DB-driven Customer Management module that is acc
 | Form | Form No | Display Mode | Purpose |
 |------|---------|-------------|---------|
 | `CUSTOMER_LIST` | 17 | MAIN | Search and browse the customer database; add new customers |
-| `CUSTOMER_DETAIL` | 18 | MODAL | View, edit, or create a customer record; review activity history |
+| `CUSTOMER_DETAIL` | 18 | MODAL | View, edit, or create a customer record; activity history + loyalty point movements |
 
 ---
 
@@ -149,6 +149,21 @@ A read-only **DataGrid** (`CUSTOMER_ACTIVITY_GRID`) listing the customer's **com
 | Status | `transaction_status` |
 
 Open (draft) carts in `transaction_head_temp` do not appear here — only finalized documents copied to `TransactionHead` when a sale completes or is cancelled (and persisted). After **SAVE** on **ADD** (first creation of a customer), the grid is refreshed so the **Activity History** tab reflects the new `current_customer_id` (typically still empty until that customer completes a sale).
+
+### Tab 2 — Point movements
+
+Read-only **DataGrid** (`CUSTOMER_LOYALTY_POINTS_GRID`): loyalty **audit** from `loyalty_point_transaction` for the open customer (`fk_customer_id`), newest first, up to **500** rows. Populated by `DynamicDialog._populate_customer_loyalty_points_grid` when the modal opens (and with **Activity History** when **SAVE** refreshes customer detail grids).
+
+| Column | Source |
+|--------|--------|
+| Date/Time | `transaction_date` |
+| Type | `transaction_type` (e.g. `EARNED`, `REDEEMED`, `WELCOME`) |
+| Points | `points_amount` (negative when redeemed) |
+| Balance after | `balance_after` |
+| Receipt | `receipt_number` from linked `TransactionHead` when `fk_transaction_head_id` is set |
+| Description | `description` / `notes` (truncated) |
+
+Existing databases gain this tab automatically on next application start (`ensure_customer_loyalty_points_grid`).
 
 ### Buttons
 
@@ -310,13 +325,15 @@ SALE
 
 > **Loyalty / phone column:** New installations add **`customer.phone_normalized`** and loyalty policy tables automatically. Older SQLite files do not gain new columns from `create_all()` alone — recreate the database or migrate the schema before relying on phone uniqueness and loyalty seed data.
 
+> **Point movements tab:** On startup, **`ensure_customer_loyalty_points_grid`** (after `init_db`) adds the **Point movements** tab and `CUSTOMER_LOYALTY_POINTS_GRID` to **CUSTOMER_DETAIL** if they are missing — no full DB reset required for that UI patch alone.
+
 ---
 
 ## Related Documentation
 
 - [Dynamic Forms System](22-dynamic-forms-system.md) — how DB-driven forms and panels work
 - [Database Models Overview](21-database-models.md) — Customer, CustomerLoyalty, CustomerSegment models
-- [Loyalty Programs](41-loyalty-programs.md) — policy tables, `LoyaltyService`, enrollment on sale assignment
+- [Loyalty Programs](41-loyalty-programs.md) — policy tables, `LoyaltyService`, enrollment, redemption, **Phase 6** point audit on customer detail and closure receipt summary
 - [Customer Segmentation](42-customer-segmentation.md) — `CustomerSegmentService`, `criteria_json`, `marketing_profile`
 - [Event System](24-event-system.md) — CustomerEvent handler class
 - [Database Initialization](33-database-initialization.md) — `_insert_customers()` seed function

@@ -695,16 +695,86 @@ class DynamicDialog(QDialog):
             datagrid.set_data([])
             datagrid._customer_transaction_head_ids = []
 
+    def _populate_customer_loyalty_points_grid(self, datagrid):
+        """
+        Fill ``CUSTOMER_LOYALTY_POINTS_GRID`` with ``LoyaltyPointTransaction`` rows
+        for ``app.current_customer_id`` (newest first, capped at 500).
+        """
+        datagrid.set_columns([
+            "Date/Time",
+            "Type",
+            "Points",
+            "Balance after",
+            "Receipt",
+            "Description",
+        ])
+        customer_id = getattr(self.app, "current_customer_id", None)
+        if not customer_id:
+            datagrid.set_data([])
+            return
+        try:
+            from uuid import UUID as _UUID
+
+            from data_layer.engine import Engine
+            from data_layer.model.definition.loyalty_point_transaction import LoyaltyPointTransaction
+            from data_layer.model.definition.transaction_head import TransactionHead
+
+            cid = _UUID(str(customer_id)) if not isinstance(customer_id, _UUID) else customer_id
+            engine = Engine()
+            with engine.get_session() as session:
+                q = (
+                    session.query(LoyaltyPointTransaction)
+                    .filter(
+                        LoyaltyPointTransaction.fk_customer_id == cid,
+                        LoyaltyPointTransaction.is_deleted != True,
+                    )
+                    .order_by(LoyaltyPointTransaction.transaction_date.desc())
+                )
+                ledger_rows = q.limit(500).all()
+                data_rows = []
+                for row in ledger_rows:
+                    dt_str = (
+                        row.transaction_date.strftime("%Y-%m-%d %H:%M")
+                        if row.transaction_date
+                        else ""
+                    )
+                    receipt_no = ""
+                    if row.fk_transaction_head_id:
+                        head = (
+                            session.query(TransactionHead)
+                            .filter(TransactionHead.id == row.fk_transaction_head_id)
+                            .first()
+                        )
+                        if head:
+                            receipt_no = str(head.receipt_number or "")
+                    desc = row.description or row.notes or ""
+                    if len(desc) > 120:
+                        desc = desc[:117] + "..."
+                    data_rows.append([
+                        dt_str,
+                        row.transaction_type or "",
+                        str(row.points_amount),
+                        str(row.balance_after),
+                        receipt_no,
+                        desc,
+                    ])
+                datagrid.set_data(data_rows)
+        except Exception as exc:
+            logger.exception("[CUSTOMER_LOYALTY_POINTS_GRID] Error: %s", exc)
+            datagrid.set_data([])
+
     def repopulate_customer_activity_grid(self):
-        """Reload Activity History after ``current_customer_id`` changes (e.g. first SAVE on ADD)."""
+        """Reload customer detail datagrids after ``current_customer_id`` changes (e.g. first SAVE on ADD)."""
         from data_layer.enums import ControlName
         try:
             for grid in self.findChildren(DataGrid):
-                if getattr(grid, "name", None) == ControlName.CUSTOMER_ACTIVITY_GRID.value:
+                name = getattr(grid, "name", None)
+                if name == ControlName.CUSTOMER_ACTIVITY_GRID.value:
                     self._populate_customer_activity_grid(grid)
-                    break
+                elif name == ControlName.CUSTOMER_LOYALTY_POINTS_GRID.value:
+                    self._populate_customer_loyalty_points_grid(grid)
         except Exception as exc:
-            logger.exception("[CUSTOMER_ACTIVITY_GRID] Refresh error: %s", exc)
+            logger.exception("[CUSTOMER_DETAIL grids] Refresh error: %s", exc)
 
     def _populate_closure_receipt_detail_grid(self, datagrid):
         """
@@ -760,6 +830,14 @@ class DynamicDialog(QDialog):
                     ["Payment Total",   _num(head.total_payment_amount)],
                     ["Change",          _num(head.total_change_amount)],
                     ["Tip",             _num(head.tip_amount)],
+                    [
+                        "Loyalty — points earned",
+                        str(int(head.loyalty_points_earned or 0)),
+                    ],
+                    [
+                        "Loyalty — points redeemed",
+                        str(int(head.loyalty_points_redeemed or 0)),
+                    ],
                 ]
 
             datagrid.set_data(rows)
@@ -1463,6 +1541,9 @@ class DynamicDialog(QDialog):
 
         elif name_key == ControlName.CUSTOMER_ACTIVITY_GRID.value:
             self._populate_customer_activity_grid(datagrid)
+
+        elif name_key == ControlName.CUSTOMER_LOYALTY_POINTS_GRID.value:
+            self._populate_customer_loyalty_points_grid(datagrid)
 
         datagrid.show()
 
