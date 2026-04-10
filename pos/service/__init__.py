@@ -11,6 +11,14 @@ from pos.service.sale_service import SaleService
 from pos.service.payment_service import PaymentService
 from pos.service.loyalty_service import LoyaltyService
 from pos.service.customer_segment_service import CustomerSegmentService
+from pos.service.campaign import CampaignService
 
-__all__ = ['VatService', 'SaleService', 'PaymentService', 'LoyaltyService', 'CustomerSegmentService']
+__all__ = [
+    "VatService",
+    "SaleService",
+    "PaymentService",
+    "LoyaltyService",
+    "CustomerSegmentService",
+    "CampaignService",
+]
 

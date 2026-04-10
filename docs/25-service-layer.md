@@ -19,9 +19,10 @@ pos/service/
 ├── loyalty_redemption_service.py # BONUS: points → LOYALTY TransactionDiscountTemp; policy caps
 ├── loyalty_settings_model.py    # Active program + policies for SETTING form UI
 ├── customer_segment_service.py  # criteria_json → CustomerSegmentMember; marketing_profile
-└── campaign/                    # Cart snapshot + promotion policy (no SALE auto-apply yet)
+└── campaign/                    # Cart snapshot + local evaluation (proposals not wired to SALE yet)
     ├── application_policy.py    # Stacking / thresholds / loyalty interaction (documented)
     ├── cart_snapshot.py         # schema_version 1.0, build from document_data
+    ├── campaign_service.py      # CampaignService.evaluate_proposals (basket / time / product)
     └── __init__.py
 ```
 
@@ -36,6 +37,10 @@ The **`pos/service/campaign/`** package defines a **canonical cart payload** for
 **`CAMPAIGN_DISCOUNT_TYPE_CODE`** (`"CAMPAIGN"`) matches the **`transaction_discount_type`** row and the string on **`TransactionDiscountTemp.discount_type`** for promotion lines; see [Campaign & Promotions — CAMPAIGN transaction discount type](43-campaign-promotions.md#campaign-transaction-discount-type).
 
 See [Campaign & Promotions](43-campaign-promotions.md) for field lists, stacking rules, and integration notes.
+
+### `CampaignService` (local evaluation)
+
+**`CampaignService.evaluate_proposals(document_data, …)`** returns **`CampaignDiscountProposal`** instances (read-only; no DB writes). Supports **`BASKET_DISCOUNT`**, **`TIME_BASED`**, and **`PRODUCT_DISCOUNT`** (with **`CampaignProduct`** rows). Details and limits: [Campaign & Promotions — Local evaluation](43-campaign-promotions.md#local-evaluation-campaignservice).
 
 ## Available Services
 

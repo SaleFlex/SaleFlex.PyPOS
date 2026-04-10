@@ -184,7 +184,7 @@ Creates sample promotional campaigns:
 - Time-based promotions
 - Campaign rules and conditions
 
-Inserts are idempotent. Seed rows illustrate the schema; **automatic application at the till** is not implemented yet. Runtime design (cart snapshot for GATE/local) is described in [Campaign & Promotions](43-campaign-promotions.md).
+**End dates** are set about **365 days** after insert so sample rows stay valid on long-lived dev databases. Inserts are idempotent. Seed rows illustrate the schema; **automatic application at the till** (writing **`TransactionDiscountTemp`** from **`CampaignService`**) is not implemented yet. Runtime design is described in [Campaign & Promotions](43-campaign-promotions.md).
 
 ### `_insert_pos_settings(session, admin_cashier_id, gbp_currency=None)`
 Configures system-wide POS settings:

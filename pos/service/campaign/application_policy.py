@@ -3,7 +3,7 @@ Campaign / promotion application order and stacking (design contract).
 
 Copyright (c) 2025-2026 Ferhat Mousavi
 
-This module documents behaviour agreed for the MVP engine and for GATE payloads.
+This module documents behaviour agreed for the local campaign engine and for GATE payloads.
 Runtime code should follow these rules unless settings override them later.
 
 ## Evaluation moment
@@ -42,7 +42,7 @@ combinable ones can stack until a non-combinable campaign is applied (if any).
   evaluation; the engine does not reopen those lines.
 - Document-level discounts that are **not** campaign-driven (e.g. future manager
   header discounts) should be excluded from the campaign engine’s own outputs or
-  handled explicitly when we add them; MVP assumes campaign discounts are the main
+  handled explicitly when we add them; this policy assumes campaign discounts are the main
   document-level promotional lines besides **LOYALTY** at payment.
 
 ## Loyalty earning / redemption

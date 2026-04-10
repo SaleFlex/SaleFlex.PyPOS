@@ -5,6 +5,7 @@ Copyright (c) 2025-2026 Ferhat Mousavi
 """
 
 from pos.service.campaign.application_policy import CAMPAIGN_DISCOUNT_TYPE_CODE
+from pos.service.campaign.campaign_service import CampaignDiscountProposal, CampaignService, SUPPORTED_TYPE_CODES
 from pos.service.campaign.cart_snapshot import (
     CART_SNAPSHOT_SCHEMA_VERSION,
     CartLineSnapshot,
@@ -18,6 +19,9 @@ from pos.service.campaign.cart_snapshot import (
 __all__ = [
     "CAMPAIGN_DISCOUNT_TYPE_CODE",
     "CART_SNAPSHOT_SCHEMA_VERSION",
+    "CampaignDiscountProposal",
+    "CampaignService",
+    "SUPPORTED_TYPE_CODES",
     "CartLineSnapshot",
     "CartSnapshot",
     "CartTotalsSnapshot",

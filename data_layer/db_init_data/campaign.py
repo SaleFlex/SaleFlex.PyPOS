@@ -121,7 +121,8 @@ def _insert_sample_campaigns(session: Session, admin_cashier_id):
     buy_x_get_y_type = session.query(CampaignType).filter_by(code="BUY_X_GET_Y").first()
 
     now = datetime.now()
-    next_month = now + timedelta(days=30)
+    # Long horizon so sample campaigns stay valid on dev databases (adjust in production).
+    campaign_end = now + timedelta(days=365)
 
     campaigns = [
         Campaign(
@@ -132,7 +133,7 @@ def _insert_sample_campaigns(session: Session, admin_cashier_id):
             discount_type="PERCENTAGE",
             discount_percentage=10.0,
             start_date=now,
-            end_date=next_month,
+            end_date=campaign_end,
             priority=5,
             is_combinable=False,
             usage_limit_per_customer=1,
@@ -151,7 +152,7 @@ def _insert_sample_campaigns(session: Session, admin_cashier_id):
             discount_value=10.0,
             min_purchase_amount=100.0,
             start_date=now,
-            end_date=next_month,
+            end_date=campaign_end,
             priority=3,
             is_combinable=True,
             is_active=True,
@@ -168,7 +169,7 @@ def _insert_sample_campaigns(session: Session, admin_cashier_id):
             discount_type="PERCENTAGE",
             discount_percentage=20.0,
             start_date=now,
-            end_date=next_month,
+            end_date=campaign_end,
             start_time=datetime.strptime("15:00", "%H:%M").time(),
             end_time=datetime.strptime("18:00", "%H:%M").time(),
             days_of_week="1,2,3,4,5",  # Monday to Friday
@@ -189,7 +190,7 @@ def _insert_sample_campaigns(session: Session, admin_cashier_id):
             buy_quantity=2,
             get_quantity=1,
             start_date=now,
-            end_date=next_month,
+            end_date=campaign_end,
             priority=6,
             is_combinable=False,
             is_active=True,

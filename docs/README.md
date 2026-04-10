@@ -41,7 +41,7 @@ In Markdown under `docs/`, reference them as `../static_files/images/<filename>`
 | 17 | [Customer Management](17-customer-management.md) | Customer List search, ADD new customer, Customer Detail tabbed dialog (info, activity, **point movements** ledger), Walk-in Customer, SALE form CUSTOMER dual button, sale-assignment workflow |
 | 41 | [Loyalty Programs](41-loyalty-programs.md) | Local loyalty: policy / earn-rule / redemption models, `phone_normalized`, enrollment; **`LoyaltyRedemptionService`** + **BONUS**; **`LoyaltyEarnService`** + optional **`earn_eligible_payment_types`**; **`EARNED`** / **`REDEEMED`** + **`TransactionLoyalty`**; **Phase 6** — customer **Point movements** grid (`CUSTOMER_LOYALTY_POINTS_GRID`), closure **receipt detail** loyalty summary; not yet: void/refund/exchange point clawback automation |
 | 42 | [Customer Segmentation](42-customer-segmentation.md) | `CustomerSegmentService`: auto `CustomerSegmentMember` from `criteria_json`, VIP via `preferences_json`, sync on completed sale and customer save, `marketing_profile` with loyalty tier |
-| 43 | [Campaign & Promotions](43-campaign-promotions.md) | Cart snapshot (`schema_version` 1.0), stacking policy, GATE request shape; **`CAMPAIGN`** `transaction_discount_type` + startup patch; `discount_code` traceability — SALE auto-apply not wired yet |
+| 43 | [Campaign & Promotions](43-campaign-promotions.md) | Cart snapshot, **`CampaignService.evaluate_proposals`** (basket/time/product), **`CAMPAIGN`** discount type + patch; proposals not applied on SALE yet |
 
 ---
 
@@ -54,7 +54,7 @@ In Markdown under `docs/`, reference them as `../static_files/images/<filename>`
 | 22 | [Dynamic Forms System](22-dynamic-forms-system.md) | DB-driven UI forms, Panel controls, CheckBox, form transitions, generic save pattern |
 | 23 | [UI Controls Catalog](23-ui-controls.md) | Custom Qt widgets (Button, TextBox, NumPad, SaleList, TabControl, …); **AmountTable** viewport row-height sync |
 | 24 | [Event System](24-event-system.md) | EventHandler, `event_distributor()`, all event categories with handler mapping |
-| 25 | [Service Layer](25-service-layer.md) | VatService, SaleService, PaymentService (net due, discount copy), LoyaltyEarnService, LoyaltyRedemptionService, LoyaltyService, CustomerSegmentService, REPEAT/DELETE handlers |
+| 25 | [Service Layer](25-service-layer.md) | VatService, SaleService, PaymentService (net due, discount copy), LoyaltyEarnService, LoyaltyRedemptionService, LoyaltyService, CustomerSegmentService, **`CampaignService.evaluate_proposals`**, REPEAT/DELETE handlers |
 | 26 | [Document Management](26-document-management.md) | Transaction lifecycle, suspend/resume, line cancellation, payment flow |
 | 27 | [Data Caching](27-data-caching.md) | `pos_data` / `product_data` caches, AutoSave system, closure management |
 
@@ -95,7 +95,7 @@ In Markdown under `docs/`, reference them as `../static_files/images/<filename>`
 | Customer management / sale assignment | [Customer Management](17-customer-management.md) |
 | Loyalty (earn/redeem, customer point audit, closure receipt summary) | [Loyalty Programs](41-loyalty-programs.md) |
 | Marketing segments (auto rules) | [Customer Segmentation](42-customer-segmentation.md) |
-| Campaigns (cart snapshot, `CAMPAIGN` discount type, startup patch) | [Campaign & Promotions](43-campaign-promotions.md) |
+| Campaigns (cart snapshot, `CampaignService`, `CAMPAIGN` type + patch, proposals not on SALE yet) | [Campaign & Promotions](43-campaign-promotions.md) |
 | UI customization | [Dynamic Forms System](22-dynamic-forms-system.md) |
 | Database schema | [Database Models Overview](21-database-models.md) |
 | Event wiring | [Event System](24-event-system.md) |
