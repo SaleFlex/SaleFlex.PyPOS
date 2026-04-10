@@ -23,7 +23,7 @@ SOFTWARE.
 """
 
 from decimal import Decimal, InvalidOperation
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 from data_layer.enums.event_name import EventName
 from data_layer.model.definition.transaction_status import TransactionStatus
 from data_layer.model.definition.transaction_payment_temp import TransactionPaymentTemp
@@ -88,7 +88,28 @@ class PaymentService:
         except (ValueError, InvalidOperation, TypeError):
             logger.warning("[PAYMENT_SERVICE] Warning: Could not convert %s (%s) to Decimal, using 0", value, type(value))
             return Decimal('0')
-    
+
+    @staticmethod
+    def net_amount_due(head: Any) -> Decimal:
+        """Gross ``total_amount`` minus ``total_discount_amount`` (amount still to cover after discounts)."""
+        gross = PaymentService._safe_decimal(getattr(head, "total_amount", None))
+        disc = PaymentService._safe_decimal(getattr(head, "total_discount_amount", None))
+        return gross - disc
+
+    @staticmethod
+    def remaining_balance(document_data: Dict[str, Any]) -> Decimal:
+        """Net amount due minus payments recorded on the head (matches AmountTable balance)."""
+        from data_layer.auto_save import AutoSaveModel
+
+        if not document_data or not document_data.get("head"):
+            return Decimal("0")
+        head = document_data["head"]
+        if isinstance(head, AutoSaveModel):
+            head = head.unwrap()
+        net = PaymentService.net_amount_due(head)
+        paid = PaymentService._safe_decimal(getattr(head, "total_payment_amount", None))
+        return net - paid
+
     @staticmethod
     def calculate_payment_amount(
         button_name: str,
@@ -186,11 +207,10 @@ class PaymentService:
         
         try:
             head_temp = document_data["head"]
-            
-            # Calculate remaining balance (use safe decimal conversion)
-            total_amount = PaymentService._safe_decimal(head_temp.total_amount)
-            total_payment = PaymentService._safe_decimal(head_temp.total_payment_amount)
-            remaining_amount = total_amount - total_payment
+            if hasattr(head_temp, "unwrap"):
+                head_temp = head_temp.unwrap()
+
+            remaining_amount = PaymentService.remaining_balance(document_data)
             
             if remaining_amount <= 0:
                 return False, None, "Document already fully paid"
@@ -271,9 +291,13 @@ class PaymentService:
             return Decimal('0')
         
         head_temp = document_data["head"]
+        from data_layer.auto_save import AutoSaveModel
+
+        if isinstance(head_temp, AutoSaveModel):
+            head_temp = head_temp.unwrap()
         total_payment = PaymentService._safe_decimal(head_temp.total_payment_amount)
-        total_amount = PaymentService._safe_decimal(head_temp.total_amount)
-        change_amount = total_payment - total_amount
+        net_due = PaymentService.net_amount_due(head_temp)
+        change_amount = total_payment - net_due
         return change_amount
     
     @staticmethod
@@ -353,19 +377,22 @@ class PaymentService:
         
         try:
             head_temp = document_data["head"]
-            
-            total_amount = PaymentService._safe_decimal(head_temp.total_amount)
+            from data_layer.auto_save import AutoSaveModel
+
+            if isinstance(head_temp, AutoSaveModel):
+                head_temp = head_temp.unwrap()
+
+            net_due = PaymentService.net_amount_due(head_temp)
             total_payment = PaymentService._safe_decimal(head_temp.total_payment_amount)
             total_change = PaymentService._safe_decimal(head_temp.total_change_amount)
-            
-            # Document is complete when: total_amount = total_payment - total_change
-            # Use small tolerance for floating point comparison
-            difference = abs(total_amount - (total_payment - total_change))
+
+            # Net due = payments - change (tolerance for rounding)
+            difference = abs(net_due - (total_payment - total_change))
             is_complete = difference < Decimal('0.01')
             
             # Debug logging
             logger.debug("[PAYMENT_SERVICE] Document completion check:")
-            logger.debug("  total_amount: %s", total_amount)
+            logger.debug("  net_amount_due: %s", net_due)
             logger.debug("  total_payment: %s", total_payment)
             logger.debug("  total_change: %s", total_change)
             logger.debug("  difference: %s", difference)
@@ -491,6 +518,8 @@ class PaymentService:
             from data_layer.model.definition.transaction_payment import TransactionPayment
             from data_layer.model.definition.transaction_change import TransactionChange
             from data_layer.model.definition.Transaction_loyalty import TransactionLoyalty
+            from data_layer.model.definition.transaction_discount import TransactionDiscount
+            from data_layer.model.definition.transaction_discount_type import TransactionDiscountType
             from uuid import uuid4
 
             from pos.service.loyalty_earn_service import LoyaltyEarnService
@@ -513,6 +542,44 @@ class PaymentService:
                     setattr(head, key, getattr(head_temp, key))
             head.id = uuid4()
             head.create()
+
+            discount_type_map: Dict[str, Any] = {}
+            if document_data.get("discounts"):
+                from data_layer.engine import Engine as _Engine
+
+                with _Engine().get_session() as _s:
+                    for row in (
+                        _s.query(TransactionDiscountType)
+                        .filter(TransactionDiscountType.is_deleted.is_(False))
+                        .all()
+                    ):
+                        discount_type_map[row.code.upper()] = row.id
+
+            def _discount_type_id(code: str):
+                c = (code or "NONE").upper()
+                return discount_type_map.get(c) or discount_type_map.get("NONE")
+
+            if document_data.get("discounts"):
+                for disc_temp in document_data["discounts"]:
+                    if isinstance(disc_temp, AutoSaveModel):
+                        disc_temp = disc_temp.unwrap()
+                    fk_dt = _discount_type_id(getattr(disc_temp, "discount_type", None))
+                    if not fk_dt:
+                        logger.error("[PAYMENT_SERVICE] Skip discount: no TransactionDiscountType for %s", getattr(disc_temp, "discount_type", None))
+                        continue
+                    disc = TransactionDiscount()
+                    disc.id = uuid4()
+                    disc.fk_transaction_head_id = head.id
+                    disc.fk_discount_type_id = fk_dt
+                    disc.fk_transaction_product_id = getattr(disc_temp, "fk_transaction_product_id", None)
+                    disc.fk_transaction_payment_id = getattr(disc_temp, "fk_transaction_payment_id", None)
+                    disc.fk_transaction_department_id = getattr(disc_temp, "fk_transaction_department_id", None)
+                    disc.line_no = getattr(disc_temp, "line_no", 1)
+                    disc.discount_amount = getattr(disc_temp, "discount_amount", 0)
+                    disc.discount_rate = getattr(disc_temp, "discount_rate", None)
+                    disc.discount_code = getattr(disc_temp, "discount_code", None)
+                    disc.is_cancel = bool(getattr(disc_temp, "is_cancel", False))
+                    disc.create()
 
             # Copy payments
             if document_data.get("payments"):

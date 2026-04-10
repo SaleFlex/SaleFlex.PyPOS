@@ -239,10 +239,10 @@ Enum / DB name: **`FormName.PAYMENT`** (default seed `form_no` **20**). Opened f
 |------|-------------|
 | **AMOUNTSTABLE** | Live totals (same control family as SALE); row heights stretch to fill the control height without increasing font size |
 | **PAYMENTLIST** | Lines already tendered on the document |
-| **NUMPAD** | Tender amount in **minor units**; **Enter** is a no-op (`NONE`). On this screen you **must** enter an amount before each payment type — the app does **not** auto-take the full balance in one tap (unlike the SALE form). Split tenders repeat until the balance is zero, then the receipt completes. |
+| **NUMPAD** | Tender amount in **minor units** for cash/card/etc.; **Enter** is a no-op (`NONE`). For **BONUS** (loyalty), enter **whole points** (not currency). On this screen you **must** enter a value before each payment type — the app does **not** auto-take the full balance in one tap (unlike the SALE form). Split tenders repeat until the **net** balance is zero, then the receipt completes. |
 | **BACK** | `BACK` event → previous form (SALE) |
 | **CHANGE** | `CHANGE_PAYMENT` — same as SALE form; when over-tendered, records change and can complete the receipt (no MessageForm fallback if this button exists on the form) |
-| Payment grid | Buttons for cash, card, cheque, on credit, prepaid, mobile, bonus, exchange, current account, bank transfer (see seed data in `data_layer/db_init_data/forms/payment_screen.py` for `EventName` mapping) |
+| Payment grid | Buttons for cash, card, cheque, on credit, prepaid, mobile, **bonus** (loyalty **BONUS_PAYMENT**), exchange, current account, bank transfer (see seed data in `data_layer/db_init_data/forms/payment_screen.py` for `EventName` mapping) |
 
 When the ticket is fully paid from this screen, the app completes the sale, prints, and redraws **SALE** with a new empty document (same behaviour as completing on the main sale layout). The stacked **SALE** entry that was added when opening PAYMENT is then popped from ``form_history`` (`prepare_navigation_return_from_payment_form`) so **BACK** leaves the sale screen for the real previous form (e.g. **MAIN_MENU**), not a duplicate SALE.
 
@@ -267,10 +267,11 @@ When the ticket is fully paid from this screen, the app completes the sale, prin
 | `CHARGE_SALE_PAYMENT` | House charge / store credit — capped at remaining |
 | `OTHER_PAYMENT` | Any other method — capped at remaining |
 | `CHANGE_PAYMENT` | Record change given to the customer |
+| `BONUS_PAYMENT` | **Loyalty redemption** — applies a **`LOYALTY`** **`TransactionDiscountTemp`** from numpad **points** (`LoyaltyRedemptionService`); not a cash tender. Requires registered customer with membership and available points. |
 
-When the total payment equals the document total (minus any change), the transaction is automatically completed, the receipt is printed (see [Peripherals — Receipt format](30-peripherals.md#receipt-format)), and the cash drawer is opened.
+When **net** amount due (`total_amount − total_discount_amount`) is fully covered by payments (minus any recorded change), the transaction is automatically completed, the receipt is printed (see [Peripherals — Receipt format](30-peripherals.md#receipt-format)), and the cash drawer is opened.
 
-**Loyalty (local):** For **sale** receipts with a **registered** (non–walk-in) customer and an active **`CustomerLoyalty`** membership, completion runs **`LoyaltyEarnService.stage_document_earn`** inside **`PaymentService.copy_temp_to_permanent`** before the permanent header is written — see [Loyalty Programs — Earning engine](41-loyalty-programs.md#earning-engine-loyaltyearnservice). Points are **not** shown on the printed receipt unless the receipt template is extended; redemption at payment is not implemented yet.
+**Loyalty (local):** **Redemption** on **PAYMENT**: **BONUS** → **`LoyaltyRedemptionService`** (discount line + `loyalty_points_redeemed`); ledger **`REDEEMED`** posts on completion — see [Loyalty Programs — Redemption](41-loyalty-programs.md#redemption-at-payment-loyaltyredemptionservice-bonus_payment). **Earning**: for **sale** receipts with a **registered** (non–walk-in) customer and **`CustomerLoyalty`**, **`LoyaltyEarnService.stage_document_earn`** runs inside **`PaymentService.copy_temp_to_permanent`** — see [Earning engine](41-loyalty-programs.md#earning-engine-loyaltyearnservice). Earn may be restricted by **`earn_eligible_payment_types`** in **`LoyaltyProgram.settings_json`**. Earned/redeemed points are reflected on the receipt when discount/payment adapters emit those lines (e.g. **`LOYALTY`** discount with a points-style code).
 
 ---
 
@@ -281,9 +282,11 @@ The amount table at the bottom of the sale screen shows live totals:
 | Row | Content |
 |-----|---------|
 | Sales Amount | Running total of all active (non-cancelled) lines |
-| Discount Amount | Total discount applied |
+| Discount Amount | Total discount applied (includes **`LOYALTY`** lines from point redemption) |
 | Payment Amount | Total already paid |
 | Change Amount | Change due to the customer |
+
+**Net due** (for payment caps and completion): gross line total **`total_amount`** minus **`total_discount_amount`**, then minus **`total_payment_amount`** — see **`PaymentService`**.
 
 ---
 

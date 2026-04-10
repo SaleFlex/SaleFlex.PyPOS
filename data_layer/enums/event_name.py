@@ -123,6 +123,7 @@ class EventName(enum.Enum):
     PREPAID_PAYMENT = "PREPAID_PAYMENT"             # Prepaid payment - Customer pays using a prepaid card
     CHARGE_SALE_PAYMENT = "CHARGE_SALE_PAYMENT"     # Charge sale payment - Customer buys on account (store credit / house charge / IOU)
     OTHER_PAYMENT = "OTHER_PAYMENT"                 # Other payment method - Customer pays using another or unspecified payment method
+    BONUS_PAYMENT = "BONUS_PAYMENT"                 # Loyalty points redemption (applies discount; not a cash tender line)
     CHANGE_PAYMENT = "CHANGE_PAYMENT"               # Change payment - Calculate and record change amount
     PAYMENT_DETAIL = "PAYMENT_DETAIL"               # Payment details
     CANCEL_DOCUMENT = "CANCEL_DOCUMENT"             # Cancel document

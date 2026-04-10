@@ -37,7 +37,7 @@ SaleFlex.PyPOS/
 │   ├── data/                   ← Lightweight data classes / enums (DocumentState, etc.)
 │   ├── hardware/               ← Device info detection
 │   ├── peripherals/            ← OPOS-style device stubs (printer, drawer, scanner, …)
-│   ├── service/                ← VatService, SaleService, PaymentService, LoyaltyService
+│   ├── service/                ← VatService, SaleService, PaymentService, LoyaltyEarnService, LoyaltyRedemptionService, LoyaltyService, …
 │   └── manager/
 │       ├── application.py      ← Singleton Application (inherits all managers)
 │       ├── current_status.py   ← CurrentStatus mixin (login state, form stack)

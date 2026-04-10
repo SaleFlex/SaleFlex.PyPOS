@@ -123,6 +123,7 @@ if handler:
 | `PREPAID_PAYMENT` | `_prepaid_payment_event` | Prepaid card |
 | `CHARGE_SALE_PAYMENT` | `_charge_sale_payment_event` | House charge / store credit |
 | `OTHER_PAYMENT` | `_other_payment_event` | Unspecified payment method |
+| `BONUS_PAYMENT` | `_bonus_payment_event` | Loyalty **point redemption** on PAYMENT form (whole points on numpad → **`LoyaltyRedemptionService`**, not a cash tender) |
 | `CHANGE_PAYMENT` | `_change_payment_event` | Record change given to customer |
 | `PAYMENT_DETAIL` | `_payment_detail_event` | Show payment detail |
 

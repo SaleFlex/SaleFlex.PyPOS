@@ -24,7 +24,7 @@ The `insert_initial_data()` function in `db_init_data/__init__.py` orchestrates 
 16. **Product Variants** (`_insert_product_variants`): Creates product variations
 17. **Product Attributes** (`_insert_product_attributes`): Inserts product attribute definitions
 18. **Product Barcodes** (`_insert_product_barcodes`): Associates barcodes with products
-19. **Transaction Discount Types** (`_insert_transaction_discount_types`): Creates discount type definitions (NONE, PERSONAL, MANAGER, CUSTOMER_SATISFACTION, PRODUCT)
+19. **Transaction Discount Types** (`_insert_transaction_discount_types`): Creates discount type definitions (NONE, PERSONAL, MANAGER, CUSTOMER_SATISFACTION, PRODUCT, **LOYALTY** for point redemption)
 20. **Transaction Document Types** (`_insert_transaction_document_types`): Creates document types (Sale, Return, etc.)
 21. **Transaction Sequences** (`_insert_transaction_sequences`): Sets up transaction numbering sequences
 22. **Product Barcode Masks** (`_insert_product_barcode_masks`): Defines barcode format rules
@@ -35,7 +35,7 @@ The `insert_initial_data()` function in `db_init_data/__init__.py` orchestrates 
 27. **Virtual Keyboard Settings** (`_insert_virtual_keyboard_settings`): Creates default keyboard theme
 28. **Alternative Keyboard Themes** (`_insert_alternative_keyboard_themes`): Adds additional keyboard themes
 29. **Campaigns** (`_insert_campaigns`): Creates sample promotional campaigns
-30. **Loyalty Programs** (`_insert_loyalty`): Sets up loyalty program with tiers, `LoyaltyProgramPolicy`, `LoyaltyRedemptionPolicy`, and a default `LoyaltyEarnRule` row (`DOCUMENT_TOTAL`; extra bonuses via `config_json`; full earn logic in **`LoyaltyEarnService`** — see [Loyalty Programs](41-loyalty-programs.md))
+30. **Loyalty Programs** (`_insert_loyalty`): Sets up loyalty program with tiers, `LoyaltyProgramPolicy`, `LoyaltyRedemptionPolicy` (used by **`LoyaltyRedemptionService`** on **BONUS**), default `settings_json` (e.g. **`earn_eligible_payment_types`**), and a default `LoyaltyEarnRule` row (`DOCUMENT_TOTAL`; extra bonuses via `config_json`; full earn logic in **`LoyaltyEarnService`** — see [Loyalty Programs](41-loyalty-programs.md))
 31. **Customer Segments** (`_insert_customer_segments`): Creates default `CustomerSegment` rows (VIP, NEW_CUSTOMER, FREQUENT_BUYER, HIGH_VALUE, INACTIVE, BIRTHDAY); VIP seed includes **`honor_preferences_vip`** for `preferences_json` flags. Runtime assignment is **`CustomerSegmentService`** (see [Customer Segmentation](42-customer-segmentation.md))
 32. **POS Settings** (`_insert_pos_settings`): Configures system-wide POS settings including device serial number (generated from MAC address and disk serial), operating system information, default country (United Kingdom), default currency (GBP), customer display settings (INTERNAL), barcode reader port (PS/2), backend connection settings (127.0.0.1:5000), and backend type (GATE)
 
@@ -110,6 +110,7 @@ Inserts default transaction discount types:
 - **MANAGER**: Manager approved discount
 - **CUSTOMER_SATISFACTION**: Discount for customer satisfaction
 - **PRODUCT**: Product-specific discount
+- **LOYALTY**: Point redemption discount (paired with **`LoyaltyRedemptionService`** / **`TransactionDiscountTemp.discount_type="LOYALTY"`**)
 
 ### `_insert_default_forms(session, cashier_id)`
 Creates all 20 application forms. Form definitions are organised into topic-based sub-modules under `data_layer/db_init_data/forms/`. Each sub-module provides a `get_form_data(cashier_id)` function that returns the form row dict(s) for that topic:
@@ -167,7 +168,7 @@ Sets up loyalty program:
 - Default loyalty program with point earning configuration on `LoyaltyProgram`
 - Membership tiers (Bronze, Silver, Gold, Platinum) with benefits and point multipliers
 - **`LoyaltyProgramPolicy`** — phone-first identity, default country calling code (`90` in seed), enrollment rules, integration provider (`LOCAL`)
-- **`LoyaltyRedemptionPolicy`** — redemption caps/steps (used when payment redemption is implemented)
+- **`LoyaltyRedemptionPolicy`** — redemption caps/steps; consumed at runtime by **`LoyaltyRedemptionService`** when the cashier uses **BONUS** on the PAYMENT form
 - **`LoyaltyEarnRule`** — default `DOCUMENT_TOTAL` row (empty `config_json` in seed); runtime evaluation and additional rule types are implemented in **`LoyaltyEarnService`**
 
 Inserts are idempotent (skip when rows already exist). See [Loyalty Programs](41-loyalty-programs.md).

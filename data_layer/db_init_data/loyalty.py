@@ -59,6 +59,11 @@ def _insert_loyalty_program(session: Session, admin_cashier_id):
         welcome_points=100,  # 100 points for new members
         birthday_points=50,  # 50 points on birthday
         terms_conditions="Earn 1 point for every 10 TL spent. Points can be redeemed for discounts. Points expire after 1 year.",
+        settings_json=(
+            '{"earn_eligible_payment_types":['
+            '"CASH_PAYMENT","CREDIT_PAYMENT","CHECK_PAYMENT","EXCHANGE_PAYMENT",'
+            '"PREPAID_PAYMENT","CHARGE_SALE_PAYMENT","OTHER_PAYMENT"]}'
+        ),
         fk_created_by=admin_cashier_id
     )
 

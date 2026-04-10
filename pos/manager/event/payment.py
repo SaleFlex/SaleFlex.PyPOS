@@ -23,6 +23,7 @@ SOFTWARE.
 """
 
 from decimal import Decimal
+from typing import Optional
 
 from data_layer.enums import FormName
 from data_layer.enums.event_name import EventName
@@ -93,7 +94,7 @@ class PaymentEvent:
         if total_amt <= 0:
             return False, "Ödeme alınacak tutar yok. Önce satışa kalem ekleyin."
 
-        if PaymentService.is_document_complete(self.document_data):
+        if PaymentService.remaining_balance(self.document_data) <= 0:
             return False, "Fiş tutarı tamamen tahsil edilmiş."
 
         return True, ""
@@ -343,7 +344,100 @@ class PaymentEvent:
 
         numpad_value = self._read_numpad_payment_amount(button)
         return self._process_payment(EventName.OTHER_PAYMENT.value, button, numpad_value)
-    
+
+    def _read_numpad_loyalty_points(self) -> Optional[int]:
+        """Whole loyalty points from numpad (not converted with currency decimal places)."""
+        try:
+            window = self.interface.window if hasattr(self, "interface") else None
+            if not window:
+                return None
+            from user_interface.control.numpad.numpad import NumPad
+
+            numpads = window.findChildren(NumPad)
+            if not numpads:
+                return None
+            numpad = numpads[0]
+            numpad_text = numpad.get_text()
+            numpad.set_text("")
+            if not numpad_text or not numpad_text.strip():
+                return None
+            raw_value = int(numpad_text)
+            return raw_value if raw_value > 0 else None
+        except (ValueError, TypeError):
+            return None
+        except Exception as e:
+            logger.error("[PAYMENT] Error reading numpad loyalty points: %s", e)
+            return None
+
+    def _bonus_payment_event(self, button=None, key=None):
+        """
+        Apply loyalty points as a document discount (``discount_type=LOYALTY``).
+        Cashier enters whole points on the numpad, then presses BONUS.
+        """
+        if not self.login_succeed:
+            self._logout()
+            return False
+
+        if not self.document_data or not self.document_data.get("head"):
+            return False
+
+        pts = self._read_numpad_loyalty_points()
+        if pts is None:
+            msg = "Enter the number of points on the numpad (whole points), then press BONUS."
+            win = self.interface.window if hasattr(self, "interface") else None
+            if win and self.current_form_type == FormName.PAYMENT:
+                try:
+                    from user_interface.form.message_form import MessageForm
+
+                    MessageForm.show_info(win, "Loyalty", msg)
+                except Exception:
+                    pass
+            logger.info("[PAYMENT] BONUS blocked: %s", msg)
+            return False
+
+        from pos.service.loyalty_redemption_service import LoyaltyRedemptionService
+
+        dp = LoyaltyRedemptionService._decimal_places_from_app(self)
+        ok, err = LoyaltyRedemptionService.apply_points_redemption(
+            self.document_data, pts, decimal_places=dp
+        )
+        if not ok:
+            logger.error("[PAYMENT] BONUS: %s", err)
+            win = self.interface.window if hasattr(self, "interface") else None
+            if win:
+                try:
+                    from user_interface.form.message_form import MessageForm
+
+                    MessageForm.show_info(win, "Loyalty", err or "Could not apply points.")
+                except Exception:
+                    pass
+            return False
+
+        try:
+            window = self.interface.window if hasattr(self, "interface") else None
+            if window and self.document_data.get("head"):
+                from pos.service.sale_service import SaleService
+
+                if hasattr(window, "sale_list") and window.sale_list:
+                    SaleService.update_sale_list_from_document(
+                        window.sale_list,
+                        self.document_data,
+                        getattr(self, "pos_data", None),
+                    )
+                if hasattr(window, "amount_table") and window.amount_table:
+                    SaleService.update_amount_table_from_document(
+                        window.amount_table, self.document_data["head"]
+                    )
+            if self.current_form_type in (FormName.SALE, FormName.PAYMENT):
+                from pos.peripherals.hooks import sync_line_display_from_document
+
+                sync_line_display_from_document(self, self.document_data)
+        except Exception as exc:
+            logger.error("[PAYMENT] BONUS UI refresh: %s", exc)
+
+        self._check_and_complete_document()
+        return True
+
     def _change_payment_event(self, button=None):
         """
         Handle change payment calculation and recording.
@@ -583,16 +677,12 @@ class PaymentEvent:
                 
                 # Update AmountTable if it exists
                 if hasattr(window, 'amount_table') and window.amount_table:
-                    amount_table = window.amount_table
                     if self.document_data and self.document_data.get("head"):
-                        head_temp = self.document_data["head"]
-                        
-                        # Update payment amount
-                        amount_table.receipt_total_payment = Decimal(str(head_temp.total_payment_amount))
-                        
-                        # Update balance
-                        remaining = Decimal(str(head_temp.total_amount)) - Decimal(str(head_temp.total_payment_amount))
-                        amount_table._set_amount_value(amount_table.BALANCE_AMOUNT_ROW, remaining)
+                        from pos.service.sale_service import SaleService
+
+                        SaleService.update_amount_table_from_document(
+                            window.amount_table, self.document_data["head"]
+                        )
 
             if self.current_form_type in (FormName.SALE, FormName.PAYMENT):
                 sync_line_display_payment(self, self.document_data, Decimal(str(payment_amount)))

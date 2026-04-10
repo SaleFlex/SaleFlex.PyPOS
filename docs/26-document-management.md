@@ -207,11 +207,11 @@ self.complete_document(is_cancel=True, cancel_reason="Customer cancelled")
 7. Clears UI controls (PaymentList, AmountTable, SaleList)
 8. Resets `document_data` to `None`
 
-On the **SALE** form, the event layer also triggers **peripheral hooks** after a successful paid completion (log-only today): a full receipt snapshot is sent to the default `POSPrinter`, then the default `CashDrawer` open command runs. See [Peripherals](18-peripherals.md).
+On the **SALE** form, the event layer also triggers **peripheral hooks** after a successful paid completion (log-only today): a full receipt snapshot is sent to the default `POSPrinter`, then the default `CashDrawer` open command runs. See [Peripherals](30-peripherals.md).
 
 **Automatic Document Completion:**
-Documents are automatically completed when fully paid. The completion check happens after each payment:
-- **Condition**: `total_amount = total_payment_amount - total_change_amount`
+Documents are automatically completed when fully paid. The completion check happens after each payment (and after any **LOYALTY** discount from **BONUS** redemption, which reduces the amount due):
+- **Condition** (net): `(total_amount - total_discount_amount) = total_payment_amount - total_change_amount`
 - If condition is met, document is automatically marked as COMPLETED and closed
 - Change is calculated if payment exceeds total, but recording requires manual action:
   - If `CHANGE_PAYMENT` button exists: User clicks button to record change
@@ -261,7 +261,7 @@ if PaymentService.is_document_complete(document_data):
     # Update closure
     PaymentService.update_closure_for_completion(closure, document_data)
     
-    # Copy to permanent models (loyalty earn staging, TransactionLoyalty copy, spending + EARNED credit + tier)
+    # Copy to permanent models (loyalty earn staging, discounts incl. LOYALTY, TransactionLoyalty copy, REDEEMED/EARNED + tier)
     PaymentService.copy_temp_to_permanent(document_data)
     
     # Clear UI controls (automatically done)
@@ -554,6 +554,7 @@ Payment processing is handled through `PaymentService` and payment event handler
 - `PREPAID_PAYMENT`: Prepaid card payment
 - `CHARGE_SALE_PAYMENT`: Charge sale (house account)
 - `OTHER_PAYMENT`: Other payment methods
+- `BONUS_PAYMENT`: Loyalty point redemption (adds **`LOYALTY`** discount via **`LoyaltyRedemptionService`**, not `TransactionPaymentTemp`)
 - `CHANGE_PAYMENT`: Calculate and record change
 
 **Payment Button Naming Conventions:**
@@ -564,7 +565,7 @@ Payment processing is handled through `PaymentService` and payment event handler
 
 **Payment Amount Behavior:**
 - **CASH_PAYMENT, CHECK_PAYMENT, EXCHANGE_PAYMENT**: Use exact button amount
-- **CREDIT_PAYMENT, PREPAID_PAYMENT, CHARGE_SALE_PAYMENT, OTHER_PAYMENT**: Limit to remaining balance (min(button_amount, remaining_balance))
+- **CREDIT_PAYMENT, PREPAID_PAYMENT, CHARGE_SALE_PAYMENT, OTHER_PAYMENT**: Limit to remaining **net** balance (min(button_amount, remaining_balance))
 
 **Payment Flow:**
 1. User clicks payment button
@@ -572,16 +573,16 @@ Payment processing is handled through `PaymentService` and payment event handler
 3. `TransactionPaymentTemp` record is created and saved
 4. `TransactionHeadTemp.total_payment_amount` is updated
 5. UI controls (PaymentList, AmountTable) are updated
-6. Change is calculated if payment exceeds total
+6. Change is calculated if payment exceeds **net** due
 7. **Change Recording Behavior:**
    - If `CHANGE_PAYMENT` button exists in form: User is informed to click change button to record change
    - If `CHANGE_PAYMENT` button doesn't exist: MessageForm dialog is shown with change amount, and change is recorded when OK is clicked
 8. Document completion is checked automatically after change is recorded (or if no change needed)
-9. If complete (`total_amount = total_payment_amount - total_change_amount`):
+9. If complete (net: `(total_amount - total_discount_amount) = total_payment_amount - total_change_amount`):
    - Document is marked as COMPLETED
    - Closure totals are updated
    - Receipt number is incremented
-   - Temp models are copied to permanent models: **`LoyaltyEarnService.stage_document_earn`**, then head/payments/changes/**`TransactionLoyalty`**; then **`LoyaltyService.on_sale_transaction_completed`** (spend counters, **`LoyaltyPointTransaction` EARNED**, tier) and **`CustomerSegmentService.on_sale_transaction_completed`** for non–walk-in **sale** receipts
+   - Temp models are copied to permanent models: **`LoyaltyEarnService.stage_document_earn`**, then head/**discounts**/payments/changes/**`TransactionLoyalty`**; then **`LoyaltyService.on_sale_transaction_completed`** (spend counters, **`LoyaltyPointTransaction` REDEEMED / EARNED**, tier) and **`CustomerSegmentService.on_sale_transaction_completed`** for non–walk-in **sale** receipts
    - UI controls are cleared
    - `document_data` is reset
 
@@ -607,7 +608,7 @@ if change_amount > 0:
 if PaymentService.is_document_complete(document_data):
     PaymentService.mark_document_complete(document_data)
     PaymentService.update_closure_for_completion(closure, document_data)
-    # copy_temp_to_permanent: LoyaltyEarnService + LoyaltyService + CustomerSegmentService
+    # copy_temp_to_permanent: LoyaltyEarnService + discounts + LoyaltyService + CustomerSegmentService
     PaymentService.copy_temp_to_permanent(document_data)
 ```
 

@@ -51,6 +51,7 @@ _PAYMENT_TYPE_LABELS: Dict[str, str] = {
     "PREPAID_PAYMENT": "PREPAID",
     "CHARGE_SALE_PAYMENT": "CHARGE",
     "OTHER_PAYMENT": "OTHER",
+    "BONUS_PAYMENT": "LOYALTY",
 }
 
 
@@ -202,15 +203,25 @@ def format_receipt_lines(document_data: Dict[str, Any]) -> List[str]:
         dtype = (getattr(row, "discount_type", None) or "DISCOUNT").upper()
         disc_amount = getattr(row, "discount_amount", 0)
         amount_str = f"-{_fmt_amount(disc_amount, sym)}"
-        lines.append(_receipt_line(dtype, amount_str, W))
+        if dtype == "LOYALTY":
+            code = (getattr(row, "discount_code", None) or "").strip()
+            pts_note = f" ({code})" if code else ""
+            left = f"LOYALTY{pts_note}"[: RECEIPT_WIDTH - len(amount_str) - 2]
+        else:
+            left = dtype
+        lines.append(_receipt_line(left, amount_str, W))
 
     # ------------------------------------------------------------------
     # Totals section
     # ------------------------------------------------------------------
     lines.append(SEP)
 
+    gross = Decimal(str(getattr(head, "total_amount", 0) or 0))
+    disc_head = Decimal(str(getattr(head, "total_discount_amount", 0) or 0))
+    net_due = gross - disc_head
+
     balance_label = f"{item_count} BALANCE DUE" if item_count > 0 else "BALANCE DUE"
-    lines.append(_receipt_line(balance_label, _fmt_amount(getattr(head, "total_amount", 0), sym), W))
+    lines.append(_receipt_line(balance_label, _fmt_amount(net_due, sym), W))
 
     # Payment lines
     for pay in document_data.get("payments") or []:

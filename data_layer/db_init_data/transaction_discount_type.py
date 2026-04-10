@@ -77,3 +77,15 @@ def _insert_transaction_discount_types(session):
             session.add(discount_type)
         logger.info("✓ Default transaction discount types added")
 
+    existing_loyalty = session.query(TransactionDiscountType).filter(TransactionDiscountType.code == "LOYALTY").first()
+    if not existing_loyalty:
+        session.add(
+            TransactionDiscountType(
+                code="LOYALTY",
+                name="Loyalty Points Redemption",
+                display_name="Loyalty Points",
+                description="Basket discount from redeemed loyalty points (BONUS / PAY_TYPE_BONUS)",
+            )
+        )
+        logger.info("✓ Loyalty transaction discount type added")
+

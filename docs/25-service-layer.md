@@ -4,7 +4,7 @@
 
 SaleFlex.PyPOS implements a **service layer pattern** to separate business logic from event handlers and UI components. This architecture improves code organization, reusability, and testability by centralizing business operations in dedicated service classes.
 
-The service layer is located in the `pos/service/` directory and contains business logic services that handle core POS operations such as VAT calculations, sale processing, transaction management, local loyalty enrollment and **point earning** on completed sales, and customer segment auto-assignment.
+The service layer is located in the `pos/service/` directory and contains business logic services that handle core POS operations such as VAT calculations, sale processing, transaction management, local loyalty enrollment, **point redemption** on the PAYMENT form (**BONUS**), **point earning** on completed sales, and customer segment auto-assignment.
 
 ## Service Layer Structure
 
@@ -14,8 +14,9 @@ pos/service/
 ├── vat_service.py               # VAT calculation service
 ├── sale_service.py              # Sale processing service
 ├── payment_service.py           # Payment processing service
-├── loyalty_service.py           # Phone normalization, enrollment; spending, EARNED credit, tier after sale
-├── loyalty_earn_service.py      # Stages loyalty_points_earned from program + LoyaltyEarnRule; TransactionLoyaltyTemp snapshot
+├── loyalty_service.py           # Phone normalization, enrollment; REDEEMED/EARNED ledger, spending, tier after sale
+├── loyalty_earn_service.py      # Stages loyalty_points_earned from program + LoyaltyEarnRule; payment-type filter; TransactionLoyaltyTemp snapshot
+├── loyalty_redemption_service.py # BONUS: points → LOYALTY TransactionDiscountTemp; policy caps
 └── customer_segment_service.py  # criteria_json → CustomerSegmentMember; marketing_profile
 ```
 
@@ -202,11 +203,11 @@ SaleService.update_payment_list_from_document(
 
 ### PaymentService
 
-The `PaymentService` provides business logic for processing payments, calculating change, and managing document completion. When the UI marks a document complete on the SALE form, `PaymentEvent` calls into `pos/peripherals` for receipt logging and cash-drawer kick-out (currently log-only); see [Peripherals](18-peripherals.md).
+The `PaymentService` provides business logic for processing payments, calculating change, and managing document completion. **Remaining balance** and **completion** use **net** amount due: `total_amount − total_discount_amount` (loyalty redemption adds to `total_discount_amount`). When the UI marks a document complete on the SALE form, `PaymentEvent` calls into `pos/peripherals` for receipt logging and cash-drawer kick-out (currently log-only); see [Peripherals](30-peripherals.md).
 
 #### Key Features
 
-- **Payment Processing**: Handles multiple payment types (CASH, CREDIT, CHECK, EXCHANGE, PREPAID, CHARGE_SALE, OTHER)
+- **Payment Processing**: Handles tender payment types (CASH, CREDIT, CHECK, EXCHANGE, PREPAID, CHARGE_SALE, OTHER). **Loyalty redemption** is **not** a tender line: it is applied via **`LoyaltyRedemptionService`** from the **BONUS** event (see **`LoyaltyRedemptionService`** below).
 - **Button Name Parsing**: Supports payment button naming conventions:
   - `PAYMENT` prefix: Pays remaining balance
   - `CASH` prefix: Pays specific amount (number after CASH divided by 100)
@@ -267,12 +268,12 @@ if is_complete:
 
 - **`process_payment(document_data, payment_type, button_name="", numpad_value=None, default_to_remaining_balance=True)`**: Process a payment and create TransactionPaymentTemp record. When `default_to_remaining_balance=False` (PAYMENT form), a positive `numpad_value` is required for non-preset cash keys.
 - **`calculate_payment_amount(..., default_to_remaining_balance=True)`**: Calculate payment amount from button name, remaining balance, optional numpad value, and whether empty numpad may default to the full remaining balance.
-- **`calculate_change(document_data)`**: Calculate change amount (total_payment_amount - total_amount)
+- **`calculate_change(document_data)`**: Calculate change using **net** due (payments vs. `total_amount − total_discount_amount`)
 - **`record_change(document_data)`**: Record change amount in TransactionChangeTemp if positive
-- **`is_document_complete(document_data)`**: Check if document is fully paid (total_amount = total_payment_amount - total_change_amount)
+- **`is_document_complete(document_data)`**: Check if document is fully paid against **net** due (gross `total_amount` minus `total_discount_amount`, versus payments minus change)
 - **`mark_document_complete(document_data)`**: Mark document as complete by updating transaction status
 - **`update_closure_for_completion(closure, document_data)`**: Update closure with transaction totals
-- **`copy_temp_to_permanent(document_data)`**: Runs **`LoyaltyEarnService.stage_document_earn`** (temp head + loyalty snapshot), copies head, payments, changes, and **`TransactionLoyalty`** rows to permanent tables, then **`LoyaltyService.on_sale_transaction_completed(..., permanent_head_id=...)`** and **`CustomerSegmentService.on_sale_transaction_completed`** for completed **sale** transactions (spend counters, **EARNED** ledger credit, tier, then segment memberships)
+- **`copy_temp_to_permanent(document_data)`**: Runs **`LoyaltyEarnService.stage_document_earn`** (temp head + loyalty snapshot), copies head, **discounts** (including **`LOYALTY`**), payments, changes, and **`TransactionLoyalty`** rows to permanent tables, then **`LoyaltyService.on_sale_transaction_completed(..., permanent_head_id=...)`** and **`CustomerSegmentService.on_sale_transaction_completed`** for completed **sale** transactions (spend counters, **REDEEMED** / **EARNED** ledger, tier, then segment memberships)
 - **`_safe_decimal(value)`**: Safely convert value to Decimal (handles None, string, int, float, Decimal)
 
 ### LoyaltyService
@@ -286,9 +287,9 @@ if is_complete:
 - **`validate_unique_phone_normalized(session, customer)`** — detects conflicts before commit.
 - **`ensure_loyalty_on_sale_assignment(head_obj, customer_id)`** — after a customer is linked to the open sale, may create `CustomerLoyalty`, set `TransactionHeadTemp.loyalty_member_id`, and post welcome points (`LoyaltyPointTransaction`).
 - **`recalculate_membership_tier(session, membership)`** — sets `fk_loyalty_tier_id` to the highest qualifying `LoyaltyTier`.
-- **`on_sale_transaction_completed(document_data, permanent_head_id=...)`** — after earn staging and permanent head insert: updates spending counters, credits **`LoyaltyPointTransaction`** (`EARNED`) from **`loyalty_points_earned`**, then recalculates tier.
+- **`on_sale_transaction_completed(document_data, permanent_head_id=...)`** — after earn staging and permanent head insert: debits **`REDEEMED`** when **`loyalty_points_redeemed`** &gt; 0, updates spending counters, credits **`LoyaltyPointTransaction`** (`EARNED`) from **`loyalty_points_earned`**, then recalculates tier.
 
-Called from `CustomerEvent` (customer SAVE, customer search country code helper, sale assignment) and from **`PaymentService.copy_temp_to_permanent`**. Point **calculation** lives in **`LoyaltyEarnService`**; payment **redemption** is not implemented yet. See [Loyalty Programs](41-loyalty-programs.md).
+Called from `CustomerEvent` (customer SAVE, customer search country code helper, sale assignment) and from **`PaymentService.copy_temp_to_permanent`**. Point **earn calculation** lives in **`LoyaltyEarnService`**; **redemption** on the PAYMENT form is **`LoyaltyRedemptionService`** + **`PaymentEvent._bonus_payment_event`**. See [Loyalty Programs](41-loyalty-programs.md).
 
 #### Import
 
@@ -302,12 +303,26 @@ from pos.service.loyalty_service import LoyaltyService
 
 #### Responsibilities
 
-- **`stage_document_earn(document_data)`** — for eligible **sale** receipts with a **non–walk-in** customer and **`CustomerLoyalty`**: computes points from document net total (`LoyaltyProgram.points_per_currency`, `min_purchase_for_points`, current tier **`points_multiplier`**), then active **`LoyaltyEarnRule`** rows (`DOCUMENT_TOTAL`, `LINE_ITEM`, `CATEGORY` / `DEPARTMENT`, `PRODUCT_SET` / `BUNDLE` per `config_json`). Sets **`TransactionHeadTemp.loyalty_points_earned`** and appends a **`TransactionLoyaltyTemp`** row to `document_data["loyalty"]` for copy to **`TransactionLoyalty`**.
+- **`stage_document_earn(document_data)`** — for eligible **sale** receipts with a **non–walk-in** customer and **`CustomerLoyalty`**: computes points from document net total (`LoyaltyProgram.points_per_currency`, `min_purchase_for_points`, current tier **`points_multiplier`**), then active **`LoyaltyEarnRule`** rows (`DOCUMENT_TOTAL`, `LINE_ITEM`, `CATEGORY` / `DEPARTMENT`, `PRODUCT_SET` / `BUNDLE` per `config_json`). If **`LoyaltyProgram.settings_json`** lists **`earn_eligible_payment_types`** (or `earn_allowed_payment_types`), every non-cancelled payment line’s type must match or **earned points = 0**. Sets **`TransactionHeadTemp.loyalty_points_earned`** and appends a **`TransactionLoyaltyTemp`** row to `document_data["loyalty"]` for copy to **`TransactionLoyalty`**.
 
 #### Import
 
 ```python
 from pos.service.loyalty_earn_service import LoyaltyEarnService
+```
+
+### LoyaltyRedemptionService
+
+`LoyaltyRedemptionService` (`pos/service/loyalty_redemption_service.py`) runs when the cashier presses **BONUS** on **`FormName.PAYMENT`** (`BONUS_PAYMENT`).
+
+#### Responsibilities
+
+- **`apply_points_redemption(document_data, points_requested, ...)`** — validates **`CustomerLoyalty`**, caps points by **`available_points`**, remaining **net** due, and **`LoyaltyRedemptionPolicy`** (share of basket, minimum, step, partial); writes **`TransactionDiscountTemp`** with **`discount_type="LOYALTY"`** and updates **`total_discount_amount`** / **`loyalty_points_redeemed`** on **`TransactionHeadTemp`**.
+
+#### Import
+
+```python
+from pos.service.loyalty_redemption_service import LoyaltyRedemptionService
 ```
 
 ### CustomerSegmentService

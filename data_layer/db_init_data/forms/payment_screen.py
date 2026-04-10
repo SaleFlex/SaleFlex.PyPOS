@@ -104,7 +104,8 @@ def get_payment_form_controls(payment_form, cashier_id: str) -> list:
     - CHECK → ``CHECK_PAYMENT``
     - ON_CREDIT / CURRENT_ACCOUNT → ``CHARGE_SALE_PAYMENT``
     - PREPAID_CARD → ``PREPAID_PAYMENT``
-    - MOBILE / BONUS / BANK_TRANSFER → ``OTHER_PAYMENT`` (recorded as OTHER on receipt)
+    - MOBILE / BANK_TRANSFER → ``OTHER_PAYMENT`` (recorded as OTHER on receipt)
+    - BONUS → ``BONUS_PAYMENT`` (loyalty points discount; enter whole points on numpad first)
     - EXCHANGE → ``EXCHANGE_PAYMENT``
     """
     if not payment_form:
@@ -338,7 +339,7 @@ def get_payment_form_controls(payment_form, cashier_id: str) -> list:
             y2,
             [
                 ("PAY_TYPE_MOBILE", "MOBILE", EventName.OTHER_PAYMENT.value, "0x98FB98", "Mobile / digital wallet"),
-                ("PAY_TYPE_BONUS", "BONUS", EventName.OTHER_PAYMENT.value, "0xFFD700", "Bonus / points redemption"),
+                ("PAY_TYPE_BONUS", "BONUS", EventName.BONUS_PAYMENT.value, "0xFFD700", "Loyalty points — enter points on numpad, then BONUS"),
                 ("PAY_TYPE_EXCHANGE", "EXCHANGE", EventName.EXCHANGE_PAYMENT.value, "0xE6E6FA", "Foreign exchange / trade-in"),
                 ("PAY_TYPE_CURR_ACCT", "C. ACCOUNT", EventName.CHARGE_SALE_PAYMENT.value, "0xFFA07A", "Current account posting"),
                 ("PAY_TYPE_BANK", "BANK TRANS", EventName.OTHER_PAYMENT.value, "0xB0C4DE", "Bank transfer / EFT"),

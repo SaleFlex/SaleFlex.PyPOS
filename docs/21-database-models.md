@@ -54,7 +54,7 @@ SaleFlex.PyPOS uses a comprehensive database schema with 100+ models organized i
 - **TransactionChangeTemp**: Temporary change records
 - **TransactionTax**: Tax calculations per transaction
 - **TransactionTaxTemp**: Temporary tax calculations
-- **TransactionDiscountType**: Discount type definitions (NONE, PERSONAL, MANAGER, CUSTOMER_SATISFACTION, PRODUCT)
+- **TransactionDiscountType**: Discount type definitions (NONE, PERSONAL, MANAGER, CUSTOMER_SATISFACTION, PRODUCT, **LOYALTY** for point redemption)
 - **TransactionDiscount**: Discounts applied to transactions (linked to TransactionDiscountType via foreign key)
 - **TransactionDiscountTemp**: Temporary discount records
 - **TransactionSurcharge**: Surcharges applied to transactions
@@ -111,7 +111,7 @@ SaleFlex.PyPOS uses a comprehensive database schema with 100+ models organized i
 - **LoyaltyPointTransaction**: Point transaction history (earned, redeemed, expired, welcome, etc.)
 - **LoyaltyProgramPolicy**: Per-program operational policy — customer identifier mode (`PHONE` / `LOYALTY_CARD`), phone required for enrollment, default country code for normalization, void/refund point policy placeholder, integration provider (`LOCAL` / `GATE` / `EXTERNAL`)
 - **LoyaltyEarnRule**: Configurable earning rules (`DOCUMENT_TOTAL`, `LINE_ITEM`, `CATEGORY` / `DEPARTMENT`, `PRODUCT_SET` / `BUNDLE`) with `config_json` and `priority`; evaluated at sale completion by **`LoyaltyEarnService`**
-- **LoyaltyRedemptionPolicy**: Per-program redemption caps and step size (consumed by payment logic when implemented)
+- **LoyaltyRedemptionPolicy**: Per-program redemption caps and step size; consumed by **`LoyaltyRedemptionService`** at PAYMENT time (**BONUS**)
 
 See [Loyalty Programs](41-loyalty-programs.md) for runtime behaviour and upgrade notes.
 

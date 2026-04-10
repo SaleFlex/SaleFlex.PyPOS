@@ -309,6 +309,57 @@ class LoyaltyService:
         )
 
     @staticmethod
+    def _loyalty_discount_currency_note(document_data: Optional[Dict[str, Any]]) -> Optional[str]:
+        if not document_data:
+            return None
+        from decimal import Decimal
+
+        from data_layer.auto_save import AutoSaveModel
+
+        total = Decimal("0")
+        for d in document_data.get("discounts") or []:
+            row = d.unwrap() if isinstance(d, AutoSaveModel) else d
+            if getattr(row, "is_cancel", False):
+                continue
+            if (getattr(row, "discount_type", None) or "").upper() != "LOYALTY":
+                continue
+            total += Decimal(str(getattr(row, "discount_amount", None) or 0))
+        if total <= 0:
+            return None
+        return f"Loyalty discount total {total}"
+
+    @staticmethod
+    def _debit_redeemed_points(
+        session: Session,
+        membership: "CustomerLoyalty",
+        customer: "Customer",
+        points: int,
+        permanent_head_id: Optional[UUID],
+        document_data: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """Persist ``REDEEMED`` ledger row (negative points) and reduce spendable balances."""
+        if points <= 0:
+            return
+        from data_layer.model.definition.loyalty_point_transaction import LoyaltyPointTransaction
+
+        membership.available_points = max(0, int(membership.available_points or 0) - points)
+        membership.total_points = max(0, int(membership.total_points or 0) - points)
+        bal = int(membership.available_points or 0)
+        notes = LoyaltyService._loyalty_discount_currency_note(document_data)
+        session.add(
+            LoyaltyPointTransaction(
+                fk_customer_loyalty_id=membership.id,
+                fk_customer_id=customer.id,
+                transaction_type="REDEEMED",
+                points_amount=-points,
+                balance_after=bal,
+                fk_transaction_head_id=permanent_head_id,
+                description="Points redeemed (receipt discount)",
+                notes=notes,
+            )
+        )
+
+    @staticmethod
     def on_sale_transaction_completed(
         document_data: Optional[Dict[str, Any]],
         *,
@@ -338,6 +389,7 @@ class LoyaltyService:
                 return
 
             earned = int(getattr(head, "loyalty_points_earned", None) or 0)
+            redeemed = int(getattr(head, "loyalty_points_redeemed", None) or 0)
 
             engine = Engine()
             with engine.get_session() as session:
@@ -371,6 +423,9 @@ class LoyaltyService:
                 LoyaltyService.apply_completed_sale_to_membership(
                     session, mem, head, recalculate_tier=False
                 )
+                LoyaltyService._debit_redeemed_points(
+                    session, mem, customer, redeemed, permanent_head_id, document_data
+                )
                 LoyaltyService._credit_sale_earned_points(
                     session, mem, customer, earned, permanent_head_id
                 )
@@ -378,6 +433,19 @@ class LoyaltyService:
                 session.commit()
         except Exception as exc:
             logger.error("[LOYALTY] on_sale_transaction_completed: %s", exc)
+
+    @staticmethod
+    def on_void_or_cancel_completed_sale(permanent_head_id: UUID, reason: str = "") -> None:
+        """
+        Reserved for voided or returned sales: reverse ``EARNED`` / ``REDEEMED`` per
+        ``LoyaltyProgramPolicy.void_loyalty_points_policy`` and claw back redemption value
+        on refunds/exchanges. Not wired to UI yet — implement with refund/void flows.
+        """
+        logger.info(
+            "[LOYALTY] on_void_or_cancel_completed_sale stub head=%s reason=%s",
+            permanent_head_id,
+            reason,
+        )
 
     @staticmethod
     def ensure_loyalty_on_sale_assignment(head_obj, customer_id) -> None:

@@ -70,13 +70,15 @@ def sync_line_display_payment(
         except Exception:
             return str(v)
 
-    total = Decimal(str(getattr(head, "total_amount", 0)))
+    from pos.service.payment_service import PaymentService
+
+    net = PaymentService.net_amount_due(head)
     paid = Decimal(str(getattr(head, "total_payment_amount", 0)))
-    balance = total - paid
+    balance = net - paid
 
     get_default_line_display().send_three_lines(
         _m(payment_amount),
-        _m(total),
+        _m(net),
         _m(balance),
     )
 

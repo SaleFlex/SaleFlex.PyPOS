@@ -244,6 +244,47 @@ class LoyaltyEarnService:
         return total, breakdown
 
     @staticmethod
+    def _program_settings(program) -> dict:
+        raw = getattr(program, "settings_json", None) or ""
+        if not str(raw).strip():
+            return {}
+        try:
+            return json.loads(raw)
+        except json.JSONDecodeError:
+            return {}
+
+    @staticmethod
+    def _earn_allowed_for_payment_mix(document_data: Dict[str, Any], program) -> bool:
+        cfg = LoyaltyEarnService._program_settings(program)
+        allowed = cfg.get("earn_eligible_payment_types") or cfg.get("earn_allowed_payment_types")
+        if not allowed or not isinstance(allowed, list):
+            return True
+        allowed_set = {str(x) for x in allowed}
+        payments = document_data.get("payments") or []
+        if not payments:
+            return True
+        for p in payments:
+            row = LoyaltyEarnService._unwrap(p)
+            if getattr(row, "is_cancel", False):
+                continue
+            pt = getattr(row, "payment_type", None) or ""
+            if pt not in allowed_set:
+                return False
+        return True
+
+    @staticmethod
+    def _loyalty_discount_total(document_data: Dict[str, Any]) -> Decimal:
+        total = Decimal("0")
+        for d in document_data.get("discounts") or []:
+            row = LoyaltyEarnService._unwrap(d)
+            if getattr(row, "is_cancel", False):
+                continue
+            if (getattr(row, "discount_type", None) or "").upper() != "LOYALTY":
+                continue
+            total += Decimal(str(getattr(row, "discount_amount", None) or 0))
+        return total
+
+    @staticmethod
     def stage_document_earn(document_data: Optional[Dict[str, Any]]) -> None:
         """Compute earn, set ``loyalty_points_earned`` on temp head, append loyalty snapshot."""
         if not document_data or not document_data.get("head"):
@@ -315,6 +356,15 @@ class LoyaltyEarnService:
                 total, breakdown = LoyaltyEarnService.compute_earn_breakdown(
                     session, document_data, head, mem, program
                 )
+                if not LoyaltyEarnService._earn_allowed_for_payment_mix(document_data, program):
+                    total = 0
+                    breakdown = {
+                        "program_base": 0,
+                        "document_rule_bonus": 0,
+                        "line_rules": 0,
+                        "product_set_rules": 0,
+                        "total": 0,
+                    }
                 head.loyalty_points_earned = int(total)
                 if hasattr(head, "save"):
                     head.save()
@@ -331,16 +381,18 @@ class LoyaltyEarnService:
                 tname = LoyaltyEarnService._tier_display(session, mem)
                 bal_before = int(mem.available_points or 0)
                 extras = max(0, int(total) - int(breakdown["program_base"]))
+                redeemed = int(getattr(head, "loyalty_points_redeemed", None) or 0)
+                red_amt = LoyaltyEarnService._loyalty_discount_total(document_data)
 
                 loy_row = TransactionLoyaltyTemp()
                 loy_row.id = uuid4()
                 loy_row.fk_transaction_head_id = head.id
                 loy_row.fk_loyalty_member_id = mem.id
                 loy_row.points_earned = int(total)
-                loy_row.points_redeemed = 0
+                loy_row.points_redeemed = redeemed
                 loy_row.points_balance_before = bal_before
-                loy_row.points_balance_after = bal_before + int(total)
-                loy_row.redemption_amount = 0
+                loy_row.points_balance_after = bal_before + int(total) - redeemed
+                loy_row.redemption_amount = red_amt
                 loy_row.loyalty_tier = tname or None
                 loy_row.bonus_multiplier = Decimal(str(tier_m))
                 loy_row.campaign_bonus = extras
