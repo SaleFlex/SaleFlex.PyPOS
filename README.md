@@ -9,7 +9,7 @@
 ![PySide6](https://img.shields.io/badge/PySide6-6.11.0-blue.svg)
 ![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0.48-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Version](https://img.shields.io/badge/version-1.0.0b6-orange.svg)
+![Version](https://img.shields.io/badge/version-1.0.0b7-orange.svg)
 
 ### Touch Screen Point-of-Sale Application
 
@@ -32,7 +32,7 @@ SaleFlex.PyPOS POS system is designed to streamline the sales process and improv
 - **Cashier Management**: Role-based cashier account management with dynamic combobox selection. Admin users can view and edit all cashier accounts and create new cashier accounts directly from the Cashier Management form via the **ADD NEW CASHIER** button (admin-only, hidden for non-admin users). Non-admin cashiers can update only their own password. Field-level read-only protection enforced at the form layer (`is_administrator` flag). New cashier entry uses in-place form manipulation (no full redraw) for seamless UX
 - **Item Discount / Markup Buttons**: Two **dual-function** buttons on the SALE form (**DISC %** / **MARK %** and **DISC AMT** / **MARK AMT**) apply a line discount or markup to the last sold item according to the **label currently shown**; **FUNC** switches **all** dual buttons to their alternate captions without running an action, and a tap never flips the label by itself. After **any** dual-function button on the form is used, **every** dual button returns to its primary label. A modal dialog opens with an editable amount field, embedded numeric keypad (touch entry uses these keys only—the on-screen QWERTY **virtual keyboard** is **not** shown), and **Enter** / **APPLY** to confirm. On apply, the original line is cancelled (strikethrough) and a new line is inserted with recalculated **unit price**, **total**, and **VAT**. Discounts persist `unit_discount`, `discount_rate`, and `discount_reason`; markups set `discount_reason` to a `Markup …` description and clear line discount fields. Percentage markup is 1–100 %; amount markup is from the smallest currency step up to the line’s current total. Currency `decimal_places` from the `Currency` table controls minimum step and precision. See [Sale Transactions](docs/10-sale-transactions.md#applying-item-discounts-and-markups)
 - **Campaign & Promotion Management**: Flexible promotional campaigns with time-based, product-specific, and basket discounts
-- **Loyalty Programs**: Local tiered program (`LoyaltyProgram`, `LoyaltyTier`, seed data). **Policy** tables (`LoyaltyProgramPolicy`, `LoyaltyEarnRule`, `LoyaltyRedemptionPolicy`) configure phone-first identity, future earn/redeem rules, and integration mode (`LOCAL` active; `GATE` / `EXTERNAL` reserved). Assigning a non–walk-in customer to a sale runs **`LoyaltyService`**: creates **`CustomerLoyalty`** when needed, sets **`TransactionHeadTemp.loyalty_member_id`**, grants **welcome** points into **`LoyaltyPointTransaction`**, and **re-evaluates membership tier**. Each **completed sale** (`PaymentService.copy_temp_to_permanent`) updates **`CustomerLoyalty`** spending counters (`total_spent`, calendar-year **`annual_spent`**, `total_purchases`, `last_activity_date`) and **refreshes `fk_loyalty_tier_id`** from `lifetime_points` and annual spending thresholds. Checkout **point earning** and payment **redemption** are not implemented yet. See [docs/41-loyalty-programs.md](docs/41-loyalty-programs.md)
+- **Loyalty Programs**: Local tiered program (`LoyaltyProgram`, `LoyaltyTier`, seed data). **Policy** tables (`LoyaltyProgramPolicy`, `LoyaltyEarnRule`, `LoyaltyRedemptionPolicy`) configure phone-first identity, earn/redeem rules, and integration mode (`LOCAL` active; `GATE` / `EXTERNAL` reserved). Assigning a non–walk-in customer to a sale runs **`LoyaltyService`**: creates **`CustomerLoyalty`** when needed, sets **`TransactionHeadTemp.loyalty_member_id`**, grants **welcome** points into **`LoyaltyPointTransaction`**, and **re-evaluates membership tier**. Each **completed sale** (`PaymentService.copy_temp_to_permanent`) runs **`LoyaltyEarnService`** to stage **`loyalty_points_earned`** from document net total (`points_per_currency`, `min_purchase_for_points`, tier `points_multiplier`) plus **`LoyaltyEarnRule`** rows (document extras, line/category, product sets), writes **`TransactionLoyalty`** / temp snapshot, then **`LoyaltyService`** credits **`EARNED`** ledger rows, updates spending counters, and **refreshes `fk_loyalty_tier_id`**. Payment **redemption** is not implemented yet. See [docs/41-loyalty-programs.md](docs/41-loyalty-programs.md)
 - **Country-Specific Closure Templates**: Flexible template system for country-specific closure data (E-Fatura for Turkey, state tax for USA, VAT reporting for EU, etc.) stored as JSON templates in `static_files/closures/` directory
 - **Region Support**: `CountryRegion` model tracks sub-country regions (states, provinces, special economic zones) with ISO 3166-2 compliant fields. Includes 80+ pre-populated regions for region-specific closure templates and compliance
 - **Active Closure Management**: Session-based closure tracking system that automatically loads open closures at startup and manages closure lifecycle (open → active → closed). Closure data is maintained in memory during operations and saved to database when closed. On end-of-day closure, `ClosureNumber` is incremented by 1 and `ReceiptNumber` is reset to 1 — every closure period's receipts restart from 1 independently. After closure completes a **green info dialog** ("End-of-Day Closure Complete") confirms the closed closure number; on any failure a **red error dialog** explains the reason (not logged in, insufficient permissions, no transactions found, configuration error, etc.). **Closure history navigation:** The CLOSURE form includes **DETAIL** and **RECEIPTS** buttons at the bottom-left that open dedicated sub-forms — `CLOSURE_DETAIL` (key/value summary), `CLOSURE_RECEIPTS` (receipt list), and `CLOSURE_RECEIPT_DETAIL` (receipt line items) — all DB-driven dynamic forms with BACK navigation.
@@ -52,7 +52,7 @@ SaleFlex.PyPOS follows a layered architecture pattern with clear separation of c
 
 - **Entry Point** (`saleflex.py`): Pre-flight startup guards — working-directory normalisation, Python version check, single-instance lock, and global exception handler
 - **Application Layer** (`pos/manager/application.py`): Main application class implementing Singleton pattern, combining CurrentStatus, CurrentData, and EventHandler
-- **Business Logic Layer** (`pos/service/`): Service classes (VatService, SaleService, PaymentService, LoyaltyService, CustomerSegmentService) for centralized business operations
+- **Business Logic Layer** (`pos/service/`): Service classes (VatService, SaleService, PaymentService, LoyaltyEarnService, LoyaltyService, CustomerSegmentService) for centralized business operations
 - **Peripherals Layer** (`pos/peripherals/`): OPOS-style device abstractions (cash drawer, receipt printer, line display, scanner, scale, customer display, remote order display). Current implementation is **log-only** (no device probing); see [docs/30-peripherals.md](docs/30-peripherals.md)
 - **Event Handling Layer** (`pos/manager/event/`): 10 specialized event handler classes for modular event processing (General, Sale, Payment, Closure, Config, Service, Report, Hardware, Warehouse, **Product**). Event handler methods use `_event` suffix naming convention (e.g., `_sales_form_event`, `_closure_event`, `_product_detail_event`) to distinguish them from properties
 - **Integration Layer** (`pos/integration/`): External system connectivity with two tiers — **SaleFlex.GATE** (primary hub for transactions, closures, warehouse, campaigns, notifications) and **third-party direct connectors** (ERP, payment gateways, campaign modules). Uses offline outbox pattern (`SyncQueueItem`) and a background `SyncWorker` (QThread). All connectors are log-only stubs until configured; see [docs/40-integration-layer.md](docs/40-integration-layer.md)
@@ -73,7 +73,7 @@ SaleFlex.PyPOS follows a layered architecture pattern with clear separation of c
 │  Product                                        │
 ├─────────────────────────────────────────────────┤
 │          Business Logic (Service Layer)         │
-│ VatService · SaleService · PaymentService · LoyaltyService · CustomerSegmentService │
+│ VatService · SaleService · PaymentService · LoyaltyEarnService · LoyaltyService · CustomerSegmentService │
 ├─────────────────────────────────────────────────┤
 │         OPOS Peripherals (log-only stubs)       │
 │   CashDrawer · POSPrinter · LineDisplay         │
@@ -224,7 +224,8 @@ SaleFlex.PyPOS/
 │   │   ├── vat_service.py     # VAT calculation service
 │   │   ├── sale_service.py      # Sale processing service
 │   │   ├── payment_service.py   # Payment processing service
-│   │   ├── loyalty_service.py           # Phone normalization, enrollment, tier & spending after completed sale
+│   │   ├── loyalty_service.py           # Phone normalization, enrollment, tier & spending; credits EARNED after sale
+│   │   ├── loyalty_earn_service.py     # Document/line/rule point calculation; stages temp head + TransactionLoyaltyTemp
 │   │   └── customer_segment_service.py   # Auto segment membership from criteria_json; marketing_profile
 │   │
 │   └── manager/            # Application management
@@ -600,11 +601,11 @@ All models support:
   - [x] `LoyaltyProgramPolicy`, `LoyaltyEarnRule`, `LoyaltyRedemptionPolicy` models and seed rows with default program
   - [x] Phone-first customer identity (`phone_normalized`, `LoyaltyService.normalize_phone`, policy default country code)
   - [x] Tiered membership seed (`LoyaltyTier`: Bronze, Silver, Gold, Platinum) and `CustomerLoyalty` auto-creation on sale customer assignment; `TransactionHeadTemp.loyalty_member_id`; welcome points + `LoyaltyPointTransaction` (`WELCOME`) when configured
-  - [ ] Points **earning** at checkout (rule engine for document / line / bundle totals)
+  - [x] Points **earning** at checkout (`LoyaltyEarnService`: document net + tier multiplier; rules: `DOCUMENT_TOTAL`, `LINE_ITEM`, `CATEGORY`/`DEPARTMENT`, `PRODUCT_SET`/`BUNDLE`; `LoyaltyPointTransaction` `EARNED`, `TransactionLoyalty`)
   - [ ] Points **redemption** in payment flow (`PaymentService`, BONUS payment type, redemption policy caps)
   - [ ] Point expiry enforcement job
   - [x] Tier reassignment from `lifetime_points` and calendar-year `annual_spent` after each completed sale (`LoyaltyService`); also on enrollment / sale assignment for existing members
-  - [ ] Tier-based points multipliers and automatic discounts applied at sale time
+  - [ ] Tier **discount** percentage applied automatically at sale time (multiplier already used in earn engine)
   - [ ] Birthday bonus automation
   - [ ] Full point history UI on customer screen
   - [x] Customer segmentation rules **independent** of loyalty tables (seed segments + auto assignment); combined only in **`marketing_profile`**
@@ -744,7 +745,7 @@ Comprehensive documentation is available in the `docs/` directory:
 | **[Dynamic Forms System](docs/22-dynamic-forms-system.md)** | DB-driven UI forms, Panel controls, generic save pattern |
 | **[UI Controls Catalog](docs/23-ui-controls.md)** | All custom Qt widgets: Button, TextBox, NumPad, SaleList, TabControl |
 | **[Event System](docs/24-event-system.md)** | EventHandler, event_distributor(), all event categories |
-| **[Service Layer](docs/25-service-layer.md)** | VatService, SaleService, PaymentService, LoyaltyService, CustomerSegmentService |
+| **[Service Layer](docs/25-service-layer.md)** | VatService, SaleService, PaymentService, LoyaltyEarnService, LoyaltyService, CustomerSegmentService |
 | **[Document Management](docs/26-document-management.md)** | Transaction lifecycle, suspend/resume, payment flow |
 | **[Data Caching](docs/27-data-caching.md)** | pos_data / product_data caches, AutoSave system |
 | **[Peripherals](docs/30-peripherals.md)** | OPOS-style device layer (cash drawer, printer, display) |
@@ -755,7 +756,7 @@ Comprehensive documentation is available in the `docs/` directory:
 | **[Troubleshooting](docs/35-troubleshooting.md)** | Common issues, database problems, closure and sale issues |
 | **[Support and Resources](docs/36-support.md)** | GitHub, issue tracker, donations, license |
 | **[Integration Layer](docs/40-integration-layer.md)** | GATE hub, third-party connectors, offline outbox, SyncWorker, notification system |
-| **[Loyalty Programs](docs/41-loyalty-programs.md)** | Policy models, phone ID, enrollment, tier rules, spending + tier update after each completed sale; roadmap: earn/redeem UI |
+| **[Loyalty Programs](docs/41-loyalty-programs.md)** | Policy models, phone ID, enrollment, **LoyaltyEarnService** (document net + rules), `EARNED` ledger + `TransactionLoyalty`; redemption UI still roadmap |
 | **[Customer Segmentation](docs/42-customer-segmentation.md)** | Auto segment membership, `criteria_json`, VIP preferences, `marketing_profile` vs loyalty tier |
 
 ## Contributing

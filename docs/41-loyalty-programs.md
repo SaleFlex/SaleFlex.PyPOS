@@ -1,16 +1,16 @@
 # Loyalty Programs (Local)
 
-This document describes the **local** loyalty stack: data models, seed data, phone-based customer identity, automatic membership when a customer is linked to a sale, **tier reassignment** from points and calendar-year spending after each completed sale, and what is **not** implemented yet (earning at totals, redemption at payment, tier multipliers at checkout, GATE/third-party).
+This document describes the **local** loyalty stack: data models, seed data, phone-based customer identity, automatic membership when a customer is linked to a sale, **point earning** on completed sales, **tier reassignment** from points and calendar-year spending, and what is **not** implemented yet (redemption at payment, GATE/third-party).
 
 ## Overview
 
 - **Program and tiers**: `LoyaltyProgram` and `LoyaltyTier` are seeded by `_insert_loyalty()` (default program name *SaleFlex Rewards*, Bronze → Platinum tiers). Point rates and welcome/birthday fields live on `LoyaltyProgram`.
 - **Policy tables** (per program, seeded with the default program):
   - **`LoyaltyProgramPolicy`**: Customer identifier mode (`PHONE` vs legacy `LOYALTY_CARD`), whether a phone is required to enroll, default country calling code for normalization (seed uses `90`), void/refund point policy placeholder (`NONE` / future values), integration provider (`LOCAL` | `GATE` | `EXTERNAL` — only `LOCAL` is active).
-  - **`LoyaltyEarnRule`**: Rows for future earning logic (e.g. `DOCUMENT_TOTAL`); the engine that evaluates rules at checkout is not wired yet.
+  - **`LoyaltyEarnRule`**: Ordered rules (`priority` ascending) evaluated by **`LoyaltyEarnService`** at checkout completion (see **Earning engine** below).
   - **`LoyaltyRedemptionPolicy`**: Caps and steps for POS redemption; `PaymentService` does not consume these fields yet.
 - **Membership**: `CustomerLoyalty` (one row per customer for the program). Optional `loyalty_card_number` remains for legacy or external card IDs; **primary recognition is the customer’s phone**.
-- **Ledger**: `LoyaltyPointTransaction` records movements. New enrollments can create a `WELCOME` row when `LoyaltyProgram.welcome_points` is greater than zero.
+- **Ledger**: `LoyaltyPointTransaction` records movements. New enrollments can create a `WELCOME` row when `LoyaltyProgram.welcome_points` is greater than zero. Completed sales create **`EARNED`** rows when points are staged on the receipt.
 
 ## Phone normalization (`Customer.phone_normalized`)
 
@@ -34,11 +34,33 @@ Walk-in customers are never enrolled.
 ## Tier assignment
 
 - **`LoyaltyService.member_qualifies_for_tier`**: For each `LoyaltyTier`, if both `min_points_required` and `min_annual_spending` are set, the member qualifies when **either** `lifetime_points` meets the point floor **or** `annual_spent` meets the spending floor (matching the model docstring). If only one threshold is set, that condition alone applies.
-- **`LoyaltyService.recalculate_membership_tier`**: Among active tiers for the program, ordered by `tier_level` descending, the member is assigned the **first** (highest) tier they qualify for. Called after new enrollment (including welcome points), when an existing member is loaded at sale assignment, and after spending is updated on a completed sale.
-- **`LoyaltyService.apply_completed_sale_to_membership`**: On each completed **sale** transaction, increments `total_purchases`, adds `total_amount` to `total_spent`, updates `annual_spent` for the **calendar year** of `transaction_date_time` (resets annual spending when the sale year is after the year of `last_activity_date`), sets `last_activity_date`, then runs tier recalculation.
-- **`LoyaltyService.on_sale_transaction_completed`**: Invoked from `PaymentService.copy_temp_to_permanent()` after the permanent `TransactionHead` is created. Skips walk-in customers and non-sale `transaction_type` values. Resolves `CustomerLoyalty` by `loyalty_member_id` on the temp head, or by `fk_customer_id` if the id was not set.
+- **`LoyaltyService.recalculate_membership_tier`**: Among active tiers for the program, ordered by `tier_level` descending, the member is assigned the **first** (highest) tier they qualify for. Called after new enrollment (including welcome points), when an existing member is loaded at sale assignment, and after a completed sale **once** spending and any **earned** points for that receipt have been applied.
+- **`LoyaltyService.apply_completed_sale_to_membership`**: On each completed **sale** transaction, increments `total_purchases`, adds `total_amount` to `total_spent`, updates `annual_spent` for the **calendar year** of `transaction_date_time` (resets annual spending when the sale year is after the year of `last_activity_date`), sets `last_activity_date`. Tier recalculation can be deferred when points are credited in the same session (`recalculate_tier=False`).
 
-Applying **tier multipliers** or **tier discounts** to line totals or point earning at checkout is not implemented yet.
+## Earning engine (`LoyaltyEarnService`)
+
+On **`PaymentService.copy_temp_to_permanent()`**, **before** the permanent `TransactionHead` is inserted:
+
+1. **`LoyaltyEarnService.stage_document_earn(document_data)`** runs for **sale** transactions with a **non–walk-in** customer and an active `CustomerLoyalty` row linked to the active program.
+2. **Document net total** (v1): `TransactionHeadTemp.total_amount` (must be ≥ `LoyaltyProgram.min_purchase_for_points` when that field is set). Base points:  
+   `floor(total_amount × points_per_currency × tier.points_multiplier)`  
+   Tier multiplier is taken from the member’s **`fk_loyalty_tier_id`** at earn time (before this sale’s earned points are added to `lifetime_points`).
+3. **`LoyaltyEarnRule`** rows for that program, **`priority` ascending**, by `rule_type`:
+   - **`DOCUMENT_TOTAL`**: Adds `extra_points` or `bonus_points` from `config_json` (after applying the same tier multiplier).
+   - **`LINE_ITEM`**: Per active line (`is_cancel` / `is_voided` excluded). `config_json` may include `fk_product_id` or `product_code` / `plu`, plus `extra_points` / `bonus_points_per_line` and/or `points_per_currency` on the line’s `total_price`.
+   - **`CATEGORY`** or **`DEPARTMENT`**: Same line filters; match `fk_department_main_group_id` and optionally `fk_department_sub_group_id`, then `extra_points` and/or `points_per_currency` on matched line totals.
+   - **`PRODUCT_SET`** or **`BUNDLE`**: If every UUID in `product_ids` (or `required_product_ids`) appears on at least one active line with a non-null `fk_product_id`, adds `bonus_points` or `extra_points` (tier multiplier applied). `bundle_id` alone does not match until catalog wiring exists.
+4. **`TransactionHeadTemp.loyalty_points_earned`** is set to the **sum** of the above (non-negative). A **`TransactionLoyaltyTemp`** snapshot row is appended to `document_data["loyalty"]` (`points_earned`, `points_balance_before` / `after` as preview, `bonus_multiplier`, `campaign_bonus` for non–program-base extras).
+
+Then the permanent **`TransactionHead`** is created (copying `loyalty_points_earned`), related **`TransactionLoyalty`** rows are copied from temp snapshots, and **`LoyaltyService.on_sale_transaction_completed(..., permanent_head_id=head.id)`**:
+
+- Applies spending counters (tier recalculation **deferred** during that call).
+- Credits **`available_points`**, **`total_points`**, **`lifetime_points`** and inserts **`LoyaltyPointTransaction`** with `transaction_type="EARNED"` and `fk_transaction_head_id` set to the **permanent** head.
+- Runs **`recalculate_membership_tier`** once so new lifetime points affect tier.
+
+Walk-in, missing customer, missing membership, or inactive program → **`loyalty_points_earned`** is set to **0** and no earn snapshot / ledger row.
+
+**Redemption** at payment and **tier discount** on line totals are not implemented here.
 
 ## Code layout
 
@@ -47,8 +69,10 @@ Applying **tier multipliers** or **tier discounts** to line totals or point earn
 | Policy / rule models | `data_layer/model/definition/loyalty_program_policy.py`, `loyalty_earn_rule.py`, `loyalty_redemption_policy.py` |
 | Customer phone column | `data_layer/model/definition/customer.py` |
 | Seed data | `data_layer/db_init_data/loyalty.py` (`_insert_loyalty_program_policy`, `_insert_loyalty_redemption_policy`, `_insert_loyalty_default_earn_rule`) |
-| Business helpers | `pos/service/loyalty_service.py` (`LoyaltyService`) |
-| Completed sale hook | `pos/service/payment_service.py` → `LoyaltyService.on_sale_transaction_completed` (then `CustomerSegmentService.on_sale_transaction_completed` for marketing segments) |
+| Enrollment / tier / ledger credit | `pos/service/loyalty_service.py` (`LoyaltyService`) |
+| Earn calculation + temp staging | `pos/service/loyalty_earn_service.py` (`LoyaltyEarnService`) |
+| Completed sale hook | `pos/service/payment_service.py` → `LoyaltyEarnService.stage_document_earn`, permanent copy, `LoyaltyService.on_sale_transaction_completed`, then `CustomerSegmentService.on_sale_transaction_completed` |
+| Full temp→perm copy (e.g. cancel path) | `pos/manager/document_manager.py` — payment completion uses the slimmer `PaymentService.copy_temp_to_permanent` |
 | UI / events | `pos/manager/event/customer.py` (save, search, assign) |
 
 ## Schema upgrades

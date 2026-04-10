@@ -215,7 +215,7 @@ def _insert_loyalty_default_earn_rule(session: Session, loyalty_program_id):
             priority=1000,
             is_active=True,
             config_json="{}",
-            description="Base earning from document total (engine not yet implemented)",
+            description="Document-total extras via config_json (extra_points); base rate uses LoyaltyProgram + tier multiplier",
         )
     )
     session.commit()

@@ -35,7 +35,7 @@ The `insert_initial_data()` function in `db_init_data/__init__.py` orchestrates 
 27. **Virtual Keyboard Settings** (`_insert_virtual_keyboard_settings`): Creates default keyboard theme
 28. **Alternative Keyboard Themes** (`_insert_alternative_keyboard_themes`): Adds additional keyboard themes
 29. **Campaigns** (`_insert_campaigns`): Creates sample promotional campaigns
-30. **Loyalty Programs** (`_insert_loyalty`): Sets up loyalty program with tiers, `LoyaltyProgramPolicy`, `LoyaltyRedemptionPolicy`, and default `LoyaltyEarnRule`
+30. **Loyalty Programs** (`_insert_loyalty`): Sets up loyalty program with tiers, `LoyaltyProgramPolicy`, `LoyaltyRedemptionPolicy`, and a default `LoyaltyEarnRule` row (`DOCUMENT_TOTAL`; extra bonuses via `config_json`; full earn logic in **`LoyaltyEarnService`** — see [Loyalty Programs](41-loyalty-programs.md))
 31. **Customer Segments** (`_insert_customer_segments`): Creates default `CustomerSegment` rows (VIP, NEW_CUSTOMER, FREQUENT_BUYER, HIGH_VALUE, INACTIVE, BIRTHDAY); VIP seed includes **`honor_preferences_vip`** for `preferences_json` flags. Runtime assignment is **`CustomerSegmentService`** (see [Customer Segmentation](42-customer-segmentation.md))
 32. **POS Settings** (`_insert_pos_settings`): Configures system-wide POS settings including device serial number (generated from MAC address and disk serial), operating system information, default country (United Kingdom), default currency (GBP), customer display settings (INTERNAL), barcode reader port (PS/2), backend connection settings (127.0.0.1:5000), and backend type (GATE)
 
@@ -168,7 +168,7 @@ Sets up loyalty program:
 - Membership tiers (Bronze, Silver, Gold, Platinum) with benefits and point multipliers
 - **`LoyaltyProgramPolicy`** — phone-first identity, default country calling code (`90` in seed), enrollment rules, integration provider (`LOCAL`)
 - **`LoyaltyRedemptionPolicy`** — redemption caps/steps (used when payment redemption is implemented)
-- **`LoyaltyEarnRule`** — default `DOCUMENT_TOTAL` placeholder row for a future earning engine
+- **`LoyaltyEarnRule`** — default `DOCUMENT_TOTAL` row (empty `config_json` in seed); runtime evaluation and additional rule types are implemented in **`LoyaltyEarnService`**
 
 Inserts are idempotent (skip when rows already exist). See [Loyalty Programs](41-loyalty-programs.md).
 

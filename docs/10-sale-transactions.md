@@ -270,6 +270,8 @@ When the ticket is fully paid from this screen, the app completes the sale, prin
 
 When the total payment equals the document total (minus any change), the transaction is automatically completed, the receipt is printed (see [Peripherals — Receipt format](30-peripherals.md#receipt-format)), and the cash drawer is opened.
 
+**Loyalty (local):** For **sale** receipts with a **registered** (non–walk-in) customer and an active **`CustomerLoyalty`** membership, completion runs **`LoyaltyEarnService.stage_document_earn`** inside **`PaymentService.copy_temp_to_permanent`** before the permanent header is written — see [Loyalty Programs — Earning engine](41-loyalty-programs.md#earning-engine-loyaltyearnservice). Points are **not** shown on the printed receipt unless the receipt template is extended; redemption at payment is not implemented yet.
+
 ---
 
 ## Amount Table

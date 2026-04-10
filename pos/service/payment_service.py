@@ -486,27 +486,39 @@ class PaymentService:
             bool: True if successful, False otherwise
         """
         try:
+            from data_layer.auto_save import AutoSaveModel
             from data_layer.model.definition.transaction_head import TransactionHead
             from data_layer.model.definition.transaction_payment import TransactionPayment
             from data_layer.model.definition.transaction_change import TransactionChange
+            from data_layer.model.definition.Transaction_loyalty import TransactionLoyalty
             from uuid import uuid4
-            
+
+            from pos.service.loyalty_earn_service import LoyaltyEarnService
+            from pos.service.loyalty_service import LoyaltyService
+            from pos.service.customer_segment_service import CustomerSegmentService
+
             if not document_data or not document_data.get("head"):
                 return False
-            
+
+            LoyaltyEarnService.stage_document_earn(document_data)
+
             head_temp = document_data["head"]
-            
-            # Copy head
+            if isinstance(head_temp, AutoSaveModel):
+                head_temp = head_temp.unwrap()
+
+            # Copy head (includes loyalty_points_earned staged above)
             head = TransactionHead()
             for key in head_temp.__table__.columns.keys():
                 if hasattr(head_temp, key):
                     setattr(head, key, getattr(head_temp, key))
             head.id = uuid4()
             head.create()
-            
+
             # Copy payments
             if document_data.get("payments"):
                 for pay_temp in document_data["payments"]:
+                    if isinstance(pay_temp, AutoSaveModel):
+                        pay_temp = pay_temp.unwrap()
                     pay = TransactionPayment()
                     for key in pay_temp.__table__.columns.keys():
                         if hasattr(pay_temp, key):
@@ -516,10 +528,12 @@ class PaymentService:
                                 setattr(pay, key, getattr(pay_temp, key))
                     pay.id = uuid4()
                     pay.create()
-            
+
             # Copy changes
             if document_data.get("changes"):
                 for change_temp in document_data["changes"]:
+                    if isinstance(change_temp, AutoSaveModel):
+                        change_temp = change_temp.unwrap()
                     change = TransactionChange()
                     for key in change_temp.__table__.columns.keys():
                         if hasattr(change_temp, key):
@@ -530,10 +544,23 @@ class PaymentService:
                     change.id = uuid4()
                     change.create()
 
-            from pos.service.loyalty_service import LoyaltyService
-            from pos.service.customer_segment_service import CustomerSegmentService
+            if document_data.get("loyalty"):
+                for loy_temp in document_data["loyalty"]:
+                    if isinstance(loy_temp, AutoSaveModel):
+                        loy_temp = loy_temp.unwrap()
+                    loy = TransactionLoyalty()
+                    for key in loy_temp.__table__.columns.keys():
+                        if hasattr(loy_temp, key):
+                            if key == "fk_transaction_head_id":
+                                setattr(loy, key, head.id)
+                            else:
+                                setattr(loy, key, getattr(loy_temp, key))
+                    loy.id = uuid4()
+                    loy.create()
 
-            LoyaltyService.on_sale_transaction_completed(document_data)
+            LoyaltyService.on_sale_transaction_completed(
+                document_data, permanent_head_id=head.id
+            )
             CustomerSegmentService.on_sale_transaction_completed(document_data)
 
             return True

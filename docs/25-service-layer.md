@@ -4,7 +4,7 @@
 
 SaleFlex.PyPOS implements a **service layer pattern** to separate business logic from event handlers and UI components. This architecture improves code organization, reusability, and testability by centralizing business operations in dedicated service classes.
 
-The service layer is located in the `pos/service/` directory and contains business logic services that handle core POS operations such as VAT calculations, sale processing, transaction management, local loyalty enrollment, and customer segment auto-assignment.
+The service layer is located in the `pos/service/` directory and contains business logic services that handle core POS operations such as VAT calculations, sale processing, transaction management, local loyalty enrollment and **point earning** on completed sales, and customer segment auto-assignment.
 
 ## Service Layer Structure
 
@@ -14,7 +14,8 @@ pos/service/
 ├── vat_service.py               # VAT calculation service
 ├── sale_service.py              # Sale processing service
 ├── payment_service.py           # Payment processing service
-├── loyalty_service.py           # Phone normalization, enrollment, tier & spending after completed sale
+├── loyalty_service.py           # Phone normalization, enrollment; spending, EARNED credit, tier after sale
+├── loyalty_earn_service.py      # Stages loyalty_points_earned from program + LoyaltyEarnRule; TransactionLoyaltyTemp snapshot
 └── customer_segment_service.py  # criteria_json → CustomerSegmentMember; marketing_profile
 ```
 
@@ -271,7 +272,7 @@ if is_complete:
 - **`is_document_complete(document_data)`**: Check if document is fully paid (total_amount = total_payment_amount - total_change_amount)
 - **`mark_document_complete(document_data)`**: Mark document as complete by updating transaction status
 - **`update_closure_for_completion(closure, document_data)`**: Update closure with transaction totals
-- **`copy_temp_to_permanent(document_data)`**: Copy all temp models to permanent models, then call **`LoyaltyService.on_sale_transaction_completed`** and **`CustomerSegmentService.on_sale_transaction_completed`** for completed **sale** transactions (loyalty stats/tier, then segment memberships)
+- **`copy_temp_to_permanent(document_data)`**: Runs **`LoyaltyEarnService.stage_document_earn`** (temp head + loyalty snapshot), copies head, payments, changes, and **`TransactionLoyalty`** rows to permanent tables, then **`LoyaltyService.on_sale_transaction_completed(..., permanent_head_id=...)`** and **`CustomerSegmentService.on_sale_transaction_completed`** for completed **sale** transactions (spend counters, **EARNED** ledger credit, tier, then segment memberships)
 - **`_safe_decimal(value)`**: Safely convert value to Decimal (handles None, string, int, float, Decimal)
 
 ### LoyaltyService
@@ -285,14 +286,28 @@ if is_complete:
 - **`validate_unique_phone_normalized(session, customer)`** — detects conflicts before commit.
 - **`ensure_loyalty_on_sale_assignment(head_obj, customer_id)`** — after a customer is linked to the open sale, may create `CustomerLoyalty`, set `TransactionHeadTemp.loyalty_member_id`, and post welcome points (`LoyaltyPointTransaction`).
 - **`recalculate_membership_tier(session, membership)`** — sets `fk_loyalty_tier_id` to the highest qualifying `LoyaltyTier`.
-- **`on_sale_transaction_completed(document_data)`** — updates spending counters and tier after `PaymentService.copy_temp_to_permanent()`.
+- **`on_sale_transaction_completed(document_data, permanent_head_id=...)`** — after earn staging and permanent head insert: updates spending counters, credits **`LoyaltyPointTransaction`** (`EARNED`) from **`loyalty_points_earned`**, then recalculates tier.
 
-Called from `CustomerEvent` (customer SAVE, customer search country code helper, sale assignment). Checkout earning and payment redemption are **not** handled here; see [Loyalty Programs](41-loyalty-programs.md).
+Called from `CustomerEvent` (customer SAVE, customer search country code helper, sale assignment) and from **`PaymentService.copy_temp_to_permanent`**. Point **calculation** lives in **`LoyaltyEarnService`**; payment **redemption** is not implemented yet. See [Loyalty Programs](41-loyalty-programs.md).
 
 #### Import
 
 ```python
 from pos.service.loyalty_service import LoyaltyService
+```
+
+### LoyaltyEarnService
+
+`LoyaltyEarnService` (`pos/service/loyalty_earn_service.py`) runs **only** at sale completion, inside **`PaymentService.copy_temp_to_permanent`**, before the permanent **`TransactionHead`** is created.
+
+#### Responsibilities
+
+- **`stage_document_earn(document_data)`** — for eligible **sale** receipts with a **non–walk-in** customer and **`CustomerLoyalty`**: computes points from document net total (`LoyaltyProgram.points_per_currency`, `min_purchase_for_points`, current tier **`points_multiplier`**), then active **`LoyaltyEarnRule`** rows (`DOCUMENT_TOTAL`, `LINE_ITEM`, `CATEGORY` / `DEPARTMENT`, `PRODUCT_SET` / `BUNDLE` per `config_json`). Sets **`TransactionHeadTemp.loyalty_points_earned`** and appends a **`TransactionLoyaltyTemp`** row to `document_data["loyalty"]` for copy to **`TransactionLoyalty`**.
+
+#### Import
+
+```python
+from pos.service.loyalty_earn_service import LoyaltyEarnService
 ```
 
 ### CustomerSegmentService

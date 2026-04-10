@@ -243,10 +243,17 @@ class LoyaltyService:
         return False
 
     @staticmethod
-    def apply_completed_sale_to_membership(session: Session, membership: "CustomerLoyalty", head: Any) -> bool:
+    def apply_completed_sale_to_membership(
+        session: Session,
+        membership: "CustomerLoyalty",
+        head: Any,
+        *,
+        recalculate_tier: bool = True,
+    ) -> bool:
         """
         Increment purchase counters and spending from a completed sale header, roll calendar-year
-        ``annual_spent`` when the sale date moves to a new year, then refresh tier.
+        ``annual_spent`` when the sale date moves to a new year. Tier refresh is optional so
+        earned points can be credited first when both run in the same session.
         """
         sale_amount = Decimal(str(getattr(head, "total_amount", None) or 0))
         if sale_amount < 0:
@@ -268,14 +275,49 @@ class LoyaltyService:
         membership.annual_spent = annual + sale_amount
         membership.last_activity_date = sale_dt
 
-        LoyaltyService.recalculate_membership_tier(session, membership)
+        if recalculate_tier:
+            LoyaltyService.recalculate_membership_tier(session, membership)
         return True
 
     @staticmethod
-    def on_sale_transaction_completed(document_data: Optional[Dict[str, Any]]) -> None:
+    def _credit_sale_earned_points(
+        session: Session,
+        membership: "CustomerLoyalty",
+        customer: "Customer",
+        points: int,
+        permanent_head_id: Optional[UUID],
+    ) -> None:
+        """Persist ``EARNED`` ledger row and bump membership point balances."""
+        if points <= 0:
+            return
+        from data_layer.model.definition.loyalty_point_transaction import LoyaltyPointTransaction
+
+        membership.available_points = int(membership.available_points or 0) + points
+        membership.total_points = int(membership.total_points or 0) + points
+        membership.lifetime_points = int(membership.lifetime_points or 0) + points
+        bal = int(membership.available_points or 0)
+        session.add(
+            LoyaltyPointTransaction(
+                fk_customer_loyalty_id=membership.id,
+                fk_customer_id=customer.id,
+                transaction_type="EARNED",
+                points_amount=points,
+                balance_after=bal,
+                fk_transaction_head_id=permanent_head_id,
+                description="Purchase points",
+            )
+        )
+
+    @staticmethod
+    def on_sale_transaction_completed(
+        document_data: Optional[Dict[str, Any]],
+        *,
+        permanent_head_id: Optional[UUID] = None,
+    ) -> None:
         """
-        After temp rows are copied to permanent tables, refresh loyalty spending and tier for
-        the customer on the receipt. No-op for walk-in, non-sale types, or missing membership.
+        After temp rows are copied to permanent tables, refresh loyalty spending, credit any
+        staged ``loyalty_points_earned``, then recalculate tier once (so new lifetime points
+        affect tier). No-op for walk-in, non-sale types, or missing membership.
         """
         if not document_data or not document_data.get("head"):
             return
@@ -294,6 +336,8 @@ class LoyaltyService:
             cid = getattr(head, "fk_customer_id", None)
             if not cid:
                 return
+
+            earned = int(getattr(head, "loyalty_points_earned", None) or 0)
 
             engine = Engine()
             with engine.get_session() as session:
@@ -324,7 +368,13 @@ class LoyaltyService:
                 if not mem:
                     return
 
-                LoyaltyService.apply_completed_sale_to_membership(session, mem, head)
+                LoyaltyService.apply_completed_sale_to_membership(
+                    session, mem, head, recalculate_tier=False
+                )
+                LoyaltyService._credit_sale_earned_points(
+                    session, mem, customer, earned, permanent_head_id
+                )
+                LoyaltyService.recalculate_membership_tier(session, mem)
                 session.commit()
         except Exception as exc:
             logger.error("[LOYALTY] on_sale_transaction_completed: %s", exc)

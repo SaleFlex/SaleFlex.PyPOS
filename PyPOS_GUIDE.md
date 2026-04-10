@@ -184,7 +184,7 @@ Press **SAVE** (green) to persist changes or create a new customer. Press **BACK
 
 > **Walk-in Customer:** A special "Walk-in Customer" record is pre-seeded in the database (`is_walkin = True`). All sale transactions that have no customer explicitly assigned are automatically linked to this record. The Walk-in Customer is excluded from the customer list search and cannot be edited.
 
-**Loyalty (local):** Saving a customer updates **`phone_normalized`** (digits-only, unique). Assigning a registered customer to the active sale can create **`CustomerLoyalty`**, set **`loyalty_member_id`** on the open document, apply **welcome** points, and **recompute tier**. When the receipt is fully paid, **`PaymentService.copy_temp_to_permanent`** updates **`CustomerLoyalty`** totals (`total_spent`, calendar-year **`annual_spent`**, purchase count) and **refreshes the membership tier** from `LoyaltyTier` thresholds. Point **earning** at totals and **redemption** in payment are not implemented yet. Details: [Loyalty Programs](docs/41-loyalty-programs.md).
+**Loyalty (local):** Saving a customer updates **`phone_normalized`** (digits-only, unique). Assigning a registered customer to the active sale can create **`CustomerLoyalty`**, set **`loyalty_member_id`** on the open document, apply **welcome** points, and **recompute tier**. When the receipt is fully paid, **`PaymentService.copy_temp_to_permanent`** runs **`LoyaltyEarnService`** to set **`loyalty_points_earned`** from the document total (program rate, minimum purchase, tier multiplier) and optional **`LoyaltyEarnRule`** rows (line/category/product-set bonuses), writes **`TransactionLoyalty`**, then **`LoyaltyService`** posts **`LoyaltyPointTransaction`** (`EARNED`), updates spending counters, and **refreshes the membership tier**. Point **redemption** at payment is not implemented yet. Details: [Loyalty Programs](docs/41-loyalty-programs.md).
 
 **Marketing segments:** **`CustomerSegmentService`** updates **`CustomerSegmentMember`** from each segment’s **`criteria_json`** after **SAVE** on Customer Detail and after each **completed sale** (same payment path as loyalty). This is separate from loyalty **tier**; combine both for campaigns via **`marketing_profile()`**. Details: [Customer Segmentation](docs/42-customer-segmentation.md).
 
@@ -295,7 +295,7 @@ See [Inventory Management](docs/16-inventory-management.md) for full documentati
 
 **Assign customer to sale (FUNC → CUSTOMER button):** [Customer Management — Sale-Assignment Workflow](docs/17-customer-management.md#sale-assignment-workflow)
 
-**Loyalty (phone ID, tier after sale):** [Loyalty Programs](docs/41-loyalty-programs.md)
+**Loyalty (phone ID, earn on completed sale, tier):** [Loyalty Programs](docs/41-loyalty-programs.md)
 
 **Customer segments (auto rules):** [Customer Segmentation](docs/42-customer-segmentation.md)
 
