@@ -1,5 +1,5 @@
 """
-SETTING form (#3) — tabbed POS + loyalty configuration (Phase 7).
+SETTING form (#3) — tabbed POS + loyalty configuration.
 
 Replaces the legacy single PANEL layout with a TABCONTROL:
   Tab 0: POS_SETTINGS  → PosSettings

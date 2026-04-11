@@ -152,6 +152,9 @@ class CurrentData(DocumentManager, CacheManager, ClosureManager):
         # Set by _customer_detail_event before opening the modal dialog.
         self.current_customer_id = None
 
+        # Transient campaign selection for CAMPAIGN_DETAIL (admin campaign management).
+        self.current_campaign_id = None
+
         # Customer-from-sale workflow state.
         # _customer_from_sale: True when CUSTOMER_LIST was opened via the CUSTOMER button on the SALE form.
         # current_sale_customer_id: UUID string of the customer to assign to the active sale transaction

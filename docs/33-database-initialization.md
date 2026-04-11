@@ -116,7 +116,7 @@ Inserts default transaction discount types:
 Existing databases receive the **CAMPAIGN** row via **`ensure_transaction_discount_type_campaign`** on application startup (see [Startup Entry Point — patches](34-startup-entry-point.md#database-bootstrap-and-ui-schema-patches-application)).
 
 ### `_insert_default_forms(session, cashier_id)`
-Creates all 20 application forms. Form definitions are organised into topic-based sub-modules under `data_layer/db_init_data/forms/`. Each sub-module provides a `get_form_data(cashier_id)` function that returns the form row dict(s) for that topic:
+Creates all application forms (including **#21–#22** campaign management). Form definitions are organised into topic-based sub-modules under `data_layer/db_init_data/forms/`. Each sub-module provides a `get_form_data(cashier_id)` function that returns the form row dict(s) for that topic:
 
 | Sub-module | Forms |
 |---|---|
@@ -130,11 +130,12 @@ Creates all 20 application forms. Form definitions are organised into topic-base
 | `forms/stock.py` | #13 STOCK_INQUIRY, #14 STOCK_IN, #15 STOCK_ADJUSTMENT, #16 STOCK_MOVEMENT |
 | `forms/customer.py` | #17 CUSTOMER_LIST, #18 CUSTOMER_DETAIL (tabs: Customer Info, Activity History, **Point movements** + `CUSTOMER_LOYALTY_POINTS_GRID`), #19 CUSTOMER_SELECT; **`ensure_customer_loyalty_points_grid`** patches older DBs on app startup (see [Startup Entry Point](34-startup-entry-point.md)) |
 | `forms/payment_screen.py` | #20 PAYMENT |
+| `forms/campaign_management.py` | #21 **CAMPAIGN_LIST**, #22 **CAMPAIGN_DETAIL**; startup patch **`ensure_campaign_management_forms`** (forms, detail controls, main menu + SETTINGS navigation buttons) |
 
 Each form row includes layout dimensions (1024×768), colors, display mode (`MAIN` or `MODAL`), and the `is_startup` flag (only MAIN_MENU is `True`).
 
 ### `_insert_form_controls(session, cashier_id)`
-Populates all 20 forms with their controls (buttons, textboxes, labels, comboboxes, panels, tab controls, data grids, etc.). Control definitions live in the same topic-based sub-modules as the form definitions.
+Populates all forms with their controls (buttons, textboxes, labels, comboboxes, panels, tab controls, data grids, etc.). Control definitions live in the same topic-based sub-modules as the form definitions.
 
 **Insertion runs in three ordered steps:**
 
@@ -142,7 +143,7 @@ Populates all 20 forms with their controls (buttons, textboxes, labels, combobox
 
 **Step 2 — Flush, panel wiring, SETTING:** After the first `flush()`, `update_cashier_panel_parents()` wires CASHIER panel children. **`setting_form.insert_setting_form_controls()`** then builds the tabbed SETTING form (`SETTING_TAB_CONTROL` + `FormControlTab` + panels).
 
-**Step 3 — Tab-based and inventory forms:** Forms with `TABCONTROL` hierarchies (`PRODUCT_DETAIL`, `CUSTOMER_DETAIL`) and inventory forms issue their own internal `session.flush()` calls to obtain UUIDs before creating child controls where needed. (**SETTING** uses `TABCONTROL` too, but its tree is built entirely in step 2 via `insert_setting_form_controls`.)
+**Step 3 — Tab-based and inventory forms:** Forms with `TABCONTROL` hierarchies (`PRODUCT_DETAIL`, `CUSTOMER_DETAIL`, **`CAMPAIGN_DETAIL`**) and inventory forms issue their own internal `session.flush()` calls to obtain UUIDs before creating child controls where needed. (**SETTING** uses `TABCONTROL` too, but its tree is built entirely in step 2 via `insert_setting_form_controls`.)
 
 **SALE form:** `SALESLIST`, `NUMPAD`, `PAYMENTLIST`, department buttons, PLU buttons, product barcode shortcut buttons, cash payment denomination buttons, and dual-function buttons (`PAYMENT_SUSPEND`, `SUB TOTAL`/`CUSTOMER`, `CREDIT CARD`/`PAYMENT`, `DISC %`/`MARK %`, `DISC AMT`/`MARK AMT`). **FUNC** only swaps their captions between primary and alternate; a dual-button tap runs the visible event and resets **all** dual buttons on the form to primary captions.
 

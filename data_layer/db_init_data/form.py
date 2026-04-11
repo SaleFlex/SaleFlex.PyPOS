@@ -38,6 +38,7 @@ SOFTWARE.
 #   customer.py   — forms #17 CUSTOMER_LIST, #18 CUSTOMER_DETAIL,
 #                          #19 CUSTOMER_SELECT
 #   payment_screen.py — form #20 PAYMENT
+#   campaign_management.py — forms #21–22 CAMPAIGN_LIST, CAMPAIGN_DETAIL
 
 from sqlalchemy.orm import Session
 
@@ -53,6 +54,7 @@ from data_layer.db_init_data.forms import product
 from data_layer.db_init_data.forms import stock
 from data_layer.db_init_data.forms import customer
 from data_layer.db_init_data.forms import payment_screen
+from data_layer.db_init_data.forms import campaign_management
 
 logger = get_logger(__name__)
 
@@ -73,6 +75,7 @@ def _insert_default_forms(session: Session, cashier_id: str):
         + stock.get_form_data(cashier_id)
         + customer.get_form_data(cashier_id)
         + payment_screen.get_form_data(cashier_id)
+        + campaign_management.get_form_data(cashier_id)
     )
 
     try:

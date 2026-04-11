@@ -206,3 +206,8 @@ class ControlName(enum.Enum):
     CUSTOMER_DETAIL_TAB = "CUSTOMER_DETAIL_TAB"              # TABCONTROL on the customer detail form
     CUSTOMER_ACTIVITY_GRID = "CUSTOMER_ACTIVITY_GRID"        # DataGrid listing customer transaction history
     CUSTOMER_LOYALTY_POINTS_GRID = "CUSTOMER_LOYALTY_POINTS_GRID"  # DataGrid: LoyaltyPointTransaction audit for customer
+
+    # Campaign management controls
+    CAMPAIGN_SEARCH_TEXTBOX = "CAMPAIGN_SEARCH_TEXTBOX"
+    CAMPAIGN_LIST_DATAGRID = "CAMPAIGN_LIST_DATAGRID"
+    CAMPAIGN_DETAIL_TAB = "CAMPAIGN_DETAIL_TAB"

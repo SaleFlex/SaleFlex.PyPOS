@@ -778,6 +778,20 @@ Text fields are enforced in `base_window._create_textbox()`; `IS_ADMINISTRATOR` 
 - If the saved cashier is also the logged-in cashier, `cashier_data` cache is updated too
 - Works with any model following the naming convention!
 
+## Campaign management (administrators)
+
+Campaign list and detail follow the same pattern as **Product** / **Customer** management: search, **DataGrid**, **DETAIL** opens a **modal** driven by the database.
+
+| Item | Location / behaviour |
+|---|---|
+| Form definitions | `data_layer/db_init_data/forms/campaign_management.py` — **CAMPAIGN_LIST** (form_no 21), **CAMPAIGN_DETAIL** (22) |
+| Panel → model | Panel name **`CAMPAIGN`** → **`Campaign`** model; textboxes and checkboxes match field names (uppercase → lowercase) |
+| Selection state | **`current_campaign_id`** on the application (set before opening the detail modal, like **`current_product_id`**) |
+| SAVE | Button **`SAVE_CAMPAIGN_DETAIL`** → **`CAMPAIGN_DETAIL_SAVE`** → **`_campaign_detail_save_event`** (parses decimals, dates, times, UUID type id); then **`refresh_active_campaign_cache()`** so the POS evaluation cache matches the DB |
+| Navigation | **`CAMPAIGN_LIST_FORM`**: main menu **`GOTO_CAMPAIGNS`**, SETTINGS **`GOTO_CAMPAIGNS_FROM_SETTINGS`** |
+| Access control | Buttons wired with **`CAMPAIGN_LIST_FORM`** are **hidden** for non-administrators in **`base_window._create_button()`** (same pattern as **`ADD_NEW_CASHIER`**) |
+| Existing databases | **`ensure_campaign_management_forms`** runs after **`ensure_setting_form_tabs`** in **`Application`** startup |
+
 ## Special Auto-Populated Comboboxes
 
 Some comboboxes are auto-populated at runtime based on their `name` attribute. The logic lives in `base_window._create_combobox()`.

@@ -379,7 +379,7 @@ class BaseWindow(QMainWindow):
                 button.clicked.connect(event_handler)
 
         # Hide admin-only buttons for non-administrator users
-        if function_name == "ADD_NEW_CASHIER":
+        if function_name in ("ADD_NEW_CASHIER", "CAMPAIGN_LIST_FORM"):
             logged_in_cashier = getattr(self.app, 'cashier_data', None)
             if logged_in_cashier and hasattr(logged_in_cashier, 'unwrap'):
                 logged_in_cashier = logged_in_cashier.unwrap()

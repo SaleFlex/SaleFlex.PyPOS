@@ -1247,7 +1247,18 @@ class DynamicDialog(QDialog):
                                 model_instance = _Customer.get_by_id(customer_id)
                         except Exception:
                             pass
-                if not model_instance and model_class_name != "Customer":
+                if not model_instance and model_class_name == "Campaign":
+                    try:
+                        from uuid import UUID as _UUID
+                        from data_layer.model.definition.campaign import Campaign as _Campaign
+                        campaign_id = getattr(self.app, 'current_campaign_id', None)
+                        if campaign_id:
+                            if isinstance(campaign_id, str):
+                                campaign_id = _UUID(campaign_id)
+                            model_instance = _Campaign.get_by_id(campaign_id)
+                    except Exception:
+                        pass
+                if not model_instance and model_class_name not in ("Customer", "Campaign"):
                     # For non-Customer panels use the generic first-record fallback.
                     # Customer panels are intentionally excluded to avoid loading Walk-in
                     # data when no specific customer is selected (e.g., ADD mode).
@@ -1335,7 +1346,18 @@ class DynamicDialog(QDialog):
                             model_instance = _Customer.get_by_id(customer_id)
                     except Exception:
                         pass
-            if not model_instance and model_class_name != "Customer":
+            if not model_instance and model_class_name == "Campaign":
+                try:
+                    from uuid import UUID as _UUID
+                    from data_layer.model.definition.campaign import Campaign as _Campaign
+                    campaign_id = getattr(self.app, 'current_campaign_id', None)
+                    if campaign_id:
+                        if isinstance(campaign_id, str):
+                            campaign_id = _UUID(campaign_id)
+                        model_instance = _Campaign.get_by_id(campaign_id)
+                except Exception:
+                    pass
+            if not model_instance and model_class_name not in ("Customer", "Campaign"):
                 try:
                     import data_layer.model.definition as model_module
                     from data_layer.model.definition import __all__ as model_names

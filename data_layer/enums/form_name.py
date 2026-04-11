@@ -130,3 +130,5 @@ class FormName(enum.Enum):
     CUSTOMER_DETAIL = 37         # Customer detail form (tab view: info + activity history).
     CUSTOMER_SELECT = 38         # Customer selection form (accessible from SALE form; SELECT button assigns customer and returns to SALE).
     PAYMENT = 39                 # Dedicated payment screen (NUMPAD, payment list, amount table, payment-type buttons); opened from SALE via FUNC + dual CREDIT CARD / PAYMENT.
+    CAMPAIGN_LIST = 40           # Campaign list / search (administrators).
+    CAMPAIGN_DETAIL = 41         # Campaign detail / edit modal (administrators).

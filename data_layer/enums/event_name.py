@@ -234,3 +234,9 @@ class EventName(enum.Enum):
     CUSTOMER_LIST_BACK = "CUSTOMER_LIST_BACK"      # Context-aware BACK from customer list; assigns selected/added customer to the active sale when opened from SALE form
     CUSTOMER_SELECT = "CUSTOMER_SELECT"            # Select highlighted customer from CUSTOMER_SELECT form, assign to active sale, and return to SALE form
     CUSTOMER_SELECT_FORM = "CUSTOMER_SELECT_FORM"  # Navigate to CUSTOMER_SELECT form (used by SALE form's CUSTOMER dual button)
+
+    # Campaign management (administrators)
+    CAMPAIGN_LIST_FORM = "CAMPAIGN_LIST_FORM"        # Navigate to campaign list / search form
+    CAMPAIGN_SEARCH = "CAMPAIGN_SEARCH"              # Run search on CAMPAIGN_LIST
+    CAMPAIGN_DETAIL = "CAMPAIGN_DETAIL"              # Open CAMPAIGN_DETAIL modal for selected row
+    CAMPAIGN_DETAIL_SAVE = "CAMPAIGN_DETAIL_SAVE"   # Save CAMPAIGN panel from detail modal

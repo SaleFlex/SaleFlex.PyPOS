@@ -33,3 +33,4 @@ from .warehouse import WarehouseEvent
 from .closure import ClosureEvent
 from .product import ProductEvent
 from .customer import CustomerEvent
+from .campaign import CampaignEvent

@@ -55,6 +55,7 @@ from data_layer.db_init_data.forms import product
 from data_layer.db_init_data.forms import stock
 from data_layer.db_init_data.forms import customer
 from data_layer.db_init_data.forms import payment_screen
+from data_layer.db_init_data.forms import campaign_management
 
 logger = get_logger(__name__)
 
@@ -88,6 +89,8 @@ def _insert_form_controls(session: Session, cashier_id: str):
     customer_detail_form        = _form(18)
     customer_select_form        = _form(19)
     payment_form                = _form(20)
+    campaign_list_form          = _form(21)
+    campaign_detail_form        = _form(22)
 
     required = [login_form, main_menu_form, config_form, cashier_form,
                 sale_form, closure_form, suspended_sales_market_form, product_list_form]
@@ -114,6 +117,11 @@ def _insert_form_controls(session: Session, cashier_id: str):
         + customer.get_customer_list_form_controls(customer_list_form, cashier_id)
         + customer.get_customer_select_form_controls(customer_select_form, cashier_id)
         + payment_screen.get_payment_form_controls(payment_form, cashier_id)
+        + (
+            campaign_management.get_campaign_list_form_controls(campaign_list_form, cashier_id)
+            if campaign_list_form
+            else []
+        )
     )
 
     for control in all_controls:
@@ -138,6 +146,9 @@ def _insert_form_controls(session: Session, cashier_id: str):
     }, cashier_id)
 
     customer.insert_customer_detail_controls(session, customer_detail_form, cashier_id)
+
+    if campaign_detail_form:
+        campaign_management.insert_campaign_detail_controls(session, campaign_detail_form, cashier_id)
 
     session.commit()
     logger.info("✓ %s form controls inserted successfully", len(all_controls))

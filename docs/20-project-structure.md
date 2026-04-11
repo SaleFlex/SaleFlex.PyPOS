@@ -46,13 +46,15 @@ SaleFlex.PyPOS/
 │       ├── cache_manager.py    ← CacheManager mixin (pos_data / product_data / refresh_active_campaign_cache)
 │       ├── document_manager.py ← DocumentManager mixin (create, load, complete)
 │       ├── closure_manager.py  ← ClosureManager mixin (load, close, sync seq)
-│       └── event/              ← 10 specialised event handler mixins
+│       └── event/              ← Specialised event handler mixins
 │           ├── general.py      ← Login, logout, navigation, save, redraw
 │           ├── sale.py         ← PLU lookup, department sale, suspend, cancel
 │           ├── payment.py      ← Cash, card, change, payment detail
 │           ├── closure.py      ← End-of-day closure execution
 │           ├── configuration.py← Settings, definitions, brightness, …
 │           ├── product.py      ← Product list, search, detail dialog
+│           ├── customer.py     ← Customer list, select, detail, add, sale assignment
+│           ├── campaign.py     ← Campaign list/search/detail SAVE (administrators)
 │           ├── report.py       ← Reports and lists
 │           ├── service.py      ← Service-level operations
 │           ├── hardware.py     ← Open cash drawer, etc.
@@ -115,6 +117,8 @@ Application
 │   ├── ClosureEvent        ← end-of-day closure
 │   ├── ConfigurationEvent  ← settings, definitions
 │   ├── ProductEvent        ← product list, search, detail
+│   ├── CustomerEvent       ← customer list, detail, add, select, sale context
+│   ├── CampaignEvent       ← campaign list/search/detail SAVE (administrators)
 │   ├── ReportEvent         ← reports and lists
 │   ├── ServiceEvent        ← service-mode operations
 │   ├── HardwareEvent       ← peripheral control

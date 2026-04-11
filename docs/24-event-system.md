@@ -145,6 +145,16 @@ if handler:
 | `PRODUCT_LIST_FORM` | `_product_list_form_event` | Open product list / search form |
 | `PRODUCT_SEARCH` | `_product_search_event` | Execute search from textbox |
 | `PRODUCT_DETAIL` | `_product_detail_event` | Open product detail dialog |
+| `PRODUCT_DETAIL_SAVE` | `_product_detail_save_event` | Save **PRODUCT** panel from product detail modal |
+
+### Campaign management (administrators) — `CampaignEvent`
+
+| EventName | Handler | Description |
+|-----------|---------|-------------|
+| `CAMPAIGN_LIST_FORM` | `_campaign_list_form_event` | Open **CAMPAIGN_LIST** (hidden for non-administrators) |
+| `CAMPAIGN_SEARCH` | `_campaign_search_event` | Populate campaign grid from search textbox |
+| `CAMPAIGN_DETAIL` | `_campaign_detail_event` | Open **CAMPAIGN_DETAIL** modal for selected row |
+| `CAMPAIGN_DETAIL_SAVE` | `_campaign_detail_save_event` | Save **CAMPAIGN** panel; **`refresh_active_campaign_cache()`** |
 
 ### Configuration — `ConfigurationEvent`
 
