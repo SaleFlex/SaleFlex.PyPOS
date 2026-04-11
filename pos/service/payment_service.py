@@ -252,6 +252,18 @@ class PaymentService:
             if "payments" not in document_data:
                 document_data["payments"] = []
             document_data["payments"].append(payment_temp)
+
+            try:
+                from pos.service.campaign.campaign_document_sync import (
+                    sync_campaign_discounts_on_document,
+                )
+
+                sync_campaign_discounts_on_document(document_data)
+            except Exception as sync_exc:
+                logger.warning(
+                    "[PAYMENT_SERVICE] campaign sync after payment (non-fatal): %s",
+                    sync_exc,
+                )
             
             # Update head_temp total_payment_amount (use safe decimal conversion)
             current_payment = PaymentService._safe_decimal(head_temp.total_payment_amount)

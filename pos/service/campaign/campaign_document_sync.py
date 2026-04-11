@@ -106,7 +106,7 @@ def _persist_proposals(
         disc.id = uuid4()
         disc.fk_transaction_head_id = head.id
         disc.fk_transaction_product_id = pr.fk_transaction_product_temp_id
-        disc.fk_transaction_payment_id = None
+        disc.fk_transaction_payment_id = pr.fk_transaction_payment_temp_id
         disc.fk_transaction_department_id = None
         disc.line_no = line_no
         line_no += 1

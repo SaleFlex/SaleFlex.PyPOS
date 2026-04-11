@@ -49,7 +49,7 @@ See [Campaign & Promotions](43-campaign-promotions.md) for field lists, stacking
 
 ### `CampaignService` (local evaluation)
 
-**`CampaignService.evaluate_proposals(document_data, …)`** returns **`CampaignDiscountProposal`** instances (pure evaluation; no DB writes by itself). It prefers **`ActiveCampaignCache`** and falls back to a live session query if the cache is empty or reload fails. Supports **`BASKET_DISCOUNT`**, **`TIME_BASED`**, and **`PRODUCT_DISCOUNT`** (with **`CampaignProduct`** rows). **`CampaignService.campaign_discount_proposal_to_dict`** serializes proposals for **`IntegrationMixin.apply_campaign`**. Details and limits: [Campaign & Promotions — Local evaluation](43-campaign-promotions.md#local-evaluation-campaignservice).
+**`CampaignService.evaluate_proposals(document_data, …)`** returns **`CampaignDiscountProposal`** instances (pure evaluation; no DB writes by itself). It prefers **`ActiveCampaignCache`** and falls back to a live session query if the cache is empty or reload fails. Supports **`BASKET_DISCOUNT`**, **`TIME_BASED`**, **`PRODUCT_DISCOUNT`**, **`BUY_X_GET_Y`**, and **`PAYMENT_DISCOUNT`**. **`CampaignService.campaign_discount_proposal_to_dict`** serializes proposals for **`IntegrationMixin.apply_campaign`**. Details and limits: [Campaign & Promotions — Local evaluation](43-campaign-promotions.md#local-evaluation-campaignservice).
 
 ### SALE document sync and UI refresh
 
@@ -125,7 +125,7 @@ The `SaleService` provides business logic for processing sales including PLU (co
 - **Department Sale Calculations**: Handles department-based sales
 - **VAT Integration**: Uses `VatService` for all VAT calculations
 - **Transaction Model Creation**: Creates transaction temp models with proper field mapping
-- **Campaign sync on SALE**: After **`add_sale_to_document`** updates merchandise totals, runs **`sync_campaign_discounts_on_document`** (local **`CAMPAIGN`** **`TransactionDiscountTemp`** rows when **`gate.manages_campaign`** is false). **`refresh_campaign_discounts_after_cart_change`** re-runs sync and refreshes widgets after other cart-affecting actions — see [Campaign & Promotions](43-campaign-promotions.md#sale-document-sync-local-engine).
+- **Campaign sync on SALE / PAYMENT**: After **`add_sale_to_document`** updates merchandise totals, runs **`sync_campaign_discounts_on_document`** (local **`CAMPAIGN`** **`TransactionDiscountTemp`** rows when **`gate.manages_campaign`** is false). **`refresh_campaign_discounts_after_cart_change`** re-runs sync and refreshes widgets after other cart-affecting actions. **`PaymentService.process_payment`** also triggers the sync after each tender line for **payment-method** campaigns — see [Campaign & Promotions](43-campaign-promotions.md#sale-document-sync-local-engine).
 
 #### Usage Examples
 

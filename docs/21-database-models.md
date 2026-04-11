@@ -123,7 +123,7 @@ See [Loyalty Programs](41-loyalty-programs.md) for runtime behaviour and upgrade
 - **CashierWorkBreak**: Break records during work sessions
 - **CashierPerformanceMetrics**: Performance metrics per cashier (sales, transactions, etc.)
 - **CashierPerformanceTarget**: Performance targets and goals for cashiers
-- **CashierTransactionMetrics**: Detailed transaction metrics per cashier
+- **CashierTransactionMetrics**: Detailed transaction metrics per cashier. When populated, **`number_of_promotions_applied`** should match the distinct campaign count on the receipt (see **`CampaignAuditService.distinct_applied_campaign_count`** under *Usage audit and reversal* in [Campaign & Promotions](43-campaign-promotions.md)).
 
 ## Closure and End-of-Day Models
 

@@ -185,7 +185,7 @@ Creates sample promotional campaigns:
 - Time-based promotions
 - Campaign rules and conditions
 
-**End dates** are set about **365 days** after insert so sample rows stay valid on long-lived dev databases. Inserts are idempotent. Seed rows illustrate the schema; **automatic application at the till** (writing **`TransactionDiscountTemp`** from **`CampaignService`**) is not implemented yet. Runtime design is described in [Campaign & Promotions](43-campaign-promotions.md).
+**End dates** are set about **365 days** after insert so sample rows stay valid on long-lived dev databases. Inserts are idempotent. Seed rows illustrate the schema; at runtime, eligible campaigns are applied on the open sale by **`sync_campaign_discounts_on_document`** (which calls **`CampaignService.evaluate_proposals`** and writes **`TransactionDiscountTemp`** rows with **`discount_type="CAMPAIGN"`** when **`gate.manages_campaign`** is false). Behaviour and types are described in [Campaign & Promotions](43-campaign-promotions.md).
 
 ### `_insert_pos_settings(session, admin_cashier_id, gbp_currency=None)`
 Configures system-wide POS settings:

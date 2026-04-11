@@ -36,6 +36,35 @@ def _head(document_data: Mapping[str, Any]) -> Any:
     return _unwrap(document_data["head"])
 
 
+def _collect_applied_campaign_ids(
+    session: Session, document_data: Mapping[str, Any]
+) -> Dict[Any, Decimal]:
+    """
+    Map ``Campaign.id`` → total CAMPAIGN discount amount on non-cancelled temp lines
+    for that campaign (resolved via ``discount_code``). Used for ``CampaignUsage`` and
+    for ``CashierTransactionMetrics.number_of_promotions_applied`` (distinct count).
+    """
+    totals_by_campaign: Dict[Any, Decimal] = defaultdict(lambda: Decimal("0"))
+    for d in document_data.get("discounts") or []:
+        row = _unwrap(d)
+        if getattr(row, "is_cancel", False):
+            continue
+        dt = (getattr(row, "discount_type", None) or "").strip().upper()
+        if dt != CAMPAIGN_DISCOUNT_TYPE_CODE.upper():
+            continue
+        camp = _resolve_campaign_by_discount_code(
+            session, getattr(row, "discount_code", None)
+        )
+        if not camp:
+            logger.warning(
+                "[CampaignAuditService] CAMPAIGN discount code %r matched no campaign",
+                getattr(row, "discount_code", None),
+            )
+            continue
+        totals_by_campaign[camp.id] += Decimal(str(getattr(row, "discount_amount", 0) or 0))
+    return totals_by_campaign
+
+
 def _resolve_campaign_by_discount_code(session: Session, discount_code: Optional[str]) -> Optional[Campaign]:
     dc = (discount_code or "").strip().upper()
     if not dc:
@@ -91,26 +120,7 @@ class CampaignAuditService:
         from data_layer.engine import Engine
 
         with Engine().get_session() as session:
-            totals_by_campaign: Dict[Any, Decimal] = defaultdict(lambda: Decimal("0"))
-            for d in document_data.get("discounts") or []:
-                row = _unwrap(d)
-                if getattr(row, "is_cancel", False):
-                    continue
-                dt = (getattr(row, "discount_type", None) or "").strip().upper()
-                if dt != CAMPAIGN_DISCOUNT_TYPE_CODE.upper():
-                    continue
-                camp = _resolve_campaign_by_discount_code(
-                    session, getattr(row, "discount_code", None)
-                )
-                if not camp:
-                    logger.warning(
-                        "[CampaignAuditService] CAMPAIGN discount code %r matched no campaign",
-                        getattr(row, "discount_code", None),
-                    )
-                    continue
-                totals_by_campaign[camp.id] += Decimal(
-                    str(getattr(row, "discount_amount", 0) or 0)
-                )
+            totals_by_campaign = _collect_applied_campaign_ids(session, document_data)
 
             coupon_hint = CampaignAuditService._coupon_code_hints_by_campaign(session, document_data)
 
@@ -143,6 +153,22 @@ class CampaignAuditService:
                 fk_cashier_id=fk_cashier_id,
             )
             session.commit()
+
+    @staticmethod
+    def distinct_applied_campaign_count(document_data: Mapping[str, Any]) -> int:
+        """
+        Number of distinct campaigns represented on non-cancelled **CAMPAIGN** temp
+        discount lines (same cardinality as ``CampaignUsage`` rows created for this sale).
+        Align with ``CashierTransactionMetrics.number_of_promotions_applied`` when that
+        row is filled from the completed receipt.
+        """
+        if not document_data or not document_data.get("discounts"):
+            return 0
+        from data_layer.engine import Engine
+
+        with Engine().get_session() as session:
+            totals = _collect_applied_campaign_ids(session, document_data)
+            return len([cid for cid, amt in totals.items() if amt > 0])
 
     @staticmethod
     def _coupon_code_hints_by_campaign(

@@ -346,7 +346,7 @@ routing logic lives there.
 
 **GATE and third-party connectors** remain largely **log-only stubs** for network I/O; serializers and queue shapes are in place with `TODO:` markers where HTTP or vendor APIs will attach.
 
-**Local campaign behaviour** is implemented in **`pos/service/campaign/`**: evaluation (**`CampaignService.evaluate_proposals`**), **SALE** document application (**`sync_campaign_discounts_on_document`**), and the **`apply_campaign`** fallback that adds **`campaign_proposals`** to **`document_data`-shaped** dicts when GATE and the campaign connector are not active.
+**Local campaign behaviour** is implemented in **`pos/service/campaign/`**: evaluation (**`CampaignService.evaluate_proposals`** — basket, time-window, product, buy-X-get-Y, payment-method types, rules, stacking), **SALE** and **PAYMENT** document sync (**`sync_campaign_discounts_on_document`** via cart changes and **`PaymentService.process_payment`**), and the **`apply_campaign`** fallback that adds **`campaign_proposals`** to **`document_data`-shaped** dicts when GATE and the campaign connector are not active.
 
 ---
 

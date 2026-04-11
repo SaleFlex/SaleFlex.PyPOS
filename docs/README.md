@@ -41,7 +41,7 @@ In Markdown under `docs/`, reference them as `../static_files/images/<filename>`
 | 17 | [Customer Management](17-customer-management.md) | Customer List search, ADD new customer, Customer Detail tabbed dialog (info, activity, **point movements** ledger), Walk-in Customer, SALE form CUSTOMER dual button, sale-assignment workflow |
 | 41 | [Loyalty Programs](41-loyalty-programs.md) | Local loyalty: policy / earn-rule / redemption models, `phone_normalized`, enrollment; **`LoyaltyRedemptionService`** + **BONUS**; **`LoyaltyEarnService`** + optional **`earn_eligible_payment_types`**; **`EARNED`** / **`REDEEMED`** + **`TransactionLoyalty`**; customer **Point movements** grid (`CUSTOMER_LOYALTY_POINTS_GRID`), closure **receipt detail** loyalty summary; not yet: void/refund/exchange point clawback automation |
 | 42 | [Customer Segmentation](42-customer-segmentation.md) | `CustomerSegmentService`: auto `CustomerSegmentMember` from `criteria_json`, VIP via `preferences_json`, sync on completed sale and customer save, `marketing_profile` with loyalty tier |
-| 43 | [Campaign & Promotions](43-campaign-promotions.md) | Cart snapshot, **`ActiveCampaignCache`**, **`CampaignService`**, **`CampaignUsageLimits`**, **`CampaignAuditService`**, **`CouponActivationService`**, SALE sync, audit, **`apply_campaign`**, reversal hook, **administrator CAMPAIGN_LIST / CAMPAIGN_DETAIL** UI |
+| 43 | [Campaign & Promotions](43-campaign-promotions.md) | Cart snapshot, **`ActiveCampaignCache`**, **`CampaignService`** (basket / time / product / buy-X-get-Y / payment-method types, rules, stacking), **`CampaignUsageLimits`**, **`CampaignAuditService`** + **`distinct_applied_campaign_count`**, **`CouponActivationService`**, SALE + PAYMENT sync, audit, **`apply_campaign`**, reversal hook, **administrator CAMPAIGN_LIST / CAMPAIGN_DETAIL** UI |
 
 ---
 
@@ -54,7 +54,7 @@ In Markdown under `docs/`, reference them as `../static_files/images/<filename>`
 | 22 | [Dynamic Forms System](22-dynamic-forms-system.md) | DB-driven UI forms, Panel controls, CheckBox, form transitions, generic save pattern, **Campaign management (administrators)** |
 | 23 | [UI Controls Catalog](23-ui-controls.md) | Custom Qt widgets (Button, TextBox, NumPad, SaleList, TabControl, …); **AmountTable** viewport row-height sync |
 | 24 | [Event System](24-event-system.md) | EventHandler, `event_distributor()`, all event categories with handler mapping (incl. **`APPLY_COUPON`** on SALE) |
-| 25 | [Service Layer](25-service-layer.md) | VatService, SaleService, PaymentService (net due, discount copy, campaign audit), LoyaltyEarnService, LoyaltyRedemptionService, LoyaltyService, CustomerSegmentService, **`campaign/`** (**`ActiveCampaignCache`** + evaluate + limits + audit + coupons), REPEAT/DELETE handlers |
+| 25 | [Service Layer](25-service-layer.md) | VatService, SaleService, PaymentService (net due, discount copy, campaign audit), LoyaltyEarnService, LoyaltyRedemptionService, LoyaltyService, CustomerSegmentService, **`campaign/`** (**`ActiveCampaignCache`**, evaluate + stacking, PAYMENT sync, limits, audit, **`distinct_applied_campaign_count`**, coupons), REPEAT/DELETE handlers |
 | 26 | [Document Management](26-document-management.md) | Transaction lifecycle, suspend/resume, line cancellation, payment flow |
 | 27 | [Data Caching](27-data-caching.md) | `pos_data` / `product_data` caches, **`ActiveCampaignCache`**, AutoSave system, closure management |
 
@@ -95,7 +95,7 @@ In Markdown under `docs/`, reference them as `../static_files/images/<filename>`
 | Customer management / sale assignment | [Customer Management](17-customer-management.md) |
 | Loyalty (earn/redeem, customer point audit, closure receipt summary) | [Loyalty Programs](41-loyalty-programs.md) |
 | Marketing segments (auto rules) | [Customer Segmentation](42-customer-segmentation.md) |
-| Campaigns & coupons (cart snapshot, **`ActiveCampaignCache`**, SALE **`CAMPAIGN`** temp lines, `CampaignService`, `CampaignAuditService`, `CouponActivationService`, `apply_campaign`, **admin CAMPAIGNS** UI) | [Campaign & Promotions](43-campaign-promotions.md) · [Dynamic Forms — Campaign management](22-dynamic-forms-system.md#campaign-management-administrators) |
+| Campaigns & coupons (cart snapshot, **`ActiveCampaignCache`**, SALE + PAYMENT **`CAMPAIGN`** sync, buy-X-get-Y, payment promos, stacking, `CampaignService`, `CampaignAuditService` / `distinct_applied_campaign_count`, `CouponActivationService`, `apply_campaign`, **admin CAMPAIGNS** UI) | [Campaign & Promotions](43-campaign-promotions.md) · [Dynamic Forms — Campaign management](22-dynamic-forms-system.md#campaign-management-administrators) |
 | UI customization | [Dynamic Forms System](22-dynamic-forms-system.md) |
 | Database schema | [Database Models Overview](21-database-models.md) |
 | Event wiring | [Event System](24-event-system.md) |

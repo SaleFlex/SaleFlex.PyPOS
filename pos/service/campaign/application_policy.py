@@ -29,7 +29,10 @@ Runtime code should follow these rules unless settings override them later.
    `is_auto_apply` / coupon flags (coupon flow is later).
 2. Sort eligible campaigns by **`priority` descending** (higher runs first).
 3. **Greedy application:** walk the sorted list; a campaign applies if still eligible
-   given the cart after previous applications.
+   given the cart after previous applications. The evaluator approximates this by
+   tracking cumulative **document-level** CAMPAIGN amounts and **per-line** CAMPAIGN
+   amounts proposed earlier in the same pass when checking thresholds and percentage
+   bases (`min_purchase` / `max_purchase`, basket %, line %, buy-X-get-Y, payment-based %).
 4. If an applied campaign has **`is_combinable == False`**, **stop** — no further
    campaigns apply in that evaluation pass.
 5. If **`is_combinable == True`**, continue to the next eligible campaign.
