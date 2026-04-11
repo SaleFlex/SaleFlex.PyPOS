@@ -451,9 +451,25 @@ Clicking **DETAIL** on a selected receipt opens the full receipt breakdown:
 
 Selecting **SETTINGS** opens the **SETTINGS_MENU** hub: **POS SETTINGS** (single `POS_SETTINGS` panel → `PosSettings`), **LOYALTY SETTINGS** (tabbed **Loyalty program** / **Loyalty policy** / **Loyalty redemption**), and **CAMPAIGN SETTINGS** (opens **CAMPAIGN_LIST** for administrators). **BACK** (bottom-right) returns to the Main Menu. Older databases are migrated on startup via `ensure_settings_hub_layout` (see [Configuration](docs/04-configuration.md)).
 
-![Settings Form](static_files/images/sample_settings_form.jpg)
+![Settings Menu](static_files/images/sample_settings_menu.jpg)
 
-> Sample screenshot may show an older single-form layout; the hub and split screens match the fields described in [Configuration](docs/04-configuration.md).
+> **SETTINGS_MENU** hub: large touch buttons for **POS SETTINGS**, **LOYALTY SETTINGS**, and **CAMPAIGN SETTINGS**, with **BACK** (bottom-right) to the Main Menu.
+
+![POS Settings Form](static_files/images/sample_pos_settings_form.jpg)
+
+> **POS SETTINGS** (`PosSettings`): terminal identity and peripherals — POS number and name, owner identifiers, MAC address, customer display type/port, receipt and invoice printer type/port, scale type/port, and related fields (**SAVE** / **BACK**). Full field list: [Configuration](docs/04-configuration.md).
+
+![Loyalty Settings Form](static_files/images/sample_loyalty_settings_form.jpg)
+
+> **LOYALTY SETTINGS**: tabbed panel (**Loyalty program** / **Loyalty policy** / **Loyalty redemption**) with program name, earn/redeem rates, minimum purchase, point expiry, welcome and birthday points, active flag, and JSON-style earn payment-type configuration (**SAVE** / **BACK**). See [Loyalty programs](docs/41-loyalty-programs.md).
+
+![Campaign Settings — list](static_files/images/sample_campaign_settings_form.jpg)
+
+> **CAMPAIGN SETTINGS** (**CAMPAIGN_LIST**): search by code or name, grid of campaigns (code, name, active, type id, priority, coupon flag). Select a row and press **DETAIL** to edit; **BACK** returns to the settings hub. Administrators only for list/detail — [Campaign management](docs/22-dynamic-forms-system.md#campaign-management-administrators).
+
+![Campaign Settings — detail](static_files/images/sample_campaign_settings_detail_form.jpg)
+
+> **CAMPAIGN_DETAIL**: edit a single campaign — code, name, description, campaign type UUID, discount type and value, purchase limits, X-get-Y quantities, and date/time windows (**SAVE** persists and refreshes the active campaign cache; **BACK** returns to the list). See [Campaign & promotions](docs/43-campaign-promotions.md).
 
 Selecting "CASHIER MANAGEMENT" allows managing cashier accounts:
 
