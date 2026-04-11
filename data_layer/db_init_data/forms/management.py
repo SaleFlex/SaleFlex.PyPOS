@@ -22,7 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-# Forms #3 (SETTING) and #4 (CASHIER)
+# Forms #3 (SETTINGS_MENU), #4 (CASHIER), #23 (POS_SETTINGS), #24 (LOYALTY_SETTINGS)
 # Each form has a scrollable panel containing label/field pairs for configuration.
 # After the first session.flush() the caller must invoke update_*_panel_parents()
 # so that child controls get the correct fk_parent_id for their enclosing panel.
@@ -32,19 +32,19 @@ from data_layer.model.definition.form_control import FormControl
 
 
 def get_form_data(cashier_id: str) -> list[dict]:
-    """Return form-row definitions for SETTING (#3) and CASHIER (#4)."""
+    """Return form rows for settings hub (#3), CASHIER (#4), POS_SETTINGS (#23), LOYALTY_SETTINGS (#24)."""
     return [
         {
             'form_no': 3,
-            'name': FormName.SETTING.name,
-            'function': FormName.SETTING.name,
+            'name': FormName.SETTINGS_MENU.name,
+            'function': FormName.SETTINGS_MENU.name,
             'need_login': True,
             'need_auth': False,
             'width': 1024,
             'height': 768,
             'form_border_style': 'SINGLE',
             'start_position': 'CENTERSCREEN',
-            'caption': 'SaleFlex - Configuration',
+            'caption': 'SaleFlex - Settings',
             'back_color': '0x2F4F4F',  # DarkSlateGray
             'fore_color': '0xFFFFFF',  # White
             'show_status_bar': True,
@@ -76,11 +76,53 @@ def get_form_data(cashier_id: str) -> list[dict]:
             'display_mode': 'MAIN',
             'fk_cashier_create_id': cashier_id,
         },
+        {
+            'form_no': 23,
+            'name': FormName.POS_SETTINGS.name,
+            'function': FormName.POS_SETTINGS.name,
+            'need_login': True,
+            'need_auth': False,
+            'width': 1024,
+            'height': 768,
+            'form_border_style': 'SINGLE',
+            'start_position': 'CENTERSCREEN',
+            'caption': 'SaleFlex - POS Settings',
+            'back_color': '0x2F4F4F',
+            'fore_color': '0xFFFFFF',
+            'show_status_bar': True,
+            'show_in_taskbar': False,
+            'use_virtual_keyboard': False,
+            'is_visible': True,
+            'is_startup': False,
+            'display_mode': 'MAIN',
+            'fk_cashier_create_id': cashier_id,
+        },
+        {
+            'form_no': 24,
+            'name': FormName.LOYALTY_SETTINGS.name,
+            'function': FormName.LOYALTY_SETTINGS.name,
+            'need_login': True,
+            'need_auth': False,
+            'width': 1024,
+            'height': 768,
+            'form_border_style': 'SINGLE',
+            'start_position': 'CENTERSCREEN',
+            'caption': 'SaleFlex - Loyalty Settings',
+            'back_color': '0x2F4F4F',
+            'fore_color': '0xFFFFFF',
+            'show_status_bar': True,
+            'show_in_taskbar': False,
+            'use_virtual_keyboard': False,
+            'is_visible': True,
+            'is_startup': False,
+            'display_mode': 'MAIN',
+            'fk_cashier_create_id': cashier_id,
+        },
     ]
 
 
 # ---------------------------------------------------------------------------
-# SETTING / Configuration form → see ``forms/setting_form.py`` (tabbed Phase 7)
+# Settings hub and sub-forms → ``forms/setting_form.py``
 # ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------

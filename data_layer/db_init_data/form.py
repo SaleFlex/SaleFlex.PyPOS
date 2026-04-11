@@ -28,7 +28,7 @@ SOFTWARE.
 # Sub-module layout:
 #   login.py      — form #1  LOGIN
 #   main_menu.py  — form #2  MAIN_MENU
-#   management.py — forms #3 SETTING, #4 CASHIER
+#   management.py — forms #3 SETTINGS_MENU, #4 CASHIER, #23–24 POS/LOYALTY settings
 #   sale.py       — forms #5 SALE, #7 SUSPENDED_SALES_MARKET
 #   closure.py    — forms #6 CLOSURE, #10 CLOSURE_DETAIL,
 #                          #11 CLOSURE_RECEIPTS, #12 CLOSURE_RECEIPT_DETAIL
@@ -39,6 +39,7 @@ SOFTWARE.
 #                          #19 CUSTOMER_SELECT
 #   payment_screen.py — form #20 PAYMENT
 #   campaign_management.py — forms #21–22 CAMPAIGN_LIST, CAMPAIGN_DETAIL
+#   (campaigns are opened from SETTINGS_MENU → CAMPAIGN SETTINGS)
 
 from sqlalchemy.orm import Session
 

@@ -2,7 +2,7 @@
 
 SaleFlex.PyPOS has two layers of configuration: the file-based `settings.toml` for infrastructure settings that must be available before the database is open, and the database-driven `PosSettings` model for all runtime POS settings.
 
-Runtime POS and hardware fields (printers, customer display, store identity, etc.) and **local loyalty** program/policy fields are edited in the app under **SETTINGS** on the Main Menu (tabbed **SETTING** form: **POS**, **Loyalty program**, **Loyalty policy**, **Loyalty redemption**).
+Runtime POS and hardware fields (printers, customer display, store identity, etc.) and **local loyalty** program/policy fields are edited from **Main Menu → SETTINGS**, which opens the **SETTINGS_MENU** hub. Choose **POS SETTINGS** (single `POS_SETTINGS` panel), **LOYALTY SETTINGS** (tabbed **Loyalty program** / **Loyalty policy** / **Loyalty redemption**), or **CAMPAIGN SETTINGS** (same **CAMPAIGN_LIST** as before; administrators only). **BACK** on the hub returns to the Main Menu.
 
 ![Settings form (POS / hardware fields)](../static_files/images/sample_settings_form.jpg)
 
@@ -84,7 +84,7 @@ database_name = "saleflex_pos"
 
 ## POS Settings (database)
 
-Once the database is initialised, runtime POS configuration lives in the `PosSettings` table, and the active local loyalty stack is editable on separate tabs of the same **SETTING** screen (`LoyaltyProgram`, `LoyaltyProgramPolicy`, `LoyaltyRedemptionPolicy`). Access from the main menu (administrators only). Existing databases are migrated to the tabbed layout on startup via **`ensure_setting_form_tabs`**.
+Once the database is initialised, runtime POS configuration lives in the `PosSettings` table, and the active local loyalty stack is editable on **LOYALTY_SETTINGS** (`LoyaltyProgram`, `LoyaltyProgramPolicy`, `LoyaltyRedemptionPolicy`). Existing databases are migrated to the hub + split forms on startup via **`ensure_settings_hub_layout`** (see `data_layer/db_init_data/forms/setting_form.py`).
 
 ### POS Settings fields
 
@@ -98,11 +98,12 @@ Once the database is initialised, runtime POS configuration lives in the `PosSet
 | `serial_number` | Hardware serial number, auto-detected from `pos.hardware.device_info` on first run |
 | `os` | Operating system string, auto-detected on first run |
 
-### Editing POS Settings
+### Editing POS and loyalty settings
 
-1. Log in as `admin` and navigate to **SETTING** from the main menu.
-2. The screen uses a **TABCONTROL** (`SETTING_TAB_CONTROL`). Tab **POS** contains the `POS_SETTINGS` panel; other tabs host `LOYALTY_PROGRAM`, `LOYALTY_PROGRAM_POLICY`, and `LOYALTY_REDEMPTION_POLICY` panels.
-3. Edit fields on any tab and press **SAVE** — the generic save handler persists **all** panels (POS + loyalty) in one action and refreshes the `CurrentData.pos_settings` cache when `PosSettings` changed.
+1. Log in (e.g. as `admin`) and open **SETTINGS** from the Main Menu.
+2. **POS SETTINGS** — one full-screen `POS_SETTINGS` panel; **SAVE** writes `PosSettings` and refreshes the `pos_settings` cache.
+3. **LOYALTY SETTINGS** — **TABCONTROL** (`SETTING_TAB_CONTROL`) with `LOYALTY_PROGRAM`, `LOYALTY_PROGRAM_POLICY`, and `LOYALTY_REDEMPTION_POLICY` panels; **SAVE** persists all three tabs via the same generic panel save handler.
+4. **CAMPAIGN SETTINGS** opens **CAMPAIGN_LIST** (administrators); **BACK** uses form history to return to the hub or Main Menu.
 
 > Under the hood this uses the generic panel-based save pattern described in [Dynamic Forms System — Generic Model Form Pattern](22-dynamic-forms-system.md#generic-model-form-pattern).
 

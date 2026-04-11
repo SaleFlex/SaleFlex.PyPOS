@@ -21,7 +21,7 @@ In Markdown under `docs/`, reference them as `../static_files/images/<filename>`
 | 1 | [Introduction](01-introduction.md) | Overview, key features, application screens, default credentials |
 | 2 | [System Requirements](02-system-requirements.md) | Hardware, software, and supported database backends |
 | 3 | [Installation Guide](03-installation.md) | Step-by-step setup (Python, venv, pip, first run) |
-| 4 | [Configuration](04-configuration.md) | `settings.toml` + tabbed SETTING (POS + loyalty in DB) |
+| 4 | [Configuration](04-configuration.md) | `settings.toml` + settings hub + POS / loyalty forms in DB |
 | 5 | [First Login](05-first-login.md) | Default credentials, role differences, automatic document recovery |
 | 6 | [Virtual Keyboard Configuration](06-virtual-keyboard.md) | DB-driven keyboard themes, enable/disable, custom themes |
 
@@ -95,7 +95,7 @@ In Markdown under `docs/`, reference them as `../static_files/images/<filename>`
 | Customer management / sale assignment | [Customer Management](17-customer-management.md) |
 | Loyalty (earn/redeem, customer point audit, closure receipt summary) | [Loyalty Programs](41-loyalty-programs.md) |
 | Marketing segments (auto rules) | [Customer Segmentation](42-customer-segmentation.md) |
-| Campaigns & coupons (cart snapshot, **`ActiveCampaignCache`**, SALE + PAYMENT **`CAMPAIGN`** sync, buy-X-get-Y, payment promos, stacking, `CampaignService`, `CampaignAuditService` / `distinct_applied_campaign_count`, `CouponActivationService`, `apply_campaign`, **admin CAMPAIGNS** UI) | [Campaign & Promotions](43-campaign-promotions.md) · [Dynamic Forms — Campaign management](22-dynamic-forms-system.md#campaign-management-administrators) |
+| Campaigns & coupons (cart snapshot, **`ActiveCampaignCache`**, SALE + PAYMENT **`CAMPAIGN`** sync, buy-X-get-Y, payment promos, stacking, `CampaignService`, `CampaignAuditService` / `distinct_applied_campaign_count`, `CouponActivationService`, `apply_campaign`, **admin** UI via **Settings → CAMPAIGN SETTINGS**) | [Campaign & Promotions](43-campaign-promotions.md) · [Dynamic Forms — Campaign management](22-dynamic-forms-system.md#campaign-management-administrators) |
 | UI customization | [Dynamic Forms System](22-dynamic-forms-system.md) |
 | Database schema | [Database Models Overview](21-database-models.md) |
 | Event wiring | [Event System](24-event-system.md) |

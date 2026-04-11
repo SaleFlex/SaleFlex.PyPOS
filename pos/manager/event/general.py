@@ -969,21 +969,34 @@ class GeneralEvent:
 
     def _settings_form_event(self):
         """
-        Navigate to configuration form.
-        
-        Accesses system configuration and settings interface.
-        Requires valid authentication.
+        Navigate to the settings hub (POS / Loyalty / Campaign shortcuts).
         
         Returns:
             bool: True if navigation successful, False if not authenticated
         """
         if self.login_succeed:
-            self.current_form_type = FormName.SETTING
-            self.interface.redraw(form_name=FormName.SETTING.name)
+            self.current_form_type = FormName.SETTINGS_MENU
+            self.interface.redraw(form_name=FormName.SETTINGS_MENU.name)
             return True
         else:
             self._logout_event()
             return False
+
+    def _pos_settings_form_event(self) -> bool:
+        if self.login_succeed:
+            self.current_form_type = FormName.POS_SETTINGS
+            self.interface.redraw(form_name=FormName.POS_SETTINGS.name)
+            return True
+        self._logout_event()
+        return False
+
+    def _loyalty_settings_form_event(self) -> bool:
+        if self.login_succeed:
+            self.current_form_type = FormName.LOYALTY_SETTINGS
+            self.interface.redraw(form_name=FormName.LOYALTY_SETTINGS.name)
+            return True
+        self._logout_event()
+        return False
 
     def _closure_form_event(self):
         """

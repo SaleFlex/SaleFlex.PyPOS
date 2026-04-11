@@ -91,7 +91,9 @@ class EventName(enum.Enum):
     FUNCTION_FORM = "FUNCTION_FORM"                 # Function form
     SALES_FORM = "SALES_FORM"                       # Sales form
     SERVICE_FORM = "SERVICE_FORM"                   # Service form
-    SETTING_FORM = "SETTING_FORM"                   # Settings form
+    SETTING_FORM = "SETTING_FORM"                   # Open settings hub (SETTINGS_MENU)
+    POS_SETTINGS_FORM = "POS_SETTINGS_FORM"         # POS hardware / backend settings screen
+    LOYALTY_SETTINGS_FORM = "LOYALTY_SETTINGS_FORM" # Loyalty program and policy screens
     REPORT_FORM = "REPORT_MENU"                     # Reports menu
     CLOSURE_FORM = "CLOSURE_FORM"                   # Closure form
     CASHIER_FORM = "CASHIER_FORM"                   # Cashier form

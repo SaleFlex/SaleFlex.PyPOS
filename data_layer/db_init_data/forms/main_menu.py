@@ -66,7 +66,7 @@ def get_form_controls(main_menu_form, cashier_id: str) -> list:
       Row 3 SETTINGS    y=250  h=80
       Row 4 CASHIER     y=340  h=80
       Row 5 PRODUCTS(half) + WAREHOUSE(half)  y=430  h=75
-      Row 6 CAMPAIGNS (left) + CUSTOMER (right)  y=515  h=75
+      Row 6 CUSTOMER (full width)  y=515  h=75
       LOGOUT bottom-right corner  y=630  h=99
     """
     return [
@@ -275,41 +275,6 @@ def get_form_controls(main_menu_form, cashier_id: str) -> list:
             input_type="ALPHANUMERIC",
             text_image_relation=None,
             back_color="0x1A5276",
-            fore_color="0xFFFFFF",
-            keyboard_value=None,
-            fk_cashier_create_id=cashier_id,
-            fk_cashier_update_id=cashier_id,
-        ),
-        FormControl(
-            fk_form_id=main_menu_form.id,
-            fk_parent_id=None,
-            name="GOTO_CAMPAIGNS",
-            form_control_function1=EventName.CAMPAIGN_LIST_FORM.value,
-            form_control_function2=None,
-            type_no=1,
-            type="BUTTON",
-            width=270,
-            height=75,
-            location_x=20,
-            location_y=515,
-            start_position=None,
-            caption1="CAMPAIGNS",
-            caption2=None,
-            list_values=None,
-            dock=None,
-            alignment=None,
-            text_alignment="CENTER",
-            character_casing="UPPER",
-            font="Tahoma",
-            icon=None,
-            tool_tip="Campaign definitions (administrators)",
-            image=None,
-            image_selected=None,
-            font_auto_height=False,
-            font_size=14,
-            input_type="ALPHANUMERIC",
-            text_image_relation=None,
-            back_color="0xC0392B",
             fore_color="0xFFFFFF",
             keyboard_value=None,
             fk_cashier_create_id=cashier_id,

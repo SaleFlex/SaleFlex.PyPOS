@@ -127,7 +127,7 @@ class Application(CurrentStatus, CurrentData, EventHandler, IntegrationMixin):
         )
         from data_layer.db_init_data.forms.customer import ensure_customer_loyalty_points_grid
         from data_layer.db_init_data.forms.sale import ensure_sale_form_coupon_button
-        from data_layer.db_init_data.forms.setting_form import ensure_setting_form_tabs
+        from data_layer.db_init_data.forms.setting_form import ensure_settings_hub_layout
         from data_layer.db_init_data.forms.campaign_management import ensure_campaign_management_forms
         from data_layer.db_init_data.transaction_discount_type import ensure_transaction_discount_type_campaign
         from data_layer.engine import Engine
@@ -144,7 +144,7 @@ class Application(CurrentStatus, CurrentData, EventHandler, IntegrationMixin):
                 _admin = _session.query(Cashier).first()
             _patch_cashier = _admin or _session.query(Cashier).first()
             if _admin:
-                ensure_setting_form_tabs(_session, _admin.id)
+                ensure_settings_hub_layout(_session, _admin.id)
             if _patch_cashier:
                 ensure_campaign_management_forms(_session, _patch_cashier.id)
         

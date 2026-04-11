@@ -55,8 +55,10 @@ class FormName(enum.Enum):
         - VOID: Transaction voiding form
         - SUSPENDED_SALES_MARKET: List of suspended receipts (market retail); other sectors may use dedicated forms later (e.g. tables for restaurants)
     
-    Configuration Forms (SETTING, PARAMETER, CASHIER_CONFIG):
-        - SETTING: System settings and configuration
+    Configuration Forms (SETTINGS_MENU, POS_SETTINGS, LOYALTY_SETTINGS, PARAMETER, CASHIER_CONFIG):
+        - SETTINGS_MENU: Hub (POS / Loyalty / Campaign settings shortcuts)
+        - POS_SETTINGS: POS hardware and backend fields (former first settings tab)
+        - LOYALTY_SETTINGS: Loyalty program and policies (former loyalty tabs)
         - PARAMETER: Parameter configuration form
         - CASHIER_CONFIG: Cashier-specific configuration
         - Controls in these forms use ControlName values like BARCODE_LENGTH,
@@ -96,7 +98,7 @@ class FormName(enum.Enum):
     LOGIN_EXT = 3      # Extended login form.
     LOGIN_SERVICE = 4  # Service login form.
     SERVICE = 5        # Service-related form.
-    SETTING = 6        # Settings configuration form.
+    SETTINGS_MENU = 6  # Settings hub (POS / Loyalty / Campaign).
     CASHIER_CONFIG = 7  # Cashier configuration form.
     PARAMETER = 8      # Parameter configuration form.
     REPORT = 9         # Report form.
@@ -132,3 +134,5 @@ class FormName(enum.Enum):
     PAYMENT = 39                 # Dedicated payment screen (NUMPAD, payment list, amount table, payment-type buttons); opened from SALE via FUNC + dual CREDIT CARD / PAYMENT.
     CAMPAIGN_LIST = 40           # Campaign list / search (administrators).
     CAMPAIGN_DETAIL = 41         # Campaign detail / edit modal (administrators).
+    POS_SETTINGS = 42            # POS-only settings (single panel).
+    LOYALTY_SETTINGS = 43        # Loyalty settings (tabbed program + policies).

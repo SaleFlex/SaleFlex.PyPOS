@@ -161,7 +161,7 @@ placed inside tab page 0. DATAGRIDs for tabs 1–3 continue to use
 
 The first tab hosts a scrollable **PANEL** named `"PRODUCT"`.
 The panel contains label/textbox pairs styled identically to the
-SETTING form (`FormName.SETTING`). Textbox names (uppercase) map
+**POS_SETTINGS** panel (same generic pattern as other model panels). Textbox names (uppercase) map
 directly to `Product` model attributes (lowercase):
 
 | Label | Textbox name | Model field | Type |

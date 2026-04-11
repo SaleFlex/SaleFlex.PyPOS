@@ -17,7 +17,7 @@ pos/service/
 ├── loyalty_service.py           # Phone normalization, enrollment; REDEEMED/EARNED ledger, spending, tier after sale
 ├── loyalty_earn_service.py      # Stages loyalty_points_earned from program + LoyaltyEarnRule; payment-type filter; TransactionLoyaltyTemp snapshot
 ├── loyalty_redemption_service.py # BONUS: points → LOYALTY TransactionDiscountTemp; policy caps
-├── loyalty_settings_model.py    # Active program + policies for SETTING form UI
+├── loyalty_settings_model.py    # Active program + policies for LOYALTY_SETTINGS UI
 ├── customer_segment_service.py  # criteria_json → CustomerSegmentMember; marketing_profile
 └── campaign/                    # Cart snapshot + evaluation + SALE document sync + coupons
     ├── application_policy.py    # Stacking / thresholds / loyalty interaction (documented)

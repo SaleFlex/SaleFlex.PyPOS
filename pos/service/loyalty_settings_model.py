@@ -1,5 +1,5 @@
 """
-Resolve LoyaltyProgram / LoyaltyProgramPolicy / LoyaltyRedemptionPolicy rows for the SETTING form.
+Resolve LoyaltyProgram / LoyaltyProgramPolicy / LoyaltyRedemptionPolicy rows for the loyalty settings form.
 
 Policy and redemption rows are matched to the same program chosen for the program tab.
 """

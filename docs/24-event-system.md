@@ -81,7 +81,9 @@ if handler:
 | EventName | Handler | Navigates to |
 |-----------|---------|-------------|
 | `SALE` / `SALES_FORM` | `_sales_form_event` | SALE screen |
-| `CONFIG` / `SETTING_FORM` | `_settings_form_event` | SETTING screen |
+| `CONFIG` / `SETTING_FORM` | `_settings_form_event` | **SETTINGS_MENU** hub |
+| `POS_SETTINGS_FORM` | `_pos_settings_form_event` | **POS_SETTINGS** screen |
+| `LOYALTY_SETTINGS_FORM` | `_loyalty_settings_form_event` | **LOYALTY_SETTINGS** screen |
 | `CLOSURE` | `_closure_event` | Closure execution |
 | `CLOSURE_FORM` | `_closure_form_event` | Closure form |
 | `MAIN_MENU_FORM` | `_main_menu_form_event` | Main menu |

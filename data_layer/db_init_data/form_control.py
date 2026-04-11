@@ -91,9 +91,21 @@ def _insert_form_controls(session: Session, cashier_id: str):
     payment_form                = _form(20)
     campaign_list_form          = _form(21)
     campaign_detail_form        = _form(22)
+    pos_settings_form           = _form(23)
+    loyalty_settings_form       = _form(24)
 
-    required = [login_form, main_menu_form, config_form, cashier_form,
-                sale_form, closure_form, suspended_sales_market_form, product_list_form]
+    required = [
+        login_form,
+        main_menu_form,
+        config_form,
+        cashier_form,
+        sale_form,
+        closure_form,
+        suspended_sales_market_form,
+        product_list_form,
+        pos_settings_form,
+        loyalty_settings_form,
+    ]
     if not all(required):
         logger.warning("One or more required forms not found. Cannot insert form controls.")
         return
@@ -132,8 +144,10 @@ def _insert_form_controls(session: Session, cashier_id: str):
 
     management.update_cashier_panel_parents(cashier_controls, cashier_panel_children)
 
-    # SETTING form: TABCONTROL + POS + loyalty panels (not part of Phase 1 bulk list)
-    setting_form.insert_setting_form_controls(session, config_form, cashier_id)
+    # Settings hub (#3) and dedicated POS / Loyalty forms (#23–24)
+    setting_form.insert_settings_menu_controls(session, config_form, cashier_id)
+    setting_form.insert_pos_settings_form_controls(session, pos_settings_form, cashier_id)
+    setting_form.insert_loyalty_settings_form_controls(session, loyalty_settings_form, cashier_id)
 
     # ── Phase 3: Tab-based and inventory forms ───────────────────────────────
     product.insert_product_detail_controls(session, product_detail_form, cashier_id)

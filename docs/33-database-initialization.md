@@ -29,7 +29,7 @@ The `insert_initial_data()` function in `db_init_data/__init__.py` orchestrates 
 21. **Transaction Sequences** (`_insert_transaction_sequences`): Sets up transaction numbering sequences
 22. **Product Barcode Masks** (`_insert_product_barcode_masks`): Defines barcode format rules
 23. **Default Forms** (`_insert_default_forms`): Creates LOGIN and MAIN_MENU forms
-24. **Form Controls** (`_insert_form_controls`): Populates forms with controls (buttons, textboxes, checkboxes, comboboxes, panels, etc.). Seeded SETTING and CASHIER forms use **CHECKBOX** (`type_no=11`) for boolean fields (`force_to_work_online`, `is_administrator`, `is_active`).
+24. **Form Controls** (`_insert_form_controls`): Populates forms with controls (buttons, textboxes, checkboxes, comboboxes, panels, etc.). Seeded **POS_SETTINGS**, **LOYALTY_SETTINGS**, and **CASHIER** forms use **CHECKBOX** (`type_no=11`) for boolean fields (`force_to_work_online`, `is_administrator`, `is_active`).
 25. **Label Values** (`_insert_label_values`): Inserts translation labels and configuration values
 26. **Cashier Performance Targets** (`_insert_cashier_performance_targets`): Sets up performance targets
 27. **Virtual Keyboard Settings** (`_insert_virtual_keyboard_settings`): Creates default keyboard theme
@@ -122,15 +122,15 @@ Creates all application forms (including **#21–#22** campaign management). For
 |---|---|
 | `forms/login.py` | #1 LOGIN |
 | `forms/main_menu.py` | #2 MAIN_MENU |
-| `forms/management.py` | Form rows #3 SETTING, #4 CASHIER |
-| `forms/setting_form.py` | #3 SETTING controls: `SETTING_TAB_CONTROL`, tabs + panels (POS + loyalty); `insert_setting_form_controls`; startup patch `ensure_setting_form_tabs` |
+| `forms/management.py` | Form rows #3 SETTINGS_MENU, #4 CASHIER, #23 POS_SETTINGS, #24 LOYALTY_SETTINGS |
+| `forms/setting_form.py` | Hub (#3), POS (#23), loyalty (#24); `insert_*_controls`; startup patch `ensure_settings_hub_layout` |
 | `forms/sale.py` | #5 SALE (incl. **COUPON** / `APPLY_COUPON`; older DBs patched via **`ensure_sale_form_coupon_button`**), #7 SUSPENDED_SALES_MARKET |
 | `forms/closure.py` | #6 CLOSURE, #10 CLOSURE_DETAIL, #11 CLOSURE_RECEIPTS, #12 CLOSURE_RECEIPT_DETAIL |
 | `forms/product.py` | #8 PRODUCT_LIST, #9 PRODUCT_DETAIL |
 | `forms/stock.py` | #13 STOCK_INQUIRY, #14 STOCK_IN, #15 STOCK_ADJUSTMENT, #16 STOCK_MOVEMENT |
 | `forms/customer.py` | #17 CUSTOMER_LIST, #18 CUSTOMER_DETAIL (tabs: Customer Info, Activity History, **Point movements** + `CUSTOMER_LOYALTY_POINTS_GRID`), #19 CUSTOMER_SELECT; **`ensure_customer_loyalty_points_grid`** patches older DBs on app startup (see [Startup Entry Point](34-startup-entry-point.md)) |
 | `forms/payment_screen.py` | #20 PAYMENT |
-| `forms/campaign_management.py` | #21 **CAMPAIGN_LIST**, #22 **CAMPAIGN_DETAIL**; startup patch **`ensure_campaign_management_forms`** (forms, detail controls, main menu + SETTINGS navigation buttons) |
+| `forms/campaign_management.py` | #21 **CAMPAIGN_LIST**, #22 **CAMPAIGN_DETAIL**; startup patch **`ensure_campaign_management_forms`** (forms + detail controls) |
 
 Each form row includes layout dimensions (1024×768), colors, display mode (`MAIN` or `MODAL`), and the `is_startup` flag (only MAIN_MENU is `True`).
 
@@ -139,11 +139,11 @@ Populates all forms with their controls (buttons, textboxes, labels, comboboxes,
 
 **Insertion runs in three ordered steps:**
 
-**Step 1 — Bulk insert:** All simple controls (no inter-control UUID dependencies) are collected from the sub-modules and added to the session together. **SETTING (#3) is excluded** from this list; its controls are inserted in step 2 (see below).
+**Step 1 — Bulk insert:** All simple controls (no inter-control UUID dependencies) are collected from the sub-modules and added to the session together. **SETTINGS_MENU (#3), POS_SETTINGS (#23), and LOYALTY_SETTINGS (#24) are excluded**; their trees are inserted in step 2.
 
-**Step 2 — Flush, panel wiring, SETTING:** After the first `flush()`, `update_cashier_panel_parents()` wires CASHIER panel children. **`setting_form.insert_setting_form_controls()`** then builds the tabbed SETTING form (`SETTING_TAB_CONTROL` + `FormControlTab` + panels).
+**Step 2 — Flush, panel wiring, settings forms:** After the first `flush()`, `update_cashier_panel_parents()` wires CASHIER panel children. **`setting_form.insert_settings_menu_controls()`**, **`insert_pos_settings_form_controls()`**, and **`insert_loyalty_settings_form_controls()`** build the hub, POS panel form, and tabbed loyalty form.
 
-**Step 3 — Tab-based and inventory forms:** Forms with `TABCONTROL` hierarchies (`PRODUCT_DETAIL`, `CUSTOMER_DETAIL`, **`CAMPAIGN_DETAIL`**) and inventory forms issue their own internal `session.flush()` calls to obtain UUIDs before creating child controls where needed. (**SETTING** uses `TABCONTROL` too, but its tree is built entirely in step 2 via `insert_setting_form_controls`.)
+**Step 3 — Tab-based and inventory forms:** Forms with `TABCONTROL` hierarchies (`PRODUCT_DETAIL`, `CUSTOMER_DETAIL`, **`CAMPAIGN_DETAIL`**, **LOYALTY_SETTINGS**) and inventory forms issue their own internal `session.flush()` calls to obtain UUIDs before creating child controls where needed.
 
 **SALE form:** `SALESLIST`, `NUMPAD`, `PAYMENTLIST`, department buttons, PLU buttons, product barcode shortcut buttons, cash payment denomination buttons, and dual-function buttons (`PAYMENT_SUSPEND`, `SUB TOTAL`/`CUSTOMER`, `CREDIT CARD`/`PAYMENT`, `DISC %`/`MARK %`, `DISC AMT`/`MARK AMT`). **FUNC** only swaps their captions between primary and alternate; a dual-button tap runs the visible event and resets **all** dual buttons on the form to primary captions.
 

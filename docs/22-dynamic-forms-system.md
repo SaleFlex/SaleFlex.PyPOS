@@ -114,7 +114,7 @@ textbox = FormControl(
 - `input_type="BOOLEAN"` (metadata; renderer uses `type` for the widget)
 - Control `name` is uppercase and maps to the model attribute via `.lower()` (same rule as textboxes)
 
-**Seeded forms:** The **SETTING** form (`data_layer/db_init_data/forms/setting_form.py`) is a **TABCONTROL** with a **POS** tab (`POS_SETTINGS` → `PosSettings`, including **CHECKBOX** `FORCE_TO_WORK_ONLINE`) and loyalty tabs (`LOYALTY_PROGRAM`, `LOYALTY_PROGRAM_POLICY`, `LOYALTY_REDEMPTION_POLICY`). The **CASHIER** form (`management.py`) uses checkboxes for `is_administrator` and `is_active`.
+**Seeded forms:** **Settings** (`setting_form.py`): **SETTINGS_MENU** (#3) is a hub with **POS SETTINGS**, **LOYALTY SETTINGS**, and **CAMPAIGN SETTINGS** buttons. **POS_SETTINGS** (#23) is a single root panel `POS_SETTINGS` → `PosSettings` (including **CHECKBOX** `FORCE_TO_WORK_ONLINE`). **LOYALTY_SETTINGS** (#24) uses **TABCONTROL** + `LOYALTY_PROGRAM`, `LOYALTY_PROGRAM_POLICY`, `LOYALTY_REDEMPTION_POLICY`. The **CASHIER** form (`management.py`) uses checkboxes for `is_administrator` and `is_active`.
 
 **Rendering:** `DynamicFormRenderer` emits `type: "checkbox"` in the design dict. `BaseWindow._create_checkbox()` and `DynamicDialog._create_checkbox()` bind to the panel model and load/save like textboxes. Non-admin users: `is_administrator` and `is_active` checkboxes are **disabled** (not only read-only text) on the main window’s CASHIER form.
 
@@ -131,7 +131,7 @@ The system implements a generic panel-based form save mechanism that works with 
 **Rules:**
 1. **Panel Name = Model Name**: Panel name must match the model name in uppercase with underscores
    - `POS_SETTINGS` → `PosSettings` model
-   - `LOYALTY_PROGRAM` → `LoyaltyProgram`; `LOYALTY_PROGRAM_POLICY` → `LoyaltyProgramPolicy`; `LOYALTY_REDEMPTION_POLICY` → `LoyaltyRedemptionPolicy` (SETTING form tabs)
+   - `LOYALTY_PROGRAM` → `LoyaltyProgram`; `LOYALTY_PROGRAM_POLICY` → `LoyaltyProgramPolicy`; `LOYALTY_REDEMPTION_POLICY` → `LoyaltyRedemptionPolicy` (**LOYALTY_SETTINGS** form tabs)
    - `CASHIER` → `Cashier` model
    - `CUSTOMER_INFO` → `CustomerInfo` model
 
@@ -154,9 +154,11 @@ The system implements a generic panel-based form save mechanism that works with 
 
 **Examples:**
 
-**SETTING form (tabbed):**
-- **POS** tab — panel `POS_SETTINGS`: mostly **TEXTBOX**; `FORCE_TO_WORK_ONLINE` is **CHECKBOX**; load/save via `CurrentData.pos_settings` / `PosSettings`
-- **Loyalty** tabs — panels map to `LoyaltyProgram`, `LoyaltyProgramPolicy`, `LoyaltyRedemptionPolicy`; preload/save uses the active-program resolution in `pos/service/loyalty_settings_model.py` (see [Configuration](04-configuration.md))
+**POS_SETTINGS form (#23):**
+- Root panel `POS_SETTINGS`: mostly **TEXTBOX**; `FORCE_TO_WORK_ONLINE` is **CHECKBOX**; load/save via `CurrentData.pos_settings` / `PosSettings`
+
+**LOYALTY_SETTINGS form (#24, tabbed):**
+- Panels map to `LoyaltyProgram`, `LoyaltyProgramPolicy`, `LoyaltyRedemptionPolicy`; preload/save uses `pos/service/loyalty_settings_model.py` (see [Configuration](04-configuration.md))
 - **SAVE** collects values from every panel on the form, not only the visible tab
 
 **Cashier Management Form:**
@@ -788,9 +790,9 @@ Campaign list and detail follow the same pattern as **Product** / **Customer** m
 | Panel → model | Panel name **`CAMPAIGN`** → **`Campaign`** model; textboxes and checkboxes match field names (uppercase → lowercase) |
 | Selection state | **`current_campaign_id`** on the application (set before opening the detail modal, like **`current_product_id`**) |
 | SAVE | Button **`SAVE_CAMPAIGN_DETAIL`** → **`CAMPAIGN_DETAIL_SAVE`** → **`_campaign_detail_save_event`** (parses decimals, dates, times, UUID type id); then **`refresh_active_campaign_cache()`** so the POS evaluation cache matches the DB |
-| Navigation | **`CAMPAIGN_LIST_FORM`**: main menu **`GOTO_CAMPAIGNS`**, SETTINGS **`GOTO_CAMPAIGNS_FROM_SETTINGS`** |
+| Navigation | **`CAMPAIGN_LIST_FORM`**: **SETTINGS_MENU** button **`GOTO_CAMPAIGN_SETTINGS`** (and any other control wired to **`CAMPAIGN_LIST_FORM`**) |
 | Access control | Buttons wired with **`CAMPAIGN_LIST_FORM`** are **hidden** for non-administrators in **`base_window._create_button()`** (same pattern as **`ADD_NEW_CASHIER`**) |
-| Existing databases | **`ensure_campaign_management_forms`** runs after **`ensure_setting_form_tabs`** in **`Application`** startup |
+| Existing databases | **`ensure_settings_hub_layout`** then **`ensure_campaign_management_forms`** during **`Application`** startup |
 
 ## Special Auto-Populated Comboboxes
 

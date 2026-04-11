@@ -2,7 +2,7 @@
 Database form definitions for campaign list and detail (administrators).
 
 Forms: #21 CAMPAIGN_LIST, #22 CAMPAIGN_DETAIL (see ``form_control.py``).
-Existing databases pick up forms and navigation controls via ``ensure_campaign_management_forms``.
+Opened from Main Menu → Settings → CAMPAIGN SETTINGS. Schema patches: ``ensure_campaign_management_forms``.
 """
 
 from __future__ import annotations
@@ -423,7 +423,7 @@ def insert_campaign_detail_controls(session, campaign_detail_form, cashier_id: s
 
 
 def ensure_campaign_management_forms(session, cashier_id: str) -> None:
-    """Idempotent: add campaign forms, detail controls, and admin navigation buttons."""
+    """Idempotent: add campaign list/detail forms and controls (open list from Settings → CAMPAIGN SETTINGS)."""
     from data_layer.model.definition.form import Form
     from data_layer.model.definition.form_control import FormControl as FC
 
@@ -454,85 +454,5 @@ def ensure_campaign_management_forms(session, cashier_id: str) -> None:
             if not has_tab:
                 insert_campaign_detail_controls(session, detail_form, cashier_id)
                 logger.info("Schema patch: inserted CAMPAIGN_DETAIL controls")
-
-    main = session.query(Form).filter(Form.name == FormName.MAIN_MENU.name).first()
-    if main:
-        exists_nav = (
-            session.query(FC)
-            .filter(
-                FC.fk_form_id == main.id,
-                FC.name == "GOTO_CAMPAIGNS",
-                FC.is_deleted.is_(False),
-            )
-            .first()
-        )
-        if not exists_nav:
-            session.add(
-                FC(
-                    fk_form_id=main.id,
-                    fk_parent_id=None,
-                    name="GOTO_CAMPAIGNS",
-                    form_control_function1=EventName.CAMPAIGN_LIST_FORM.value,
-                    type_no=1,
-                    type="BUTTON",
-                    width=270,
-                    height=75,
-                    location_x=20,
-                    location_y=515,
-                    caption1="CAMPAIGNS",
-                    text_alignment="CENTER",
-                    character_casing="UPPER",
-                    font="Tahoma",
-                    font_auto_height=False,
-                    font_size=14,
-                    input_type="ALPHANUMERIC",
-                    tool_tip="Campaign definitions (administrators)",
-                    back_color="0xC0392B",
-                    fore_color="0xFFFFFF",
-                    fk_cashier_create_id=cashier_id,
-                    fk_cashier_update_id=cashier_id,
-                )
-            )
-            logger.info("Schema patch: added GOTO_CAMPAIGNS on MAIN_MENU")
-
-    setting = session.query(Form).filter(Form.form_no == 3).first()
-    if setting:
-        exists_set = (
-            session.query(FC)
-            .filter(
-                FC.fk_form_id == setting.id,
-                FC.name == "GOTO_CAMPAIGNS_FROM_SETTINGS",
-                FC.is_deleted.is_(False),
-            )
-            .first()
-        )
-        if not exists_set:
-            session.add(
-                FC(
-                    fk_form_id=setting.id,
-                    fk_parent_id=None,
-                    name="GOTO_CAMPAIGNS_FROM_SETTINGS",
-                    form_control_function1=EventName.CAMPAIGN_LIST_FORM.value,
-                    type_no=1,
-                    type="BUTTON",
-                    width=200,
-                    height=99,
-                    location_x=500,
-                    location_y=630,
-                    caption1="CAMPAIGNS",
-                    text_alignment="CENTER",
-                    character_casing="UPPER",
-                    font="Tahoma",
-                    font_auto_height=False,
-                    font_size=13,
-                    input_type="ALPHANUMERIC",
-                    tool_tip="Open campaign list (administrators)",
-                    back_color="0xC0392B",
-                    fore_color="0xFFFFFF",
-                    fk_cashier_create_id=cashier_id,
-                    fk_cashier_update_id=cashier_id,
-                )
-            )
-            logger.info("Schema patch: added CAMPAIGNS button on SETTING form")
 
     session.commit()
