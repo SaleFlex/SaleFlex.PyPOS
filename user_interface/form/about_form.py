@@ -66,7 +66,7 @@ class AboutForm(QWidget):
         )
 
         self._message_label = QLabel("", self)
-        self._message_label.setAlignment(Qt.AlignHCenter | Qt.AlignBottom)
+        self._message_label.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
         self._message_label.setFont(QFont("Segoe UI", 11))
         self._message_label.setStyleSheet(
             "color: #e2e8f0; "  # light gray-white
