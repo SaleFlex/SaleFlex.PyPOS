@@ -33,7 +33,7 @@ from data_layer.model.mixins import SoftDeleteMixin
 
 class Cashier(Model, CRUD, SoftDeleteMixin):
     def __init__(self, no=None, user_name=None, name=None, last_name=None, password=None,
-                 identity_number=None, description=None, is_administrator=False, is_active=False):
+                 identity_number=None, description=None, is_administrator=False, is_manager=False, is_active=False):
         Model.__init__(self)
         CRUD.__init__(self)
 
@@ -45,6 +45,7 @@ class Cashier(Model, CRUD, SoftDeleteMixin):
         self.identity_number = identity_number
         self.description = description
         self.is_administrator = is_administrator
+        self.is_manager = is_manager
         self.is_active = is_active
 
     __tablename__ = "cashier"
@@ -58,6 +59,7 @@ class Cashier(Model, CRUD, SoftDeleteMixin):
     identity_number = Column(String(24), nullable=False)
     description = Column(String(100), nullable=False)
     is_administrator = Column(Boolean, default=False)
+    is_manager = Column(Boolean, default=False)
     is_active = Column(Boolean, default=False)
     created_at = Column(DateTime, server_default=func.now())
     login_at = Column(DateTime, server_default=func.now())

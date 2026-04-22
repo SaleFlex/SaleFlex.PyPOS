@@ -1,6 +1,7 @@
 [app]
 version = "1.0.0b7"
 icon = "static_files\\images\\saleflex.ico"
+mode = "standalone" # standalone | office | gate
 
 [logging]
 # Log level: DEBUG, INFO, WARNING, ERROR, CRITICAL
@@ -22,11 +23,39 @@ password = ""
 database_name = "db.sqlite3"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# SaleFlex.GATE — Primary integration hub
-# Set enabled = true and provide base_url / api_key / terminal_id to activate.
+# Integration mode routing:
+# - mode = "standalone" -> no remote sync, local-only behavior
+# - mode = "office"     -> connect to [office]
+# - mode = "gate"       -> connect to [gate]
+#
+# SaleFlex.OFFICE endpoint configuration
+# Used only when [app].mode = "office"
+# ─────────────────────────────────────────────────────────────────────────────
+[office]
+base_url    = ""        # e.g. http://office.local:8710
+api_key     = ""        # API key issued by SaleFlex.OFFICE
+terminal_id = ""        # This terminal's identifier registered in OFFICE
+store_id    = ""        # Store scope expected by OFFICE
+
+# Which services are handled by OFFICE for this terminal?
+manages_transactions = true
+manages_closures     = true
+manages_warehouse    = true
+manages_campaign     = true
+manages_loyalty      = true
+manages_users        = true
+
+# Sync behaviour (PyPOS <-> OFFICE)
+sync_interval_minutes = 5
+retry_attempts        = 3
+timeout_seconds       = 10
+notification_poll_interval_seconds = 30
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SaleFlex.GATE endpoint configuration
+# Used only when [app].mode = "gate"
 # ─────────────────────────────────────────────────────────────────────────────
 [gate]
-enabled     = false
 base_url    = ""        # e.g. https://your-gate.example.com
 api_key     = ""        # API key issued by SaleFlex.GATE
 terminal_id = ""        # This terminal's identifier registered in GATE
@@ -55,21 +84,18 @@ notification_poll_interval_seconds = 60
 # ─────────────────────────────────────────────────────────────────────────────
 
 [third_party.erp]
-enabled         = false
 type            = ""    # "sap" | "oracle" | "logo" | "netsis" | "custom"
 base_url        = ""
 api_key         = ""
 timeout_seconds = 15
 
 [third_party.payment]
-enabled         = false
 type            = ""    # "iyzico" | "paytr" | "stripe" | "nets" | "custom"
 base_url        = ""
 api_key         = ""
 timeout_seconds = 30
 
 [third_party.campaign]
-enabled  = false
 type     = ""           # "custom"
 base_url = ""
 api_key  = ""

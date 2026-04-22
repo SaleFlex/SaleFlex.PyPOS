@@ -45,6 +45,7 @@ def _insert_admin_cashier(session) -> Cashier:
             identity_number="A00001",
             description="System administrator",
             is_administrator=True,
+            is_manager=False,
             is_active=True
         )
         session.add(admin_cashier)
@@ -64,6 +65,7 @@ def _insert_admin_cashier(session) -> Cashier:
             identity_number="C00002",
             description="Standard cashier",
             is_administrator=False,
+            is_manager=False,
             is_active=True
         )
         session.add(standard_cashier)

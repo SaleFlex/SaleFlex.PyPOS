@@ -40,6 +40,19 @@ except ImportError:
     KEYBOARD_LOADER_AVAILABLE = False
 
 
+def _ensure_cashier_schema(temp_engine: Engine) -> None:
+    """Apply lightweight cashier table migrations required by current models."""
+    with temp_engine.engine.begin() as connection:
+        columns = {
+            row[1]
+            for row in connection.exec_driver_sql("PRAGMA table_info(cashier)").fetchall()
+        }
+        if columns and "is_manager" not in columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE cashier ADD COLUMN is_manager BOOLEAN NOT NULL DEFAULT 0"
+            )
+
+
 def init_db():
     """
     Initializes database: creates tables and inserts initial data
@@ -51,6 +64,7 @@ def init_db():
         
         # Create tables
         metadata.create_all(bind=temp_engine.engine)
+        _ensure_cashier_schema(temp_engine)
         logger.info("✓ Tables created successfully")
         
         # Insert initial data
@@ -81,6 +95,7 @@ def create_tables():
         
         logger.debug("Creating database tables...")
         metadata.create_all(bind=temp_engine.engine)
+        _ensure_cashier_schema(temp_engine)
         logger.info("✓ Tables created successfully")
         
         return True
