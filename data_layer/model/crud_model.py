@@ -346,16 +346,25 @@ class CRUD:
     # Utility Operations
     def to_dict(self) -> Dict[str, Any]:
         """
-        Converts model object to dictionary
+        Converts model object to dictionary.
+
+        Serialization rules:
+        * None           → None   (JSON null)  — never converted to the string "None"
+        * datetime/date  → ISO-8601 string via .isoformat()
+        * bool/int/float → kept as-is (JSON native types)
+        * everything else → str()
         """
         result = {}
         for column in self.__table__.columns:
             value = getattr(self, column.name)
-            if hasattr(value, 'isoformat'):  # Convert DateTime objects to string
-                value = value.isoformat()
-            elif hasattr(value, '__str__') and not isinstance(value, (int, float, bool)):
-                value = str(value)
-            result[column.name] = value
+            if value is None:
+                result[column.name] = None
+            elif hasattr(value, 'isoformat'):
+                result[column.name] = value.isoformat()
+            elif isinstance(value, (bool, int, float)):
+                result[column.name] = value
+            else:
+                result[column.name] = str(value)
         return result
 
     @classmethod

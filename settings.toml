@@ -1,7 +1,10 @@
 [app]
-version = "1.0.0b7"
-icon = "static_files\\images\\saleflex.ico"
-mode = "standalone" # standalone | office | gate
+version         = "1.0.0b7"
+icon            = "static_files\\images\\saleflex.ico"
+mode            = "standalone"  # standalone | office | gate
+terminal_code   = "POS-001"     # This terminal's identifier registered in OFFICE or/and GATE
+store_code      = "STORE-001"   # This store's identifier registered in OFFICE or/and GATE
+office_code     = "OFFICE-001"
 
 [logging]
 # Log level: DEBUG, INFO, WARNING, ERROR, CRITICAL
@@ -20,7 +23,7 @@ engine = "sqlite"
 driver = ""
 user_name = ""
 password = ""
-database_name = "db.sqlite3"
+database_name = "pos.sqlite3"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Integration mode routing:
@@ -32,10 +35,9 @@ database_name = "db.sqlite3"
 # Used only when [app].mode = "office"
 # ─────────────────────────────────────────────────────────────────────────────
 [office]
-base_url    = ""        # e.g. http://office.local:8710
-api_key     = ""        # API key issued by SaleFlex.OFFICE
-terminal_id = ""        # This terminal's identifier registered in OFFICE
-store_id    = ""        # Store scope expected by OFFICE
+base_url    = "127.0.0.1:9000"  # e.g. http://office.local:8710
+api_key     = ""                # API key issued by SaleFlex.OFFICE
+api_prefix  = "/api/v1"
 
 # Which services are handled by OFFICE for this terminal?
 manages_transactions = true
@@ -56,9 +58,9 @@ notification_poll_interval_seconds = 30
 # Used only when [app].mode = "gate"
 # ─────────────────────────────────────────────────────────────────────────────
 [gate]
-base_url    = ""        # e.g. https://your-gate.example.com
-api_key     = ""        # API key issued by SaleFlex.GATE
-terminal_id = ""        # This terminal's identifier registered in GATE
+base_url    = "127.0.0.1:8000"  # e.g. https://your-gate.example.com
+api_key     = ""                # API key issued by SaleFlex.GATE
+api_prefix  = "/api/v1"
 
 # Which services does GATE manage?
 # When true, the corresponding third_party.* connector is ignored.

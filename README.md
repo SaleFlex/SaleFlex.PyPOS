@@ -1,6 +1,7 @@
 ﻿# SaleFlex.PyPOS
 
-> **Current Status:** Beta v1.0.0b7 - Active Development
+> **Current Status:** Beta v1.0.0b7 - Active Development (The project is not production-ready yet.)
+> 
 > Core POS functionality operational. See [roadmap](#development-roadmap) for upcoming features.
 
 [Watch Demo](https://youtu.be/HoA2p6M8fuM) | [Documentation](docs/README.md) | [Quick Start](#quick-start)
@@ -286,15 +287,76 @@ SaleFlex.PyPOS is designed to meet the diverse needs of various business types:
 - **Chain Restaurants**: Multi-location restaurant management with centralized control
 - **Service Businesses**: Various service-oriented establishments with customizable workflows
 
-## SaleFlex.GATE Integration
+## Integration Modes
 
-SaleFlex.PyPOS integrates seamlessly with **[SaleFlex.GATE](https://github.com/SaleFlex/SaleFlex.GATE)** - a Django-based centralized management system:
+SaleFlex.PyPOS supports three operating modes set by `app.mode` in `settings.toml`:
+
+| Mode | Description |
+|------|-------------|
+| `standalone` | Fully offline; no remote sync |
+| `office` | Connect to **SaleFlex.OFFICE** on the local network |
+| `gate` | Connect directly to **SaleFlex.GATE** |
+
+The default is `standalone`.  A pre-configured `settings.toml` with the appropriate
+`[office]` or `[gate]` section must be present to enable remote modes.
+
+### SaleFlex.OFFICE mode
+
+When `app.mode = "office"`, PyPOS connects to a **SaleFlex.OFFICE** instance for data.
+On first startup (no local database), PyPOS automatically pulls all initialization data
+(products, cashiers, campaigns, forms, etc.) from OFFICE.  Subsequent startups use the
+local database.  OFFICE always responds with its **locally stored** data immediately —
+it never forwards requests to GATE in real time.
+
+The terminal is identified by the unique triplet `(office_code, store_code, terminal_code)`.
+A store may have multiple OFFICE instances; each terminal connects to exactly one.
+
+```toml
+[app]
+mode          = "office"
+terminal_code = "POS-001"    # Registered in OFFICE under POS Management
+store_code    = "STORE-001"  # Must match Store.store_code in OFFICE database
+office_code   = "OFFICE-001" # Must match [app].office_code in OFFICE settings.toml
+
+[office]
+base_url    = "http://192.168.1.x:9000"   # OFFICE host IP and port
+api_key     = ""                           # Reserved for future use
+api_prefix  = "/api/v1"
+timeout_seconds = 10
+```
+
+**First-startup bootstrap flow:**
+
+```
+PyPOS (no db.sqlite3, mode=office)
+  ├─ GET /api/v1/health           → verify OFFICE is reachable
+  └─ GET /api/v1/pos/init         → fetch all seed data
+       ?office_code=OFFICE-001
+       &store_code=STORE-001
+       &terminal_code=POS-001
+```
+
+If OFFICE is unreachable, PyPOS falls back to built-in default seed data.
+
+### SaleFlex.GATE mode
+
+When `app.mode = "gate"`, PyPOS connects directly to **[SaleFlex.GATE](https://github.com/SaleFlex/SaleFlex.GATE)** — a Django-based centralized management system:
 
 - **Centralized Management**: Monitor and manage multiple POS systems from one dashboard
 - **Cloud-Based Access**: Remote control and monitoring for business owners and managers
 - **ERP Integration**: Seamless data synchronization with existing ERP systems
 - **Scalable Architecture**: Support growing businesses with multiple locations
 - **Secure Data Flow**: Robust API-based communication between POS terminals and backend
+
+```toml
+[app]
+mode = "gate"
+
+[gate]
+base_url    = "https://your-gate.example.com"
+api_key     = ""
+terminal_id = "POS-001"
+```
 
 ## System Requirements
 

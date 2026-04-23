@@ -264,7 +264,71 @@ See [Inventory Management](docs/16-inventory-management.md) for full documentati
 
 ### Part 5 — Integration
 
-40. [Integration Layer](docs/40-integration-layer.md)
+40. [Integration Layer](docs/40-integration-layer.md) — includes SaleFlex.OFFICE integration (office mode), SaleFlex.GATE (gate mode), and third-party connectors
+
+---
+
+## Connection Mode Configuration
+
+SaleFlex.PyPOS defaults to `standalone` mode. To connect to SaleFlex.OFFICE or SaleFlex.GATE,
+edit `settings.toml` before launching the application.
+
+### Standalone (default)
+
+No changes needed — `settings.toml` ships with `mode = "standalone"` by default.
+
+### Connect to SaleFlex.OFFICE
+
+Set `app.mode = "office"` and configure the identity codes plus the `[office]` section
+with the OFFICE host IP and port (configured in OFFICE → System Settings → POS Server tab):
+
+```toml
+[app]
+mode          = "office"
+terminal_code = "POS-001"    # Registered in OFFICE under POS Management
+store_code    = "STORE-001"  # Must match Store.store_code in OFFICE database
+office_code   = "OFFICE-001" # Must match [app].office_code in OFFICE settings.toml
+
+[office]
+base_url    = "http://192.168.1.x:9000"   # OFFICE LAN IP : port
+api_key     = ""                           # Reserved – leave empty
+api_prefix  = "/api/v1"
+timeout_seconds = 10
+```
+
+**First-startup database bootstrap:** when `mode = "office"` and no local database
+exists, PyPOS calls `GET /api/v1/pos/init` on OFFICE to pull all seed data (products,
+cashiers, campaigns, forms, etc.) and populate its local SQLite database.  If OFFICE
+is unreachable, PyPOS falls back to built-in defaults.
+
+After the initial bootstrap, PyPOS operates from its local database and syncs
+operational data (transactions, closures) to OFFICE on a configurable schedule.
+OFFICE responds with its locally stored data immediately — it never forwards requests
+to GATE in real time.
+
+### Connect to SaleFlex.GATE
+
+Set `app.mode = "gate"` and configure the `[gate]` section:
+
+```toml
+[app]
+mode = "gate"
+
+[gate]
+base_url    = "https://your-gate.example.com"
+api_key     = ""
+terminal_id = "POS-001"
+```
+
+### `settings.toml` mode reference
+
+| `app.mode` | Remote section used | Where requests go |
+|------------|--------------------|--------------------|
+| `standalone` | — | Local DB only |
+| `office` | `[office]` | SaleFlex.OFFICE REST server |
+| `gate` | `[gate]` | SaleFlex.GATE REST API |
+
+See [Integration Layer](docs/40-integration-layer.md) for the full connection architecture.
 
 ---
 

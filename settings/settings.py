@@ -41,8 +41,96 @@ class Settings:
             self.app = self.setting_data.get("app")
             self.database = self.setting_data.get("database")
             self.design_files_list = self.setting_data.get("static_files")
+            self.office = self.setting_data.get("office", {})
             self.gate = self.setting_data.get("gate", {})
             self.third_party = self.setting_data.get("third_party", {})
+
+    # ------------------------------------------------------------------
+    # App mode and identity codes
+    # ------------------------------------------------------------------
+
+    @property
+    def app_mode(self) -> str:
+        """Return the app mode: 'standalone' | 'office' | 'gate'."""
+        if isinstance(self.app, dict):
+            return str(self.app.get("mode", "standalone"))
+        return "standalone"
+
+    @property
+    def terminal_code(self) -> str:
+        """Return this terminal's unique code (unique within a store)."""
+        if isinstance(self.app, dict):
+            return str(self.app.get("terminal_code", ""))
+        return ""
+
+    @property
+    def store_code(self) -> str:
+        """Return the store code this terminal belongs to."""
+        if isinstance(self.app, dict):
+            return str(self.app.get("store_code", ""))
+        return ""
+
+    @property
+    def office_code(self) -> str:
+        """Return the OFFICE instance code this terminal is registered with."""
+        if isinstance(self.app, dict):
+            return str(self.app.get("office_code", ""))
+        return ""
+
+    # ------------------------------------------------------------------
+    # Integration — SaleFlex.OFFICE
+    # ------------------------------------------------------------------
+
+    @property
+    def office_base_url(self) -> str:
+        """Return the SaleFlex.OFFICE base URL (used when app_mode == 'office')."""
+        return str(self.office.get("base_url", ""))
+
+    @property
+    def office_api_prefix(self) -> str:
+        """Return the OFFICE REST API path prefix."""
+        return str(self.office.get("api_prefix", "/api/v1"))
+
+    @property
+    def office_timeout_seconds(self) -> int:
+        """Return the per-request HTTP timeout for OFFICE connections."""
+        return int(self.office.get("timeout_seconds", 10))
+
+    @property
+    def office_api_key(self) -> str:
+        """Return the OFFICE API key."""
+        return str(self.office.get("api_key", ""))
+
+    @property
+    def office_terminal_id(self) -> str:
+        """Return this terminal's identifier as registered in OFFICE."""
+        return str(self.office.get("terminal_id", ""))
+
+    @property
+    def office_store_id(self) -> str:
+        """Return the store scope expected by OFFICE."""
+        return str(self.office.get("store_id", ""))
+
+    @property
+    def office_sync_interval_seconds(self) -> int:
+        """Return the OFFICE sync interval in seconds (converted from minutes)."""
+        minutes = self.office.get("sync_interval_minutes", 5)
+        return int(minutes) * 60
+
+    @property
+    def office_notification_poll_interval_seconds(self) -> int:
+        """Return the OFFICE notification polling interval in seconds."""
+        return int(self.office.get("notification_poll_interval_seconds", 30))
+
+    def office_manages(self, service: str) -> bool:
+        """
+        Return True when OFFICE is configured to manage *service*.
+
+        Args:
+            service: One of "transactions", "closures", "warehouse",
+                     "campaign", "loyalty", "users".
+        """
+        return bool(self.office.get(f"manages_{service}", True))
 
     # ------------------------------------------------------------------
     # Integration — SaleFlex.GATE

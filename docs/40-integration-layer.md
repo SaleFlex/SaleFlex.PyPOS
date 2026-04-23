@@ -17,26 +17,164 @@ The integration layer connects SaleFlex.PyPOS to external systems: **SaleFlex.GA
 │  GeneralEvent ─────┘         ▼                                   │
 │                       IntegrationMixin                           │
 │                      (routing logic)                             │
-│                     /              \                             │
-│              GATE enabled?      Third-party enabled?             │
-│                  │                      │                        │
-│          GateSyncService         BaseERPConnector                │
-│          GatePullService         BasePaymentGateway              │
-│                  │               BaseCampaignConnector           │
-│          SyncQueueItem                  │                        │
-│          (offline outbox)        adapters/erp|payment|campaign   │
+│              /               |               \                   │
+│       OFFICE mode?      GATE mode?      Third-party?             │
+│           │                  │                │                  │
+│   OfficeClient       GateSyncService   BaseERPConnector          │
+│  (REST → OFFICE)     GatePullService   BasePaymentGateway        │
+│       │                  │             BaseCampaignConnector     │
+│  SyncQueueItem       SyncQueueItem            │                  │
+│  (offline outbox)   (offline outbox)   adapters/erp|payment      │
 └──────────────────────────────────────────────────────────────────┘
-         │                    ▲
-         ▼                    │
-   SaleFlex.GATE         Third-party
-   (primary hub)         ERP / Payment / Campaign
+         │                    │                 ▲
+         ▼                    ▼                 │
+  SaleFlex.OFFICE      SaleFlex.GATE       Third-party
+  (local hub, serves   (central hub)       ERP / Payment / Campaign
+   from its own DB)
 ```
 
-**Routing rule (evaluated in order):**
+**Mode routing (controlled by `app.mode` in `settings.toml`):**
 
-1. If `gate.enabled = true` AND `gate.manages_<service> = true` → routed through GATE.
+| `app.mode` | Remote target | Data source |
+|------------|--------------|-------------|
+| `standalone` | None | Local SQLite only |
+| `office` | SaleFlex.OFFICE REST API | OFFICE's local database |
+| `gate` | SaleFlex.GATE REST API | GATE central database |
+
+**Legacy routing rule for `gate` mode (evaluated in order):**
+
+1. If `gate.manages_<service> = true` → routed through GATE.
 2. If `third_party.<service>.enabled = true` → routed to the direct connector.
 3. Otherwise → no-op; the POS continues without integration.
+
+---
+
+## SaleFlex.OFFICE Integration
+
+### When to use `office` mode
+
+Use `office` mode when you have a SaleFlex.OFFICE instance on your local network
+and **do not** require a direct connection to SaleFlex.GATE from PyPOS terminals.
+OFFICE acts as the store-level intermediary: it serves master-data to POS terminals
+and receives their operational data.
+
+### Configuration
+
+```toml
+# SaleFlex.PyPOS settings.toml
+[app]
+mode          = "office"
+terminal_code = "POS-001"    # Unique within the store; registered in OFFICE
+store_code    = "STORE-001"  # Identifies this store; must match OFFICE Store.store_code
+office_code   = "OFFICE-001" # Identifies which OFFICE instance owns this terminal
+
+[office]
+base_url    = "http://192.168.1.x:9000"  # OFFICE [network] host:port
+api_key     = ""                          # Reserved – leave empty (future use)
+api_prefix  = "/api/v1"
+
+# Which data domains does OFFICE manage for this terminal?
+manages_transactions = true
+manages_closures     = true
+manages_warehouse    = true
+manages_campaign     = true
+manages_loyalty      = true
+manages_users        = true
+
+# Sync behaviour
+sync_interval_minutes             = 5
+retry_attempts                    = 3
+timeout_seconds                   = 10
+notification_poll_interval_seconds = 30
+```
+
+The matching OFFICE side configuration (set via **System Settings** module):
+
+```toml
+# SaleFlex.OFFICE settings.toml
+[app]
+store_code  = "STORE-001"   # Must match the store_code used by PyPOS terminals
+office_code = "OFFICE-001"  # Unique identifier for this OFFICE instance
+
+[network]
+host = "0.0.0.0"   # or specific LAN IP
+port = 9000
+api_prefix = "/api/v1"
+```
+
+### Startup Bootstrap (database initialisation from OFFICE)
+
+When a PyPOS terminal starts for the **first time** in `office` mode, its local
+SQLite database does not yet exist.  Instead of inserting built-in default data,
+PyPOS connects to OFFICE and pulls all reference data:
+
+```
+PyPOS startup (no db.sqlite3, mode == "office")
+        │
+        │  GET /api/v1/health
+        ▼
+SaleFlex.OFFICE (:9000) — liveness check
+        │
+        │  200 OK  ✓ OFFICE is reachable
+        ▼
+        │  GET /api/v1/pos/init
+        │     ?office_code=OFFICE-001
+        │     &store_code=STORE-001
+        │     &terminal_code=POS-001
+        ▼
+OFFICE validates:
+  1. Store with store_code="STORE-001" AND office_code="OFFICE-001" exists
+  2. PosTerminal with terminal_code="POS-001" linked to that Store exists
+  3. terminal.is_allowed_pull == True
+        │
+        │  200 OK  {"status":"ok","data":{...all init tables...}}
+        ▼
+PyPOS OfficeSeeder writes all records into the local SQLite database
+(preserving OFFICE UUIDs for cross-system consistency)
+        │
+        ▼
+Normal startup continues (UI forms, virtual keyboard, etc.)
+```
+
+If OFFICE is unreachable or rejects the credentials, PyPOS automatically falls
+back to its built-in default seed data so the terminal can operate in
+standalone mode.
+
+### Runtime Data Flow (after initial bootstrap)
+
+```
+PyPOS (office mode) — transaction event
+        │
+        │  POST /api/v1/transactions, /api/v1/closures, …
+        ▼
+SaleFlex.OFFICE REST server (:9000)
+        │  Stores locally → updates OFFICE local DB
+        ▼
+     (if OFFICE.mode = "gate") SyncWorker pushes to SaleFlex.GATE on schedule
+```
+
+Key principles:
+- PyPOS **never waits for GATE** when in `office` mode.
+- OFFICE always responds with its **locally stored** data immediately.
+- The `(office_code, store_code, terminal_code)` triplet uniquely identifies a
+  terminal across the entire SaleFlex ecosystem.  A single store can have
+  multiple OFFICE instances, each serving a different subset of terminals.
+
+### Settings properties (PyPOS `Settings` class)
+
+| Property | Description |
+|----------|-------------|
+| `app_mode` | `"standalone"` \| `"office"` \| `"gate"` |
+| `terminal_code` | This terminal's unique code (from `[app]`) |
+| `store_code` | Store identifier (from `[app]`) |
+| `office_code` | OFFICE instance identifier (from `[app]`) |
+| `office_base_url` | OFFICE REST server URL |
+| `office_api_prefix` | API path prefix (default `/api/v1`) |
+| `office_api_key` | Authentication key (reserved, leave empty) |
+| `office_timeout_seconds` | Per-request HTTP timeout |
+| `office_sync_interval_seconds` | Converted from `sync_interval_minutes` |
+| `office_notification_poll_interval_seconds` | Notification polling interval |
+| `office_manages(service)` | `True` when OFFICE handles the given service domain |
 
 ---
 

@@ -78,7 +78,7 @@ In Markdown under `docs/`, reference them as `../static_files/images/<filename>`
 
 | # | Document | Summary |
 |---|----------|---------|
-| 40 | [Integration Layer](40-integration-layer.md) | SaleFlex.GATE hub, third-party ERP/payment/campaign connectors, offline outbox, SyncWorker, notification system |
+| 40 | [Integration Layer](40-integration-layer.md) | Operating modes (standalone/office/gate), SaleFlex.OFFICE integration, SaleFlex.GATE hub, third-party ERP/payment/campaign connectors, offline outbox, SyncWorker, notification system |
 
 ---
 
