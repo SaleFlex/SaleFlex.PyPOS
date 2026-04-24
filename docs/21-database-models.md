@@ -38,46 +38,51 @@ SaleFlex.PyPOS uses a comprehensive database schema with 100+ models organized i
 
 ## Transaction Models
 
+> **PyPOS-only note:** `*Temp` models (e.g. `TransactionHeadTemp`, `TransactionProductTemp`) are
+> exclusively used by `SaleFlex.PyPOS` to hold in-progress (draft) sale state while a cashier is
+> building a transaction.  `SaleFlex.OFFICE` only carries the **permanent** counterparts because
+> every transaction visible in OFFICE is already committed and closed.
+
 ### Transaction Headers
 - **TransactionHead**: Main transaction record with customer, date, totals, and status
-- **TransactionHeadTemp**: Temporary transaction header during transaction processing
+- **TransactionHeadTemp**: Temporary transaction header during transaction processing *(PyPOS only)*
 - **TransactionSequence**: Transaction numbering sequences per document type
 - **TransactionDocumentType**: Document type definitions (Sale, Return, Refund, etc.)
 - **TransactionLog**: Transaction audit log for all transaction events
 
 ### Transaction Details
 - **TransactionProduct**: Line items in transactions (products sold)
-- **TransactionProductTemp**: Temporary transaction line items
+- **TransactionProductTemp**: Temporary transaction line items *(PyPOS only)*
 - **TransactionPayment**: Payment records for transactions
-- **TransactionPaymentTemp**: Temporary payment records
+- **TransactionPaymentTemp**: Temporary payment records *(PyPOS only)*
 - **TransactionChange**: Change records for overpayments
-- **TransactionChangeTemp**: Temporary change records
+- **TransactionChangeTemp**: Temporary change records *(PyPOS only)*
 - **TransactionTax**: Tax calculations per transaction
-- **TransactionTaxTemp**: Temporary tax calculations
+- **TransactionTaxTemp**: Temporary tax calculations *(PyPOS only)*
 - **TransactionDiscountType**: Discount type definitions (NONE, PERSONAL, MANAGER, CUSTOMER_SATISFACTION, PRODUCT, **LOYALTY** for point redemption, **CAMPAIGN** for promotion / coupon document discounts)
 - **TransactionDiscount**: Discounts applied to transactions (linked to TransactionDiscountType via foreign key)
-- **TransactionDiscountTemp**: Temporary discount records
+- **TransactionDiscountTemp**: Temporary discount records *(PyPOS only)*
 - **TransactionSurcharge**: Surcharges applied to transactions
-- **TransactionSurchargeTemp**: Temporary surcharge records
+- **TransactionSurchargeTemp**: Temporary surcharge records *(PyPOS only)*
 - **TransactionTip**: Tip/gratuity records
-- **TransactionTipTemp**: Temporary tip records
+- **TransactionTipTemp**: Temporary tip records *(PyPOS only)*
 - **TransactionDepartment**: Department totals summary for department-based sales
-- **TransactionDepartmentTemp**: Temporary department totals
+- **TransactionDepartmentTemp**: Temporary department totals *(PyPOS only)*
 
 ### Transaction Extensions
 - **TransactionDelivery**: Delivery information for transactions
-- **TransactionDeliveryTemp**: Temporary delivery records
+- **TransactionDeliveryTemp**: Temporary delivery records *(PyPOS only)*
 - **TransactionNote**: Notes and comments on transactions
-- **TransactionNoteTemp**: Temporary notes
+- **TransactionNoteTemp**: Temporary notes *(PyPOS only)*
 - **TransactionRefund**: Refund transaction records
-- **TransactionRefundTemp**: Temporary refund records
+- **TransactionRefundTemp**: Temporary refund records *(PyPOS only)*
 - **TransactionVoid**: Voided transaction records
 - **TransactionFiscal**: Fiscal printer records (for compliance)
-- **TransactionFiscalTemp**: Temporary fiscal records
+- **TransactionFiscalTemp**: Temporary fiscal records *(PyPOS only)*
 - **TransactionKitchenOrder**: Kitchen display system orders
-- **TransactionKitchenOrderTemp**: Temporary kitchen orders
+- **TransactionKitchenOrderTemp**: Temporary kitchen orders *(PyPOS only)*
 - **TransactionLoyalty**: Loyalty points earned/redeemed in transactions
-- **TransactionLoyaltyTemp**: Temporary loyalty records
+- **TransactionLoyaltyTemp**: Temporary loyalty records *(PyPOS only)*
 
 ## Warehouse Management Models
 

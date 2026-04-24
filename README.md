@@ -58,7 +58,7 @@ SaleFlex.PyPOS follows a layered architecture pattern with clear separation of c
 - **Business Logic Layer** (`pos/service/`): Service classes (VatService, SaleService, PaymentService, LoyaltyEarnService, LoyaltyRedemptionService, LoyaltyService, CustomerSegmentService) and **`campaign/`** (cart snapshot, **`ActiveCampaignCache`**, **`CampaignService`** including buy-X-get-Y and payment-method promos, **`CampaignUsageLimits`**, **`CampaignAuditService`**, **`CouponActivationService`**, **`sync_campaign_discounts_on_document`**, **`SaleService.refresh_campaign_discounts_after_cart_change`**, payment-time re-sync — see [docs/43-campaign-promotions.md](docs/43-campaign-promotions.md))
 - **Peripherals Layer** (`pos/peripherals/`): OPOS-style device abstractions (cash drawer, receipt printer, line display, scanner, scale, customer display, remote order display). Current implementation is **log-only** (no device probing); see [docs/30-peripherals.md](docs/30-peripherals.md)
 - **Event Handling Layer** (`pos/manager/event/`): Specialized event handler mixins for modular processing (General, Sale, Payment, Closure, Configuration, Service, Report, Hardware, Warehouse, **Product**, **Customer**, **Campaign**). Event handler methods use `_event` suffix naming convention (e.g., `_sales_form_event`, `_closure_event`, `_product_detail_event`, `_campaign_list_form_event`) to distinguish them from properties
-- **Integration Layer** (`pos/integration/`): External system connectivity with two tiers — **SaleFlex.GATE** (primary hub for transactions, closures, warehouse, campaigns, notifications) and **third-party direct connectors** (ERP, payment gateways, campaign modules). Uses offline outbox pattern (`SyncQueueItem`) and a background `SyncWorker` (QThread). All connectors are log-only stubs until configured; see [docs/40-integration-layer.md](docs/40-integration-layer.md)
+- **Integration Layer** (`pos/integration/`): External system connectivity with two tiers — **SaleFlex.GATE** (primary hub for transactions, closures, warehouse, campaigns, notifications) and **third-party direct connectors** (ERP, payment gateways, campaign modules). Uses offline outbox pattern (`SyncQueueItem`) and background QThread workers. In **office mode**, `OfficePushService` + `OfficePushWorker` push completed transactions to OFFICE in parallel on every document close, with automatic hourly retry on failure; see [docs/40-integration-layer.md](docs/40-integration-layer.md) and [docs/44-office-push-integration.md](docs/44-office-push-integration.md)
 - **Data Access Layer** (`data_layer/model/`): 100+ SQLAlchemy models with CRUD operations and auto-save functionality
 - **UI Layer** (`user_interface/`): PySide6-based UI components with dynamic form rendering
 - **Caching Layer** (`pos/manager/cache_manager.py`): In-memory caching for reference and product data
@@ -313,6 +313,24 @@ it never forwards requests to GATE in real time.
 The terminal is identified by the unique triplet `(office_code, store_code, terminal_code)`.
 A store may have multiple OFFICE instances; each terminal connects to exactly one.
 
+#### Transaction Push (PyPOS → OFFICE)
+
+Every time a document is **closed** (sale completed or cancelled), the completed transaction
+is automatically pushed to OFFICE in a **background thread** so the cashier's workflow is
+never blocked:
+
+1. `DocumentManager.complete_document()` calls `OfficePushService.enqueue()` to add a
+   `pending` row to the local `office_push_queue` table.
+2. A daemon thread calls `OfficePushService.flush_pending()`, which batches all pending
+   documents and sequence counter values into a single `POST /api/v1/pos/transactions`.
+3. On success all queue rows are marked `sent`.
+4. On failure (OFFICE unreachable, network error) rows stay `failed`.
+5. A background `OfficePushWorker` QThread retries every hour (configurable via
+   `[office].sync_interval_minutes`).
+
+On each push the **current sequence counter values** (`ReceiptNumber`, `ClosureNumber`, …)
+are also sent to OFFICE so it can track per-POS counters independently.
+
 ```toml
 [app]
 mode          = "office"
@@ -321,10 +339,11 @@ store_code    = "STORE-001"  # Must match Store.store_code in OFFICE database
 office_code   = "OFFICE-001" # Must match [app].office_code in OFFICE settings.toml
 
 [office]
-base_url    = "http://192.168.1.x:9000"   # OFFICE host IP and port
-api_key     = ""                           # Reserved for future use
-api_prefix  = "/api/v1"
-timeout_seconds = 10
+base_url              = "http://192.168.1.x:9000"   # OFFICE host IP and port
+api_key               = ""                           # Reserved for future use
+api_prefix            = "/api/v1"
+timeout_seconds       = 15
+sync_interval_minutes = 60    # OfficePushWorker retry interval (default: 60 min)
 ```
 
 **First-startup bootstrap flow:**
@@ -338,7 +357,21 @@ PyPOS (no db.sqlite3, mode=office)
        &terminal_code=POS-001
 ```
 
-If OFFICE is unreachable, PyPOS falls back to built-in default seed data.
+**Transaction push flow (on every document close):**
+
+```
+PyPOS
+  └─ POST /api/v1/pos/transactions
+       { office_code, store_code, terminal_code, pos_id,
+         transactions: [ { head, products, payments, … } ],
+         sequences: [ { name, value } ] }
+```
+
+If OFFICE is unreachable, PyPOS falls back to built-in default seed data (bootstrap) or
+retries failed pushes hourly (transaction sync).
+
+See [docs/44-office-push-integration.md](docs/44-office-push-integration.md) for the full
+push-integration specification.
 
 ### SaleFlex.GATE mode
 
@@ -840,7 +873,7 @@ Comprehensive documentation is available in the `docs/` directory:
 | **[Product Management](docs/15-product-management.md)** | Product List search, Product Detail tabbed dialog |
 | **[Customer Management](docs/17-customer-management.md)** | Customer list, detail, phone normalization, activity + **Point movements** loyalty audit, sale assignment, segment sync on save/sale |
 | **[Project Structure](docs/20-project-structure.md)** | Folder layout, class chain, startup sequence, design patterns |
-| **[Database Models](docs/21-database-models.md)** | 100+ models organized by domain, temp/permanent split |
+| **[Database Models](docs/21-database-models.md)** | 100+ models organized by domain; temp (`*Temp`) transaction tables are PyPOS-only — not present in SaleFlex.OFFICE |
 | **[Dynamic Forms System](docs/22-dynamic-forms-system.md)** | DB-driven UI forms, Panel controls, generic save pattern |
 | **[UI Controls Catalog](docs/23-ui-controls.md)** | All custom Qt widgets: Button, TextBox, NumPad, SaleList, TabControl |
 | **[Event System](docs/24-event-system.md)** | EventHandler, event_distributor(), all event categories |

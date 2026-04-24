@@ -162,7 +162,7 @@ saleflex.py
 | Descriptor + wrapper | `auto_save/` | Automatic DB persistence when model attributes change |
 | Dictionary-based dispatch | `EventHandler.event_distributor()` | Map string event names → handler callables without large `if/elif` chains |
 | DB-driven UI | `DynamicFormRenderer` + `BaseWindow` | Forms defined in the database, not in Python source |
-| Two-phase temp/permanent | `TransactionHeadTemp` → `TransactionHead` | Protect reporting tables from incomplete transactions |
+| Two-phase temp/permanent | `TransactionHeadTemp` → `TransactionHead` | Protect reporting tables from incomplete transactions; `*Temp` tables are PyPOS-only and are not present in SaleFlex.OFFICE |
 | In-memory cache | `pos_data` / `product_data` / **`ActiveCampaignCache`** (campaign eval) | Avoid repeated DB reads during sale operations; see [Data Caching](27-data-caching.md) and [Campaign & Promotions](43-campaign-promotions.md#active-campaign-cache) |
 
 ---

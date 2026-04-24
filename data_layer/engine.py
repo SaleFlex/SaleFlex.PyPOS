@@ -39,18 +39,28 @@ class Engine:
 
     def __init__(self):
         if not Engine._initialized:
-            # More secure connection with pool settings
+            # check_same_thread=False is required for SQLite when background
+            # threads (e.g. OfficePushWorker) share the same engine singleton.
+            # timeout=30 prevents instant "database is locked" errors under
+            # brief write contention from concurrent sessions.
+            connect_args: dict = {}
+            db_url = f"{env_data.db_engine}:///{env_data.db_name}"
+            if env_data.db_engine == "sqlite":
+                connect_args = {"check_same_thread": False, "timeout": 30}
+
             self.engine = create_engine(
-                f"{env_data.db_engine}:///{env_data.db_name}",
+                db_url,
                 pool_size=5,
                 pool_pre_ping=True,
                 pool_recycle=3600,
-                echo=False  # False for production, True for development
+                connect_args=connect_args,
+                echo=False,
             )
-            
-            # Create session factory
+
+            # expire_on_commit=False keeps ORM objects readable after commit,
+            # which is important for objects passed between sessions.
             self.SessionFactory = sessionmaker(bind=self.engine, expire_on_commit=False)
-            
+
             Engine._initialized = True
 
     @contextmanager

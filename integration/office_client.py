@@ -156,3 +156,133 @@ class OfficeClient:
             len(data),
         )
         return data
+
+    def push_transactions(
+        self,
+        pos_id: int,
+        transactions: list[dict],
+        sequences: list[dict] | None = None,
+    ) -> dict:
+        """
+        Push a batch of completed transaction records to OFFICE.
+
+        Parameters
+        ----------
+        pos_id:
+            Integer POS terminal number (pos_no_in_store) of this terminal.
+        transactions:
+            List of serialised transaction dicts, each containing:
+            {"head": {...}, "products": [...], "payments": [...], ...}
+        sequences:
+            Optional list of sequence counter updates:
+            [{"name": "ReceiptNumber", "value": 42}, ...]
+
+        Returns
+        -------
+        dict with keys: status, accepted, rejected
+
+        Raises
+        ------
+        OfficeConnectionError
+            When the OFFICE server cannot be reached.
+        RuntimeError
+            When OFFICE returns an unexpected HTTP status code.
+        """
+        url = f"{self._base_url}{self._api_prefix}/pos/transactions"
+        payload = {
+            "office_code":   self._office_code,
+            "store_code":    self._store_code,
+            "terminal_code": self._terminal_code,
+            "pos_id":        pos_id,
+            "transactions":  transactions,
+            "sequences":     sequences or [],
+        }
+
+        logger.info(
+            "[OfficeClient] Pushing %d transaction(s) to OFFICE (pos_id=%d)",
+            len(transactions), pos_id,
+        )
+
+        try:
+            response = requests.post(
+                url,
+                json=payload,
+                timeout=self._timeout,
+            )
+        except requests.ConnectionError as exc:
+            raise OfficeConnectionError(
+                f"Cannot connect to SaleFlex.OFFICE at {self._base_url}: {exc}"
+            ) from exc
+        except requests.Timeout as exc:
+            raise OfficeConnectionError(
+                f"Connection to SaleFlex.OFFICE timed out after {self._timeout}s"
+            ) from exc
+        except requests.RequestException as exc:
+            raise OfficeConnectionError(
+                f"Network error while contacting SaleFlex.OFFICE: {exc}"
+            ) from exc
+
+        if response.status_code not in (200, 201):
+            raise RuntimeError(
+                f"Unexpected OFFICE response HTTP {response.status_code}: "
+                f"{response.text[:200]}"
+            )
+
+        result = response.json()
+        logger.info(
+            "[OfficeClient] Push result: accepted=%s rejected=%s",
+            result.get("accepted"),
+            result.get("rejected"),
+        )
+        return result
+
+    def push_sequences(self, pos_id: int, sequences: list[dict]) -> dict:
+        """
+        Push sequence counter updates to OFFICE for this terminal.
+
+        Parameters
+        ----------
+        pos_id:
+            Integer POS terminal number.
+        sequences:
+            List of dicts: [{"name": "ReceiptNumber", "value": 42}, ...]
+
+        Returns
+        -------
+        dict with keys: status, updated
+
+        Raises
+        ------
+        OfficeConnectionError, RuntimeError – same as push_transactions.
+        """
+        url = f"{self._base_url}{self._api_prefix}/pos/sequences"
+        payload = {
+            "office_code":   self._office_code,
+            "store_code":    self._store_code,
+            "terminal_code": self._terminal_code,
+            "pos_id":        pos_id,
+            "sequences":     sequences,
+        }
+
+        try:
+            response = requests.post(url, json=payload, timeout=self._timeout)
+        except requests.ConnectionError as exc:
+            raise OfficeConnectionError(
+                f"Cannot connect to SaleFlex.OFFICE at {self._base_url}: {exc}"
+            ) from exc
+        except requests.Timeout as exc:
+            raise OfficeConnectionError(
+                f"Connection to SaleFlex.OFFICE timed out after {self._timeout}s"
+            ) from exc
+        except requests.RequestException as exc:
+            raise OfficeConnectionError(
+                f"Network error while contacting SaleFlex.OFFICE: {exc}"
+            ) from exc
+
+        if response.status_code not in (200, 201):
+            raise RuntimeError(
+                f"Unexpected OFFICE response HTTP {response.status_code}: "
+                f"{response.text[:200]}"
+            )
+
+        return response.json()

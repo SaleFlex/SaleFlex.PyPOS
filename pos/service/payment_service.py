@@ -654,8 +654,42 @@ class PaymentService:
             )
             CustomerSegmentService.on_sale_transaction_completed(document_data)
 
+            # ---- OFFICE push – enqueue and wake background worker ----
+            # All permanent records are committed at this point.
+            # We enqueue the completed transaction and wake the OfficePushWorker
+            # QThread (non-blocking: the caller is not blocked by network I/O).
+            try:
+                from pos.integration.office.office_push_service import OfficePushService
+                if OfficePushService.is_office_mode():
+                    tx_unique_id = getattr(head, "transaction_unique_id", None) or ""
+                    OfficePushService.enqueue(
+                        transaction_head_id=head.id,
+                        transaction_unique_id=tx_unique_id,
+                    )
+                    logger.info(
+                        "[PAYMENT_SERVICE] Transaction enqueued for OFFICE push: %s",
+                        tx_unique_id,
+                    )
+                    from pos.manager.office_push_worker import get_push_worker
+                    _worker = get_push_worker()
+                    if _worker is not None:
+                        _worker.wake()
+                        logger.info(
+                            "[PAYMENT_SERVICE] OfficePushWorker woken for immediate flush"
+                        )
+                    else:
+                        logger.warning(
+                            "[PAYMENT_SERVICE] OfficePushWorker not running – "
+                            "transaction will be sent on next scheduled cycle"
+                        )
+            except Exception as _push_err:
+                logger.warning(
+                    "[PAYMENT_SERVICE] OFFICE push trigger failed (non-fatal): %s",
+                    _push_err,
+                )
+
             return True
-            
+
         except Exception as e:
             logger.error("[PAYMENT_SERVICE] Error copying temp to permanent: %s", e)
             return False

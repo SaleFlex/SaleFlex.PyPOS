@@ -139,4 +139,5 @@ from data_layer.model.definition.customer_segment_member import CustomerSegmentM
 # Integration Layer Models
 from data_layer.model.definition.sync_queue_item import SyncQueueItem
 from data_layer.model.definition.gate_notification import GateNotification
+from data_layer.model.definition.office_push_queue import OfficePushQueue
 

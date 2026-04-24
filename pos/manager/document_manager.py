@@ -999,6 +999,47 @@ class DocumentManager:
             
             logger.info("[DEBUG] Completed document: %s", head_temp.transaction_unique_id)
 
+            # ---- OFFICE push – enqueue completed document ----
+            # Runs before inventory update so the queue row exists even if the
+            # inventory step below raises an exception.
+            #
+            # We enqueue the transaction and then wake the OfficePushWorker
+            # QThread (already running in the background) so it flushes the
+            # queue immediately.  This avoids creating ad-hoc daemon threads
+            # on every sale which can be unreliable inside a Qt event loop.
+            # If the worker has not started yet (first document closed before
+            # worker initialisation), the item stays pending and is picked up
+            # on the worker's next scheduled cycle.
+            try:
+                from pos.integration.office.office_push_service import OfficePushService
+                if OfficePushService.is_office_mode():
+                    OfficePushService.enqueue(
+                        transaction_head_id=head.id,
+                        transaction_unique_id=head.transaction_unique_id or "",
+                    )
+                    logger.info(
+                        "[document_manager] Transaction enqueued for OFFICE push: %s",
+                        head.transaction_unique_id,
+                    )
+                    # Wake the background OfficePushWorker to flush immediately.
+                    from pos.manager.office_push_worker import get_push_worker
+                    _worker = get_push_worker()
+                    if _worker is not None:
+                        _worker.wake()
+                        logger.info(
+                            "[document_manager] OfficePushWorker woken for immediate flush"
+                        )
+                    else:
+                        logger.warning(
+                            "[document_manager] OfficePushWorker not running – "
+                            "transaction will be retried on next scheduled cycle"
+                        )
+            except Exception as _push_err:
+                logger.warning(
+                    "[document_manager] OFFICE push trigger failed (non-fatal): %s",
+                    _push_err,
+                )
+
             # ---- Inventory stock update ----
             # Collect product lines from temp models before clearing document_data.
             # Deduct stock for completed (non-cancelled) SALE transactions.

@@ -36,10 +36,10 @@ being written into the local SQLite database.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, date
+from datetime import datetime, date, time
 from typing import Any
 
-from sqlalchemy import DateTime, Date
+from sqlalchemy import DateTime, Date, Time, String, Text
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
 from core.logger import get_logger
@@ -75,6 +75,31 @@ def _coerce_uuid(value: Any) -> Any:
         return uuid.UUID(str(value))
     except (ValueError, AttributeError):
         return value
+
+
+def _coerce_time(value: Any) -> Any:
+    """
+    Convert an ISO-8601 time string (``"HH:MM:SS"`` or ``"HH:MM"``) to a
+    Python ``time`` object.
+
+    SQLAlchemy's SQLite ``Time`` type rejects plain strings; they must be
+    converted before passing to the ORM layer.
+
+    Returns the value unchanged when it is already a ``time`` object, is
+    ``None``, or cannot be parsed.
+    """
+    if value is None or isinstance(value, time):
+        return value
+    if not isinstance(value, str):
+        return value
+
+    for fmt in ("%H:%M:%S.%f", "%H:%M:%S", "%H:%M"):
+        try:
+            return datetime.strptime(value, fmt).time()
+        except ValueError:
+            continue
+
+    return value  # Give up — SQLAlchemy will surface the error with context.
 
 
 def _coerce_datetime(value: Any) -> Any:
@@ -145,13 +170,21 @@ def _prepare_row(
             continue
 
         # Guard against legacy "None" string serialisation.
+        # Only convert the literal string "None" to Python None for non-text
+        # column types (UUID foreign keys, integers, etc.).  For String / Text
+        # columns the value "None" is a legitimate display name and must be
+        # preserved as-is.
         if value == "None":
-            value = None
+            col_type_check = col_types.get(key)
+            if not isinstance(col_type_check, (String, Text)):
+                value = None
 
         if value is not None:
             col_type = col_types.get(key)
 
-            if isinstance(col_type, (DateTime, Date)):
+            if isinstance(col_type, Time):
+                value = _coerce_time(value)
+            elif isinstance(col_type, (DateTime, Date)):
                 value = _coerce_datetime(value)
             elif isinstance(value, str) and (
                 key == "id" or key.endswith("_id") or key.endswith("_by")

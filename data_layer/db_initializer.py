@@ -41,6 +41,43 @@ except ImportError:
     KEYBOARD_LOADER_AVAILABLE = False
 
 
+def _ensure_office_push_queue_schema(temp_engine: Engine) -> None:
+    """
+    Ensure the office_push_queue table exists with all required columns.
+
+    metadata.create_all() creates the table for new databases; this function
+    handles existing databases where the table may not yet exist.
+    """
+    with temp_engine.engine.begin() as connection:
+        tables = {
+            row[0]
+            for row in connection.exec_driver_sql(
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            ).fetchall()
+        }
+        if "office_push_queue" not in tables:
+            # Table absent (old database) – let create_all handle it, or create minimal version.
+            connection.exec_driver_sql(
+                """
+                CREATE TABLE IF NOT EXISTS office_push_queue (
+                    id TEXT PRIMARY KEY,
+                    fk_transaction_head_id TEXT NOT NULL,
+                    transaction_unique_id TEXT NOT NULL,
+                    status TEXT NOT NULL DEFAULT 'pending',
+                    retry_count INTEGER NOT NULL DEFAULT 0,
+                    sent_at DATETIME,
+                    last_attempt_at DATETIME,
+                    error_message TEXT,
+                    created_at DATETIME,
+                    updated_at DATETIME,
+                    created_by TEXT,
+                    updated_by TEXT,
+                    is_deleted BOOLEAN NOT NULL DEFAULT 0
+                )
+                """
+            )
+
+
 def _ensure_cashier_schema(temp_engine: Engine) -> None:
     """Apply lightweight cashier table migrations required by current models."""
     with temp_engine.engine.begin() as connection:
@@ -135,6 +172,7 @@ def init_db():
         logger.debug("Creating database tables...")
         metadata.create_all(bind=temp_engine.engine)
         _ensure_cashier_schema(temp_engine)
+        _ensure_office_push_queue_schema(temp_engine)
         logger.info("✓ Tables created successfully")
 
         if is_new_db:

@@ -20,26 +20,29 @@ The integration layer connects SaleFlex.PyPOS to external systems: **SaleFlex.GA
 │              /               |               \                   │
 │       OFFICE mode?      GATE mode?      Third-party?             │
 │           │                  │                │                  │
-│   OfficeClient       GateSyncService   BaseERPConnector          │
-│  (REST → OFFICE)     GatePullService   BasePaymentGateway        │
-│       │                  │             BaseCampaignConnector     │
-│  SyncQueueItem       SyncQueueItem            │                  │
-│  (offline outbox)   (offline outbox)   adapters/erp|payment      │
+│   OfficePushService  GateSyncService   BaseERPConnector          │
+│   OfficeClient       GatePullService   BasePaymentGateway        │
+│   OfficePushWorker       │             BaseCampaignConnector     │
+│   (QThread, hourly)  SyncQueueItem            │                  │
+│   OfficePushQueue    (offline outbox)  adapters/erp|payment      │
+│   (local queue)                                                  │
 └──────────────────────────────────────────────────────────────────┘
          │                    │                 ▲
          ▼                    ▼                 │
   SaleFlex.OFFICE      SaleFlex.GATE       Third-party
   (local hub, serves   (central hub)       ERP / Payment / Campaign
-   from its own DB)
+   from its own DB;
+   receives pushes
+   from PyPOS)
 ```
 
 **Mode routing (controlled by `app.mode` in `settings.toml`):**
 
-| `app.mode` | Remote target | Data source |
-|------------|--------------|-------------|
-| `standalone` | None | Local SQLite only |
-| `office` | SaleFlex.OFFICE REST API | OFFICE's local database |
-| `gate` | SaleFlex.GATE REST API | GATE central database |
+| `app.mode` | Remote target | Data source | Transaction push |
+|------------|--------------|-------------|-----------------|
+| `standalone` | None | Local SQLite only | None |
+| `office` | SaleFlex.OFFICE REST API | OFFICE's local database | On every document close (parallel thread) + hourly retry |
+| `gate` | SaleFlex.GATE REST API | GATE central database | Via SyncQueueItem outbox |
 
 **Legacy routing rule for `gate` mode (evaluated in order):**
 

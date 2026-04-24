@@ -265,6 +265,7 @@ See [Inventory Management](docs/16-inventory-management.md) for full documentati
 ### Part 5 — Integration
 
 40. [Integration Layer](docs/40-integration-layer.md) — includes SaleFlex.OFFICE integration (office mode), SaleFlex.GATE (gate mode), and third-party connectors
+44. [OFFICE Push Integration](docs/44-office-push-integration.md) — how completed transactions are pushed to OFFICE in parallel, retry strategy, and sequence synchronisation
 
 ---
 
@@ -290,10 +291,11 @@ store_code    = "STORE-001"  # Must match Store.store_code in OFFICE database
 office_code   = "OFFICE-001" # Must match [app].office_code in OFFICE settings.toml
 
 [office]
-base_url    = "http://192.168.1.x:9000"   # OFFICE LAN IP : port
-api_key     = ""                           # Reserved – leave empty
-api_prefix  = "/api/v1"
-timeout_seconds = 10
+base_url              = "http://192.168.1.x:9000"   # OFFICE LAN IP : port
+api_key               = ""                           # Reserved – leave empty
+api_prefix            = "/api/v1"
+timeout_seconds       = 15
+sync_interval_minutes = 60    # Hourly retry interval for OfficePushWorker
 ```
 
 **First-startup database bootstrap:** when `mode = "office"` and no local database
@@ -301,8 +303,14 @@ exists, PyPOS calls `GET /api/v1/pos/init` on OFFICE to pull all seed data (prod
 cashiers, campaigns, forms, etc.) and populate its local SQLite database.  If OFFICE
 is unreachable, PyPOS falls back to built-in defaults.
 
-After the initial bootstrap, PyPOS operates from its local database and syncs
-operational data (transactions, closures) to OFFICE on a configurable schedule.
+**Transaction push (on every document close):** PyPOS sends the complete document tree
+(head + products, payments, discounts, etc.) plus current sequence counters to OFFICE
+via `POST /api/v1/pos/transactions` in a **background thread** — the cashier is never
+blocked.  Failed deliveries are retried automatically every hour by `OfficePushWorker`.
+See [docs/44-office-push-integration.md](docs/44-office-push-integration.md) for details.
+
+After the initial bootstrap, PyPOS operates from its local database and pushes completed
+transactions to OFFICE on every document close (with hourly fallback retry).
 OFFICE responds with its locally stored data immediately — it never forwards requests
 to GATE in real time.
 

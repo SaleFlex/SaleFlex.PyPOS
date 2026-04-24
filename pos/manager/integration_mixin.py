@@ -81,12 +81,16 @@ class IntegrationMixin:
         self._payment_gateway = self._build_payment_gateway()
         self._campaign_connector = self._build_campaign_connector()
 
+        # Start the OFFICE push worker when running in 'office' mode.
+        self._office_push_worker = self._start_office_push_worker()
+
         logger.info(
-            "[IntegrationMixin] initialised — gate_enabled=%s erp=%s payment=%s campaign=%s",
+            "[IntegrationMixin] initialised — gate_enabled=%s erp=%s payment=%s campaign=%s office_push=%s",
             self._gate_enabled(),
             type(self._erp_connector).__name__,
             type(self._payment_gateway).__name__,
             type(self._campaign_connector).__name__,
+            "active" if self._office_push_worker else "inactive",
         )
 
     # ------------------------------------------------------------------
@@ -209,6 +213,49 @@ class IntegrationMixin:
         except Exception as e:
             logger.error("[IntegrationMixin] could not build payment gateway: %s", e)
         return None
+
+    def _start_office_push_worker(self):
+        """
+        Start the OfficePushWorker background thread when in 'office' mode.
+
+        Reads the sync interval from settings ([office].sync_interval_minutes).
+        Defaults to 60 minutes when the setting is absent.
+
+        Returns the running OfficePushWorker instance, or None when not in
+        'office' mode or when the worker fails to start.
+        """
+        try:
+            from settings.settings import Settings
+            if Settings().app_mode != "office":
+                return None
+
+            from pos.manager.office_push_worker import OfficePushWorker
+
+            interval_minutes = int(
+                self._gate_settings.get("sync_interval_minutes", 60)
+            )
+            # Fall back to the office section if gate section has no interval.
+            try:
+                office_interval = Settings().office_sync_interval_seconds
+                if office_interval > 0:
+                    interval_seconds = office_interval
+                else:
+                    interval_seconds = interval_minutes * 60
+            except Exception:
+                interval_seconds = interval_minutes * 60
+
+            worker = OfficePushWorker(retry_interval_seconds=interval_seconds)
+            worker.start()
+            logger.info(
+                "[IntegrationMixin] OfficePushWorker started (interval=%ds)",
+                interval_seconds,
+            )
+            return worker
+        except Exception as exc:
+            logger.warning(
+                "[IntegrationMixin] Could not start OfficePushWorker: %s", exc
+            )
+            return None
 
     def _build_campaign_connector(self):
         """
