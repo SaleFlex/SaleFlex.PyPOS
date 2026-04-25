@@ -39,7 +39,7 @@ Copyright (c) 2026 Ferhat Mousavi
 ---
 
 **Last Updated:** 2026-04-05  
-**Version:** 1.0.0b5  
+**Version:** 1.0.0b8  
 **License:** MIT
 
 ---

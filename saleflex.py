@@ -23,6 +23,7 @@ SOFTWARE.
 """
 
 import atexit
+import hashlib
 import os
 import sys
 
@@ -56,7 +57,13 @@ if sys.version_info < _MIN_PYTHON:
 # the process terminates unexpectedly (no manual cleanup needed on crash).
 # ---------------------------------------------------------------------------
 _LOCK_FILE_PATH = os.path.join(_SCRIPT_DIR, ".saleflex.lock")
+_LOCK_MUTEX_NAME = (
+    "Local\\SaleFlex.PyPOS."
+    + hashlib.sha256(_SCRIPT_DIR.lower().encode("utf-8")).hexdigest()[:16]
+)
 _lock_fd = None
+_lock_handle = None
+_lock_registered = False
 
 
 def _acquire_single_instance_lock() -> bool:
@@ -67,17 +74,42 @@ def _acquire_single_instance_lock() -> bool:
     already running.  The lock is held for the lifetime of the process and
     released automatically via the atexit handler.
     """
-    global _lock_fd
+    global _lock_fd, _lock_handle, _lock_registered
     try:
         if sys.platform == "win32":
-            import msvcrt
-            _lock_fd = open(_LOCK_FILE_PATH, "wb")
-            msvcrt.locking(_lock_fd.fileno(), msvcrt.LK_NBLCK, 1)
+            import ctypes
+            from ctypes import wintypes
+
+            kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+            kernel32.CreateMutexW.argtypes = (
+                wintypes.LPVOID,
+                wintypes.BOOL,
+                wintypes.LPCWSTR,
+            )
+            kernel32.CreateMutexW.restype = wintypes.HANDLE
+
+            ctypes.set_last_error(0)
+            handle = kernel32.CreateMutexW(None, False, _LOCK_MUTEX_NAME)
+            if not handle:
+                raise OSError(ctypes.get_last_error(), "CreateMutexW failed")
+            if ctypes.get_last_error() == 183:  # ERROR_ALREADY_EXISTS
+                kernel32.CloseHandle(handle)
+                return False
+
+            _lock_handle = handle
+            _lock_fd = open(_LOCK_FILE_PATH, "w", encoding="utf-8")
+            _lock_fd.write(f"pid={os.getpid()}\n")
+            _lock_fd.flush()
         else:
             import fcntl
             _lock_fd = open(_LOCK_FILE_PATH, "w")
             fcntl.flock(_lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        atexit.register(_release_single_instance_lock)
+            _lock_fd.write(f"pid={os.getpid()}\n")
+            _lock_fd.flush()
+
+        if not _lock_registered:
+            atexit.register(_release_single_instance_lock)
+            _lock_registered = True
         return True
     except (IOError, OSError):
         try:
@@ -86,21 +118,40 @@ def _acquire_single_instance_lock() -> bool:
         except Exception:
             pass
         _lock_fd = None
+        if _lock_handle:
+            try:
+                import ctypes
+
+                ctypes.WinDLL("kernel32", use_last_error=True).CloseHandle(_lock_handle)
+            except Exception:
+                pass
+            _lock_handle = None
         return False
 
 
 def _release_single_instance_lock() -> None:
     """Release the process lock and remove the lock file."""
-    global _lock_fd
+    global _lock_fd, _lock_handle
     if _lock_fd:
         try:
-            if sys.platform == "win32":
-                import msvcrt
-                msvcrt.locking(_lock_fd.fileno(), msvcrt.LK_UNLCK, 1)
+            if sys.platform != "win32":
+                import fcntl
+
+                fcntl.flock(_lock_fd, fcntl.LOCK_UN)
             _lock_fd.close()
         except Exception:
             pass
         _lock_fd = None
+
+    if _lock_handle:
+        try:
+            import ctypes
+
+            ctypes.WinDLL("kernel32", use_last_error=True).CloseHandle(_lock_handle)
+        except Exception:
+            pass
+        _lock_handle = None
+
     try:
         os.unlink(_LOCK_FILE_PATH)
     except OSError:
@@ -137,4 +188,5 @@ if __name__ == "__main__":
         _logger.critical("Unhandled exception – application terminated", exc_info=True)
         sys.exit(1)
     finally:
+        _release_single_instance_lock()
         _logger.info("SaleFlex.PyPOS v%s – shutdown complete", __version__)

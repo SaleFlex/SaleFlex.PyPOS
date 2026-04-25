@@ -1,41 +1,42 @@
 # OFFICE Push Integration
 
-This document describes how `SaleFlex.PyPOS` synchronises completed transaction data with a
-`SaleFlex.OFFICE` instance when running in **`office` mode**.
+This document describes how `SaleFlex.PyPOS` synchronises completed transaction and
+end-of-day closure data with a `SaleFlex.OFFICE` instance when running in **`office` mode**.
 
 ---
 
 ## Overview
 
-When `app.mode = "office"` is set in `settings.toml`, every closed document (completed or
-cancelled transaction) is automatically pushed to the OFFICE REST API in a **background thread**
-so that the cashier's workflow is never interrupted.
+When `app.mode = "office"` is set in `settings.toml`, every closed document and completed
+end-of-day closure is queued locally and pushed to the OFFICE REST API by a background
+`QThread` so that the cashier's workflow is never interrupted.
 
 Key behaviours:
 
 | Scenario | Behaviour |
 |----------|-----------|
-| Document closed, OFFICE reachable | Transaction sent immediately in a parallel thread |
-| Document closed, OFFICE unreachable | Entry queued as `pending`; retried on next document close |
-| No document activity for ≥ 1 hour | Background `OfficePushWorker` flushes all `pending`/`failed` items |
-| OFFICE intermittently reachable | Items accumulate in `office_push_queue`; sent in a single batch on next success |
+| Document or closure completed, OFFICE reachable | Pending documents and closures are sent immediately by `OfficePushWorker` |
+| OFFICE unreachable | Entries remain queued as `failed`; retried on the next document close, closure, or scheduled retry |
+| No POS activity for ≥ 1 hour | Background `OfficePushWorker` flushes all `pending`/`failed` documents and closures |
+| OFFICE intermittently reachable | Items accumulate in local queues and are sent one by one on the next successful connection |
 
 ---
 
 ## Architecture
 
 ```
-  Document closed
+  Document closed / closure completed
         │
         ▼
- DocumentManager.complete_document()
+ PaymentService.copy_temp_to_permanent() / ClosureEvent._closure_event()
         │
-        ├── OfficePushService.enqueue()       ← adds row to office_push_queue
+        ├── OfficePushService.enqueue() / enqueue_closure()
+        │       ← adds row to office_push_queue / office_closure_push_queue
         │
-        └── threading.Thread(target=flush_pending).start()   ← parallel push
+        └── OfficePushWorker.wake()   ← non-blocking parallel flush
                     │
                     ├── OFFICE reachable?
-                    │       Yes → HTTP POST /api/v1/pos/transactions
+                    │       Yes → POST /api/v1/pos/transactions or /pos/closures
                     │             mark queue items "sent"
                     │
                     └──  No  → mark items "failed"
@@ -54,8 +55,9 @@ Key behaviours:
 |--------|-------------|
 | `is_office_mode()` | Returns `True` when `app.mode == "office"` |
 | `enqueue(head_id, tx_unique_id)` | Adds a `pending` row to `office_push_queue` |
-| `flush_pending()` | Pushes all `pending`/`failed` items to OFFICE in one HTTP call |
-| `has_pending()` | Returns `True` when unsent items exist in the queue |
+| `enqueue_closure(closure_id, closure_unique_id)` | Adds a `pending` row to `office_closure_push_queue` |
+| `flush_pending()` | Pushes all `pending`/`failed` documents and closures to OFFICE one by one |
+| `has_pending()` | Returns `True` when unsent documents or closures exist |
 
 ### `pos/manager/office_push_worker.py` — `OfficePushWorker`
 
@@ -66,11 +68,12 @@ The retry interval is read from `[office].sync_interval_minutes` in `settings.to
 
 ### `integration/office_client.py` — `OfficeClient` (extended)
 
-Two new methods added to the existing OFFICE HTTP client:
+OFFICE HTTP client methods used by the worker:
 
 | Method | HTTP call |
 |--------|-----------|
 | `push_transactions(pos_id, transactions, sequences)` | `POST /api/v1/pos/transactions` |
+| `push_closures(pos_id, closures, sequences)` | `POST /api/v1/pos/closures` |
 | `push_sequences(pos_id, sequences)` | `POST /api/v1/pos/sequences` |
 
 ### `data_layer/model/definition/office_push_queue.py` — `OfficePushQueue`
@@ -88,12 +91,27 @@ Local SQLite table that tracks every document awaiting delivery to OFFICE.
 | `last_attempt_at` | DateTime | Timestamp of most recent attempt |
 | `error_message` | String | Last error from OFFICE |
 
+### `data_layer/model/definition/office_closure_push_queue.py` — `OfficeClosurePushQueue`
+
+Local SQLite table that tracks every completed closure awaiting delivery to OFFICE.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | UUID | Primary key |
+| `fk_closure_id` | UUID | FK → `closure.id` |
+| `closure_unique_id` | String | Human-readable closure ID |
+| `status` | String | `pending` / `sent` / `failed` |
+| `retry_count` | Integer | Number of failed attempts |
+| `sent_at` | DateTime | Timestamp of successful delivery |
+| `last_attempt_at` | DateTime | Timestamp of most recent attempt |
+| `error_message` | String | Last error from OFFICE |
+
 ---
 
 ## Payload Format
 
-Each document close triggers one HTTP `POST` to `/api/v1/pos/transactions` with all
-pending documents batched together:
+Each queue item is sent in its own HTTP request.  Document requests use
+`POST /api/v1/pos/transactions`:
 
 ```json
 {
@@ -127,6 +145,35 @@ pending documents batched together:
 }
 ```
 
+Closure requests use `POST /api/v1/pos/closures`:
+
+```json
+{
+  "office_code":   "OFFICE-001",
+  "store_code":    "STORE-001",
+  "terminal_code": "POS-01",
+  "pos_id":        1,
+  "closures": [
+    {
+      "closure":                 { "...": "Closure fields" },
+      "vat_summaries":           [ { "...": "ClosureVATSummary fields" } ],
+      "tip_summaries":           [ { "...": "ClosureTipSummary fields" } ],
+      "discount_summaries":      [ { "...": "ClosureDiscountSummary fields" } ],
+      "payment_type_summaries":  [ { "...": "ClosurePaymentTypeSummary fields" } ],
+      "document_type_summaries": [ { "...": "ClosureDocumentTypeSummary fields" } ],
+      "department_summaries":    [ { "...": "ClosureDepartmentSummary fields" } ],
+      "currency_summaries":      [ { "...": "ClosureCurrency fields" } ],
+      "cashier_summaries":       [ { "...": "ClosureCashierSummary fields" } ],
+      "country_specific":        { "...": "ClosureCountrySpecific fields" } or null
+    }
+  ],
+  "sequences": [
+    { "name": "ReceiptNumber", "value": 1 },
+    { "name": "ClosureNumber", "value": 4 }
+  ]
+}
+```
+
 OFFICE response:
 
 ```json
@@ -137,10 +184,10 @@ OFFICE response:
 
 ## Sequence Number Synchronisation
 
-Every push request includes the current values of **all** `TransactionSequence` rows (e.g.
-`ReceiptNumber`, `ClosureNumber`) from the PyPOS local database. OFFICE stores these values
-in its own `transaction_sequence` table indexed by `(name, pos_id)` so that each terminal's
-counters are maintained independently.
+Every document and closure push request includes the current values of **all**
+`TransactionSequence` rows (e.g. `ReceiptNumber`, `ClosureNumber`) from the PyPOS local
+database. OFFICE stores these values in its own `transaction_sequence` table indexed by
+`(name, pos_id)` so that each terminal's counters are maintained independently.
 
 ---
 
@@ -163,9 +210,11 @@ sync_interval_minutes = 60   # OfficePushWorker retry interval (default: 60 min)
 
 1. **Application start** – `IntegrationMixin.init_integration()` calls
    `_start_office_push_worker()` which launches the `OfficePushWorker` QThread.
-2. **Document close** – `DocumentManager.complete_document()` enqueues the document and
-   spawns a daemon thread to flush the queue immediately.
-3. **Push success** – Queue item is marked `sent`.
-4. **Push failure** – Queue item is marked `failed`.
-5. **Hourly retry** – `OfficePushWorker` wakes, detects pending items, and flushes.
-6. **Application exit** – The QThread is a daemon; it stops when the main process exits.
+2. **Document close** – `PaymentService.copy_temp_to_permanent()` enqueues the document
+   and wakes the worker.
+3. **Closure complete** – `ClosureEvent._closure_event()` enqueues the closure and wakes
+   the same worker.
+4. **Push success** – Queue item is marked `sent`.
+5. **Push failure** – Queue item is marked `failed`.
+6. **Hourly retry** – `OfficePushWorker` wakes, detects pending items, and flushes.
+7. **Application exit** – The worker is stopped by the application shutdown path.

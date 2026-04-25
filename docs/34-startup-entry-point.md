@@ -122,11 +122,12 @@ A **file-based process lock** is used because:
 
 | Platform | Lock mechanism |
 |---|---|
-| Windows | `msvcrt.locking` with `LK_NBLCK` |
+| Windows | Named mutex via `CreateMutexW` |
 | Linux / macOS | `fcntl.flock` with `LOCK_EX \| LOCK_NB` |
 
-The lock file is `.saleflex.lock` in the project root.  It is listed in
-`.gitignore` and should never be committed.
+The runtime marker file is `.saleflex.lock` in the project root.  It stores the
+current process id for diagnostics, is removed during normal shutdown, and
+should never be committed.
 
 ### Lock lifecycle
 
@@ -137,7 +138,7 @@ Process starts → _acquire_single_instance_lock()
                          │
                  [application runs]
                          │
-Process ends  → atexit calls _release_single_instance_lock()
+Process ends  → finally/atexit calls _release_single_instance_lock()
               → lock file deleted
 ```
 
@@ -159,9 +160,9 @@ next start:
 - **Linux / macOS:** `fcntl.flock` attempts to lock the existing file.
   Because no process holds the lock, it succeeds immediately.  A stale
   lock file never blocks a fresh start.
-- **Windows:** `msvcrt.locking` behaves identically — the file exists but
-  carries no active kernel lock, so the new process acquires it without
-  issue.
+- **Windows:** the named mutex is released by the operating system when the
+  process exits.  A stale marker file alone never grants or blocks ownership;
+  only the active mutex does.
 
 ---
 

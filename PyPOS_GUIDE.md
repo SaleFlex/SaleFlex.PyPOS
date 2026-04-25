@@ -393,5 +393,5 @@ See [Integration Layer](docs/40-integration-layer.md) for the full connection ar
 ---
 
 **Last Updated:** 2026-04-11
-**Version:** 1.0.0b7
+**Version:** 1.0.0b8
 **License:** MIT

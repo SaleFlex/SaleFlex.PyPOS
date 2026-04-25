@@ -2,7 +2,7 @@
 
 ## Overview
 
-SaleFlex.PyPOS 1.0.0b6 introduces two fully database-driven forms for
+SaleFlex.PyPOS 1.0.0b8 introduces two fully database-driven forms for
 product management:
 
 | Form | FormName enum | form_no | Type | Purpose |

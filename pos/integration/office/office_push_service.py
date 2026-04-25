@@ -1,10 +1,10 @@
 """
 SaleFlex.PyPOS - Office Push Service
 
-Serialises completed TransactionHead records and all their related line items,
-then forwards the payload to SaleFlex.OFFICE via the REST API.  Maintains an
-OfficePushQueue table in the local SQLite database to track which documents
-have been successfully delivered and to enable retry on failure.
+Serialises completed TransactionHead and Closure records with their related
+detail rows, then forwards the payloads to SaleFlex.OFFICE via the REST API.
+Maintains local queue tables to track which items have been successfully
+delivered and to enable retry on failure.
 
 Public interface
 ----------------
@@ -12,9 +12,13 @@ OfficePushService.enqueue(transaction_head_id)
     Call this immediately after a document is closed. Adds a 'pending' row to
     the queue and triggers a non-blocking push attempt.
 
+OfficePushService.enqueue_closure(closure_id)
+    Call this immediately after a closure is completed. Adds a 'pending' row to
+    the closure queue and triggers a non-blocking push attempt.
+
 OfficePushService.flush_pending()
-    Push every 'pending' or 'failed' queue entry to OFFICE.  Returns True when
-    all items were dispatched successfully, False otherwise.
+    Push every 'pending' or 'failed' document and closure queue entry to OFFICE.
+    Returns True when all items were dispatched successfully, False otherwise.
 
 OfficePushService.is_office_mode() -> bool
     Returns True only when the app is running in 'office' mode.
@@ -163,6 +167,64 @@ def _build_transaction_payload(transaction_head_id) -> dict[str, Any] | None:
         }
 
 
+def _build_closure_payload(closure_id) -> dict[str, Any] | None:
+    """
+    Load a completed Closure and all related summary rows from the local
+    database and return a single closure dict ready for the OFFICE REST API.
+    """
+    from uuid import UUID
+    from data_layer.engine import Engine
+    from data_layer.model.definition.closure import Closure
+    from data_layer.model.definition.closure_vat_summary import ClosureVATSummary
+    from data_layer.model.definition.closure_tip_summary import ClosureTipSummary
+    from data_layer.model.definition.closure_discount_summary import ClosureDiscountSummary
+    from data_layer.model.definition.closure_payment_type_summary import ClosurePaymentTypeSummary
+    from data_layer.model.definition.closure_document_type_summary import ClosureDocumentTypeSummary
+    from data_layer.model.definition.closure_department_summary import ClosureDepartmentSummary
+    from data_layer.model.definition.closure_currency import ClosureCurrency
+    from data_layer.model.definition.closure_cashier_summary import ClosureCashierSummary
+    from data_layer.model.definition.closure_country_specific import ClosureCountrySpecific
+
+    try:
+        closure_uuid = UUID(str(closure_id))
+    except (ValueError, AttributeError):
+        logger.error("[OfficePushService] Invalid closure id: %s", closure_id)
+        return None
+
+    with Engine().get_session() as session:
+        closure = session.query(Closure).filter(Closure.id == closure_uuid).first()
+        if closure is None:
+            logger.error("[OfficePushService] Closure not found: %s", closure_uuid)
+            return None
+
+        def _load_rows(model_cls):
+            return [
+                _row_to_dict(r)
+                for r in session.query(model_cls)
+                .filter(model_cls.fk_closure_id == closure_uuid)
+                .all()
+            ]
+
+        country_specific = (
+            session.query(ClosureCountrySpecific)
+            .filter(ClosureCountrySpecific.fk_closure_id == closure_uuid)
+            .first()
+        )
+
+        return {
+            "closure":                 _row_to_dict(closure),
+            "vat_summaries":           _load_rows(ClosureVATSummary),
+            "tip_summaries":           _load_rows(ClosureTipSummary),
+            "discount_summaries":      _load_rows(ClosureDiscountSummary),
+            "payment_type_summaries":  _load_rows(ClosurePaymentTypeSummary),
+            "document_type_summaries": _load_rows(ClosureDocumentTypeSummary),
+            "department_summaries":    _load_rows(ClosureDepartmentSummary),
+            "currency_summaries":      _load_rows(ClosureCurrency),
+            "cashier_summaries":       _load_rows(ClosureCashierSummary),
+            "country_specific":        _row_to_dict(country_specific),
+        }
+
+
 def _get_current_sequences() -> list[dict[str, Any]]:
     """
     Return the current sequence counter values from the local database.
@@ -244,6 +306,46 @@ def _mark_queue_failed(queue_id, error: str) -> None:
         logger.warning("[OfficePushService] Could not mark queue item failed: %s", exc)
 
 
+def _mark_closure_queue_sent(queue_id) -> None:
+    from data_layer.engine import Engine
+    from data_layer.model.definition.office_closure_push_queue import OfficeClosurePushQueue
+
+    now = datetime.now(timezone.utc)
+    try:
+        with Engine().get_session() as session:
+            q = session.query(OfficeClosurePushQueue).filter(
+                OfficeClosurePushQueue.id == queue_id
+            ).first()
+            if q:
+                q.status = "sent"
+                q.sent_at = now
+                q.last_attempt_at = now
+                q.error_message = None
+                session.commit()
+    except Exception as exc:
+        logger.warning("[OfficePushService] Could not mark closure queue item sent: %s", exc)
+
+
+def _mark_closure_queue_failed(queue_id, error: str) -> None:
+    from data_layer.engine import Engine
+    from data_layer.model.definition.office_closure_push_queue import OfficeClosurePushQueue
+
+    now = datetime.now(timezone.utc)
+    try:
+        with Engine().get_session() as session:
+            q = session.query(OfficeClosurePushQueue).filter(
+                OfficeClosurePushQueue.id == queue_id
+            ).first()
+            if q:
+                q.status = "failed"
+                q.last_attempt_at = now
+                q.retry_count = (q.retry_count or 0) + 1
+                q.error_message = str(error)[:500]
+                session.commit()
+    except Exception as exc:
+        logger.warning("[OfficePushService] Could not mark closure queue item failed: %s", exc)
+
+
 # ---------------------------------------------------------------------------
 # Public service
 # ---------------------------------------------------------------------------
@@ -323,22 +425,61 @@ class OfficePushService:
             )
 
     @staticmethod
+    def enqueue_closure(closure_id, closure_unique_id: str = "") -> None:
+        """
+        Add a completed closure to the push queue with status 'pending'.
+
+        The HTTP push is performed later by OfficePushWorker so the UI thread
+        remains responsive during end-of-day processing.
+        """
+        if not OfficePushService.is_office_mode():
+            return
+
+        from data_layer.engine import Engine
+        from data_layer.model.definition.office_closure_push_queue import OfficeClosurePushQueue
+
+        try:
+            with Engine().get_session() as session:
+                existing = (
+                    session.query(OfficeClosurePushQueue)
+                    .filter(
+                        OfficeClosurePushQueue.fk_closure_id == closure_id,
+                        OfficeClosurePushQueue.status.in_(["pending", "sent"]),
+                    )
+                    .first()
+                )
+                if existing:
+                    logger.debug(
+                        "[OfficePushService] Closure already queued: %s",
+                        closure_unique_id,
+                    )
+                    return
+
+                q = OfficeClosurePushQueue(
+                    fk_closure_id=closure_id,
+                    closure_unique_id=closure_unique_id,
+                    status="pending",
+                )
+                session.add(q)
+                session.commit()
+
+            logger.info("[OfficePushService] Enqueued closure: %s", closure_unique_id)
+        except Exception as exc:
+            logger.error(
+                "[OfficePushService] Failed to enqueue closure %s: %s",
+                closure_unique_id,
+                exc,
+            )
+
+    @staticmethod
     def flush_pending() -> bool:
         """
-        Push all 'pending' and 'failed' queue items to OFFICE in a single batch.
+        Push all 'pending' and 'failed' documents and closures to OFFICE.
 
-        Sends the transactions and the current sequence counters together in
-        one HTTP request.  On success each item is marked 'sent'; on failure
-        each is marked 'failed' with an error message.
-
-        The method is structured in three isolated phases so that SQLite
-        sessions are never nested (which can cause "database is locked" errors
-        with concurrent threads):
-
-          Phase 1 – Read the queue  : open session, load rows, close session.
-          Phase 2 – Build payloads  : each transaction loaded in its own session
-                                      (no outer session is held open).
-          Phase 3 – HTTP push       : no SQLite session; update statuses after.
+        Each queue item is sent in its own REST request.  This keeps retry
+        status precise: one bad document or closure does not hide the result of
+        the remaining queue.  Current sequence counters are included with every
+        request.
 
         Returns True when all items were dispatched without error, False when
         at least one item could not be delivered.
@@ -348,55 +489,64 @@ class OfficePushService:
 
         from data_layer.engine import Engine
         from data_layer.model.definition.office_push_queue import OfficePushQueue
+        from data_layer.model.definition.office_closure_push_queue import OfficeClosurePushQueue
         from integration.office_client import OfficeClient, OfficeConnectionError
 
-        # ----------------------------------------------------------------
-        # Phase 1: Read queue – close the session before any other DB work
-        # ----------------------------------------------------------------
-        pending_items: list[dict] = []
+        transaction_items: list[dict] = []
+        closure_items: list[dict] = []
         try:
             with Engine().get_session() as session:
-                rows = (
+                tx_rows = (
                     session.query(OfficePushQueue)
                     .filter(OfficePushQueue.status.in_(["pending", "failed"]))
                     .order_by(OfficePushQueue.created_at.asc())
                     .all()
                 )
-                # Extract plain Python values while the session is open;
-                # the session is closed as soon as the 'with' block exits.
-                for row in rows:
-                    pending_items.append({
+                closure_rows = (
+                    session.query(OfficeClosurePushQueue)
+                    .filter(OfficeClosurePushQueue.status.in_(["pending", "failed"]))
+                    .order_by(OfficeClosurePushQueue.created_at.asc())
+                    .all()
+                )
+                for row in tx_rows:
+                    transaction_items.append({
                         "id":                      row.id,
                         "fk_transaction_head_id":  row.fk_transaction_head_id,
                         "transaction_unique_id":   row.transaction_unique_id,
+                    })
+                for row in closure_rows:
+                    closure_items.append({
+                        "id":                row.id,
+                        "fk_closure_id":     row.fk_closure_id,
+                        "closure_unique_id": row.closure_unique_id,
                     })
         except Exception as exc:
             logger.error("[OfficePushService] Error reading push queue: %s", exc)
             return False
 
-        if not pending_items:
+        if not transaction_items and not closure_items:
             return True
 
         logger.info(
-            "[OfficePushService] %d item(s) pending in push queue", len(pending_items)
+            "[OfficePushService] Pending OFFICE queue: %d transaction(s), %d closure(s)",
+            len(transaction_items),
+            len(closure_items),
         )
 
-        # ----------------------------------------------------------------
-        # Phase 2: Build payloads – each in its own short-lived session
-        # ----------------------------------------------------------------
-        queue_ids:    list[Any] = []
-        transactions: list[dict] = []
+        client = OfficeClient()
+        pos_id = _get_pos_id()
+        all_success = True
 
-        for item in pending_items:
-            head_id = item["fk_transaction_head_id"]
-            tx_id   = item["transaction_unique_id"]
+        for item in transaction_items:
+            tx_id = item["transaction_unique_id"]
             try:
-                payload = _build_transaction_payload(head_id)
+                payload = _build_transaction_payload(item["fk_transaction_head_id"])
             except Exception as exc:
                 logger.error(
                     "[OfficePushService] Error building payload for %s: %s", tx_id, exc
                 )
                 _mark_queue_failed(item["id"], f"Payload build error: {exc}")
+                all_success = False
                 continue
 
             if payload is None:
@@ -406,82 +556,93 @@ class OfficePushService:
                     item["id"], tx_id,
                 )
                 _mark_queue_failed(item["id"], "TransactionHead not found in local DB")
+                all_success = False
                 continue
 
-            queue_ids.append(item["id"])
-            transactions.append(payload)
-            logger.debug(
-                "[OfficePushService] Payload built for transaction: %s", tx_id
-            )
+            try:
+                result = client.push_transactions(
+                    pos_id=pos_id,
+                    transactions=[payload],
+                    sequences=_get_current_sequences(),
+                )
+                if result.get("status") == "ok" and int(result.get("accepted", 0)) == 1:
+                    _mark_queue_sent(item["id"])
+                    logger.info("[OfficePushService] Transaction sent to OFFICE: %s", tx_id)
+                else:
+                    error_msg = result.get("message", "OFFICE rejected transaction")
+                    _mark_queue_failed(item["id"], error_msg)
+                    all_success = False
+            except OfficeConnectionError as exc:
+                logger.warning("[OfficePushService] OFFICE unreachable: %s", exc)
+                _mark_queue_failed(item["id"], str(exc))
+                all_success = False
+            except Exception as exc:
+                logger.error("[OfficePushService] Transaction push error: %s", exc, exc_info=True)
+                _mark_queue_failed(item["id"], str(exc))
+                all_success = False
 
-        if not transactions:
-            logger.warning("[OfficePushService] No valid payloads to push")
-            return False
+        for item in closure_items:
+            closure_uid = item["closure_unique_id"]
+            try:
+                payload = _build_closure_payload(item["fk_closure_id"])
+            except Exception as exc:
+                logger.error(
+                    "[OfficePushService] Error building closure payload for %s: %s",
+                    closure_uid,
+                    exc,
+                )
+                _mark_closure_queue_failed(item["id"], f"Payload build error: {exc}")
+                all_success = False
+                continue
 
-        # ----------------------------------------------------------------
-        # Phase 3: Push to OFFICE – no SQLite session held during HTTP call
-        # ----------------------------------------------------------------
-        sequences = _get_current_sequences()
-        pos_id    = _get_pos_id()
+            if payload is None:
+                _mark_closure_queue_failed(item["id"], "Closure not found in local DB")
+                all_success = False
+                continue
 
-        logger.info(
-            "[OfficePushService] Pushing %d transaction(s) to OFFICE (pos_id=%d) ...",
-            len(transactions), pos_id,
-        )
+            try:
+                result = client.push_closures(
+                    pos_id=pos_id,
+                    closures=[payload],
+                    sequences=_get_current_sequences(),
+                )
+                if result.get("status") == "ok" and int(result.get("accepted", 0)) == 1:
+                    _mark_closure_queue_sent(item["id"])
+                    logger.info("[OfficePushService] Closure sent to OFFICE: %s", closure_uid)
+                else:
+                    error_msg = result.get("message", "OFFICE rejected closure")
+                    _mark_closure_queue_failed(item["id"], error_msg)
+                    all_success = False
+            except OfficeConnectionError as exc:
+                logger.warning("[OfficePushService] OFFICE unreachable: %s", exc)
+                _mark_closure_queue_failed(item["id"], str(exc))
+                all_success = False
+            except Exception as exc:
+                logger.error("[OfficePushService] Closure push error: %s", exc, exc_info=True)
+                _mark_closure_queue_failed(item["id"], str(exc))
+                all_success = False
 
-        client = OfficeClient()
-        try:
-            result = client.push_transactions(
-                pos_id=pos_id,
-                transactions=transactions,
-                sequences=sequences,
-            )
-            status  = result.get("status", "error")
-            success = (status == "ok")
-        except OfficeConnectionError as exc:
-            logger.warning("[OfficePushService] OFFICE unreachable: %s", exc)
-            for qid in queue_ids:
-                _mark_queue_failed(qid, str(exc))
-            return False
-        except Exception as exc:
-            logger.error("[OfficePushService] Push error: %s", exc, exc_info=True)
-            for qid in queue_ids:
-                _mark_queue_failed(qid, str(exc))
-            return False
-
-        # ----------------------------------------------------------------
-        # Phase 3b: Update queue status (session closed during HTTP above)
-        # ----------------------------------------------------------------
-        if success:
-            for qid in queue_ids:
-                _mark_queue_sent(qid)
-            logger.info(
-                "[OfficePushService] Successfully pushed %d transaction(s) to OFFICE",
-                len(queue_ids),
-            )
-        else:
-            error_msg = result.get("message", "OFFICE returned non-ok status")
-            for qid in queue_ids:
-                _mark_queue_failed(qid, error_msg)
-            logger.warning(
-                "[OfficePushService] Push rejected by OFFICE: %s", error_msg
-            )
-
-        return success
+        return all_success
 
     @staticmethod
     def has_pending() -> bool:
-        """Return True when there are unsent (pending or failed) queue items."""
+        """Return True when there are unsent document or closure queue items."""
         from data_layer.engine import Engine
         from data_layer.model.definition.office_push_queue import OfficePushQueue
+        from data_layer.model.definition.office_closure_push_queue import OfficeClosurePushQueue
 
         try:
             with Engine().get_session() as session:
-                count = (
+                tx_count = (
                     session.query(OfficePushQueue)
                     .filter(OfficePushQueue.status.in_(["pending", "failed"]))
                     .count()
                 )
-                return count > 0
+                closure_count = (
+                    session.query(OfficeClosurePushQueue)
+                    .filter(OfficeClosurePushQueue.status.in_(["pending", "failed"]))
+                    .count()
+                )
+                return (tx_count + closure_count) > 0
         except Exception:
             return False

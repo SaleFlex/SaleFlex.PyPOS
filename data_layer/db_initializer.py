@@ -77,6 +77,35 @@ def _ensure_office_push_queue_schema(temp_engine: Engine) -> None:
                 """
             )
 
+        if "office_closure_push_queue" not in tables:
+            connection.exec_driver_sql(
+                """
+                CREATE TABLE IF NOT EXISTS office_closure_push_queue (
+                    id TEXT PRIMARY KEY,
+                    fk_closure_id TEXT NOT NULL,
+                    closure_unique_id TEXT NOT NULL,
+                    status TEXT NOT NULL DEFAULT 'pending',
+                    retry_count INTEGER NOT NULL DEFAULT 0,
+                    sent_at DATETIME,
+                    last_attempt_at DATETIME,
+                    error_message TEXT,
+                    created_at DATETIME,
+                    updated_at DATETIME,
+                    created_by TEXT,
+                    updated_by TEXT,
+                    is_deleted BOOLEAN NOT NULL DEFAULT 0
+                )
+                """
+            )
+            connection.exec_driver_sql(
+                "CREATE INDEX IF NOT EXISTS idx_office_closure_push_status "
+                "ON office_closure_push_queue (status)"
+            )
+            connection.exec_driver_sql(
+                "CREATE INDEX IF NOT EXISTS idx_office_closure_push_closure "
+                "ON office_closure_push_queue (fk_closure_id)"
+            )
+
 
 def _ensure_cashier_schema(temp_engine: Engine) -> None:
     """Apply lightweight cashier table migrations required by current models."""
@@ -219,6 +248,7 @@ def create_tables():
         logger.debug("Creating database tables...")
         metadata.create_all(bind=temp_engine.engine)
         _ensure_cashier_schema(temp_engine)
+        _ensure_office_push_queue_schema(temp_engine)
         logger.info("✓ Tables created successfully")
         
         return True

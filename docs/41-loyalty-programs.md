@@ -113,5 +113,5 @@ Walk-in, missing customer, missing membership, or inactive program → **`loyalt
 ---
 
 **Last Updated:** 2026-04-10  
-**Version:** 1.0.0b7  
+**Version:** 1.0.0b8  
 **License:** MIT

@@ -1,7 +1,7 @@
 [app]
-version         = "1.0.0b7"
+version         = "1.0.0b8"
 icon            = "static_files\\images\\saleflex.ico"
-mode            = "standalone"  # standalone | office | gate
+mode            = "office"  # standalone | office | gate
 terminal_code   = "POS-001"     # This terminal's identifier registered in OFFICE or/and GATE
 store_code      = "STORE-001"   # This store's identifier registered in OFFICE or/and GATE
 office_code     = "OFFICE-001"

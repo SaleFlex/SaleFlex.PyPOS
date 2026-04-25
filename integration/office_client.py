@@ -286,3 +286,59 @@ class OfficeClient:
             )
 
         return response.json()
+
+    def push_closures(
+        self,
+        pos_id: int,
+        closures: list[dict],
+        sequences: list[dict] | None = None,
+    ) -> dict:
+        """
+        Push completed end-of-day closure records to OFFICE.
+
+        The caller may pass one closure per request to keep queue status updates
+        precise.  Current sequence counters are sent with every request.
+        """
+        url = f"{self._base_url}{self._api_prefix}/pos/closures"
+        payload = {
+            "office_code":   self._office_code,
+            "store_code":    self._store_code,
+            "terminal_code": self._terminal_code,
+            "pos_id":        pos_id,
+            "closures":      closures,
+            "sequences":     sequences or [],
+        }
+
+        logger.info(
+            "[OfficeClient] Pushing %d closure(s) to OFFICE (pos_id=%d)",
+            len(closures), pos_id,
+        )
+
+        try:
+            response = requests.post(url, json=payload, timeout=self._timeout)
+        except requests.ConnectionError as exc:
+            raise OfficeConnectionError(
+                f"Cannot connect to SaleFlex.OFFICE at {self._base_url}: {exc}"
+            ) from exc
+        except requests.Timeout as exc:
+            raise OfficeConnectionError(
+                f"Connection to SaleFlex.OFFICE timed out after {self._timeout}s"
+            ) from exc
+        except requests.RequestException as exc:
+            raise OfficeConnectionError(
+                f"Network error while contacting SaleFlex.OFFICE: {exc}"
+            ) from exc
+
+        if response.status_code not in (200, 201):
+            raise RuntimeError(
+                f"Unexpected OFFICE response HTTP {response.status_code}: "
+                f"{response.text[:200]}"
+            )
+
+        result = response.json()
+        logger.info(
+            "[OfficeClient] Closure push result: accepted=%s rejected=%s",
+            result.get("accepted"),
+            result.get("rejected"),
+        )
+        return result

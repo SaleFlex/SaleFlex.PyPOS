@@ -234,6 +234,32 @@ class ClosureEvent:
 
             logger.info("[CLOSURE] Closure completed successfully. Closure Number: %s", current_closure_number)
 
+            # Queue the completed closure for OFFICE sync and wake the shared
+            # background worker.  Network I/O stays outside the UI thread.
+            try:
+                from pos.integration.office.office_push_service import OfficePushService
+                if OfficePushService.is_office_mode():
+                    closure_unique_id = getattr(closure, "closure_unique_id", None) or ""
+                    OfficePushService.enqueue_closure(
+                        closure_id=closure.id,
+                        closure_unique_id=closure_unique_id,
+                    )
+                    from pos.manager.office_push_worker import get_push_worker
+                    worker = get_push_worker()
+                    if worker is not None:
+                        worker.wake()
+                        logger.info("[CLOSURE] OfficePushWorker woken for closure flush")
+                    else:
+                        logger.warning(
+                            "[CLOSURE] OfficePushWorker not running – closure will "
+                            "be sent on next scheduled cycle"
+                        )
+            except Exception as push_err:
+                logger.warning(
+                    "[CLOSURE] OFFICE closure push trigger failed (non-fatal): %s",
+                    push_err,
+                )
+
             # Print closure Z-report
             self._print_closure_report(closure, totals, base_currency_id)
 

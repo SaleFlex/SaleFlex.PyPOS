@@ -14,7 +14,7 @@ Located in the project root. This file is read at startup by `settings/settings.
 
 ```toml
 [app]
-version = "1.0.0b6"
+version = "1.0.0b8"
 icon = "static_files\\images\\saleflex.ico"
 
 [logging]

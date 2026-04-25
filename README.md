@@ -1,6 +1,6 @@
 ﻿# SaleFlex.PyPOS
 
-> **Current Status:** Beta v1.0.0b7 - Active Development (The project is not production-ready yet.)
+> **Current Status:** Beta v1.0.0b8 - Active Development (The project is not production-ready yet.)
 > 
 > Core POS functionality operational. See [roadmap](#development-roadmap) for upcoming features.
 
@@ -10,7 +10,7 @@
 ![PySide6](https://img.shields.io/badge/PySide6-6.11.0-blue.svg)
 ![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0.48-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Version](https://img.shields.io/badge/version-1.0.0b7-orange.svg)
+![Version](https://img.shields.io/badge/version-1.0.0b8-orange.svg)
 
 [SaleFlex Ecosystem](https://github.com/SaleFlex) | **[SaleFlex.PyPOS](https://github.com/SaleFlex/SaleFlex.PyPOS)** | [SaleFlex.OFFICE](https://github.com/SaleFlex/SaleFlex.OFFICE) | [SaleFlex.GATE](https://github.com/SaleFlex/SaleFlex.GATE) | [SaleFlex.KITCHEN](https://github.com/SaleFlex/SaleFlex.KITCHEN) | [SaleFlex.POS](https://github.com/SaleFlex/SaleFlex.POS)
 
@@ -18,7 +18,7 @@
 
 SaleFlex.PyPOS is a modern, Python-based point-of-sale (POS) system designed for retail businesses, restaurants, and service-oriented establishments. Built with PySide6 (Qt framework), it offers a touch-optimized interface with cross-platform compatibility and robust database support.
 
-[Current Version Demo: 1.0.0b3](https://youtu.be/HoA2p6M8fuM)
+[Current Version Demo: 1.0.0b8](https://youtu.be/HoA2p6M8fuM)
 
 ## Key Features
 
@@ -42,7 +42,7 @@ SaleFlex.PyPOS POS system is designed to streamline the sales process and improv
 - **Document Management System**: Complete transaction lifecycle management with temporary models during processing and automatic conversion to permanent models upon completion. Automatically updates document data during sales operations (PLU and department sales). Supports per-line REPEAT (clone line, save new DB record, update totals) and DELETE (soft-cancel line, mark `is_cancel=True` in DB, recalculate totals) actions from the sale list item popup; if the last active line is deleted the document is automatically cancelled and reset. **CANCEL button:** Red **CANCEL** button on the SALE form (below the denomination buttons, same row as PLU/X/SUSPEND) immediately voids the entire active transaction — sets `transaction_status=CANCELLED`, `is_cancel=True`, `cancel_reason="Canceled by cashier: {username}"`, copies to permanent models, shows a confirmation dialog with receipt/closure number and total, then opens a new draft. If no open document exists, an info dialog is shown instead. **Market suspend:** **SUSPEND** saves the cart as pending, then creates a **new draft** (suspended rows no longer steal the receipt slot in `create_empty_document`). **SUSPENDED_SALES_MARKET** lists suspended receipts (hidden head id + columns); **ACTIVATE** (`RESUME_SALE`) clears `is_pending`, loads lines on **SALE**, and abandons any empty draft left open first. **Closure:** `TransactionHead` rows with `is_pending=True` and open `TransactionHeadTemp` suspended carts for the closure period are **excluded** from aggregated sales totals; their count is stored on `Closure.suspended_transaction_count`. Automatic recovery of incomplete **non-pending** transactions at startup; restores sale UI when re-entering **SALE** with an ACTIVE document. **Transaction Unique ID:** Each document is identified by `"{YYYYMMDD}-{closure_number:04d}-{receipt_number:06d}"` (e.g. `"20250406-0002-000001"`), scoping receipt numbers per closure period so that the post-closure reset to receipt 1 never conflicts with earlier receipts from the same calendar day
 - **Auto-Save Functionality**: Automatic database persistence system using descriptor pattern and wrapper classes. Model instances and dictionaries are automatically saved to the database when attributes are modified, ensuring data integrity and reducing manual save operations. Supports nested model wrapping and skip flags for batch operations
 - **Peripherals (OPOS-style)**: `pos/peripherals/` defines cash drawer, receipt printer, line display, scanner, scale, customer display, and remote order display classes. Wired behaviours (log-only until drivers exist): completed sale → formatted receipt printed line-by-line + drawer open; end-of-day closure → Z-report printed line-by-line; CASH with no document → drawer open; selling and payment steps → three-line customer display updates. **Sale receipt** (38-char thermal): product lines, item count + balance due, payment methods, change, VAT. **Closure Z-report** (42-char thermal): closure metadata, net/gross sales, cash balance, VAT breakdown table, payment method totals, document type counts, transaction summary. Each line sent individually as `[POSPrinter] | <line>` to the log. See [docs/30-peripherals.md](docs/30-peripherals.md)
-- **Startup Guards**: `saleflex.py` entry point runs four pre-flight checks before any module is imported: (1) working-directory normalisation so relative paths always resolve correctly; (2) Python >= 3.13 version guard with a clear error message; (3) file-based single-instance lock (`msvcrt.locking` on Windows, `fcntl.flock` on Linux/macOS) that is automatically released on process exit; (4) global exception handler that logs unhandled errors at `CRITICAL` level before terminating. See [docs/34-startup-entry-point.md](docs/34-startup-entry-point.md)
+- **Startup Guards**: `saleflex.py` entry point runs four pre-flight checks before any module is imported: (1) working-directory normalisation so relative paths always resolve correctly; (2) Python >= 3.13 version guard with a clear error message; (3) single-instance guard (Windows named mutex, `fcntl.flock` on Linux/macOS) with `.saleflex.lock` as the runtime marker file; (4) global exception handler that logs unhandled errors at `CRITICAL` level before terminating. See [docs/34-startup-entry-point.md](docs/34-startup-entry-point.md)
 - **Central Logging**: Configurable logging via `core/logger.py` with a single `saleflex` root logger. Log level (DEBUG/INFO/WARNING/ERROR/CRITICAL), console output, and file output are controlled from the `[logging]` section in `settings.toml`. All modules use `get_logger(__name__)` for consistent, hierarchical log records
 - **Centralized Exception Handling**: Typed exception hierarchy rooted at `SaleFlexError` (`core/exceptions.py`). Domain-specific subclasses (`PaymentError`, `FiscalDeviceError`, `GATEConnectionError`, `TaxCalculationError`, `DatabaseError`, etc.) replace bare `Exception` raises throughout the codebase. All exceptions are chained with `raise ... from e` to preserve the full traceback
 - **Product Management**: Dedicated **Product List** form (form_no=8) accessible from the Main Menu. Supports real-time search by product name or short name with instant DataGrid results. Selecting a row and pressing **DETAIL** opens the **Product Detail** modal dialog (form_no=9, fully DB-driven via `DynamicDialog`) — a tabbed view built with the new `TabControl` widget and `FormControlTab` model, showing Product Info, Barcodes, Attributes, and Variants in four separate read-only tabs. See [docs/15-product-management.md](docs/15-product-management.md)
@@ -313,19 +313,23 @@ it never forwards requests to GATE in real time.
 The terminal is identified by the unique triplet `(office_code, store_code, terminal_code)`.
 A store may have multiple OFFICE instances; each terminal connects to exactly one.
 
-#### Transaction Push (PyPOS → OFFICE)
+#### Transaction and Closure Push (PyPOS → OFFICE)
 
-Every time a document is **closed** (sale completed or cancelled), the completed transaction
-is automatically pushed to OFFICE in a **background thread** so the cashier's workflow is
-never blocked:
+Every time a document is **closed** (sale completed or cancelled), or an end-of-day
+**closure** is completed, the data is queued and pushed to OFFICE by a background
+`OfficePushWorker` so the cashier's workflow is never blocked:
 
-1. `DocumentManager.complete_document()` calls `OfficePushService.enqueue()` to add a
-   `pending` row to the local `office_push_queue` table.
-2. A daemon thread calls `OfficePushService.flush_pending()`, which batches all pending
-   documents and sequence counter values into a single `POST /api/v1/pos/transactions`.
-3. On success all queue rows are marked `sent`.
-4. On failure (OFFICE unreachable, network error) rows stay `failed`.
-5. A background `OfficePushWorker` QThread retries every hour (configurable via
+1. `PaymentService.copy_temp_to_permanent()` calls `OfficePushService.enqueue()` for
+   completed documents.
+2. `ClosureEvent._closure_event()` calls `OfficePushService.enqueue_closure()` for
+   completed end-of-day closures.
+3. `OfficePushWorker.wake()` triggers `OfficePushService.flush_pending()` in parallel to
+   the UI thread.
+4. Pending documents are sent one by one to `POST /api/v1/pos/transactions`; pending
+   closures are sent one by one to `POST /api/v1/pos/closures`.
+5. On success queue rows are marked `sent`.
+6. On failure (OFFICE unreachable, network error) rows stay `failed`.
+7. A background `OfficePushWorker` QThread retries every hour (configurable via
    `[office].sync_interval_minutes`).
 
 On each push the **current sequence counter values** (`ReceiptNumber`, `ClosureNumber`, …)
@@ -357,7 +361,7 @@ PyPOS (no db.sqlite3, mode=office)
        &terminal_code=POS-001
 ```
 
-**Transaction push flow (on every document close):**
+**Push flow (on every document close and closure):**
 
 ```
 PyPOS
@@ -365,10 +369,14 @@ PyPOS
        { office_code, store_code, terminal_code, pos_id,
          transactions: [ { head, products, payments, … } ],
          sequences: [ { name, value } ] }
+  └─ POST /api/v1/pos/closures
+       { office_code, store_code, terminal_code, pos_id,
+         closures: [ { closure, vat_summaries, payment_type_summaries, … } ],
+         sequences: [ { name, value } ] }
 ```
 
 If OFFICE is unreachable, PyPOS falls back to built-in default seed data (bootstrap) or
-retries failed pushes hourly (transaction sync).
+retries failed pushes hourly (transaction and closure sync).
 
 See [docs/44-office-push-integration.md](docs/44-office-push-integration.md) for the full
 push-integration specification.

@@ -6,9 +6,8 @@ The following versions of SaleFlex.PyPOS are currently supported with security u
 
 | Version   | Supported          |
 |-----------|--------------------|
-| 1.0.0b7   | Yes |
-| 1.0.0b6   | No  |
-| < 1.0.0b6 | No  |
+| 1.0.0b8   | Yes |
+| < 1.0.0b8 | No  |
 
 ## Reporting a Vulnerability
 

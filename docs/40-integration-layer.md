@@ -492,5 +492,5 @@ routing logic lives there.
 ---
 
 **Last Updated:** 2026-04-11
-**Version:** 1.0.0b6
+**Version:** 1.0.0b8
 **Related:** [Project Structure](20-project-structure.md) · [Exception Handling](32-exception-handling.md) · [Peripherals](30-peripherals.md) · [Event System](24-event-system.md)

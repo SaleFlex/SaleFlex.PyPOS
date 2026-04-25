@@ -1,14 +1,15 @@
 """
 SaleFlex.PyPOS - Office Push Worker
 
-Background QThread that periodically forwards unsent completed transactions to
-SaleFlex.OFFICE.  Runs in parallel to the main UI process so that network
-latency or a temporarily unreachable OFFICE server never blocks the cashier.
+Background QThread that periodically forwards unsent completed transactions and
+closures to SaleFlex.OFFICE.  Runs in parallel to the main UI process so that
+network latency or a temporarily unreachable OFFICE server never blocks the
+cashier.
 
 Retry strategy
 --------------
-1. Every time a document is closed the push service is called immediately.
-2. When the push fails (or no documents were closed), the worker waits
+1. Every time a document or closure is completed the worker is woken immediately.
+2. When the push fails (or no POS activity occurs), the worker waits
    *retry_interval_seconds* (default 3600 s = 1 hour) before trying again.
 3. After a successful flush the timer resets to the configured interval.
 
