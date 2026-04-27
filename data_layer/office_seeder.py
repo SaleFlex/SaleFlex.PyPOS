@@ -248,6 +248,71 @@ def _seed_table(
     return inserted
 
 
+def _reseed_table(
+    conn,
+    model_class,
+    records: list[dict[str, Any]],
+    label: str,
+) -> tuple[int, int]:
+    """
+    Upsert *records* into the table backing *model_class*.
+
+    Uses ``INSERT OR REPLACE`` (SQLite ``on_conflict_do_update``) so that rows
+    which already exist in the local database are overwritten with the latest
+    values from OFFICE.  New rows are inserted normally.
+
+    Unlike :func:`_seed_table` (which silently skips existing rows), this
+    function is intended for **post-closure refreshes** where OFFICE is the
+    authoritative source and local changes must reflect the current OFFICE state.
+
+    Returns a ``(upserted, skipped)`` tuple.
+    """
+    if not records:
+        return 0, 0
+
+    allowed   = _get_column_names(model_class)
+    col_types = _get_column_types(model_class)
+    upserted  = 0
+    skipped   = 0
+
+    # Collect all non-PK column names for the SET clause.
+    pk_names  = {col.name for col in model_class.__table__.primary_key.columns}
+    update_cols = [c for c in allowed if c not in pk_names]
+
+    for row in records:
+        prepared = _prepare_row(row, allowed, col_types)
+        if not prepared:
+            continue
+        try:
+            stmt = sqlite_insert(model_class.__table__).values(**prepared)
+            if update_cols:
+                stmt = stmt.on_conflict_do_update(
+                    index_elements=list(pk_names),
+                    set_={col: stmt.excluded[col] for col in update_cols if col in prepared},
+                )
+            else:
+                stmt = stmt.on_conflict_do_nothing()
+
+            sp = conn.begin_nested()
+            try:
+                conn.execute(stmt)
+                sp.commit()
+                upserted += 1
+            except Exception:
+                sp.rollback()
+                raise
+        except Exception as exc:
+            skipped += 1
+            logger.warning(
+                "  ✗ Skipping %s upsert row – %s: %s", label, type(exc).__name__, exc
+            )
+
+    if skipped:
+        logger.warning("  %s: %d row(s) skipped during upsert", label, skipped)
+
+    return upserted, skipped
+
+
 # ---------------------------------------------------------------------------
 # Public entry point
 # ---------------------------------------------------------------------------
@@ -389,3 +454,146 @@ def seed_from_office_data(engine: Engine, data: dict[str, Any]) -> None:
         "✓ Office seeding complete – %d of %d total records inserted",
         total_inserted, total_received,
     )
+
+
+def reseed_from_office_data(engine: Engine, data: dict[str, Any]) -> dict[str, int]:
+    """
+    Upsert (refresh) the local SQLite database using *data* received from OFFICE.
+
+    This function is called **after a successful closure push** so that any
+    master-data changes made in OFFICE since the last sync (products, prices,
+    cashiers, campaigns, loyalty rules, etc.) are reflected in the local
+    database immediately.
+
+    Unlike :func:`seed_from_office_data` (which uses INSERT OR IGNORE and
+    skips rows that already exist), this function uses INSERT OR REPLACE so
+    that every row from OFFICE overwrites the local copy.  New rows are
+    inserted; rows absent from the OFFICE payload are left untouched.
+
+    Parameters
+    ----------
+    engine:
+        The already-initialised Engine instance (tables must already exist).
+    data:
+        The ``"data"`` dict from the OFFICE ``/api/v1/pos/init`` response.
+
+    Returns
+    -------
+    dict with keys ``"upserted"`` and ``"skipped"`` containing aggregate counts.
+    """
+    from data_layer.model.definition.cashier import Cashier
+    from data_layer.model.definition.country import Country
+    from data_layer.model.definition.country_region import CountryRegion
+    from data_layer.model.definition.city import City
+    from data_layer.model.definition.district import District
+    from data_layer.model.definition.store import Store
+    from data_layer.model.definition.currency import Currency
+    from data_layer.model.definition.currency_table import CurrencyTable
+    from data_layer.model.definition.payment_type import PaymentType
+    from data_layer.model.definition.vat import Vat
+    from data_layer.model.definition.product_unit import ProductUnit
+    from data_layer.model.definition.product_manufacturer import ProductManufacturer
+    from data_layer.model.definition.department_main_group import DepartmentMainGroup
+    from data_layer.model.definition.department_sub_group import DepartmentSubGroup
+    from data_layer.model.definition.product import Product
+    from data_layer.model.definition.product_variant import ProductVariant
+    from data_layer.model.definition.product_attribute import ProductAttribute
+    from data_layer.model.definition.product_barcode import ProductBarcode
+    from data_layer.model.definition.product_barcode_mask import ProductBarcodeMask
+    from data_layer.model.definition.warehouse import Warehouse
+    from data_layer.model.definition.warehouse_location import WarehouseLocation
+    from data_layer.model.definition.warehouse_product_stock import WarehouseProductStock
+    from data_layer.model.definition.transaction_discount_type import TransactionDiscountType
+    from data_layer.model.definition.transaction_document_type import TransactionDocumentType
+    from data_layer.model.definition.transaction_sequence import TransactionSequence
+    from data_layer.model.definition.form import Form
+    from data_layer.model.definition.form_control import FormControl
+    from data_layer.model.definition.label_value import LabelValue
+    from data_layer.model.definition.pos_settings import PosSettings
+    from data_layer.model.definition.pos_virtual_keyboard import PosVirtualKeyboard
+    from data_layer.model.definition.cashier_performance_target import CashierPerformanceTarget
+    from data_layer.model.definition.campaign_type import CampaignType
+    from data_layer.model.definition.campaign import Campaign
+    from data_layer.model.definition.campaign_rule import CampaignRule
+    from data_layer.model.definition.campaign_product import CampaignProduct
+    from data_layer.model.definition.coupon import Coupon
+    from data_layer.model.definition.loyalty_program import LoyaltyProgram
+    from data_layer.model.definition.loyalty_tier import LoyaltyTier
+    from data_layer.model.definition.loyalty_earn_rule import LoyaltyEarnRule
+    from data_layer.model.definition.loyalty_redemption_policy import LoyaltyRedemptionPolicy
+    from data_layer.model.definition.loyalty_program_policy import LoyaltyProgramPolicy
+    from data_layer.model.definition.customer_segment import CustomerSegment
+    from data_layer.model.definition.customer import Customer
+
+    RESEED_PLAN: list[tuple[str, type]] = [
+        ("cashiers",                    Cashier),
+        ("countries",                   Country),
+        ("country_regions",             CountryRegion),
+        ("store",                       Store),
+        ("cities",                      City),
+        ("districts",                   District),
+        ("currencies",                  Currency),
+        ("currency_table",              CurrencyTable),
+        ("payment_types",               PaymentType),
+        ("vat_rates",                   Vat),
+        ("product_units",               ProductUnit),
+        ("product_manufacturers",       ProductManufacturer),
+        ("department_main_groups",      DepartmentMainGroup),
+        ("department_sub_groups",       DepartmentSubGroup),
+        ("products",                    Product),
+        ("product_variants",            ProductVariant),
+        ("product_attributes",          ProductAttribute),
+        ("product_barcodes",            ProductBarcode),
+        ("product_barcode_masks",       ProductBarcodeMask),
+        ("warehouses",                  Warehouse),
+        ("warehouse_locations",         WarehouseLocation),
+        ("warehouse_product_stock",     WarehouseProductStock),
+        ("transaction_discount_types",  TransactionDiscountType),
+        ("transaction_document_types",  TransactionDocumentType),
+        ("transaction_sequences",       TransactionSequence),
+        ("forms",                       Form),
+        ("form_controls",               FormControl),
+        ("label_values",                LabelValue),
+        ("pos_settings",                PosSettings),
+        ("pos_virtual_keyboards",       PosVirtualKeyboard),
+        ("cashier_performance_targets", CashierPerformanceTarget),
+        ("campaign_types",              CampaignType),
+        ("campaigns",                   Campaign),
+        ("campaign_rules",              CampaignRule),
+        ("campaign_products",           CampaignProduct),
+        ("coupons",                     Coupon),
+        ("loyalty_programs",            LoyaltyProgram),
+        ("loyalty_tiers",               LoyaltyTier),
+        ("loyalty_earn_rules",          LoyaltyEarnRule),
+        ("loyalty_redemption_policies", LoyaltyRedemptionPolicy),
+        ("loyalty_program_policies",    LoyaltyProgramPolicy),
+        ("customer_segments",           CustomerSegment),
+        ("customers",                   Customer),
+    ]
+
+    total_upserted = 0
+    total_skipped  = 0
+
+    logger.info("[OfficeReseed] Starting post-closure data refresh from OFFICE...")
+
+    with engine.engine.begin() as conn:
+        for key, model_cls in RESEED_PLAN:
+            raw = data.get(key)
+            if raw is None:
+                logger.debug("  %-35s (not in payload – skipped)", key)
+                continue
+
+            records: list[dict[str, Any]] = [raw] if isinstance(raw, dict) else raw
+            upserted, skipped = _reseed_table(conn, model_cls, records, label=key)
+            total_upserted += upserted
+            total_skipped  += skipped
+            logger.info(
+                "  %-35s %4d upserted, %d skipped",
+                key, upserted, skipped,
+            )
+
+    logger.info(
+        "[OfficeReseed] ✓ Refresh complete – %d row(s) upserted, %d skipped",
+        total_upserted, total_skipped,
+    )
+    return {"upserted": total_upserted, "skipped": total_skipped}

@@ -163,6 +163,34 @@ Key principles:
   terminal across the entire SaleFlex ecosystem.  A single store can have
   multiple OFFICE instances, each serving a different subset of terminals.
 
+### Post-Closure Master-Data Refresh
+
+After every **successful flush** (all queued documents and closures delivered),
+`OfficePushWorker` automatically pulls a fresh copy of all master-data from OFFICE
+via `GET /api/v1/pos/init` and upserts it into the local SQLite database.  This
+propagates any product, price, cashier, campaign, loyalty-rule, or sequence changes
+that were made in OFFICE since the last sync — making them effective for the **next
+sales period** without requiring a manual restart.
+
+```
+Flush succeeds (all sent)
+        │
+        └── OfficePushService.refresh_from_office()
+                ├── GET /api/v1/pos/init
+                └── reseed_from_office_data()  (INSERT OR REPLACE on all tables)
+                          │
+                          ▼
+                OfficePushWorker.data_refresh_needed("all") signal
+                          │
+                          ▼
+                IntegrationMixin._on_office_data_refresh_needed()
+                    ├── populate_pos_data()
+                    ├── populate_product_data()
+                    └── refresh_active_campaign_cache()
+```
+
+See [OFFICE Push Integration — Post-Closure Data Refresh](44-office-push-integration.md#post-closure-data-refresh) for full details.
+
 ### Settings properties (PyPOS `Settings` class)
 
 | Property | Description |
@@ -491,6 +519,6 @@ routing logic lives there.
 
 ---
 
-**Last Updated:** 2026-04-11
-**Version:** 1.0.0b8
+**Last Updated:** 2026-04-27
+**Version:** 1.0.0b9
 **Related:** [Project Structure](20-project-structure.md) · [Exception Handling](32-exception-handling.md) · [Peripherals](30-peripherals.md) · [Event System](24-event-system.md)

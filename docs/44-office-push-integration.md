@@ -206,15 +206,70 @@ sync_interval_minutes = 60   # OfficePushWorker retry interval (default: 60 min)
 
 ---
 
+## Post-Closure Data Refresh
+
+After **all** pending documents and closures have been successfully delivered to OFFICE,
+`OfficePushWorker` automatically calls `GET /api/v1/pos/init` and upserts the returned
+data into the local SQLite database.  This ensures that any master-data changes made in
+OFFICE (products, prices, cashiers, campaigns, loyalty rules, sequences, etc.) are
+visible in the **next sales period** without requiring a manual restart.
+
+### Refresh flow
+
+```
+OfficePushWorker._flush_cycle()
+  │
+  ├── OfficePushService.flush_pending()  →  all items marked "sent"
+  │
+  └── OfficePushService.refresh_from_office()
+          │
+          ├── OfficeClient.check_health()       →  OFFICE reachable?
+          ├── OfficeClient.fetch_init_data()    →  GET /api/v1/pos/init
+          └── reseed_from_office_data(engine, data)
+                │  uses INSERT OR REPLACE (upsert) for every table
+                └── all master-data rows overwritten with OFFICE values
+                          │
+                          ▼
+              OfficePushWorker emits data_refresh_needed("all")
+                          │
+                          ▼
+              IntegrationMixin._on_office_data_refresh_needed("all")
+                  ├── populate_pos_data()          →  pos_data cache rebuilt
+                  ├── populate_product_data()      →  product_data cache rebuilt
+                  └── refresh_active_campaign_cache()  →  ActiveCampaignCache rebuilt
+```
+
+### Behaviour table
+
+| Scenario | Behaviour |
+|----------|-----------|
+| Flush succeeded + OFFICE reachable | Refresh runs; all caches rebuilt |
+| Flush succeeded + OFFICE unreachable | Refresh skipped; retried on next successful flush |
+| Flush partially failed | Refresh not triggered; retried when all items sent |
+| Refresh DB upsert error (single row) | Row skipped via savepoint; rest of tables still updated |
+
+### Components
+
+| Component | Role |
+|-----------|------|
+| `OfficePushService.refresh_from_office()` | Calls OFFICE, calls `reseed_from_office_data()` |
+| `data_layer/office_seeder.py::reseed_from_office_data()` | Upserts all init tables via `INSERT OR REPLACE` |
+| `OfficePushWorker.data_refresh_needed` signal | Qt signal emitted after a successful refresh |
+| `IntegrationMixin._on_office_data_refresh_needed()` | Slot; rebuilds in-memory caches in the main Qt thread |
+
+---
+
 ## Lifecycle
 
 1. **Application start** – `IntegrationMixin.init_integration()` calls
-   `_start_office_push_worker()` which launches the `OfficePushWorker` QThread.
+   `_start_office_push_worker()` which launches the `OfficePushWorker` QThread and
+   connects `data_refresh_needed` to `_on_office_data_refresh_needed`.
 2. **Document close** – `PaymentService.copy_temp_to_permanent()` enqueues the document
    and wakes the worker.
 3. **Closure complete** – `ClosureEvent._closure_event()` enqueues the closure and wakes
    the same worker.
-4. **Push success** – Queue item is marked `sent`.
-5. **Push failure** – Queue item is marked `failed`.
-6. **Hourly retry** – `OfficePushWorker` wakes, detects pending items, and flushes.
-7. **Application exit** – The worker is stopped by the application shutdown path.
+4. **Push success** – Queue items marked `sent`; `refresh_from_office()` runs immediately.
+5. **Refresh success** – `data_refresh_needed("all")` signal emitted; caches rebuilt.
+6. **Push failure** – Queue item is marked `failed`; refresh is not attempted.
+7. **Hourly retry** – `OfficePushWorker` wakes, detects pending items, flushes, then refreshes.
+8. **Application exit** – The worker is stopped by the application shutdown path.

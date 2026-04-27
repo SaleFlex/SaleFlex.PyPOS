@@ -625,6 +625,61 @@ class OfficePushService:
         return all_success
 
     @staticmethod
+    def refresh_from_office() -> bool:
+        """
+        Pull a fresh copy of all initialisation data from OFFICE and upsert it
+        into the local SQLite database.
+
+        This is called automatically after every successful closure push so
+        that master-data changes made in OFFICE (products, prices, cashiers,
+        campaigns, loyalty rules, sequences, etc.) are reflected locally
+        before the next sales period begins.
+
+        Returns True when the refresh completed without errors, False otherwise.
+        The caller should emit a cache-refresh signal so the in-memory caches
+        (pos_data, product_data, ActiveCampaignCache …) are rebuilt from the
+        newly written database rows.
+        """
+        if not OfficePushService.is_office_mode():
+            return True
+
+        from integration.office_client import OfficeClient, OfficeConnectionError
+        from data_layer.engine import Engine
+        from data_layer.office_seeder import reseed_from_office_data
+
+        logger.info("[OfficePushService] Starting post-closure data refresh from OFFICE...")
+
+        try:
+            client = OfficeClient()
+
+            if not client.check_health():
+                logger.warning(
+                    "[OfficePushService] OFFICE is unreachable – skipping post-closure refresh"
+                )
+                return False
+
+            init_data = client.fetch_init_data()
+
+            engine = Engine()
+            reseed_from_office_data(engine, init_data)
+
+            logger.info("[OfficePushService] ✓ Post-closure data refresh from OFFICE succeeded")
+            return True
+
+        except OfficeConnectionError as exc:
+            logger.warning(
+                "[OfficePushService] Cannot reach OFFICE for refresh: %s", exc
+            )
+            return False
+        except Exception as exc:
+            logger.error(
+                "[OfficePushService] Unexpected error during OFFICE refresh: %s",
+                exc,
+                exc_info=True,
+            )
+            return False
+
+    @staticmethod
     def has_pending() -> bool:
         """Return True when there are unsent document or closure queue items."""
         from data_layer.engine import Engine

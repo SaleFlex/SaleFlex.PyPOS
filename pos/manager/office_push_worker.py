@@ -80,10 +80,16 @@ class OfficePushWorker(QThread):
         Emitted after each flush attempt.  True = all items sent, False = some failed.
     push_failed (str):
         Emitted when the flush raises an unexpected exception.  Carries the error message.
+    data_refresh_needed (str):
+        Emitted after a successful post-closure data refresh from OFFICE.  The payload
+        is a comma-separated list of cache domains that must be reloaded
+        (``"product,campaign,pos_data,all"``).  Connect this to the Application's
+        ``_reload_cache`` slot to rebuild in-memory caches from the newly written DB rows.
     """
 
-    push_completed = Signal(bool)
-    push_failed    = Signal(str)
+    push_completed     = Signal(bool)
+    push_failed        = Signal(str)
+    data_refresh_needed = Signal(str)
 
     def __init__(
         self,
@@ -178,6 +184,28 @@ class OfficePushWorker(QThread):
 
             if success:
                 logger.info("[OfficePushWorker] Flush succeeded – all items sent")
+                # After all pending documents and closures have been delivered to
+                # OFFICE, pull a refreshed copy of all master-data (products,
+                # cashiers, campaigns, loyalty rules, sequences …) so that any
+                # changes made in OFFICE are visible in the next sales period.
+                logger.info(
+                    "[OfficePushWorker] Requesting post-closure data refresh from OFFICE..."
+                )
+                refresh_ok = OfficePushService.refresh_from_office()
+                if refresh_ok:
+                    # Signal the application to rebuild its in-memory caches from
+                    # the newly upserted database rows.  "all" covers pos_data,
+                    # product_data, and the ActiveCampaignCache in one shot.
+                    self.data_refresh_needed.emit("all")
+                    logger.info(
+                        "[OfficePushWorker] Post-closure OFFICE refresh complete – "
+                        "cache-reload signal emitted"
+                    )
+                else:
+                    logger.warning(
+                        "[OfficePushWorker] Post-closure OFFICE refresh failed – "
+                        "caches will be refreshed on the next successful flush"
+                    )
             else:
                 logger.warning(
                     "[OfficePushWorker] Flush partially or fully failed – "

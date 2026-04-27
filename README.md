@@ -378,8 +378,23 @@ PyPOS
 If OFFICE is unreachable, PyPOS falls back to built-in default seed data (bootstrap) or
 retries failed pushes hourly (transaction and closure sync).
 
+**Post-closure master-data refresh (automatic):**
+
+After every **fully successful** push (all queued documents and closures delivered to
+OFFICE), `OfficePushWorker` automatically calls `GET /api/v1/pos/init` and upserts the
+returned data into the local SQLite database using `INSERT OR REPLACE`.  This propagates
+any master-data changes made in OFFICE — products, prices, cashiers, campaigns, loyalty
+rules, sequences — into the next sales period without requiring a manual restart:
+
+```
+Flush succeeds
+  └─ GET /api/v1/pos/init           → fresh master-data from OFFICE
+       └─ reseed_from_office_data() → INSERT OR REPLACE on all tables
+            └─ data_refresh_needed  → pos_data / product_data / campaign caches rebuilt
+```
+
 See [docs/44-office-push-integration.md](docs/44-office-push-integration.md) for the full
-push-integration specification.
+push-integration and post-closure refresh specification.
 
 ### SaleFlex.GATE mode
 

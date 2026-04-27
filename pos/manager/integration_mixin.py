@@ -245,6 +245,10 @@ class IntegrationMixin:
                 interval_seconds = interval_minutes * 60
 
             worker = OfficePushWorker(retry_interval_seconds=interval_seconds)
+
+            # Connect signals before starting the thread so no emission is missed.
+            worker.data_refresh_needed.connect(self._on_office_data_refresh_needed)
+
             worker.start()
             logger.info(
                 "[IntegrationMixin] OfficePushWorker started (interval=%ds)",
@@ -256,6 +260,44 @@ class IntegrationMixin:
                 "[IntegrationMixin] Could not start OfficePushWorker: %s", exc
             )
             return None
+
+    def _on_office_data_refresh_needed(self, domains: str) -> None:
+        """
+        Slot connected to ``OfficePushWorker.data_refresh_needed``.
+
+        Called in the main Qt thread after the worker has successfully upserted
+        fresh data from OFFICE into the local SQLite database.  Rebuilds the
+        in-memory caches so the next sale period operates with up-to-date
+        master-data.
+
+        Parameters
+        ----------
+        domains:
+            Comma-separated list of cache domains to reload.  ``"all"`` reloads
+            every cache (pos_data, product_data, ActiveCampaignCache).
+        """
+        logger.info(
+            "[IntegrationMixin] Post-closure OFFICE data refresh received – reloading caches (domains=%s)",
+            domains,
+        )
+        try:
+            reload_all = "all" in domains
+            if reload_all or "pos_data" in domains:
+                self.populate_pos_data()
+                logger.info("[IntegrationMixin] pos_data cache reloaded")
+            if reload_all or "product" in domains:
+                self.populate_product_data()
+                logger.info("[IntegrationMixin] product_data cache reloaded")
+            if reload_all or "campaign" in domains:
+                self.refresh_active_campaign_cache()
+                logger.info("[IntegrationMixin] ActiveCampaignCache reloaded")
+            logger.info("[IntegrationMixin] ✓ All requested caches reloaded after OFFICE refresh")
+        except Exception as exc:
+            logger.error(
+                "[IntegrationMixin] Cache reload after OFFICE refresh failed: %s",
+                exc,
+                exc_info=True,
+            )
 
     def _build_campaign_connector(self):
         """

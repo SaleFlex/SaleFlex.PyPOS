@@ -314,6 +314,14 @@ transactions to OFFICE on every document close (with hourly fallback retry).
 OFFICE responds with its locally stored data immediately — it never forwards requests
 to GATE in real time.
 
+**Post-closure master-data refresh:** after every **fully successful** push cycle
+(all queued documents and closures delivered), `OfficePushWorker` automatically calls
+`GET /api/v1/pos/init` and upserts the returned data into the local SQLite database.
+Products, prices, cashiers, campaigns, loyalty rules, and sequences changed in OFFICE
+become effective for the **next sales period** without a manual restart.  In-memory
+caches (`pos_data`, `product_data`, `ActiveCampaignCache`) are rebuilt immediately
+after the DB refresh completes.
+
 ### Connect to SaleFlex.GATE
 
 Set `app.mode = "gate"` and configure the `[gate]` section:
@@ -392,6 +400,6 @@ See [Integration Layer](docs/40-integration-layer.md) for the full connection ar
 
 ---
 
-**Last Updated:** 2026-04-11
-**Version:** 1.0.0b8
+**Last Updated:** 2026-04-27
+**Version:** 1.0.0b9
 **License:** MIT
