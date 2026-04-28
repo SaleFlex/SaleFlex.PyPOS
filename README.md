@@ -9,7 +9,7 @@
 ![Python 3.13](https://img.shields.io/badge/python-%3E=_3.13-success.svg)
 ![PySide6](https://img.shields.io/badge/PySide6-6.11.0-blue.svg)
 ![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0.48-green.svg)
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![License](https://img.shields.io/badge/license-AGPLv3-blue.svg)
 ![Version](https://img.shields.io/badge/version-1.0.0b8-orange.svg)
 
 [SaleFlex Ecosystem](https://github.com/SaleFlex) | **[SaleFlex.PyPOS](https://github.com/SaleFlex/SaleFlex.PyPOS)** | [SaleFlex.OFFICE](https://github.com/SaleFlex/SaleFlex.OFFICE) | [SaleFlex.GATE](https://github.com/SaleFlex/SaleFlex.GATE) | [SaleFlex.KITCHEN](https://github.com/SaleFlex/SaleFlex.KITCHEN) | [SaleFlex.POS](https://github.com/SaleFlex/SaleFlex.POS)
@@ -920,7 +920,7 @@ We welcome contributions to SaleFlex.PyPOS! Please read our contributing guideli
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the GNU Affero General Public License v3.0. See the [LICENSE](LICENSE) file for details.
 
 ## Contributors
 

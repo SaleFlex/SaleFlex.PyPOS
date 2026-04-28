@@ -402,4 +402,4 @@ See [Integration Layer](docs/40-integration-layer.md) for the full connection ar
 
 **Last Updated:** 2026-04-27
 **Version:** 1.0.0b9
-**License:** MIT
+**License:** GNU Affero General Public License v3.0 (AGPL-3.0)

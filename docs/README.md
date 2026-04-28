@@ -111,4 +111,4 @@ In Markdown under `docs/`, reference them as `../static_files/images/<filename>`
 
 **Last Updated:** 2026-04-11
 **Version:** 1.0.0b8
-**License:** MIT
+**License:** GNU Affero General Public License v3.0 (AGPL-3.0)

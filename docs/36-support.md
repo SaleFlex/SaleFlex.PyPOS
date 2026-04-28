@@ -32,15 +32,15 @@ If you find SaleFlex.PyPOS valuable and want to support its development, you can
 
 ## Legal Information
 
-SaleFlex.PyPOS is free software licensed under the **MIT License**.
+SaleFlex.PyPOS is free software licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**.
 
-Copyright (c) 2026 Ferhat Mousavi
+Copyright (C) 2025-2026 Mousavi.Tech
 
 ---
 
 **Last Updated:** 2026-04-05  
 **Version:** 1.0.0b8  
-**License:** MIT
+**License:** GNU Affero General Public License v3.0 (AGPL-3.0)
 
 ---
 
