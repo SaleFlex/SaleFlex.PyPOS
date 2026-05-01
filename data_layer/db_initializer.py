@@ -207,11 +207,17 @@ def init_db():
                 )
                 success = _seed_from_office(temp_engine)
                 if not success:
-                    logger.warning(
-                        "OFFICE seeding failed. "
-                        "Falling back to built-in default data."
+                    logger.error(
+                        "✗ OFFICE seeding failed. "
+                        "Cannot start in 'office' mode without a connection to SaleFlex.OFFICE. "
+                        "Ensure the OFFICE application is running and [office].base_url in settings.toml is correct."
                     )
-                    insert_initial_data(temp_engine)
+                    temp_engine.engine.dispose()
+                    db_name = env_data.db_name
+                    if db_name and os.path.exists(db_name):
+                        os.remove(db_name)
+                        logger.info("Removed incomplete database file so the next start retries seeding.")
+                    return False
             else:
                 insert_initial_data(temp_engine)
             logger.info("✓ Initial data inserted successfully")

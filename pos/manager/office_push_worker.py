@@ -14,6 +14,16 @@ Retry strategy
    *retry_interval_seconds* (default 3600 s = 1 hour) before trying again.
 3. After a successful flush the timer resets to the configured interval.
 
+Post-closure data refresh
+-------------------------
+After a flush cycle in which at least one **closure** was successfully delivered
+to OFFICE, the worker automatically calls ``GET /api/v1/pos/init`` and upserts
+the returned master-data (products, cashiers, campaigns, loyalty rules,
+sequences, etc.) into the local SQLite database.  This refresh is intentionally
+scoped to closure events — it does **not** run after ordinary document pushes.
+On completion the ``data_refresh_needed("all")`` signal is emitted so the
+Application rebuilds its in-memory caches for the next sales period.
+
 Lifecycle (managed by the application startup):
     worker = OfficePushWorker()
     worker.start()     # QThread.start() → runs run() in background thread
@@ -173,32 +183,44 @@ class OfficePushWorker(QThread):
                 return
 
             logger.info("[OfficePushWorker] Flushing pending OFFICE push queue...")
-            success = OfficePushService.flush_pending()
+            # flush_pending() returns (all_success, closure_sent).
+            # closure_sent is True only when at least one closure was successfully
+            # delivered in this cycle; the post-closure data refresh must only run
+            # after a closure has been sent — not after every document push.
+            success, closure_sent = OfficePushService.flush_pending()
             self.push_completed.emit(success)
 
             if success:
                 logger.info("[OfficePushWorker] Flush succeeded – all items sent")
-                # After all pending documents and closures have been delivered to
-                # OFFICE, pull a refreshed copy of all master-data (products,
-                # cashiers, campaigns, loyalty rules, sequences …) so that any
-                # changes made in OFFICE are visible in the next sales period.
-                logger.info(
-                    "[OfficePushWorker] Requesting post-closure data refresh from OFFICE..."
-                )
-                refresh_ok = OfficePushService.refresh_from_office()
-                if refresh_ok:
-                    # Signal the application to rebuild its in-memory caches from
-                    # the newly upserted database rows.  "all" covers pos_data,
-                    # product_data, and the ActiveCampaignCache in one shot.
-                    self.data_refresh_needed.emit("all")
+
+                if closure_sent:
+                    # A closure was delivered: pull fresh master-data from OFFICE
+                    # (products, cashiers, campaigns, loyalty rules, sequences …)
+                    # so that any changes made in OFFICE are visible in the next
+                    # sales period.
                     logger.info(
-                        "[OfficePushWorker] Post-closure OFFICE refresh complete – "
-                        "cache-reload signal emitted"
+                        "[OfficePushWorker] Closure was sent – "
+                        "requesting post-closure data refresh from OFFICE..."
                     )
+                    refresh_ok = OfficePushService.refresh_from_office()
+                    if refresh_ok:
+                        # Signal the application to rebuild its in-memory caches
+                        # from the newly upserted database rows.  "all" covers
+                        # pos_data, product_data, and ActiveCampaignCache.
+                        self.data_refresh_needed.emit("all")
+                        logger.info(
+                            "[OfficePushWorker] Post-closure OFFICE refresh complete – "
+                            "cache-reload signal emitted"
+                        )
+                    else:
+                        logger.warning(
+                            "[OfficePushWorker] Post-closure OFFICE refresh failed – "
+                            "will retry after the next closure is sent"
+                        )
                 else:
-                    logger.warning(
-                        "[OfficePushWorker] Post-closure OFFICE refresh failed – "
-                        "caches will be refreshed on the next successful flush"
+                    logger.debug(
+                        "[OfficePushWorker] Flush succeeded (documents only) – "
+                        "no closure sent, skipping post-closure data refresh"
                     )
             else:
                 logger.warning(

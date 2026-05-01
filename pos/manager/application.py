@@ -112,7 +112,8 @@ class Application(CurrentStatus, CurrentData, EventHandler, IntegrationMixin):
         # Initialize database connection and create tables if needed
         about.update_message("Initializing database...")
         self.app.processEvents()
-        init_db()
+        if not init_db():
+            raise SystemExit(1)
 
         # Idempotent UI schema patches (e.g. new grids on existing databases)
         from data_layer.db_init_data.campaign import (

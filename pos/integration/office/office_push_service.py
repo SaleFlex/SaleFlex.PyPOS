@@ -466,7 +466,7 @@ class OfficePushService:
             )
 
     @staticmethod
-    def flush_pending() -> bool:
+    def flush_pending() -> tuple[bool, bool]:
         """
         Push all 'pending' and 'failed' documents and closures to OFFICE.
 
@@ -475,11 +475,19 @@ class OfficePushService:
         the remaining queue.  Current sequence counters are included with every
         request.
 
-        Returns True when all items were dispatched without error, False when
-        at least one item could not be delivered.
+        Returns
+        -------
+        (all_success, closure_sent) : tuple[bool, bool]
+            all_success  – True when every queued item was dispatched without
+                           error, False when at least one item could not be
+                           delivered.
+            closure_sent – True when at least one closure was successfully
+                           delivered to OFFICE during this flush cycle.  The
+                           caller uses this flag to decide whether to trigger a
+                           post-closure master-data refresh.
         """
         if not OfficePushService.is_office_mode():
-            return True
+            return True, False
 
         from data_layer.engine import Engine
         from data_layer.model.definition.office_push_queue import OfficePushQueue
@@ -516,10 +524,10 @@ class OfficePushService:
                     })
         except Exception as exc:
             logger.error("[OfficePushService] Error reading push queue: %s", exc)
-            return False
+            return False, False
 
         if not transaction_items and not closure_items:
-            return True
+            return True, False
 
         logger.info(
             "[OfficePushService] Pending OFFICE queue: %d transaction(s), %d closure(s)",
@@ -530,6 +538,9 @@ class OfficePushService:
         client = OfficeClient()
         pos_id = _get_pos_id()
         all_success = True
+        # Track whether at least one closure was successfully delivered so the
+        # caller can decide whether to trigger a post-closure data refresh.
+        closure_sent = False
 
         for item in transaction_items:
             tx_id = item["transaction_unique_id"]
@@ -602,6 +613,7 @@ class OfficePushService:
                 )
                 if result.get("status") == "ok" and int(result.get("accepted", 0)) == 1:
                     _mark_closure_queue_sent(item["id"])
+                    closure_sent = True
                     logger.info("[OfficePushService] Closure sent to OFFICE: %s", closure_uid)
                 else:
                     error_msg = result.get("message", "OFFICE rejected closure")
@@ -616,7 +628,7 @@ class OfficePushService:
                 _mark_closure_queue_failed(item["id"], str(exc))
                 all_success = False
 
-        return all_success
+        return all_success, closure_sent
 
     @staticmethod
     def refresh_from_office() -> bool:
@@ -624,10 +636,12 @@ class OfficePushService:
         Pull a fresh copy of all initialisation data from OFFICE and upsert it
         into the local SQLite database.
 
-        This is called automatically after every successful closure push so
-        that master-data changes made in OFFICE (products, prices, cashiers,
-        campaigns, loyalty rules, sequences, etc.) are reflected locally
-        before the next sales period begins.
+        This is called automatically after a flush cycle in which at least one
+        closure was successfully delivered to OFFICE — it is intentionally
+        **not** triggered after ordinary document-only pushes.  Master-data
+        changes made in OFFICE (products, prices, cashiers, campaigns, loyalty
+        rules, sequences, etc.) are reflected locally before the next sales
+        period begins.
 
         Returns True when the refresh completed without errors, False otherwise.
         The caller should emit a cache-refresh signal so the in-memory caches
