@@ -99,6 +99,13 @@ pip install -r requirements.txt
 python saleflex.py
 ```
 
+On Debian, Ubuntu, or Linux Mint, install the Qt X11 runtime dependency before
+launching the application:
+
+```bash
+sudo apt install libxcb-cursor0
+```
+
 **Default login credentials:**
 
 | Username | Password | Role |

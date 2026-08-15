@@ -20,6 +20,7 @@ import atexit
 import hashlib
 import os
 import sys
+import ctypes.util
 
 # ---------------------------------------------------------------------------
 # Working directory – settings.toml, db.sqlite3, and logs/ are all resolved
@@ -44,6 +45,29 @@ if sys.version_info < _MIN_PYTHON:
         f"or higher.\n"
         f"Current interpreter: Python {sys.version}"
     )
+
+
+def _validate_linux_qt_dependencies() -> None:
+    """Report the common X11 dependency missing from Qt's xcb plugin."""
+    if sys.platform != "linux":
+        return
+
+    requested_platform = os.environ.get("QT_QPA_PLATFORM", "").split(":", 1)[0]
+    if requested_platform and requested_platform != "xcb":
+        return
+    if os.environ.get("WAYLAND_DISPLAY") and not os.environ.get("DISPLAY"):
+        return
+    if not os.environ.get("DISPLAY"):
+        return
+    if ctypes.util.find_library("xcb-cursor") is None:
+        sys.exit(
+            "SaleFlex.PyPOS cannot start because the Qt X11 dependency "
+            "libxcb-cursor.so.0 is missing.\n"
+            "Install it with: sudo apt install libxcb-cursor0"
+        )
+
+
+_validate_linux_qt_dependencies()
 
 # ---------------------------------------------------------------------------
 # Single-instance lock – a POS terminal must run only one instance at a time.
