@@ -5,7 +5,7 @@
 ![Version](https://img.shields.io/badge/version-1.0.0b8-orange.svg)
 ![Status](https://img.shields.io/badge/status-beta-yellow.svg)
 
-[SaleFlex Ecosystem](https://github.com/SaleFlex) | **[SaleFlex.PyPOS](https://github.com/SaleFlex/SaleFlex.PyPOS)** | [SaleFlex.OFFICE](https://github.com/SaleFlex/SaleFlex.OFFICE) | [SaleFlex.GATE](https://github.com/SaleFlex/SaleFlex.GATE) | [SaleFlex.KITCHEN](https://github.com/SaleFlex/SaleFlex.KITCHEN) | [SaleFlex.mPOS](https://github.com/SaleFlex/SaleFlex.mPOS)
+[SaleFlex Ecosystem](https://github.com/SaleFlex) | **[SaleFlex.PyPOS](https://github.com/SaleFlex/SaleFlex.PyPOS)** | [SaleFlex.OFFICE](https://github.com/SaleFlex/SaleFlex.OFFICE) | [SaleFlex.GATE](https://github.com/SaleFlex/SaleFlex.GATE) | [SaleFlex.KITCHEN](https://github.com/SaleFlex/SaleFlex.KITCHEN) | [SaleFlex.mPOS](https://github.com/SaleFlex/SaleFlex.mPOS) | [SaleFlex.POS](https://github.com/SaleFlex/SaleFlex.POS)
 
 # SaleFlex.PyPOS
 
@@ -30,7 +30,7 @@ SaleFlex.PyPOS is built for:
 
 ## Community Edition
 
-SaleFlex.PyPOS is fully **free and open source** under the [GNU Affero General Public License v3.0 (AGPLv3)](LICENSE).
+SaleFlex.PyPOS is **open source** under the [GNU Affero General Public License v3.0 (AGPLv3)](LICENSE) and free to self-host. Ready-to-deploy packages, professional onboarding, hardware configuration support, and fiscal compliance integrations are available as paid services - see [Commercial Services](#commercial-services).
 
 The Community Edition includes everything you need to run a complete POS operation:
 
@@ -46,6 +46,8 @@ The Community Edition includes everything you need to run a complete POS operati
 - Self-hosted - your data stays with you
 
 Anyone can clone, run, and modify SaleFlex.PyPOS for their own needs. Contributions are welcome.
+
+Need professional deployment, hardware support, or fiscal printer integrations? See [Commercial Services](#commercial-services) and [Managed Cloud](#managed-cloud).
 
 ---
 
@@ -193,7 +195,7 @@ python saleflex.py
 | [SaleFlex.OFFICE](https://github.com/SaleFlex/SaleFlex.OFFICE) | Back-office and ERP-style management |
 | [SaleFlex.GATE](https://github.com/SaleFlex/SaleFlex.GATE) | Central hub and API gateway |
 | [SaleFlex.KITCHEN](https://github.com/SaleFlex/SaleFlex.KITCHEN) | Kitchen display system |
-| [SaleFlex.mPOS](https://github.com/SaleFlex/SaleFlex.mPOS) | Android mobile POS |
+| [SaleFlex.mPOS](https://github.com/SaleFlex/SaleFlex.mPOS) | Android mobile POS (commercial) |
 | [SaleFlex.POS](https://github.com/SaleFlex/SaleFlex.POS) | Legacy .NET POS client |
 
 ---
