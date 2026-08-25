@@ -115,6 +115,28 @@ class Application(CurrentStatus, CurrentData, EventHandler, IntegrationMixin):
         if not init_db():
             raise SystemExit(1)
 
+        # Pull the latest master-data (cashiers, products, campaigns, etc.)
+        # from SaleFlex.OFFICE on every application startup when running in
+        # 'office' mode.  Without this, changes made in OFFICE (e.g. a newly
+        # created cashier) are only picked up after a closure is pushed —
+        # never on a simple PyPOS restart.  Failures are non-fatal: PyPOS
+        # continues with whatever data is already in the local database.
+        from settings.settings import Settings
+        if Settings().app_mode == "office":
+            about.update_message("Refreshing master data from OFFICE...")
+            self.app.processEvents()
+            try:
+                from pos.integration.office.office_push_service import OfficePushService
+                if OfficePushService.refresh_from_office():
+                    logger.info("✓ Startup master-data refresh from OFFICE succeeded")
+                else:
+                    logger.warning(
+                        "Startup master-data refresh from OFFICE failed or was skipped — "
+                        "continuing with existing local data."
+                    )
+            except Exception as exc:
+                logger.warning("Startup master-data refresh from OFFICE raised an error: %s", exc)
+
         # Idempotent UI schema patches (e.g. new grids on existing databases)
         from data_layer.db_init_data.campaign import (
             ensure_sample_coupon_welcome_demo,
